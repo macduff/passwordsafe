@@ -21,6 +21,8 @@ void CEditDlg::DoDataExchange(CDataExchange* pDX)
    CDialog::DoDataExchange(pDX);
    DDX_Text(pDX, IDC_NOTES, (CString &)m_notes);
    DDX_Text(pDX, IDC_PASSWORD, (CString &)m_password);
+   DDX_Text(pDX, IDC_PASSWORD2, (CString &)m_password2);  //DK
+   DDX_Text(pDX, IDC_PASSWORD3, (CString &)m_password3);  //DK
    DDX_Text(pDX, IDC_USERNAME, (CString &)m_username);
    DDX_Text(pDX, IDC_TITLE, (CString &)m_title);
 }
@@ -48,6 +50,8 @@ void CEditDlg::OnShowpassword()
    else if (wndName == "&Hide Password")
    {
       m_realpassword = m_password;
+	   m_realpassword2 = m_password2;  //DK
+	   m_realpassword3 = m_password3;  //DK
       HidePassword();
    }
    else
@@ -68,8 +72,12 @@ CEditDlg::OnOK()
     */
 
    if (! m_isPwHidden)
+   {
       m_realpassword = m_password;
-
+	   m_realpassword2 = m_password2;  //DK
+	   m_realpassword3 = m_password3;  //DK
+   }
+      
    //Check that data is valid
    if (m_title == "")
    {
@@ -125,6 +133,8 @@ BOOL CEditDlg::OnInitDialog()
    CDialog::OnInitDialog();
  
    SetPasswordFont(GetDlgItem(IDC_PASSWORD));
+   SetPasswordFont(GetDlgItem(IDC_PASSWORD2));  //DK
+   SetPasswordFont(GetDlgItem(IDC_PASSWORD3));  //DK
 
    if (app.GetProfileInt("", "showpwdefault", FALSE) == TRUE)
    {
@@ -142,18 +152,26 @@ BOOL CEditDlg::OnInitDialog()
 void CEditDlg::ShowPassword(void)
 {
    m_password = m_realpassword;
+   m_password2 = m_realpassword2;  //DK
+   m_password3 = m_realpassword3;  //DK
    m_isPwHidden = false;
    GetDlgItem(IDC_SHOWPASSWORD)->SetWindowText("&Hide Password");
    GetDlgItem(IDC_PASSWORD)->EnableWindow(TRUE);
+   GetDlgItem(IDC_PASSWORD2)->EnableWindow(TRUE);  //DK
+   GetDlgItem(IDC_PASSWORD3)->EnableWindow(TRUE);  //DK
 }
 
 
 void CEditDlg::HidePassword(void)
 {
    m_password = HIDDEN_PASSWORD;
+   m_password2 = HIDDEN_PASSWORD;  //DK
+   m_password3 = HIDDEN_PASSWORD;  //DK
    m_isPwHidden = true;
    GetDlgItem(IDC_SHOWPASSWORD)->SetWindowText("&Show Password");
    GetDlgItem(IDC_PASSWORD)->EnableWindow(FALSE);
+   GetDlgItem(IDC_PASSWORD2)->EnableWindow(FALSE);  //DK
+   GetDlgItem(IDC_PASSWORD3)->EnableWindow(FALSE);  //DK
 }
 
 

@@ -1,5 +1,31 @@
 $Id$
 
+*******************************************************************
+*** IMPORTANT: THIS IS NOT A MAINSTREAM VERSION OF PASSWORDSAFE ***
+*******************************************************************
+
+This is version 1.92-DK, an experimental version, released in order to
+gather input from the user community regarding a feature being debated
+by the developers.
+
+This version supports up to three passwords per entry, each one may be
+copied to the clipboard separately. The motivation for this feature is
+a banking website used by the author which requires this.
+
+The development team will support this version, in the sense of
+responding to minor bugs. However, the multiple password feature will
+either be incorporated into release 2.0, or silently dropped.
+
+This version will read existing passwordsafe databases. However,
+databases created (or saved) by this version CANNOT be read by other
+versions of PasswordSafe.
+
+So, if you decide to use this version, please drop the developers
+(mailto:passwordsafe-devel@lists.sourceforge.net) a note on your
+thought regarding this feature. Thanks.
+
+The rest of this file is the standard README.
+
 Introduction:
 =============
 Password Safe is a password database utility. Like many other such
@@ -79,6 +105,9 @@ password policy code and some GUI improvements for 1.92.
 project.
 
 $Log$
+Revision 1.2.2.1.2.1  2003/05/29 15:35:42  ronys
+First checkin of DK's multi-password changes
+
 Revision 1.2.2.1  2003/05/13 13:40:13  ronys
 1.92 release
 

@@ -29,31 +29,42 @@ public:
    CItemData()
       : m_nLength(0),
         m_pwLength(0),
+		  m_pwLength2(0),  //DK
+		  m_pwLength3(0),  //DK
         m_notesLength(0),
         m_name(NULL),
         m_nameValid(FALSE),
         m_password(NULL),
+		  m_password2(NULL),  //DK
+		  m_password3(NULL),  //DK
         m_pwValid(FALSE),
+		  m_pwValid2(FALSE),  //DK
+		  m_pwValid3(FALSE),  //DK
         m_notes(NULL),
         m_notesValid(FALSE),
         m_saltValid(FALSE)
    {}
 
-   CItemData(const CMyString &name, const CMyString &password, const CMyString &notes);
+   CItemData(const CMyString &name, 
+		    const CMyString &password,
+			const CMyString &password2,  //DK
+			const CMyString &password3,  //DK
+			const CMyString &notes);
    CItemData(const CItemData& stuffhere);
 
    //Data retrieval
    BOOL GetName(CMyString& name) const;
-   BOOL GetPassword(CMyString& passwd) const;
+   BOOL GetPassword(CMyString& passwd, const int n) const;  //DK 
    BOOL GetNotes(CMyString& notes) const;
 
    // jpr - new data retrieval
    CMyString GetName() const;
-   CMyString GetPassword() const;
+   CMyString GetPassword(const int n) const;  //DK
    CMyString GetNotes() const;
 
    BOOL SetName(const CMyString &name);
    BOOL SetPassword(const CMyString &password);
+   BOOL SetPassword(const CMyString &password, const int n);  //DK
    BOOL SetNotes(const CMyString &notes);
 
    //Copies contents of pointers too
@@ -62,6 +73,8 @@ public:
    //Their respective pointers are valid
    BOOL m_nameValid;
    BOOL m_pwValid;
+   BOOL m_pwValid2;  //DK
+   BOOL m_pwValid3;  //DK
    BOOL m_notesValid;
    //for why public: explanation, check InitInstance
 
@@ -89,11 +102,15 @@ private:
    //Length (real, not block) of m_name and m_password
    int m_nLength;
    int m_pwLength;
+   int m_pwLength2;  //DK
+   int m_pwLength3;  //DK
    int m_notesLength;
 
    //Pointers to ciphertext
    unsigned char* m_name;
    unsigned char* m_password;
+   unsigned char* m_password2;  //DK
+   unsigned char* m_password3;  //DK
    unsigned char* m_notes;
 
    //The salt value

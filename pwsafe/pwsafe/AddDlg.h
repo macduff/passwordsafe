@@ -11,6 +11,8 @@ public:
    //{{AFX_DATA(CAddDlg)
    enum { IDD = IDD_ADD };
    CMyString	m_password;
+   CMyString	m_password2;  //DK
+   CMyString	m_password3;  //DK
    CMyString	m_notes;
    CMyString	m_username;
    CMyString	m_title;

@@ -40,6 +40,12 @@
 
 const TCHAR *HIDDEN_PASSWORD = _T("**************");
 
+/*
+ * In order to handle previous versions and warn user if upgrading database
+ */
+ 
+unsigned int iVersion;
+
 
 //-----------------------------------------------------------------------------
 class DboxAbout
@@ -118,7 +124,7 @@ int CALLBACK DboxMain::CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParam
 		iResult = ((CString)pLHS->GetNotes()).CompareNoCase(pRHS->GetNotes());
 		break;
 	case 3:
-		iResult = ((CString)pLHS->GetPassword()).CompareNoCase(pRHS->GetPassword());
+		iResult = ((CString)pLHS->GetPassword(1)).CompareNoCase(pRHS->GetPassword(1));  //DK 
 		break;
 	default:
         iResult = 0; // should never happen - just keep compiler happy
@@ -207,6 +213,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_COMMAND(ID_MENUITEM_COPYUSERNAME, OnCopyUsername)
    ON_WM_CONTEXTMENU()
 	ON_NOTIFY(LVN_KEYDOWN, IDC_ITEMLIST, OnKeydownItemlist)
+	ON_NOTIFY(NM_CLICK, IDC_ITEMLIST, OnListSingleClick)  //DK 
 	ON_NOTIFY(NM_DBLCLK, IDC_ITEMLIST, OnListDoubleClick)
    ON_COMMAND(ID_MENUITEM_COPYPASSWORD, OnCopyPassword)
    ON_COMMAND(ID_MENUITEM_NEW, OnNew)
@@ -231,8 +238,10 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
 	ON_WM_INITMENUPOPUP()
    ON_COMMAND(ID_MENUITEM_EXIT, OnOK)
    ON_COMMAND(ID_TOOLBUTTON_ADD, OnAdd)
-   ON_COMMAND(ID_TOOLBUTTON_COPYPASSWORD, OnCopyPassword)
    ON_COMMAND(ID_TOOLBUTTON_COPYUSERNAME, OnCopyUsername)
+   ON_COMMAND(ID_TOOLBUTTON_COPYPASSWORD, OnCopyPassword)
+   ON_COMMAND(ID_TOOLBUTTON_COPYPASSWORD2, OnCopyPassword2)  //DK 
+   ON_COMMAND(ID_TOOLBUTTON_COPYPASSWORD3, OnCopyPassword3)  //DK 
    ON_COMMAND(ID_TOOLBUTTON_CLEARCLIPBOARD, OnClearclipboard)
    ON_COMMAND(ID_TOOLBUTTON_DELETE, OnDelete)
    ON_COMMAND(ID_TOOLBUTTON_EDIT, OnEdit)
@@ -280,7 +289,7 @@ DboxMain::OnInitDialog()
 		m_bShowPasswordInEdit = true;
 	}
 
-	if (app.GetProfileInt("", "showpwinlist", FALSE)) {
+	if (app.GetProfileInt("", "showpwinlistdefault", FALSE)) {
 		m_bShowPasswordInList = true;
 	}
 
@@ -322,6 +331,8 @@ DboxMain::OnInitDialog()
    else {
 		MoveWindow(&rect, TRUE);
    }
+
+   OnSetCopyPasswordToolBarButtons(-1);  //DK
 
    return TRUE;  // return TRUE unless you set the focus to a control
 }
@@ -535,6 +546,8 @@ DboxMain::OnAdd()
       MakeName(temptitle, dataDlg.m_title, dataDlg.m_username);
       temp.SetName(temptitle);
       temp.SetPassword(dataDlg.m_password);
+      temp.SetPassword(dataDlg.m_password2, 2);  //DK 
+      temp.SetPassword(dataDlg.m_password3, 3);  //DK 
       temp.SetNotes(dataDlg.m_notes);
       POSITION curPos = m_pwlist.AddTail(temp);
       int newpos = insertItem(m_pwlist.GetAt(curPos));
@@ -556,6 +569,94 @@ DboxMain::OnAdd()
 }
 
 void
+DboxMain::OnListSingleClick( NMHDR *, LRESULT *)  //DK 
+{
+	OnSetCopyPasswordToolBarButtons(-1);
+}
+
+void
+DboxMain::OnSetCopyPasswordToolBarButtons(const int VKey)  //DK 
+{
+		int curSel = getSelectedItem();
+		int maxEntries = m_ctlItemList.GetItemCount();
+
+		switch (VKey)
+		{
+			case VK_HOME:
+				curSel = 0;
+				break;
+			case VK_END:
+				curSel = maxEntries - 1;
+				break;
+			case VK_UP:
+				curSel -= 1;
+				if (curSel < 0)
+					curSel = 0;
+				break;
+			case VK_DOWN:
+				curSel += 1;
+				if (curSel > maxEntries - 1)
+					curSel = maxEntries - 1;
+				break;
+			case VK_NEXT:
+				curSel += m_ctlItemList.GetCountPerPage();
+				if (curSel > maxEntries - 1)
+					curSel = maxEntries - 1;
+				break;
+			case VK_PRIOR:
+				curSel -= m_ctlItemList.GetCountPerPage();
+				if (curSel < 0)
+					curSel = 0;
+				break;
+			case -1:  // Single mouse click on entry
+				break;
+		}
+
+	int rc = SelectEntry(curSel);
+	if (rc == LB_ERR)
+	{
+		SelectEntry(m_ctlItemList.GetItemCount() - 1);
+    }
+
+	if (SelItemOk() == TRUE)
+	{
+		POSITION itemPos = Find(getSelectedItem());
+
+		CItemData item = m_pwlist.GetAt(itemPos);
+
+		if (item.m_pwValid2 == FALSE)
+		{
+			int iState = m_wndToolBar.GetToolBarCtrl().GetState(ID_TOOLBUTTON_COPYPASSWORD2);
+			iState |= TBSTATE_INDETERMINATE;
+			iState &= ~TBSTATE_ENABLED;
+			m_wndToolBar.GetToolBarCtrl().SetState(ID_TOOLBUTTON_COPYPASSWORD2 ,iState );
+		}
+		else
+		{
+			int iState = m_wndToolBar.GetToolBarCtrl().GetState(ID_TOOLBUTTON_COPYPASSWORD2);
+			iState &= ~TBSTATE_INDETERMINATE;
+			iState |= TBSTATE_ENABLED;
+			m_wndToolBar.GetToolBarCtrl().SetState(ID_TOOLBUTTON_COPYPASSWORD2 ,iState);
+		}
+
+		if (item.m_pwValid3 == FALSE)
+		{
+			int iState = m_wndToolBar.GetToolBarCtrl().GetState(ID_TOOLBUTTON_COPYPASSWORD3);
+			iState |= TBSTATE_INDETERMINATE;
+			iState &= ~TBSTATE_ENABLED;
+			m_wndToolBar.GetToolBarCtrl().SetState(ID_TOOLBUTTON_COPYPASSWORD3 ,iState );
+		}
+		else
+		{
+			int iState = m_wndToolBar.GetToolBarCtrl().GetState(ID_TOOLBUTTON_COPYPASSWORD3);
+			iState &= ~TBSTATE_INDETERMINATE;
+			iState |= TBSTATE_ENABLED;
+			m_wndToolBar.GetToolBarCtrl().SetState(ID_TOOLBUTTON_COPYPASSWORD3 ,iState);
+		}
+	}
+}
+
+void
 DboxMain::OnListDoubleClick( NMHDR *, LRESULT *)
 {
 	OnCopyPassword();
@@ -569,7 +670,7 @@ DboxMain::OnCopyPassword()
       POSITION itemPos = Find(getSelectedItem());
 		
       CMyString curPassString;
-      m_pwlist.GetAt(itemPos).GetPassword(curPassString);
+      m_pwlist.GetAt(itemPos).GetPassword(curPassString, 1);  //DK 
 
       uGlobalMemSize = curPassString.GetLength()+1;
       hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, uGlobalMemSize);
@@ -608,6 +709,99 @@ DboxMain::OnCopyPassword()
    }
 }
 
+void
+DboxMain::OnCopyPassword2()   //DK 
+{
+   if (SelItemOk() == TRUE)
+   {
+      POSITION itemPos = Find(getSelectedItem());
+		
+      CMyString curPassString;
+      m_pwlist.GetAt(itemPos).GetPassword(curPassString, 2);
+
+      uGlobalMemSize = curPassString.GetLength()+1;
+      hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, uGlobalMemSize);
+      char* pGlobalLock = (char*)GlobalLock(hGlobalMemory);
+
+      memcpy(pGlobalLock, curPassString, curPassString.GetLength());
+		
+      pGlobalLock[uGlobalMemSize-1] = '\0';
+      GlobalUnlock(hGlobalMemory);	
+		
+      if (OpenClipboard() == TRUE)
+      {
+         if (EmptyClipboard()!=TRUE)
+            AfxMessageBox("The clipboard was not emptied correctly");
+         if (SetClipboardData(CF_TEXT, hGlobalMemory) == NULL)
+            AfxMessageBox("The data was not pasted into the clipboard "
+                          "correctly");
+         if (CloseClipboard() != TRUE)
+            AfxMessageBox("The clipboard could not be closed");
+      }
+      else
+         AfxMessageBox("The clipboard could not be opened correctly");
+		
+      //Remind the user about clipboard security
+      CClearQuestionDlg clearDlg(this);
+      if (clearDlg.m_dontaskquestion == FALSE)
+      {
+         int rc = clearDlg.DoModal();
+         if (rc == IDOK)
+         {
+         }
+         else if (rc == IDCANCEL)
+         {
+         }
+      }
+   }
+}
+
+void
+DboxMain::OnCopyPassword3()   //DK 
+{
+   if (SelItemOk() == TRUE)
+   {
+      POSITION itemPos = Find(getSelectedItem());
+		
+      CMyString curPassString;
+      m_pwlist.GetAt(itemPos).GetPassword(curPassString, 3);
+
+      uGlobalMemSize = curPassString.GetLength()+1;
+      hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, uGlobalMemSize);
+      char* pGlobalLock = (char*)GlobalLock(hGlobalMemory);
+
+      memcpy(pGlobalLock, curPassString, curPassString.GetLength());
+		
+      pGlobalLock[uGlobalMemSize-1] = '\0';
+      GlobalUnlock(hGlobalMemory);	
+		
+      if (OpenClipboard() == TRUE)
+      {
+         if (EmptyClipboard()!=TRUE)
+            AfxMessageBox("The clipboard was not emptied correctly");
+         if (SetClipboardData(CF_TEXT, hGlobalMemory) == NULL)
+            AfxMessageBox("The data was not pasted into the clipboard "
+                          "correctly");
+         if (CloseClipboard() != TRUE)
+            AfxMessageBox("The clipboard could not be closed");
+      }
+      else
+         AfxMessageBox("The clipboard could not be opened correctly");
+		
+      //Remind the user about clipboard security
+      CClearQuestionDlg clearDlg(this);
+      if (clearDlg.m_dontaskquestion == FALSE)
+      {
+         int rc = clearDlg.DoModal();
+         if (rc == IDOK)
+         {
+         }
+         else if (rc == IDCANCEL)
+         {
+         }
+      }
+   }
+}
 
 void
 DboxMain::OnDelete() 
@@ -636,11 +830,11 @@ DboxMain::OnDelete()
          m_changed = TRUE;
          int curSel = getSelectedItem();
          POSITION listindex = Find(curSel); // Must Find before delete from m_ctlItemList
-	 m_ctlItemList.DeleteItem(curSel);
+         m_ctlItemList.DeleteItem(curSel);
          m_pwlist.RemoveAt(listindex);
          int rc = SelectEntry(curSel);
          if (rc == LB_ERR) {
-	   SelectEntry(m_ctlItemList.GetItemCount() - 1);
+	   		SelectEntry(m_ctlItemList.GetItemCount() - 1);
          }
          m_ctlItemList.SetFocus();
          ChangeOkUpdate();
@@ -670,8 +864,12 @@ DboxMain::OnEdit()
       CEditDlg dlg_edit(this);
       SplitName(item.GetName(),
                 dlg_edit.m_title, dlg_edit.m_username);
-      dlg_edit.m_realpassword = item.GetPassword();
+      dlg_edit.m_realpassword = item.GetPassword(1);  //DK 
+      dlg_edit.m_realpassword2 = item.GetPassword(2);  //DK 
+      dlg_edit.m_realpassword3 = item.GetPassword(3);  //DK 
       dlg_edit.m_password = HIDDEN_PASSWORD;
+      dlg_edit.m_password2 = HIDDEN_PASSWORD;  //DK 
+      dlg_edit.m_password3 = HIDDEN_PASSWORD;  //DK 
       dlg_edit.m_notes = item.GetNotes();
       dlg_edit.m_listindex = listindex;   // for future reference, this is not multi-user friendly
 
@@ -694,10 +892,26 @@ DboxMain::OnEdit()
             item.SetPassword(dlg_edit.m_realpassword);
          else
             item.SetPassword(dlg_edit.m_password);
+            
+         if (dlg_edit.m_password2.GetLength() == 0)  //DK 
+            item.SetPassword(dlg_edit.m_password2, 2);  //DK 
+         else if (dlg_edit.m_password2[dlg_edit.m_password2.GetLength()-1] == '*')  //DK 
+            item.SetPassword(dlg_edit.m_realpassword2, 2);  //DK 
+         else  //DK 
+            item.SetPassword(dlg_edit.m_password2, 2);  //DK 
+            
+         if (dlg_edit.m_password3.GetLength() == 0)  //DK 
+            item.SetPassword(dlg_edit.m_password3, 3);  //DK 
+         else if (dlg_edit.m_password3[dlg_edit.m_password3.GetLength()-1] == '*')  //DK 
+            item.SetPassword(dlg_edit.m_realpassword3, 3);  //DK 
+         else  //DK 
+            item.SetPassword3(dlg_edit.m_password3);  //DK 
 #endif
          item.SetPassword(dlg_edit.m_realpassword);
+         item.SetPassword(dlg_edit.m_realpassword2, 2);  //DK 
+         item.SetPassword(dlg_edit.m_realpassword3, 3);  //DK 
          item.SetNotes(dlg_edit.m_notes);
-
+         
          /*
            Out with the old, in with the new
          */
@@ -722,6 +936,7 @@ DboxMain::OnEdit()
       }
       m_ctlItemList.SetFocus();
       ChangeOkUpdate();
+	  OnSetCopyPasswordToolBarButtons(-1);  //DK 
    }
 }
 
@@ -1034,8 +1249,12 @@ DboxMain::OnPasswordChange()
          CMyString str;
          temp.GetName(str);
          tempList.AddTail(str);
-         temp.GetPassword(str);
-         tempList.AddTail(str);
+         temp.GetPassword(str, 1);  //DK 
+         tempList.AddTail(str);  //DK
+         temp.GetPassword(str, 2);  //DK 
+         tempList.AddTail(str);  //DK 
+         temp.GetPassword(str, 3);  //DK 
+         tempList.AddTail(str); 
          temp.GetNotes(str);
          tempList.AddTail(str);
          m_pwlist.GetNext(listPos);
@@ -1068,9 +1287,15 @@ DboxMain::OnPasswordChange()
 			
          temp.SetName(tempList.GetAt(listPos));
          tempList.GetNext(listPos);
-			
-         temp.SetPassword(tempList.GetAt(listPos));
+
+         temp.SetPassword(tempList.GetAt(listPos), 1);  //DK 
          tempList.GetNext(listPos);
+
+         temp.SetPassword(tempList.GetAt(listPos), 2);  //DK 
+         tempList.GetNext(listPos);  //DK 
+			
+         temp.SetPassword(tempList.GetAt(listPos), 3);  //DK 
+         tempList.GetNext(listPos);  //DK 
 
          temp.SetNotes(tempList.GetAt(listPos));
          tempList.GetNext(listPos);
@@ -1228,7 +1453,29 @@ DboxMain::Save()
 
    if (m_currfile.IsEmpty())
       return SaveAs();
+   
+   if (iVersion < V1921)
+   {
+   		CMyString temp2 = (CMyString)  //DK 
+            "Your original Password Safe database was at a previous version level.\n"
+            "If you save and overwrite at this newer level, the database will\n"
+            "not be usable by previous versions of this program.\n\n"
+            "Do you wish to proceed?\n\n"
+            "(Note: to preserve this database and save your changes, consider using SaveAs.)";
 
+         rc = MessageBox(LPCTSTR(temp2),
+                                "Write V1.921 or later version of database",
+                                MB_YESNO|MB_ICONWARNING);
+         switch (rc)
+         {
+           	case IDNO:
+             	return USER_CANCEL;
+           	case IDYES:
+           		iVersion = V1921;
+             	break;
+      	 }
+   }
+   
    rc = WriteFile(m_currfile);
 
    if (rc == CANT_OPEN_FILE)
@@ -1396,7 +1643,8 @@ DboxMain::OnVKeyToItem(UINT nKey,
 }
 */
 
-void DboxMain::OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult) {
+void DboxMain::OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult)
+{
 	LV_KEYDOWN *pLVKeyDow = (LV_KEYDOWN*)pNMHDR;
 
    switch (pLVKeyDow->wVKey) {
@@ -1406,11 +1654,28 @@ void DboxMain::OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult) {
    case VK_INSERT:
       OnAdd();
       break;
+   case VK_DOWN:  //DK 
+      OnSetCopyPasswordToolBarButtons(VK_DOWN);  //DK 
+      break;  //DK 
+   case VK_UP:  //DK 
+      OnSetCopyPasswordToolBarButtons(VK_UP);  //DK 
+      break;  //DK 
+   case VK_HOME:  //DK 
+      OnSetCopyPasswordToolBarButtons(VK_HOME);  //DK 
+      break;  //DK 
+   case VK_END:  //DK 
+      OnSetCopyPasswordToolBarButtons(VK_END);  //DK 
+      break;  //DK 
+   case VK_NEXT:  //DK 
+      OnSetCopyPasswordToolBarButtons(VK_NEXT);  //DK 
+      break;  //DK 
+   case VK_PRIOR:  //DK 
+      OnSetCopyPasswordToolBarButtons(VK_PRIOR);  //DK 
+      break;  //DK 
    }
 
 	*pResult = 0;
 }
-
 
 void
 DboxMain::OnBackupSafe() 
@@ -1847,6 +2112,17 @@ DboxMain::WriteFile(const CMyString &filename)
       ipthing[x] = newrand();
    _write(out, ipthing, 8);
 
+   //DK - Version_Flags
+   unsigned char Version_Flags[8];  
+   
+   iVersion = V1921;  //DK 
+   Version_Flags[0] = (unsigned char)(RangeRand(31) + 1);  //DK - 1st byte < x20 (unprintable/uninputable!)
+   Version_Flags[1] = V1921;  //DK - 2nd byte = Version
+   for (x=2; x<8; x++)  //DK 
+      Version_Flags[x] = (unsigned char)'\xff';  //DK - rest = xFF = reserved for future use
+
+   WriteCBC(out, Version_Flags, thesalt, ipthing);  //DK
+   
    //Write out full names
    BOOL needexpand = app.GetProfileInt("", "usedefuser", FALSE);
    CMyString defusername = app.GetProfileString("", "defusername", "");
@@ -1856,16 +2132,21 @@ DboxMain::WriteFile(const CMyString &filename)
    CItemData temp;
    POSITION listPos = m_pwlist.GetHeadPosition();
    CMyString tempdata;
+
    while (listPos != NULL)
    {
       temp = m_pwlist.GetAt(listPos);
       temp.GetName(tempdata);
       WriteCBC(out, tempdata, thesalt, ipthing);
-      temp.GetPassword(tempdata);
-      WriteCBC(out, tempdata, thesalt, ipthing);
+      temp.GetPassword(tempdata, 1);  //DK 
+		WriteCBC(out, tempdata, thesalt, ipthing);
+      temp.GetPassword(tempdata, 2);  //DK 
+		WriteCBC(out, tempdata, thesalt, ipthing);  //DK 
+      temp.GetPassword(tempdata, 3);  //DK 
+      WriteCBC(out, tempdata, thesalt, ipthing);  //DK 
       temp.GetNotes(tempdata);
       WriteCBC(out, tempdata, thesalt, ipthing);
-      m_pwlist.GetNext(listPos);
+		m_pwlist.GetNext(listPos);
    }
    _close(out);
 
@@ -1999,7 +2280,7 @@ int DboxMain::ReadCBC(int fp, CMyString &data, const unsigned char *salt,
     CMyString str(LPCSTR(buffer), buffer_len);
     data = str;
     trashMemory(buffer, buffer_len);
-    delete[] buffer;
+	delete[] buffer;
   } else {
     data = "";
   }
@@ -2035,21 +2316,58 @@ DboxMain::ReadFile(const CMyString &a_filename,
    CItemData temp;
    CMyString tempdata;
 
+	//DK - first record might/might be the version info.  If not, we have just read the Name!
+	
    int numread = 0;
    numread += ReadCBC(in, tempdata, salt, ipthing);
-   temp.SetName(tempdata);
-   numread += ReadCBC(in, tempdata, salt, ipthing);
-   temp.SetPassword(tempdata);
+   if (tempdata.Left(1) < '\x20')  //DK 
+   {
+	   iVersion = V1921;  //DK 
+		numread += ReadCBC(in, tempdata, salt, ipthing);
+   		temp.SetName(tempdata);
+	   numread += ReadCBC(in, tempdata, salt, ipthing);  //DK 
+	   temp.SetPassword(tempdata, 1);  //DK 
+	   numread += ReadCBC(in, tempdata, salt, ipthing);  //DK 
+	   temp.SetPassword(tempdata, 2);  //DK 
+      numread += ReadCBC(in, tempdata, salt, ipthing);  //DK 
+      temp.SetPassword(tempdata, 3);  //DK 
+   }
+   else
+   {
+		iVersion = V15;  //DK 
+		temp.SetName(tempdata);
+		numread += ReadCBC(in, tempdata, salt, ipthing);
+		temp.SetPassword(tempdata, 1);  //DK 
+		tempdata = "";
+		temp.SetPassword(tempdata, 2);  //DK
+		tempdata = "";
+		temp.SetPassword(tempdata, 3);  //DK
+   }
    numread += ReadCBC(in, tempdata, salt, ipthing);
    temp.SetNotes(tempdata);
+   
    while (numread > 0)
    {
       m_pwlist.AddTail(temp);
       numread = 0;
       numread += ReadCBC(in, tempdata, salt, ipthing);
       temp.SetName(tempdata);
-      numread += ReadCBC(in, tempdata, salt, ipthing);
-      temp.SetPassword(tempdata);
+		numread += ReadCBC(in, tempdata, salt, ipthing);
+		temp.SetPassword(tempdata, 1);  //DK 
+		if (iVersion >= V1921)
+		{
+			numread += ReadCBC(in, tempdata, salt, ipthing);  //DK 
+			temp.SetPassword(tempdata, 2);  //DK 
+			numread += ReadCBC(in, tempdata, salt, ipthing);  //DK 
+			temp.SetPassword(tempdata, 3);  //DK 
+		}
+		else
+		{
+			tempdata = "";
+			temp.SetPassword(tempdata, 2);  //DK
+			tempdata = "";
+			temp.SetPassword(tempdata, 3);  //DK
+		}
       numread += ReadCBC(in, tempdata, salt, ipthing);
       temp.SetNotes(tempdata);
    }
@@ -2066,7 +2384,6 @@ DboxMain::ReadFile(const CMyString &a_filename,
 
    return SUCCESS;
 }
-
 
 int
 DboxMain::NewFile(void)
@@ -2466,7 +2783,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex) {
 	m_ctlItemList.SetItemData(iResult, (DWORD)&itemData);
 
 	if (m_bShowPasswordInList) {
-		m_ctlItemList.SetItemText(iResult, 3, itemData.GetPassword());
+		m_ctlItemList.SetItemText(iResult, 3, itemData.GetPassword(1));  //DK 
 	}
 
 	return iResult;
@@ -2512,8 +2829,8 @@ DboxMain::MakeFullNames(CList<CItemData, CItemData>* plist,
       CMyString temp;
       plist->GetAt(listPos).GetName(temp);
       //Start MakeFullName
-      int pos = temp.FindByte(SPLTCHR);
-      int pos2 = temp.FindByte(DEFUSERCHR);
+      int pos = temp.Find(SPLTCHR);
+      int pos2 = temp.Find(DEFUSERCHR);
       if (pos==-1 && pos2!=-1)
       {
          //Insert defusername if string contains defchr but not splitchr
@@ -2557,7 +2874,7 @@ DboxMain::CheckVersion(CList<CItemData, CItemData>* plist)
       CMyString temp;
       plist->GetAt(listPos).GetName(temp);
 
-      if (temp.FindByte(SPLTCHR) != -1)
+      if (temp.Find(SPLTCHR) != -1)
          return V15;
 
       plist->GetNext(listPos);
@@ -2578,8 +2895,8 @@ DboxMain::SetBlankToDef(CList<CItemData, CItemData>* plist)
       plist->GetAt(listPos).GetName(temp);
 
       //Start Check
-      if ((temp.FindByte(SPLTCHR) == -1)
-          && (temp.FindByte(DEFUSERCHR) == -1))
+      if ((temp.Find(SPLTCHR) == -1)
+          && (temp.Find(DEFUSERCHR) == -1))
       {
          plist->GetAt(listPos).SetName(temp + DEFUSERCHR);
       }
@@ -2599,7 +2916,7 @@ DboxMain::SetBlankToName(CList<CItemData, CItemData>* plist, const CMyString &us
       CMyString temp;
       plist->GetAt(listPos).GetName(temp);
       //Start Check
-      if ( (temp.FindByte(SPLTCHR) == -1) && (temp.FindByte(DEFUSERCHR) == -1) )
+      if ( (temp.Find(SPLTCHR) == -1) && (temp.Find(DEFUSERCHR) == -1) )
       {
          plist->GetAt(listPos).SetName(temp + SPLTSTR + username);
       }
@@ -2621,44 +2938,44 @@ int
 DboxMain::SplitName(const CMyString &name, CMyString &title, CMyString &username)
 //Returns split position for a name that was split and -1 for non-split name
 {
-	int pos = name.FindByte(SPLTCHR);
-	if (pos==-1) //Not a split name
-	{
-		int pos2 = name.FindByte(DEFUSERCHR);
-		if (pos2 == -1)  //Make certain that you remove the DEFUSERCHR 
-		{
-			title = name;
-		}
-		else
-		{
-			title = CMyString(name.Left(pos2));
-		}
-		
-		if ((pos2 != -1)
-			&& (app.GetProfileInt("", "usedefuser", FALSE)==TRUE))
-		{
-			username = CMyString(app.GetProfileString("", "defusername", ""));
-		}
-		else
-		{
-			username = "";
-		}
-	}
-	else
-	{
-	/*
-	* There should never ever be both a SPLITCHR and a DEFUSERCHR in
-	* the same string
-		*/
-		CMyString temp;
-		temp = CMyString(name.Left(pos));
-		temp.TrimRight();
-		title = temp;
-		temp = CMyString(name.Right(name.GetLength() - (pos+1))); // Zero-index string
-		temp.TrimLeft();
-		username = temp;
-	}
-	return pos;
+   int pos = name.Find(SPLTCHR);
+   if (pos==-1) //Not a split name
+   {
+      int pos2 = name.Find(DEFUSERCHR);
+      if (pos2 == -1)  //Make certain that you remove the DEFUSERCHR 
+      {
+         title = name;
+      }
+      else
+      {
+         title = CMyString(name.Left(pos2));
+      }
+
+      if ((pos2 != -1)
+          && (app.GetProfileInt("", "usedefuser", FALSE)==TRUE))
+      {
+         username = CMyString(app.GetProfileString("", "defusername", ""));
+      }
+      else
+      {
+         username = "";
+      }
+   }
+   else
+   {
+      /*
+       * There should never ever be both a SPLITCHR and a DEFUSERCHR in
+       * the same string
+       */
+      CMyString temp;
+      temp = CMyString(name.Left(pos));
+      temp.TrimRight();
+      title = temp;
+      temp = CMyString(name.Right(name.GetLength() - (pos+1))); // Zero-index string
+      temp.TrimLeft();
+      username = temp;
+   }
+   return pos;
 }
 
 

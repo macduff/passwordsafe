@@ -130,9 +130,13 @@ protected:
    afx_msg void OnAbout();
    afx_msg void OnCopyUsername();
    afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
-	afx_msg void OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult);
-   afx_msg void OnListDoubleClick( NMHDR * pNotifyStruct, LRESULT * result );
+   afx_msg void OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult);
+   afx_msg void OnListSingleClick(NMHDR * pNotifyStruct, LRESULT * result );  //DK 
+   afx_msg void OnListDoubleClick(NMHDR * pNotifyStruct, LRESULT * result );
+   afx_msg void OnSetCopyPasswordToolBarButtons(int VKey);  //DK 
    afx_msg void OnCopyPassword();
+   afx_msg void OnCopyPassword2();  //DK 
+   afx_msg void OnCopyPassword3();  //DK 
    afx_msg void OnNew();
    afx_msg void OnOpen();
    afx_msg void OnRestore();

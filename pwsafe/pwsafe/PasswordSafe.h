@@ -8,6 +8,8 @@
 #include "stdafx.h"
 #endif
 
+#define new DEBUG_NEW  //DK
+
 /*
   jpr debug stuff
 */

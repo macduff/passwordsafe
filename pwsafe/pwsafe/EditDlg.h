@@ -15,10 +15,14 @@ public:
    enum { IDD = IDD_EDIT };
    CMyString m_notes;
    CMyString m_password;
+   CMyString m_password2;  //DK
+   CMyString m_password3;  //DK
    CMyString m_username;
    CMyString m_title;
 
    CMyString m_realpassword;
+   CMyString m_realpassword2;  //DK
+   CMyString m_realpassword3;  //DK
 
    POSITION  m_listindex;
 

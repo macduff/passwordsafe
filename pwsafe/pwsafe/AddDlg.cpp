@@ -22,6 +22,8 @@ CAddDlg::CAddDlg(CWnd* pParent)
    DBGMSG("CAddDlg()\n");
 
    m_password = "";
+   m_password2 = "";  //DK
+   m_password3 = "";  //DK
    m_notes = "";
    m_username = "";
    m_title = "";
@@ -33,6 +35,8 @@ BOOL CAddDlg::OnInitDialog()
    CDialog::OnInitDialog();
  
    SetPasswordFont(GetDlgItem(IDC_PASSWORD));
+   SetPasswordFont(GetDlgItem(IDC_PASSWORD2));  //DK
+   SetPasswordFont(GetDlgItem(IDC_PASSWORD3));  //DK
 
    return TRUE;
 }
@@ -42,6 +46,8 @@ void CAddDlg::DoDataExchange(CDataExchange* pDX)
 {
    CDialog::DoDataExchange(pDX);
    DDX_Text(pDX, IDC_PASSWORD, (CString&)m_password);
+   DDX_Text(pDX, IDC_PASSWORD2, (CString&)m_password2);  //DK
+   DDX_Text(pDX, IDC_PASSWORD3, (CString&)m_password3);  //DK
    DDX_Text(pDX, IDC_NOTES, (CString&)m_notes);
    DDX_Text(pDX, IDC_USERNAME, (CString&)m_username);
    DDX_Text(pDX, IDC_TITLE, (CString&)m_title);

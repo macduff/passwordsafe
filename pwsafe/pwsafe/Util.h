@@ -23,6 +23,7 @@
 //Version defines
 #define V10 0
 #define V15 1
+#define V1921 2  //DK
 
 //Some extra typedefs -- I'm addicted to typedefs
 typedef char    int8;

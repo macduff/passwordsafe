@@ -46,6 +46,7 @@
 #define IDD_PS_USERNAME                 196
 #define IDD_PS_PASSWORDPOLICY           197
 #define IDD_PS_MISC                     198
+#define IDR_TOOLBAR1                    200
 #define IDC_PASSWORD                    1000
 #define IDC_ITEMLIST                    1000
 #define IDC_OLDPASSKEY                  1001
@@ -113,6 +114,8 @@
 #define IDC_SPINDIGITS                  1075
 #define IDC_SPINSYMBOLS                 1076
 #define IDC_EASYVISION                  1077
+#define IDC_PASSWORD2                   1102
+#define IDC_PASSWORD3                   1103
 #define ID_MENUITEM_SAVE                32771
 #define ID_MENUITEM_EXIT                32772
 #define ID_MENUITEM_ADD                 32773
@@ -142,6 +145,9 @@
 #define ID_TOOLBUTTON_OPEN              32810
 #define ID_MENUITEM_FIND                32812
 #define ID_TOOLBUTTON_CLEARCLIPBOARD    32813
+#define ID_TOOLBUTTON_COPYPASSWORD2     32814  //DK
+#define ID_TOOLBUTTON_COPYPASSWORD3     32815  //DK
+#define ID_BUTTON32822                  32822
 #define ID_FILE_MRU_ENTRY1              40001
 #define ID_FILE_MRU_ENTRY20             40020
 
@@ -149,9 +155,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        199
-#define _APS_NEXT_COMMAND_VALUE         32822
+#define _APS_NEXT_RESOURCE_VALUE        202
+#define _APS_NEXT_COMMAND_VALUE         32823
 #define _APS_NEXT_CONTROL_VALUE         1078
-#define _APS_NEXT_SYMED_VALUE           105
+#define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

@@ -28,11 +28,15 @@ static char THIS_FILE[] = __FILE__;
 //More complex constructor
 CItemData::CItemData(const CMyString &name,
                      const CMyString &password,
+                     const CMyString &password2,  //DK 
+                     const CMyString &password3,  //DK 
                      const CMyString &notes)
 {
    InitStuff();
    SetName(name);
    SetPassword(password);
+   SetPassword(password2, 2);  //DK 
+   SetPassword(password3, 3);  //DK 
    SetNotes(notes);
 }
 
@@ -40,6 +44,8 @@ CItemData::CItemData(const CItemData &stuffhere)
 {
    m_nLength = stuffhere.m_nLength;
    m_pwLength = stuffhere.m_pwLength;
+   m_pwLength2 = stuffhere.m_pwLength2;  //DK 
+   m_pwLength3 = stuffhere.m_pwLength3;  //DK 
    m_notesLength = stuffhere.m_notesLength;
 
    m_name = new unsigned char[GetBlockSize(m_nLength)];
@@ -49,6 +55,30 @@ CItemData::CItemData(const CItemData &stuffhere)
    m_password = new unsigned char[GetBlockSize(m_pwLength)];
    m_pwValid = TRUE;
    memcpy(m_password, stuffhere.m_password, GetBlockSize(m_pwLength));
+
+   if (m_pwLength2 > 0)  //DK 
+   {  //DK 
+	   m_password2 = new unsigned char[GetBlockSize(m_pwLength2)];  //DK 
+		m_pwValid2 = TRUE;  //DK 
+		memcpy(m_password2, stuffhere.m_password2, GetBlockSize(m_pwLength2));  //DK 
+   }  //DK 
+   else  //DK 
+   {  //DK 
+	   m_password2 = NULL;  //DK 
+		m_pwValid2 = FALSE;  //DK 
+   }  //DK 
+
+   if (m_pwLength3 > 0)  //DK 
+   {  //DK 
+	   m_password3 = new unsigned char[GetBlockSize(m_pwLength3)];  //DK 
+		m_pwValid3 = TRUE;  //DK 
+		memcpy(m_password3, stuffhere.m_password3, GetBlockSize(m_pwLength3));  //DK 
+   }  //DK 
+   else  //DK 
+   {  //DK 
+	   m_password3 = NULL;  //DK 
+		m_pwValid3 = FALSE;  //DK 
+   }  //DK 
 
    m_notes = new unsigned char[GetBlockSize(m_notesLength)];
    m_notesValid = TRUE;
@@ -76,19 +106,41 @@ CItemData::GetName() const
 
 //Returns a plaintext password
 BOOL
-CItemData::GetPassword(CMyString &password) const
+CItemData::GetPassword(CMyString &password, const int n) const  //DK 
 {
-   return DecryptData(m_password, m_pwLength, m_pwValid, &password);
+	switch (n)  //DK 
+   {  //DK 
+   	case 1:  //DK 
+   		return DecryptData(m_password, m_pwLength, m_pwValid, &password);
+		break;  //DK 
+   	case 2:  //DK 
+		return DecryptData(m_password2, m_pwLength2, m_pwValid2, &password);  //DK 
+		break;  //DK 
+   	case 3:  //DK 
+   		return DecryptData(m_password3, m_pwLength3, m_pwValid3, &password);  //DK 
+		break;  //DK 
+   }  //DK 
+	return 0;
 }
 
 CMyString
-CItemData::GetPassword() const
+CItemData::GetPassword(const int n) const  //DK 
 {
-   CMyString ret;
-   (void) DecryptData(m_password, m_pwLength, m_pwValid, &ret);
+   CMyString ret = "";
+	switch (n)  //DK 
+   {  //DK 
+   	case 1:  //DK 
+   		(void) DecryptData(m_password, m_pwLength, m_pwValid, &ret);
+		break;  //DK 
+   	case 2:  //DK 
+		(void) DecryptData(m_password2, m_pwLength2, m_pwValid2, &ret);  //DK 
+		break;  //DK 
+   	case 3:  //DK 
+   		(void) DecryptData(m_password3, m_pwLength3, m_pwValid3, &ret);  //DK 
+		break;  //DK 
+   }  //DK 
    return ret;
 }
-
 
 //Returns a plaintext notes
 BOOL
@@ -115,9 +167,30 @@ CItemData::SetName(const CMyString &name)
 
 //Encrypts a plaintext password and stores it in m_password
 BOOL
+CItemData::SetPassword(const CMyString &password, const int n)  //DK 
+{
+   switch (n)  //DK 
+   {  //DK 
+   	case 1:  //DK 
+			return EncryptData(password, &m_password, &m_pwLength, m_pwValid);
+			break;  //DK 
+   	case 2:  //DK 
+			return EncryptData(password, &m_password2, &m_pwLength2, m_pwValid2);  //DK 
+			break;  //DK 
+   	case 3:  //DK 
+			return EncryptData(password, &m_password3, &m_pwLength3, m_pwValid3);  //DK 
+			break;  //DK
+   }  //DK 
+   return 0;
+}
+
+//Encrypts a plaintext password and stores it in m_password
+BOOL
 CItemData::SetPassword(const CMyString &password)
 {
+
    return EncryptData(password, &m_password, &m_pwLength, m_pwValid);
+
 }
 
 //Encrypts plaintext notes and stores them in m_notes
@@ -140,6 +213,16 @@ CItemData::~CItemData()
       delete [] m_password;
       m_pwValid = FALSE;
    }
+   if (m_pwValid2 == TRUE)  //DK 
+   {  //DK 
+      delete [] m_password2;  //DK 
+      m_pwValid2 = FALSE;  //DK 
+   }  //DK 
+   if (m_pwValid3 == TRUE)  //DK 
+   {  //DK 
+      delete [] m_password3;  //DK 
+      m_pwValid3 = FALSE;  //DK 
+   }  //DK 
    if (m_notesValid == TRUE)
    {
       delete [] m_notes;
@@ -237,8 +320,9 @@ CItemData::DecryptData(const unsigned char *cipher,
                        unsigned char *plain,
                        int plainlength) const
 {
-  if (valid == FALSE) // check here once instead of in each caller to DecryptData
-    return FALSE;
+
+	if (valid == FALSE) // check here once instead of in each caller to DecryptData
+		return FALSE;
 
    int BlockLength = GetBlockSize(cLength);
 
@@ -268,6 +352,7 @@ CItemData::DecryptData(const unsigned char *cipher,
                        BOOL valid,
                        CMyString *plain) const
 {
+	*plain = "";  //DK
   if (valid == FALSE) // check here once instead of in each caller to DecryptData
     return FALSE;
 
@@ -298,13 +383,19 @@ void CItemData::InitStuff()
 {
    m_nLength = 0;
    m_pwLength = 0;
+   m_pwLength2 = 0;  //DK 
+   m_pwLength3 = 0;  //DK 
    m_notesLength = 0;
 	
    m_name = NULL;
    m_nameValid = FALSE;
 
    m_password = NULL;	
+   m_password2 = NULL;  //DK 
+   m_password3 = NULL;  //DK 
    m_pwValid = FALSE;
+   m_pwValid2 = FALSE;  //DK 
+   m_pwValid3 = FALSE;  //DK 
 
    m_notes = NULL;
    m_notesValid = FALSE;
@@ -336,6 +427,16 @@ CItemData::operator=(const CItemData &second)
          delete [] m_password;
          m_pwValid = FALSE;
       }
+      if (m_pwValid2 == TRUE)  //DK 
+      {  //DK 
+         delete [] m_password2;  //DK 
+         m_pwValid2 = FALSE;  //DK 
+      }  //DK 
+      if (m_pwValid3 == TRUE)  //DK 
+      {  //DK 
+         delete [] m_password3;  //DK 
+         m_pwValid3 = FALSE;  //DK 
+      }  //DK 
       if (m_notesValid == TRUE)
       {
          delete [] m_notes;
@@ -344,6 +445,8 @@ CItemData::operator=(const CItemData &second)
 		
       m_nLength = second.m_nLength;
       m_pwLength = second.m_pwLength;
+      m_pwLength2 = second.m_pwLength2;  //DK 
+      m_pwLength3 = second.m_pwLength3;  //DK 
       m_notesLength = second.m_notesLength;
 
       m_name = new unsigned char[GetBlockSize(m_nLength)];
@@ -353,6 +456,30 @@ CItemData::operator=(const CItemData &second)
       m_password = new unsigned char[GetBlockSize(m_pwLength)];
       m_pwValid = TRUE;
       memcpy(m_password, second.m_password, GetBlockSize(m_pwLength));
+
+		if (m_pwLength2 > 0)  //DK
+		{
+			m_password2 = new unsigned char[GetBlockSize(m_pwLength2)];  //DK
+			m_pwValid2 = TRUE;  //DK
+			memcpy(m_password2, second.m_password2, GetBlockSize(m_pwLength2));  //DK
+		}
+		else
+		{
+			m_password2 = NULL;  //DK
+			m_pwValid2 = FALSE;  //DK
+		}
+
+		if (m_pwLength3 > 0)  //DK
+		{
+			m_password3 = new unsigned char[GetBlockSize(m_pwLength3)];  //DK
+			m_pwValid3 = TRUE;  //DK
+			memcpy(m_password3, second.m_password3, GetBlockSize(m_pwLength3));  //DK
+		}
+		else
+		{
+			m_password3 = NULL;  //DK
+			m_pwValid3 = FALSE;  //DK
+		}
 
       m_notes = new unsigned char[GetBlockSize(m_notesLength)];
       m_notesValid = TRUE;
