@@ -90,13 +90,16 @@ see the ReleaseNotes.txt file that comes with the package.
 
 Credits:
 ========
-- The original version of Password Safe was written by Bruce Schneier,
+- The multiple-password feature of this version of Password Safe was
+written by David Kelvin.
+- The original version of Password Safe was written by Mark Rosen,
 and was freely downloadable from Conterpane Lab's website. Thanks to
-Bruce for writing a great little application, and for making the
-source of release 1.7 publicly available as a SourceForge open source
-project.
-- Jim Russell first brought the code to SourceForge, setting up a nice
-project and adding some minor features in release 1.9.0
+Mark for writing a great little application! Following Mark, it was
+maintained by "AYB", at Counterpane. Thanks to Counterpane for
+deciding to open source the project!
+- Jim Russell first brought the code to SourceForge, did some major
+cleaning up of the code, set up a nice project and added some minor
+features in release 1.9.0
 - The current release has been brought to you by: Andrew Mullican,
 Edward Quackenbush, Gregg Conklin, Graham Ullrich, and Rony
 Shapiro. Karel (Karlo) Van der Gucht also contributed some of the
@@ -105,6 +108,9 @@ password policy code and some GUI improvements for 1.92.
 project.
 
 $Log$
+Revision 1.2.2.1.2.2  2003/05/30 06:12:26  ronys
+Update Credits
+
 Revision 1.2.2.1.2.1  2003/05/29 15:35:42  ronys
 First checkin of DK's multi-password changes
 
