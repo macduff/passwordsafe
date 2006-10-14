@@ -300,6 +300,7 @@
 #define IDC_BACKUPMAXINC                1233
 #define IDC_BACKUPMAX                   1234
 #define IDC_BROWSEFORLOCATION           1235
+#define IDC_APPLYREGISTRYDELETENOW      1236
 #define ID_MENUITEM_SAVE                32771
 #define ID_MENUITEM_EXIT                32772
 #define ID_MENUITEM_ADD                 32773
@@ -391,7 +392,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        234
 #define _APS_NEXT_COMMAND_VALUE         32861
-#define _APS_NEXT_CONTROL_VALUE         1236
+#define _APS_NEXT_CONTROL_VALUE         1237
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif

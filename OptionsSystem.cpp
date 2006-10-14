@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "passwordsafe.h"
 #include "corelib/PwsPlatform.h"
-
+#include "corelib/PWSprefs.h"
 
 #if defined(POCKET_PC)
   #include "pocketpc/resource.h"
@@ -54,6 +54,8 @@ void COptionsSystem::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(COptionsSystem, CPropertyPage)
 	//{{AFX_MSG_MAP(COptionsSystem)
 	ON_BN_CLICKED(IDC_DEFPWUSESYSTRAY, OnUseSystemTray)
+	ON_BN_CLICKED(IDC_DELETEREGISTRY, OnSetDeleteRegistry)
+	ON_BN_CLICKED(IDC_APPLYREGISTRYDELETENOW, OnApplyRegistryDeleteNow)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -69,9 +71,21 @@ void COptionsSystem::OnUseSystemTray()
   GetDlgItem(IDC_RESPIN)->EnableWindow(enable);
 }
 
+void COptionsSystem::OnSetDeleteRegistry() 
+{
+  BOOL enable = (((CButton*)GetDlgItem(IDC_DELETEREGISTRY))->GetCheck() == 1) ? TRUE : FALSE;
+
+  GetDlgItem(IDC_APPLYREGISTRYDELETENOW)->EnableWindow(enable);
+}
+
 BOOL COptionsSystem::OnInitDialog() 
 {
 	BOOL bResult = CPropertyPage::OnInitDialog();
+	
+	if (!m_offerdeleteregistry)
+		GetDlgItem(IDC_DELETEREGISTRY)->EnableWindow(FALSE);
+
+	GetDlgItem(IDC_APPLYREGISTRYDELETENOW)->EnableWindow(FALSE);
 
 	CSpinButtonCtrl* pspin = (CSpinButtonCtrl *)GetDlgItem(IDC_RESPIN);
 
@@ -111,11 +125,22 @@ BOOL COptionsSystem::OnInitDialog()
 		m_ToolTipCtrl->AddTool(GetDlgItem(IDC_DELETEREGISTRY), cs_ToolTip);
 	}
 
-	if (!m_offerdeleteregistry)
-		GetDlgItem(IDC_DELETEREGISTRY)->EnableWindow(FALSE);
-
 	return TRUE;	// return TRUE unless you set the focus to a control
 					// EXCEPTION: OCX Property Pages should return FALSE
+}
+
+void COptionsSystem::OnApplyRegistryDeleteNow()
+{
+  UpdateData(TRUE);
+
+  if (m_deleteregistry == TRUE) {
+    const CString cs_msg = _T("Please confirm that you wish to delete ALL information related to Password Safe for your logged on userid from the Windows registry on this computer!\n\n");
+    if (AfxMessageBox(cs_msg, MB_YESNO | MB_ICONSTOP) == IDYES)
+		PWSprefs::GetInstance()->DeleteRegistryEntries();
+  }
+
+  GetDlgItem(IDC_APPLYREGISTRYDELETENOW)->EnableWindow(FALSE);
+  UpdateData(FALSE);
 }
 
 BOOL COptionsSystem::OnKillActive()

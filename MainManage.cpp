@@ -339,13 +339,6 @@ DboxMain::OnOptions()
 
   if (rc == IDOK)
     {
-      if (system.m_deleteregistry == TRUE) {
-          const CString cs_msg = _T("Please confirm that you wish to delete ALL information related to Password Safe for your logged on userid from the Windows registry on this computer!\n\n");
-          rc = AfxMessageBox(cs_msg, MB_YESNO | MB_ICONSTOP);
-          if (rc == IDYES) {
-          	prefs->DeleteRegistryEntries();
-          }
-      }
       /*
       **  First save all the options.
       */

@@ -39,6 +39,8 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(COptionsSystem)
 	afx_msg void OnUseSystemTray();
+	afx_msg void OnSetDeleteRegistry();
+	afx_msg void OnApplyRegistryDeleteNow();
 	virtual BOOL OnInitDialog();
 	afx_msg BOOL OnKillActive();
 	//}}AFX_MSG
