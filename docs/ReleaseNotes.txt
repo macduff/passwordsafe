@@ -1,25 +1,45 @@
-Password Safe 3.04 Release Note - ??? 200?
+Password Safe 3.?? Release Note - ??????? 200?
 ==============================================
 
 This note describe the new features, fixed bugs and known problems
-with Password Safe version 3.04. For a short description of Password
+with Password Safe version 3.??. For a short description of Password
 Safe, please see the accompanying README.txt file. For more
 information on the product and the project, please visit
 http://passwordsafe.sourceforge.net. Details about changes to previous
 releases may be found in the file ChangeLog.txt.
 
+New Features for 3.??
+=====================
+Intermediate Backups supported - can be created before every save
+Configuration data moved from the Windows Registry to a XML file
+DoubleClickAction can now also copy username or notes to the clipboard
+
+Changes to Existing Features in 3.??
+====================================
+Internally:
+- Major changes to preferences (in memory copies used, written out only
+  when DB saved or application ends)
+- File locking changed to handle DB and Config file locks
+- Internal RecentFileList class to overcome "bug" in MS code
+
+Bugs fixed in 3.??
+==================
+None
+
 New Features for 3.04
 =====================
-
+None
 
 Changes to Existing Features in 3.04
 ====================================
-
+None
 
 Bugs fixed in 3.04
 ==================
+[1575432] Hidden notes no longer lost after edit
 [1575279] Database now marked as "changed" after performing PWHistory operations
-
+[1575415] Weak master password allowed on password change as well as
+new safe.
 
 New Features for 3.03
 =====================

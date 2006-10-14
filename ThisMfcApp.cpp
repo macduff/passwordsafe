@@ -3,8 +3,7 @@
 //-----------------------------------------------------------------------------
 
 #include "PasswordSafe.h"
-#include "corelib/PwsPlatform.h"
-#include "corelib/PWSprefs.h"
+
 #include "corelib/PWSrand.h"
 #include "corelib/sha256.h"
 #include "corelib/sha1.h"
@@ -24,14 +23,19 @@
 #include "DboxMain.h"
 
 #include "CryptKeyEntry.h"
+#include "PWSRecentFileList.h"
+#include "corelib/PWSprefs.h"
 
-
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
+#endif
 
 BEGIN_MESSAGE_MAP(ThisMfcApp, CWinApp)
 //   ON_COMMAND(ID_HELP, CWinApp::OnHelp)
    ON_COMMAND(ID_HELP, OnHelp)
 END_MESSAGE_MAP()
-
 
 ThisMfcApp::ThisMfcApp() :
 #if defined(POCKET_PC)
@@ -40,7 +44,7 @@ ThisMfcApp::ThisMfcApp() :
 	m_bUseAccelerator( true ),
 #endif
 	m_pMRU( NULL ), m_TrayLockedState(LOCKED), m_TrayIcon(NULL), m_csDefault_Browser(""),
-	m_HotKeyPressed(false)
+	m_HotKeyPressed(false), m_companyname(_T("Counterpane Systems"))
 {
   // {kjp} Temporary until I'm sure that PwsPlatform.h configures the endianness properly
 #if defined(POCKET_PC)
@@ -62,21 +66,21 @@ ThisMfcApp::ThisMfcApp() :
                   _T("You may not be able to open files or saved files may be incompatible with other platforms."));
   }
 #endif
+
   CoInitialize(NULL);
 }
-
 
 ThisMfcApp::~ThisMfcApp()
 {
   delete m_TrayIcon;
   if (m_pMRU != NULL) {
-    m_pMRU->WriteList();
+  	WriteMRU(PWSprefs::GetInstance()->GetConfigOptions());
     delete m_pMRU;
   }
 
-  if (m_mainmenu != NULL)
-  	delete m_mainmenu;
+  delete m_mainmenu;
 
+  // Note: deleting PWSprefs instance first reformats the XML config file
   PWSprefs::DeleteInstance();
   PWSrand::DeleteInstance();
   CoUninitialize();
@@ -94,10 +98,8 @@ ThisMfcApp::~ThisMfcApp()
 #if !defined(POCKET_PC)
 static void Usage()
 {
-  AfxMessageBox(_T("Usage: PasswordSafe [-r|-v] [password database]\n")
-                _T("or PasswordSafe [-e|-d] filename\n")
-                _T("-r = open read-only\n-v = validate & repair\n-e/d = encrypt/decrypt file")
-                );
+  AfxMessageBox(_T("Usage: PasswordSafe [-r|-s] [password database]\n")
+		_T("or PasswordSafe [-e|-d] filename"));
 }
 
 // tests if file exists, returns empty string if so, displays error message if not
@@ -331,65 +333,74 @@ ThisMfcApp::InitInstance()
     Of course, this is legacy, and will go away once the registry is fully replaced
     by the in-database preference storage. -- ronys
   */
-  CString companyname(_T("Counterpane Systems"));
-  SetRegistryKey(companyname);
+  SetRegistryKey(m_companyname);
 
-  int	nMRUItems = PWSprefs::GetInstance()->
-    GetPref(PWSprefs::MaxMRUItems);
+  // MUST (indirectly) create PWSprefs first
+  // Ensures all things like saving locations etc. are set up.
+  PWSprefs *prefs = PWSprefs::GetInstance(&m_core);
 
-  m_mruonfilemenu = PWSprefs::GetInstance()->
-    GetPref(PWSprefs::MRUOnFileMenu);
-    
-  m_clipboard_set = false;
-  
-  m_mainmenu = new CMenu;
-  m_mainmenu->LoadMenu(IDR_MAINMENU);
-  CMenu* new_popupmenu = new CMenu;
-  
-  // Look for "File" menu.
-  int pos = FindMenuItem(m_mainmenu, _T("&File"));
-  if (pos == -1) // E.g., in non-English versions
-	pos = 0; // best guess...
+  CMenu* new_popupmenu = NULL;
+  const int iConfigOptions = prefs->GetConfigOptions();
 
-  CMenu* file_submenu = m_mainmenu->GetSubMenu(pos);
-  if (file_submenu != NULL)  // Look for "Open Database"
-   	pos = FindMenuItem(file_submenu, ID_MENUITEM_OPEN);
-  else
-   	pos = -1;
+	if (iConfigOptions != PWSprefs::CF_NONE) {
+		int	nMRUItems = prefs->GetPref(PWSprefs::MaxMRUItems);
 
-  if (nMRUItems > 0) {
-	  if (pos > -1) {
-    	int irc;
-    	// Create New Popup Menu
-    	new_popupmenu->CreatePopupMenu();
+		m_mruonfilemenu = prefs->GetPref(PWSprefs::MRUOnFileMenu);
 
-    	if (!m_mruonfilemenu) {  // MRU entries in popup menu
-	  		// Insert Item onto new popup
-	  		irc = new_popupmenu->InsertMenu( 0, MF_BYPOSITION, ID_FILE_MRU_ENTRY1, "Recent" );
-	  		ASSERT(irc != 0);
+		m_clipboard_set = false;
 
-	  		// Insert Popup onto main menu
-	  		irc = file_submenu->InsertMenu( pos + 2, MF_BYPOSITION | MF_POPUP, (UINT) new_popupmenu->m_hMenu,
-	  									 "&Recent Safes" );
-			ASSERT(irc != 0);
-    	} else {  // MRU entries inline
-	  		irc = file_submenu->InsertMenu( pos + 2, MF_BYPOSITION, ID_FILE_MRU_ENTRY1, "Recent" );
-	  		ASSERT(irc != 0);
-    	}
+		m_mainmenu = new CMenu;
+		m_mainmenu->LoadMenu(IDR_MAINMENU);
+		new_popupmenu = new CMenu;
 
-    	m_pMRU = new CRecentFileList( 0, _T("MRU"), _T("Safe%d"), nMRUItems );
-    	m_pMRU->ReadList();
-  		}
-	} else {
-	  if (pos > -1) {
-    	int irc;
-    	// Remove extra separator
-    	irc = file_submenu->RemoveMenu(pos + 1, MF_BYPOSITION);
-    	ASSERT( irc != 0);
-    	// Remove Clear MRU menu item.
-    	irc = file_submenu->RemoveMenu(ID_MENUITEM_CLEAR_MRU, MF_BYCOMMAND);
-    	ASSERT( irc != 0);
-      }
+		// Look for "File" menu.
+		int pos = FindMenuItem(m_mainmenu, _T("&File"));
+		if (pos == -1) // E.g., in non-English versions
+			pos = 0; // best guess...
+
+		CMenu* file_submenu = m_mainmenu->GetSubMenu(pos);
+		if (file_submenu != NULL)	// Look for "Open Database"
+			pos = FindMenuItem(file_submenu, ID_MENUITEM_OPEN);
+		else
+			pos = -1;
+
+		if (nMRUItems > 0) {
+			if (pos > -1) {
+				int irc;
+				// Create New Popup Menu
+				new_popupmenu->CreatePopupMenu();
+
+				if (!m_mruonfilemenu) {	// MRU entries in popup menu
+					// Insert Item onto new popup
+					irc = new_popupmenu->InsertMenu( 0, MF_BYPOSITION, ID_FILE_MRU_ENTRY1, "Recent" );
+					ASSERT(irc != 0);
+
+					// Insert Popup onto main menu
+					irc = file_submenu->InsertMenu( pos + 2, MF_BYPOSITION | MF_POPUP, (UINT) new_popupmenu->m_hMenu,
+																				 "&Recent Safes" );
+					ASSERT(irc != 0);
+				} else {	// MRU entries inline
+					irc = file_submenu->InsertMenu( pos + 2, MF_BYPOSITION, ID_FILE_MRU_ENTRY1, "Recent" );
+					ASSERT(irc != 0);
+				}
+
+				m_pMRU = new CPWSRecentFileList( 0, _T("MRU"), _T("Safe%d"), nMRUItems );
+				ReadMRU(iConfigOptions);
+				// If new config file, copy the existing ones over now.
+				if (iConfigOptions == PWSprefs::CF_FILE_RW_NEW)
+					WriteMRU(iConfigOptions);
+			}
+		} else {
+			if (pos > -1) {
+				int irc;
+				// Remove extra separator
+				irc = file_submenu->RemoveMenu(pos + 1, MF_BYPOSITION);
+				ASSERT( irc != 0);
+				// Remove Clear MRU menu item.
+				irc = file_submenu->RemoveMenu(ID_MENUITEM_CLEAR_MRU, MF_BYCOMMAND);
+				ASSERT( irc != 0);
+			}
+		}
 	}
 
   DboxMain dbox(NULL);
@@ -527,30 +538,37 @@ ThisMfcApp::InitInstance()
 	
   // Since the dialog has been closed, return FALSE so that we exit the
   // application, rather than start the application's message pump.
-  if (new_popupmenu != NULL)
-    delete new_popupmenu;
+  delete new_popupmenu;
+
   return FALSE;
 }
 
 void
-ThisMfcApp::AddToMRU(const CMyString &pszFilename)
+ThisMfcApp::AddToMRU(const CString &pszFilename)
 {
 	if (m_pMRU == NULL)
 		return;
-		
-	m_pMRU->Add(pszFilename);
+
+	CString csMRUFilename(pszFilename);
+	csMRUFilename.Trim();
+	/* Implemented own CRecentFileList to get around MS problem - see code in
+	   PWSRecentFileList.cpp */
+	if (!csMRUFilename.IsEmpty())
+		m_pMRU->Add(csMRUFilename);
 }
 
 void
 ThisMfcApp::ClearMRU()
 {
-	if (m_pMRU == NULL)
+	if (m_pMRU == NULL || 
+	    PWSprefs::GetInstance()->GetConfigOptions() == PWSprefs::CF_NONE)
 		return;
+
 	int numMRU = m_pMRU->GetSize();
 	for (int i = numMRU; i > 0; i--)
 		m_pMRU->Remove(i - 1);
 
-	m_pMRU->WriteList();
+	WriteMRU(PWSprefs::GetInstance()->GetConfigOptions());
 
 	// Can't get the MRU list on the menu to tidy up automatically
 	// Do it manually!
@@ -593,6 +611,71 @@ ThisMfcApp::ClearMRU()
 	}
 }
 
+void 
+ThisMfcApp::WriteMRU(const int &iconfig)
+{
+	switch (iconfig) {
+		case PWSprefs::CF_REGISTRY:
+			m_pMRU->WriteList();
+			break;
+		case PWSprefs::CF_FILE_RW:
+		case PWSprefs::CF_FILE_RW_NEW:
+			{
+				int num_MRU = m_pMRU->GetSize();
+				CString csMRUFilename, csSubkey;
+				PWSprefs::GetInstance()->SetKeepXMLLock(true);
+				// Write out ones in use
+				for (int i = 0; i < num_MRU; i++) {
+					csMRUFilename = (*m_pMRU)[i];
+					csMRUFilename.Trim();
+					csSubkey.Format("Safe%02d", i + 1);
+					PWSprefs::GetInstance()->WriteMRUToXML(csSubkey, csMRUFilename);
+				}
+				// Remove any not in use
+				const int max_MRU = ID_FILE_MRU_ENTRYMAX - ID_FILE_MRU_ENTRY1;
+				for (int i = num_MRU; i < max_MRU; i++) {
+					csSubkey.Format("Safe%02d", i + 1);
+					PWSprefs::GetInstance()->DeleteMRUFromXML(csSubkey);
+				}
+				PWSprefs::GetInstance()->SetKeepXMLLock(false);
+			}
+			break;
+		case PWSprefs::CF_FILE_RO:
+		case PWSprefs::CF_NONE:
+		default:
+			break;	
+	}
+}
+
+void 
+ThisMfcApp::ReadMRU(const int &iconfig)
+{
+	switch (iconfig) {
+		case PWSprefs::CF_REGISTRY:
+		case PWSprefs::CF_FILE_RW_NEW:
+			m_pMRU->ReadList();
+			break;
+		case PWSprefs::CF_FILE_RW:
+		case PWSprefs::CF_FILE_RO:
+			{
+				int	nMRUItems = PWSprefs::GetInstance()->GetPref(PWSprefs::MaxMRUItems);
+				CString csSubkey;
+				PWSprefs::GetInstance()->SetKeepXMLLock(true);
+				for (int i = nMRUItems; i > 0; i--) {
+					csSubkey.Format("Safe%02d", i);
+					const CString csMRUFilename = (PWSprefs::GetInstance()->
+						ReadMRUFromXML(csSubkey));
+					AddToMRU(csMRUFilename);
+				}
+				PWSprefs::GetInstance()->SetKeepXMLLock(false);
+			}
+			break;
+		case PWSprefs::CF_NONE:
+		default:
+			break;
+	}
+}
+
 void
 ThisMfcApp::SetSystemTrayState(STATE s)
 {
@@ -619,6 +702,7 @@ ThisMfcApp::ClearClipboardData()
 		
 	m_clipboard_set = PWSUtil::ClearClipboard(m_clipboard_digest, m_pMainWnd->m_hWnd);
 }
+
 #if !defined(POCKET_PC)
 // Removes quotation marks from file name parameters
 // as in "file with spaces.pws"

@@ -22,7 +22,10 @@ public:
 	BOOL    m_usesystemtray;
 	int		m_maxmruitems;
 	BOOL	m_mruonfilemenu;
+	BOOL	m_deleteregistry;
 	//}}AFX_DATA
+
+	bool m_offerdeleteregistry;
 
 // Overrides
 	// ClassWizard generate virtual function overrides
@@ -44,6 +47,7 @@ protected:
 
 // Implementation
 protected:
+	BOOL PreTranslateMessage(MSG* pMsg);
 
 private:
 	CToolTipCtrl* m_ToolTipCtrl;

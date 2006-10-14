@@ -216,21 +216,30 @@ DboxMain::setupBars()
 {
 #if !defined(POCKET_PC)
   // This code is copied from the DLGCBR32 example that comes with MFC
-
-  statustext[SB_DBLCLICK] = IDS_STATCOMPANY;
-
-
+  
   // Add the status bar
   if (m_statusBar.Create(this)) {
 	  // Set up DoubleClickAction text
 	  const int dca = int(PWSprefs::GetInstance()->
 		  GetPref(PWSprefs::DoubleClickAction));
 	  switch (dca) {
-		case PWSprefs::DoubleClickCopy: statustext[SB_DBLCLICK] = IDS_STATCOPY; break;
-		case PWSprefs::DoubleClickEdit: statustext[SB_DBLCLICK] = IDS_STATEDIT; break;
 		case PWSprefs::DoubleClickAutoType: statustext[SB_DBLCLICK] = IDS_STATAUTOTYPE; break;
 		case PWSprefs::DoubleClickBrowse: statustext[SB_DBLCLICK] = IDS_STATBROWSE; break;
+		case PWSprefs::DoubleClickCopyNotes: statustext[SB_DBLCLICK] = IDS_STATCOPYNOTES; break;
+		case PWSprefs::DoubleClickCopyPassword: statustext[SB_DBLCLICK] = IDS_STATCOPYPASSWORD; break;
+      	case PWSprefs::DoubleClickCopyUsername: statustext[SB_DBLCLICK] = IDS_STATCOPYUSERNAME; break;
+		case PWSprefs::DoubleClickViewEdit: statustext[SB_DBLCLICK] = IDS_STATVIEWEDIT; break;
 		default: ASSERT(0);
+	  }
+	  // Set up Configuration text
+	  const int iConfigOptions = PWSprefs::GetInstance()->GetConfigOptions();
+	  switch (iConfigOptions) {
+	   	case PWSprefs::CF_NONE: statustext[SB_CONFIG] = IDS_CONFIG_NONE; break;
+	    case PWSprefs::CF_REGISTRY: statustext[SB_CONFIG] = IDS_CONFIG_REGISTRY; break;
+	    case PWSprefs::CF_FILE_RW:
+		case PWSprefs::CF_FILE_RW_NEW: statustext[SB_CONFIG] = IDS_CONFIG_FILE_RW; break;
+	    case PWSprefs::CF_FILE_RO: statustext[SB_CONFIG] = IDS_CONFIG_FILE_RO; break;
+    	default: ASSERT(0);
 	  }
 	  // Set up the rest
 	  statustext[SB_MODIFIED] = IDS_MODIFIED;
@@ -242,7 +251,7 @@ DboxMain::setupBars()
 
       // Make a sunken or recessed border around the first pane
       m_statusBar.SetPaneInfo(SB_DBLCLICK, m_statusBar.GetItemID(SB_DBLCLICK), SBPS_STRETCH, NULL);
-  }
+  }             
 
   // Add the ToolBar.
   if (!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
@@ -375,7 +384,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive, int *indices)
   } else {
     ItemList sortedItemList;
     MakeSortedItemList(sortedItemList);
-	listPos = sortedItemList.GetHeadPosition();
+    listPos = sortedItemList.GetHeadPosition();
 	while (listPos != NULL) {
 		const CItemData &curitem = sortedItemList.GetAt(listPos);
 
@@ -412,6 +421,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive, int *indices)
     } // while
 	sortedItemList.RemoveAll();
   }
+
   return retval;
 }
 
@@ -713,7 +723,6 @@ DboxMain::OnKillfocusItemlist( NMHDR *, LRESULT *)
     UpdateStatusBar();
 }
 #endif
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // NOTE!

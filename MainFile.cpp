@@ -218,9 +218,10 @@ DboxMain::Open()
     CFileDialog fd(TRUE,
                    DEFAULT_SUFFIX,
                    NULL,
-                   OFN_FILEMUSTEXIST|OFN_LONGNAMES,
+                   OFN_FILEMUSTEXIST | OFN_LONGNAMES,
                    SUFFIX_FILTERS
                    _T("Password Safe Backups (*.bak)|*.bak|")
+				   _T("Password Safe Intermediate Backups (*.ibak)|*.ibak|")
                    _T("All files (*.*)|*.*|")
                    _T("|"),
                    this);
@@ -360,8 +361,14 @@ DboxMain::Save()
 {
   int rc;
 
+  // Save Application related preferences
+  PWSprefs::GetInstance()->SaveApplicationPreferences();
+
   if (m_core.GetCurFile().IsEmpty())
     return SaveAs();
+
+  if (PWSprefs::GetInstance()->GetPref(PWSprefs::BackupBeforeEverySave))
+    CreateIntermediateBackup();
 
   if (m_core.GetReadFileVersion() == PWSfile::VCURRENT) {
     m_core.BackupCurFile(); // to save previous reversion
@@ -612,10 +619,10 @@ DboxMain::OnExportText()
 
       ItemList sortedItemList;
       MakeSortedItemList(sortedItemList);
-
-      rc = m_core.WritePlaintextFile(newfile, bwrite_header,
-                                     bsExport, subgroup, iObject,
-                                     iFunction, delimiter, &sortedItemList);
+      
+      rc = m_core.WritePlaintextFile(newfile, bwrite_header, 
+                          bsExport, subgroup, iObject, 
+                          iFunction, delimiter, &sortedItemList);
       sortedItemList.RemoveAll(); // cleanup soonest
 
       if (rc == PWScore::CANT_OPEN_FILE)        {
@@ -896,6 +903,7 @@ DboxMain::Merge()
                      OFN_FILEMUSTEXIST|OFN_HIDEREADONLY|OFN_READONLY|OFN_LONGNAMES,
                      SUFFIX_FILTERS
                      _T("Password Safe Backups (*.bak)|*.bak|")
+					 _T("Password Safe Intermediate Backups (*.ibak)|*.ibak|")
                      _T("All files (*.*)|*.*|")
                      _T("|"),
                      this);
@@ -930,7 +938,7 @@ DboxMain::Merge(const CMyString &pszFilename) {
                  _T("Oops!"),
                  MB_OK|MB_ICONWARNING);
       return PWScore::ALREADY_OPEN;
-  }
+	}
 
   // Save current read-only status around opening merge fil R-O
   bool bCurrentFileIsReadOnly = m_IsReadOnly;
@@ -961,7 +969,7 @@ DboxMain::Merge(const CMyString &pszFilename) {
         assume they want to return to where they were before...
       */
       return PWScore::USER_CANCEL;
-  }
+	}
 
   PWScore otherCore;
   otherCore.ReadFile(pszFilename, passkey);
@@ -975,7 +983,7 @@ DboxMain::Merge(const CMyString &pszFilename) {
 		they saved their file....
       */
       return PWScore::CANT_OPEN_FILE;
-  }
+	}
 
   otherCore.SetCurFile(pszFilename);
 
@@ -1534,33 +1542,33 @@ DboxMain::OnOK()
   if (m_core.IsChanged()) {
   	const CString msg = _T("Do you want to save changes to the password list?");
 	switch (m_iSessionEndingStatus) {
-    case IDIGNORE:
-      // Session is not ending - user has an option to cancel
-      rc = MessageBox(msg, AfxGetAppName(), MB_ICONQUESTION | MB_YESNOCANCEL);
-      break;
-    case IDOK:
-      // Session is ending - user does not have an option to cancel
-      rc = MessageBox(msg, AfxGetAppName(), MB_ICONQUESTION | MB_YESNO);
-      break;
-    case IDNO:
-    case IDYES:
-      // IDYES: Don't ask - user already said YES during OnQueryEndSession
-      // IDNO:  Don't ask - user already said NO during OnQueryEndSession
-      rc = m_iSessionEndingStatus;
-      break;
-    default:
-      ASSERT(0); // should never happen...
-      rc = IDCANCEL; // ...but if it does, behave conservatively.
+		case IDIGNORE:
+			// Session is not ending - user has an option to cancel
+			rc = MessageBox(msg, AfxGetAppName(), MB_ICONQUESTION | MB_YESNOCANCEL);
+			break;
+		case IDOK:
+			// Session is ending - user does not have an option to cancel
+			rc = MessageBox(msg, AfxGetAppName(), MB_ICONQUESTION | MB_YESNO);
+			break;
+		case IDNO:
+		case IDYES:
+			// IDYES: Don't ask - user already said YES during OnQueryEndSession
+			// IDNO:  Don't ask - user already said NO during OnQueryEndSession
+			rc = m_iSessionEndingStatus;
+			break; 
+		default: 
+			ASSERT(0); // should never happen... 
+			rc = IDCANCEL; // ...but if it does, behave conservatively. 
 	}
 	switch (rc) {
-    case IDCANCEL:
-      return;
-    case IDYES:
-      rc2 = Save();
-      if (rc2 != PWScore::SUCCESS)
-        return;
-    case IDNO:
-      break;
+		case IDCANCEL:
+			return;
+		case IDYES:
+			rc2 = Save();
+			if (rc2 != PWScore::SUCCESS)
+				return;
+		case IDNO:
+			break;
 	}
   } // core.IsChanged()
 
@@ -1577,10 +1585,14 @@ DboxMain::OnOK()
   if ((!IsWindowVisible() && prefs->GetPref(PWSprefs::UseSystemTray)) ||
       prefs->GetPref(PWSprefs::DontAskMinimizeClearYesNo) ||
       (m_iSessionEndingStatus == IDYES)) {
-    app.ClearClipboardData();
+		app.ClearClipboardData();
   }
 
   ClearData();
+
+  // Save Application related preferences
+  PWSprefs::GetInstance()->SaveApplicationPreferences();
+
   CDialog::OnOK();
 }
 

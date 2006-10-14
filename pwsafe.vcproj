@@ -171,6 +171,9 @@
 				RelativePath=".\CryptKeyEntry.cpp">
 			</File>
 			<File
+				RelativePath=".\CreateIntermediateBackup.cpp">
+			</File>
+			<File
 				RelativePath=".\DboxMain.cpp">
 			</File>
 			<File

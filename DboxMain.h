@@ -144,7 +144,7 @@ protected:
   CStatusBar m_statusBar;
   BOOL m_toolbarsSetup;
   UINT m_toolbarMode;
-  enum {SB_DBLCLICK = 0, SB_MODIFIED, SB_READONLY, SB_NUM_ENT,
+  enum {SB_DBLCLICK = 0, SB_CONFIG, SB_MODIFIED, SB_READONLY, SB_NUM_ENT,
         SB_TOTAL /* this must be the last entry */};
   UINT statustext[SB_TOTAL];
 #endif
@@ -210,6 +210,7 @@ protected:
   int Merge(void);
   int Merge( const CMyString &pszFilename );
   int Compare( const CMyString &pszFilename );
+
   int BackupSafe(void);
   int New(void);
   int Restore(void);
@@ -355,6 +356,9 @@ private:
   void RestoreDisplayStatus();
   void GroupDisplayStatus(char *p_char_displaystatus, int &i, bool bSet);
   void MakeSortedItemList(ItemList &il);
+  void CreateIntermediateBackup();
+  BOOL GetIncBackupFileName(const CString &cs_filenamebase,
+	  const int &i_maxnumincbackups, CString &cs_newname);
 };
 
 // Following used to keep track of display vs data

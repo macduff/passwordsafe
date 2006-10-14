@@ -29,6 +29,7 @@ COptionsSystem::COptionsSystem() : CPropertyPage(COptionsSystem::IDD)
 	//{{AFX_DATA_INIT(COptionsSystem)
 	//}}AFX_DATA_INIT
 	m_ToolTipCtrl = NULL;
+	m_deleteregistry = FALSE;
 }
 
 COptionsSystem::~COptionsSystem()
@@ -46,6 +47,7 @@ void COptionsSystem::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_MAXMRUITEMS, m_maxmruitems);
 	DDV_MinMaxInt(pDX, m_maxmruitems, 0, ID_FILE_MRU_ENTRYMAX - ID_FILE_MRU_ENTRY1 + 1);
 	DDX_Check(pDX, IDC_MRU_ONFILEMENU, m_mruonfilemenu);
+	DDX_Check(pDX, IDC_DELETEREGISTRY, m_deleteregistry);
 	//}}AFX_DATA_MAP
 }
 
@@ -69,7 +71,7 @@ void COptionsSystem::OnUseSystemTray()
 
 BOOL COptionsSystem::OnInitDialog() 
 {
-	CPropertyPage::OnInitDialog();
+	BOOL bResult = CPropertyPage::OnInitDialog();
 
 	CSpinButtonCtrl* pspin = (CSpinButtonCtrl *)GetDlgItem(IDC_RESPIN);
 
@@ -87,6 +89,31 @@ BOOL COptionsSystem::OnInitDialog()
 	
 	OnUseSystemTray();
 
+	// Tooltips on Property Pages
+	EnableToolTips();
+
+	m_ToolTipCtrl = new CToolTipCtrl;
+	if (!m_ToolTipCtrl->Create(this, TTS_ALWAYSTIP | TTS_BALLOON | TTS_NOPREFIX)) {
+		TRACE("Unable To create Property Page ToolTip\n");
+		return bResult;
+	}
+
+	// Activate the tooltip control.
+	m_ToolTipCtrl->Activate(TRUE);
+	m_ToolTipCtrl->SetMaxTipWidth(300);
+	// Double time to allow reading by user - there is a lot there!
+	int iTime = m_ToolTipCtrl->GetDelayTime(TTDT_AUTOPOP);
+	m_ToolTipCtrl->SetDelayTime(TTDT_AUTOPOP, 2 * iTime);
+
+	if (m_ToolTipCtrl != NULL) {
+		CString cs_ToolTip;
+		cs_ToolTip.LoadString(IDS_DELETEREGISTRY);
+		m_ToolTipCtrl->AddTool(GetDlgItem(IDC_DELETEREGISTRY), cs_ToolTip);
+	}
+
+	if (!m_offerdeleteregistry)
+		GetDlgItem(IDC_DELETEREGISTRY)->EnableWindow(FALSE);
+
 	return TRUE;	// return TRUE unless you set the focus to a control
 					// EXCEPTION: OCX Property Pages should return FALSE
 }
@@ -96,4 +123,15 @@ BOOL COptionsSystem::OnKillActive()
   // Needed as we have DDV routines.
 
   return CPropertyPage::OnKillActive();
+}
+
+// Override PreTranslateMessage() so RelayEvent() can be 
+// called to pass a mouse message to CPWSOptions's 
+// tooltip control for processing.
+BOOL COptionsSystem::PreTranslateMessage(MSG* pMsg) 
+{
+	if (m_ToolTipCtrl != NULL)
+		m_ToolTipCtrl->RelayEvent(pMsg);
+
+	return CPropertyPage::PreTranslateMessage(pMsg);
 }
