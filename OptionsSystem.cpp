@@ -81,8 +81,12 @@ void COptionsSystem::OnSetDeleteRegistry()
 BOOL COptionsSystem::OnInitDialog() 
 {
 	BOOL bResult = CPropertyPage::OnInitDialog();
-	
-	if (!m_offerdeleteregistry)
+
+	 bool bofferdeleteregistry = 
+		 (PWSprefs::GetInstance()->GetConfigOptions() == PWSprefs::CF_FILE_RW) && 
+		  PWSprefs::GetInstance()->GetRegistryExistence();
+
+	if (!bofferdeleteregistry)
 		GetDlgItem(IDC_DELETEREGISTRY)->EnableWindow(FALSE);
 
 	GetDlgItem(IDC_APPLYREGISTRYDELETENOW)->EnableWindow(FALSE);

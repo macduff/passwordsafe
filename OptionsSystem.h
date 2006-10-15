@@ -25,8 +25,6 @@ public:
 	BOOL	m_deleteregistry;
 	//}}AFX_DATA
 
-	bool m_offerdeleteregistry;
-
 // Overrides
 	// ClassWizard generate virtual function overrides
 	//{{AFX_VIRTUAL(COptionsSystem)

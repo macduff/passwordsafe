@@ -776,14 +776,27 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
     // locker won't be null IFF tried to lock and failed, in which case
     // it shows the current file locker
     if (!locker.IsEmpty()) {
+	  CString cs_user_and_host, cs_PID(_T(""));
+	  cs_user_and_host = (CString)locker;
+	  int i_pid = cs_user_and_host.ReverseFind(_T(':'));
+	  if (i_pid > -1) {
+		  // If PID present then it is ":%08d" = 9 chars in length
+		  ASSERT((cs_user_and_host.GetLength() - i_pid) == 9);
+		  cs_PID = cs_user_and_host.Right(8);
+		  cs_user_and_host = cs_user_and_host.Left(i_pid);
+	  }
       CString str = _T("The database ");
       str += CString(filename);
-      str += _T(" is apparently being used by ");
-      str += CString(locker);
-      str += _T(".\r\nOpen the database for read-only (Yes), ");
+	  str += _T(" is apparently being used by:\n\n");
+	  if (i_pid > -1)
+		  str += cs_user_and_host + _T(" [Process ID=") + cs_PID + _T("]");
+	  else
+		  str += cs_user_and_host;
+      str += _T(".\n\nOpen the database for read-only (Yes), ");
       str += _T("read-write (No), or exit (Cancel)?");
       str += _T("\r\n\r\nNote: Choose \"No\" only if you are certain ");
-      str += _T("that the file is in fact not being used by anyone else.");
+      str += _T("that the file is in fact not being used by anyone else,\n");
+	  str += _T("including another copy of Password Safe running on your machine.");
       switch( MessageBox(str, _T("File In Use"),
                          MB_YESNOCANCEL|MB_ICONQUESTION)) {
       case IDYES:

@@ -152,5 +152,5 @@ class PWScore {
 
   CString m_displaystatus;
   CString m_wholastsaved, m_whenlastsaved, m_whatlastsaved;
-  CString m_user, m_sysname, m_threadID;
+  CString m_user, m_sysname, m_ProcessID;
 };

@@ -63,7 +63,7 @@ PWScore::PWScore() : m_currfile(_T("")), m_changed(false),
   }
   m_user = CString(user, ulen);
   m_sysname = CString(sysname, slen);
-  m_threadID.Format("%08d", GetCurrentThreadId());
+  m_ProcessID.Format("%08d", GetCurrentProcessId());
 }
 
 PWScore::~PWScore()
@@ -1085,7 +1085,7 @@ bool PWScore::LockFile(const CMyString &filename, CMyString &locker, const bool 
     numWrit += _write(fh, _T("@"), sizeof(TCHAR));
     numWrit += _write(fh, m_sysname, m_sysname.GetLength() * sizeof(TCHAR));
     numWrit += _write(fh, _T(":"), sizeof(TCHAR));
-    numWrit += _write(fh, m_threadID, m_threadID.GetLength() * sizeof(TCHAR));
+    numWrit += _write(fh, m_ProcessID, m_ProcessID.GetLength() * sizeof(TCHAR));
     ASSERT(numWrit > 0);
     _close(fh);
     return true;
@@ -1100,15 +1100,17 @@ bool PWScore::LockFile(const CMyString &filename, CMyString &locker, const bool 
     // If app was minimized and ClearData() called, we've a small
     // potential for a TOCTTOU issue here. Worse case, lock
     // will fail.
-	const CString cs_me = m_user + _T("@") + m_sysname + _T(":") + m_threadID;
+	const CString cs_me = m_user + _T("@") + m_sysname + _T(":") + m_ProcessID;
     GetLockFileName(filename, lock_filename, bDB);
 	GetLocker(lock_filename, locker);
 
 	if (cs_me == CString(locker)) {
-		m_LockCount[iLFHandle]++;
+		if (!bDB)
+			m_LockCount[iLFHandle]++;
 		TRACE(_T("%s Lock1   %s, Count now %d\n"), 
 			PWSUtil::GetTimeStamp(), iLFHandle == 0 ? _T("DB") : _T("CF"),
 			m_LockCount[iLFHandle]);
+		locker.Empty();
 		return true;
 	} else {
 		UnlockFile(bDB ? GetCurFile() : filename, bDB);
@@ -1151,7 +1153,7 @@ bool PWScore::LockFile(const CMyString &filename, CMyString &locker, const bool 
                                &numWrit, NULL);
     sumWrit += numWrit;
     write_status += ::WriteFile(m_lockFileHandle[iLFHandle],
-                                m_threadID, m_threadID.GetLength() * sizeof(TCHAR),
+                                m_ProcessID, m_ProcessID.GetLength() * sizeof(TCHAR),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     ASSERT(sumWrit > 0);
@@ -1176,7 +1178,7 @@ void PWScore::UnlockFile(const CMyString &filename, const bool bDB)
   // detecting dead locking processes
   if (m_lockFileHandle[iLFHandle] != INVALID_HANDLE_VALUE) {
     CMyString lock_filename, locker;
-	const CString cs_me = m_user + _T("@") + m_sysname + _T(":") + m_threadID;
+	const CString cs_me = m_user + _T("@") + m_sysname + _T(":") + m_ProcessID;
     GetLockFileName(filename, lock_filename, bDB);
 	GetLocker(lock_filename, locker);
 

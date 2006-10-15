@@ -214,8 +214,6 @@ DboxMain::OnOptions()
     GetPref(PWSprefs::MaxMRUItems);
   system.m_mruonfilemenu = prefs->
     GetPref(PWSprefs::MRUOnFileMenu);
-  system.m_offerdeleteregistry = 
-  	(prefs->GetConfigOptions() == PWSprefs::CF_FILE_RW) && prefs->GetRegistryExistence();
 
   display.m_alwaysontop = m_bAlwaysOnTop;
   display.m_pwshowinedit = prefs->
