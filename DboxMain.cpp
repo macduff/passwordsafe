@@ -101,7 +101,7 @@ DboxMain::DboxMain(CWnd* pParent)
      m_selectedAtMinimize(NULL), m_bTSUpdated(false),
      m_iSessionEndingStatus(IDIGNORE),
 	 m_bFindActive(false), m_pchTip(NULL), m_pwchTip(NULL),
-	 m_Validate(false)
+	 m_Validate(false), m_bOpen(false)
 {
   //{{AFX_DATA_INIT(DboxMain)
   // NOTE: the ClassWizard will add member initialization here
@@ -166,14 +166,19 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_COMMAND(ID_MENUITEM_COPYNOTESFLD, OnCopyNotes)
    ON_COMMAND(ID_MENUITEM_NEW, OnNew)
    ON_COMMAND(ID_MENUITEM_OPEN, OnOpen)
+   ON_COMMAND(ID_MENUITEM_CLOSE, OnClose)
+   ON_UPDATE_COMMAND_UI(ID_MENUITEM_CLOSE, OnUpdateClosedCommand)
    ON_COMMAND(ID_MENUITEM_CLEAR_MRU, OnClearMRU)
    ON_COMMAND(ID_MENUITEM_MERGE, OnMerge)
    ON_UPDATE_COMMAND_UI(ID_MENUITEM_MERGE, OnUpdateROCommand)
    ON_COMMAND(ID_MENUITEM_COMPARE, OnCompare)
+   ON_UPDATE_COMMAND_UI(ID_MENUITEM_COMPARE, OnUpdateClosedCommand)
    ON_COMMAND(ID_MENUITEM_PROPERTIES, OnProperties)
+   ON_UPDATE_COMMAND_UI(ID_MENUITEM_PROPERTIES, OnUpdateClosedCommand)
    ON_COMMAND(ID_MENUITEM_RESTORE, OnRestore)
    ON_UPDATE_COMMAND_UI(ID_MENUITEM_RESTORE, OnUpdateROCommand)
-   ON_COMMAND(ID_MENUTIME_SAVEAS, OnSaveAs)
+   ON_COMMAND(ID_MENUITEM_SAVEAS, OnSaveAs)
+   ON_UPDATE_COMMAND_UI(ID_MENUITEM_SAVEAS, OnUpdateClosedCommand)
    ON_COMMAND(ID_MENUITEM_BACKUPSAFE, OnBackupSafe)
    ON_COMMAND(ID_MENUITEM_CHANGECOMBO, OnPasswordChange)
    ON_UPDATE_COMMAND_UI(ID_MENUITEM_CHANGECOMBO, OnUpdateROCommand)
@@ -468,6 +473,7 @@ DboxMain::OnHotKey(WPARAM , LPARAM)
   // to it is meaningless & unused, hence params ignored
   // The hotkey is used to invoke the app window, prompting
   // for passphrase if needed.
+
   if (IsWindowVisible()) {
 	  SetActiveWindow();
 	  SetForegroundWindow();
@@ -609,6 +615,11 @@ void DboxMain::OnSizing(UINT fwSide, LPRECT pRect)
 void
 DboxMain::OnUpdateROCommand(CCmdUI *pCmdUI)
 {
+  // Note: This first checks if a DB is Open before checking R-O status
+  if (!m_bOpen) {
+  	pCmdUI->Enable(FALSE);
+  	return;
+  }
   // Use this callback for commands that need to
   // be disabled in read-only mode
   pCmdUI->Enable(m_IsReadOnly ? FALSE : TRUE);
@@ -620,6 +631,14 @@ DboxMain::OnUpdateViewCommand(CCmdUI *pCmdUI)
   // Use this callback to disable swap between Tree and List modes
   // during a Find operation
   pCmdUI->Enable(m_bFindActive ? FALSE : TRUE);
+}
+
+void
+DboxMain::OnUpdateClosedCommand(CCmdUI *pCmdUI)
+{
+  // Use this callback  for commands that need to
+  // be disabled if no DB is open
+  pCmdUI->Enable(m_bOpen ? TRUE : FALSE);
 }
 
 void
@@ -1094,7 +1113,11 @@ DboxMain::OnOpenMRU(UINT nID)
 
   CString mruItem = (*app.GetMRU())[uMRUItem];
 
-  Open( mruItem );
+  int rc = Open( mruItem );
+  if (rc == PWScore::SUCCESS) {
+    SetMainMenus(MF_ENABLED, TRUE);
+    m_bOpen = true;
+  }
 #if _MFC_VER > 1200
   return TRUE;
 #endif
@@ -1281,6 +1304,14 @@ void
 DboxMain::UnMinimize(bool update_windows)
 {
 	m_passphraseOK = false;
+	if (!m_bOpen) {
+		// first they may be nothing to do!
+		if (update_windows)
+			ShowWindow(SW_RESTORE);
+		UpdateSystemTray(CLOSED);
+		return;
+	}
+
 	// Case 1 - data available but is currently locked
 	if (!m_needsreading
 		&& (app.GetSystemTrayState() == ThisMfcApp::LOCKED)
@@ -1303,16 +1334,17 @@ DboxMain::UnMinimize(bool update_windows)
 	if (m_needsreading && m_windowok) {
 		CMyString passkey, temp;
 		int rc, rc2;
-    const bool useSysTray = PWSprefs::GetInstance()->
-      GetPref(PWSprefs::UseSystemTray);
+		const bool useSysTray = PWSprefs::GetInstance()->
+			GetPref(PWSprefs::UseSystemTray);
 
-    if (m_IsStartSilent) {
-      rc = PWScore::USER_CANCEL;
-      m_IsStartSilent = false; // only for start!
+		rc = PWScore::USER_CANCEL;
+		if (m_IsStartSilent) {
+			m_IsStartSilent = false; // only for start!
 		} else {
-      rc = GetAndCheckPassword(m_core.GetCurFile(),
-                               passkey,
-                               useSysTray ? GCP_UNMINIMIZE :GCP_WITHEXIT);
+			if (m_bOpen)
+				rc = GetAndCheckPassword(m_core.GetCurFile(),
+										passkey,
+										useSysTray ? GCP_UNMINIMIZE : GCP_WITHEXIT);
 		}
 		switch (rc) {
 			case PWScore::SUCCESS:
@@ -1352,20 +1384,20 @@ DboxMain::UnMinimize(bool update_windows)
 			UpdateSystemTray(UNLOCKED);
 			startLockCheckTimer();
 			m_passphraseOK = true;
-      if (update_windows) {
-              ShowWindow(SW_RESTORE);
-        BringWindowToTop();
-      }
+			if (update_windows) {
+				ShowWindow(SW_RESTORE);
+				BringWindowToTop();
+			}
 		} else {
 			m_needsreading = true;
-      ShowWindow(useSysTray ? SW_HIDE : SW_MINIMIZE);
+			ShowWindow(useSysTray ? SW_HIDE : SW_MINIMIZE);
 		}
-        return;
+		return;
 	}
-  if (update_windows) {
-      ShowWindow(SW_RESTORE);
-    BringWindowToTop();
-  }
+	if (update_windows) {
+		ShowWindow(SW_RESTORE);
+		BringWindowToTop();
+	}
 }
 
 void
@@ -1497,6 +1529,10 @@ BOOL
 DboxMain::OnQueryEndSession()
 {
 	m_iSessionEndingStatus = IDOK;
+
+	// Save Application related preferences
+	PWSprefs::GetInstance()->SaveApplicationPreferences();
+
 	if (m_IsReadOnly)
 		return TRUE;
 

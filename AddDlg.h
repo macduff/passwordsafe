@@ -1,3 +1,5 @@
+#pragma once
+
 /// \file AddDlg.h
 //-----------------------------------------------------------------------------
 
@@ -72,7 +74,4 @@ protected:
 	afx_msg void OnCheckedSavePasswordHistory();
 	CButton m_moreLessBtn;
 };
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:
+

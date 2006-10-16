@@ -1,8 +1,8 @@
+#pragma once
+
 // PWSfileV3.h
 // Abstract the gory details of reading and writing an encrypted database
 //-----------------------------------------------------------------------------
-
-#pragma once
 
 #include "PWSfile.h"
 #include "TwoFish.h"

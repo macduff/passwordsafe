@@ -1,8 +1,7 @@
+#pragma once
+
 // ItemField.h
 //-----------------------------------------------------------------------------
-
-#if !defined ItemField_h
-#define ItemField_h
 
 #include "MyString.h"
 
@@ -47,9 +46,3 @@ private:
   unsigned char *m_Data;
 };
 
-
-#endif
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

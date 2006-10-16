@@ -1,6 +1,8 @@
+#pragma once
+
 // PWHisDlg.h CPWHistDlg
 //-----------------------------------------------------------------
-#pragma once
+
 #include "afxwin.h"
 
 class CItemData;
@@ -51,7 +53,3 @@ private:
   static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2,
                                   LPARAM lParamSort);
 };
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

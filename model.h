@@ -1,11 +1,7 @@
-
-
-#ifndef MODEL_H
-#define MODEL_H
+#pragma once
 
 #include "ThisMfcApp.h"
 #include "view.h"
-
 
 //  Contains methods called by view (GUI)
 
@@ -34,6 +30,3 @@ private:
 	View	     * _view;
 
 };
-
-
-#endif //  MODEL_H

@@ -1148,6 +1148,9 @@ DboxMain::UpdateSystemTray(STATE s)
     if (!m_core.GetCurFile().IsEmpty())
       app.SetTooltipText(m_core.GetCurFile());
     break;
+  case CLOSED:
+    app.SetSystemTrayState(ThisMfcApp::CLOSED);
+    break;
   default:
     ASSERT(0);
   }

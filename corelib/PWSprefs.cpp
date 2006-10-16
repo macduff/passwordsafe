@@ -715,7 +715,7 @@ void PWSprefs::LoadProfileFromFile()
 
 void PWSprefs::SaveApplicationPreferences()
 {
-	if (m_prefs_changed[APP_PREF] = false)
+	if (m_prefs_changed[APP_PREF] == false)
 		return;
 
 	if (m_ConfigOptions == CF_FILE_RW ||

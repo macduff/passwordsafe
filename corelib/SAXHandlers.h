@@ -1,7 +1,7 @@
+#pragma once
+
 // SAXHandlers.h : header file
 //
-
-#pragma once
 
 #include "MyString.h"
 #include "ItemData.h"

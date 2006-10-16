@@ -1,3 +1,5 @@
+#pragma once
+
 // PasskeyChangeDlg.h
 //-----------------------------------------------------------------------------
 
@@ -26,7 +28,6 @@ public:
    CMyString	m_oldpasskey;
    //}}AFX_DATA
 
-
 // Overrides
    // ClassWizard generated virtual function overrides
    //{{AFX_VIRTUAL(CPasskeyChangeDlg)
@@ -51,7 +52,3 @@ protected:
 };
 
 #undef SUPERCLASS
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

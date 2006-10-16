@@ -15,9 +15,6 @@
 #include <afxmt.h>
 //-----------------------------------------------------------------------------
 
-int FindMenuItem(CMenu* Menu, LPCTSTR MenuString);
-int FindMenuItem(CMenu* Menu, int MenuID);
-
 class DboxMain;
 
 class ThisMfcApp
@@ -58,12 +55,14 @@ WCE_DEL  virtual BOOL ProcessMessageFilter(int code, LPMSG lpMsg);
   void SetClipboardData(const CMyString &data);
 
   afx_msg void OnHelp();
-  enum STATE {LOCKED, UNLOCKED};
+  enum STATE {LOCKED, UNLOCKED, CLOSED};
   void SetSystemTrayState(STATE);
   STATE GetSystemTrayState() const {return m_TrayLockedState;}
   static void StripFileQuotes( CString& strFilename );
   bool WasHotKeyPressed() {return m_HotKeyPressed;}
   void SetHotKeyPressed(bool state) {m_HotKeyPressed = state;}
+  int FindMenuItem(CMenu* Menu, int MenuID);
+  int FindMenuItem(CMenu* Menu, LPCTSTR MenuString);
 
   DECLARE_MESSAGE_MAP()
 
@@ -76,6 +75,7 @@ protected:
 private:
   HICON m_LockedIcon;
   HICON m_UnLockedIcon;
+  HICON m_ClosedIcon;
   CSystemTray *m_TrayIcon; // DboxMain needs to be constructed first
   STATE m_TrayLockedState;
   bool m_HotKeyPressed;

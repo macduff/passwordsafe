@@ -1,3 +1,5 @@
+#pragma once
+
 // ConfirmDeleteDlg.h
 //-----------------------------------------------------------------------------
 #include "corelib/PwsPlatform.h"
@@ -25,7 +27,6 @@ private:
    bool	m_dontaskquestion;
    //}}AFX_DATA
 
-
 // Overrides
    // ClassWizard generated virtual function overrides
    //{{AFX_VIRTUAL(CConfirmDeleteDlg)
@@ -44,7 +45,3 @@ protected:
 };
 
 #undef SUPERCLASS
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

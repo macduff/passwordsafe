@@ -1,5 +1,4 @@
-#ifndef _SHA1_H_
-#define _SHA1_H_
+#pragma once
 
 class SHA1
 {
@@ -14,4 +13,4 @@ class SHA1
   unsigned long count[2];
   unsigned char buffer[64];
 };
-#endif
+

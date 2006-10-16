@@ -1,6 +1,7 @@
+#pragma once
+
 // Util.h
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include "sha256.h"
 #include "MyString.h"
@@ -140,8 +141,3 @@ public:
   static CString GetTimeStamp();
   static void IssueError(const CString &csFunction);
 };
-
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

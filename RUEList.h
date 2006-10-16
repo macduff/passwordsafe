@@ -1,8 +1,7 @@
+#pragma once
+
 // RUEList.h
 //-----------------------------------------------------------------------------
-
-#ifndef _RUEList_h
-#define _RUEList_h
 
 #include "corelib/ItemData.h"
 #include "corelib/MyString.h"
@@ -53,9 +52,3 @@ class CRUEList
   int m_maxentries;
   CList<RUEntry, RUEntry&> m_RUEList;  // Recently Used Entry History List
 };
-
-#endif
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

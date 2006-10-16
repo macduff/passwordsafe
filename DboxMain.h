@@ -1,8 +1,7 @@
+#pragma once
+
 // DboxMain.h
 //-----------------------------------------------------------------------------
-
-#ifndef DboxMain_h
-#define DboxMain_h
 
 #include "corelib/PWScore.h"
 #include "corelib/sha256.h"
@@ -128,6 +127,7 @@ protected:
 
   // used to speed up the resizable dialog so OnSize/SIZE_RESTORED isn't called
   bool	m_bSizing;
+  bool  m_bOpen;
 
   unsigned int uGlobalMemSize;
   HGLOBAL hGlobalMemory;
@@ -181,12 +181,11 @@ protected:
   // override following to reset idle timeout on any event
   virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
-
   void ConfigureSystemMenu();
   void OnSysAlwaysOnTop();
   afx_msg void OnSysCommand( UINT nID, LPARAM lParam );
   LRESULT OnHotKey(WPARAM wParam, LPARAM lParam);
-  enum STATE {LOCKED, UNLOCKED};
+  enum STATE {LOCKED, UNLOCKED, CLOSED};  // Really shouldn't be here it, ThisMfcApp own it
   void UpdateSystemTray(STATE s);
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
 
@@ -201,12 +200,14 @@ protected:
   void SetTreeView();
   void SetToolbar(int menuItem);
   void UpdateStatusBar();
+  void SetMainMenus(const UINT imenuflags, const BOOL btool);
 
   //Version of message functions with return values
   int Save(void);
   int SaveAs(void);
   int Open(void);
   int Open( const CMyString &pszFilename );
+  int Close(void);
   int Merge(void);
   int Merge( const CMyString &pszFilename );
   int Compare( const CMyString &pszFilename );
@@ -258,6 +259,7 @@ protected:
   afx_msg void OnCopyNotes();
   afx_msg void OnNew();
   afx_msg void OnOpen();
+  afx_msg void OnClose();
   afx_msg void OnClearMRU();
   afx_msg void OnMerge();
   afx_msg void OnCompare();
@@ -299,6 +301,7 @@ protected:
   afx_msg void OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
   afx_msg void OnUpdateMRU(CCmdUI* pCmdUI);
   afx_msg void OnUpdateROCommand(CCmdUI *pCmdUI);
+  afx_msg void OnUpdateClosedCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateTVCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateViewCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateNSCommand(CCmdUI *pCmdUI);  // Make entry unsupported (grayed out)
@@ -369,10 +372,3 @@ struct DisplayInfo {
   HTREEITEM tree_item;
 };
 
-
-//-----------------------------------------------------------------------------
-#endif // DboxMain_h
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

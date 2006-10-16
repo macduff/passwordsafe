@@ -1,6 +1,4 @@
-
-#ifndef WINVIEW_H
-#define WINVIEW_H
+#pragma once
 
 #include "view.h"
 
@@ -27,6 +25,3 @@ private:
 	static View * _instance;
 	
 };
-
-
-#endif //  WINVIEW_H

@@ -1,3 +1,5 @@
+#pragma once
+
 // PasswordDb.h
 //-----------------------------------------------------------------------------
 
@@ -28,11 +30,5 @@ public:
 private:
    vector<CItemData> m_db;
    string m_defaultUsername;
-
-
 };
 
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

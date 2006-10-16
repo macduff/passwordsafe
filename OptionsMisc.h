@@ -57,6 +57,3 @@ public:
 	afx_msg void OnBnClickedMaintaindatetimestamps();
 	afx_msg void OnComboChanged();
 };
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.

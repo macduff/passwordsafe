@@ -1,3 +1,5 @@
+#pragma once
+
 // MyString.h
 // A drop-in replacement for CString, the main difference being that the
 // data is scrubbed by trashstring() in the destructor, thus leaving an attacker
@@ -6,8 +8,6 @@
 // First priority for porting is to implement this without CString
 //-----------------------------------------------------------------------------
 
-#ifndef _MYSTRING_H_
-#define _MYSTRING_H_
 #include <AFX.H>
 //-----------------------------------------------------------------------------
 class CMyString
@@ -94,11 +94,3 @@ bool operator==(LPCTSTR s1, const CMyString& s2);
 bool operator!=(const CMyString& s1, const CMyString& s2);
 bool operator!=(const CMyString& s1, LPCTSTR s2);
 bool operator!=(LPCTSTR s1, const CMyString& s2);
-
-//-----------------------------------------------------------------------------
-#endif
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:
-

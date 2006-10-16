@@ -1,7 +1,7 @@
+#pragma once
+
 // BlowFish.h
 //-----------------------------------------------------------------------------
-#ifndef __BLOWFISH_H
-#define __BLOWFISH_H
 
 #include "Fish.h"
 
@@ -41,8 +41,3 @@ private:
   void Blowfish_decipher(unsigned long* xl, unsigned long* xr);
   void InitializeBlowfish(unsigned char key[], short keybytes);
 };
-#endif /* __BLOWFISH_H */
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

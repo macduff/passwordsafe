@@ -1,8 +1,8 @@
+#pragma once
+
 // PWSfile.h
 // Abstract the gory details of reading and writing an encrypted database
 //-----------------------------------------------------------------------------
-
-#pragma once
 
 #include <stdio.h> // for FILE *
 

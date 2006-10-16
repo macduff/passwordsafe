@@ -1,8 +1,8 @@
+#pragma once
+
 // hmac.h
 // HMAC for PasswordSafe
 //-----------------------------------------------------------------------------
-#ifndef _HMAC_H_
-#define _HMAC_H_
 
 // Currently implemented only for sha256, as required by version 3
 // of the database format.
@@ -27,10 +27,3 @@ private:
   enum {L = 32, B = 64};
   unsigned char K[B];
 };
-
-#endif /* _HMAC_H_ */
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:
-

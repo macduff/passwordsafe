@@ -1,9 +1,8 @@
+#pragma once
+
 // PWSfileV1V2.h
 // Abstract the gory details of reading and writing an encrypted database
 //-----------------------------------------------------------------------------
-
-#ifndef PWSfileV1V2_h
-#define PWSfileV1V2_h
 
 #include "PWSfile.h"
 #include "BlowFish.h"
@@ -29,6 +28,3 @@ class PWSfileV1V2 : public PWSfile {
   int WriteV2Header();
   int ReadV2Header();
 };
-
-#endif PWSfileV1V2_h
-

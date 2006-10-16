@@ -317,9 +317,10 @@
 #define ID_MENUITEM_COPYNOTESFLD        32788
 #define ID_MENUITEM_OPEN                32793
 #define ID_MENUITEM_NEW                 32794
-#define ID_MENUTIME_SAVEAS              32795
+#define ID_MENUITEM_SAVEAS              32795
 #define ID_MENUITEM_RESTORE             32797
 #define ID_MENUITEM_UPDATEBACKUPS       32798
+#define ID_MENUITEM_CLOSE               32799
 #define ID_TOOLBUTTON_NEW               32800
 #define ID_TOOLBUTTON_OPEN              32801
 #define ID_TOOLBUTTON_SAVE              32802

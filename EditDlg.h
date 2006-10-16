@@ -1,7 +1,7 @@
+#pragma once
+
 // EditDlg.h
 //-----------------------------------------------------------------------------
-
-#pragma once
 
 #include "afxwin.h"
 #include "ControlExtns.h"

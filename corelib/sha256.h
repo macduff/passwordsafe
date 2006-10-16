@@ -1,9 +1,10 @@
+#pragma once
+
 // sha256.h
 // SHA256 for PasswordSafe, based on LibTomCrypt by
 // Tom St Denis, tomstdenis@iahu.ca, http://libtomcrypt.org
 //-----------------------------------------------------------------------------
-#ifndef _SHA256_H_
-#define _SHA256_H_
+
 #include "typedefs.h"
 class SHA256
 {
@@ -19,9 +20,4 @@ private:
   unsigned char buf[64];
 };
 
-#endif /* _SHA256_H_ */
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:
 

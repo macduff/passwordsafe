@@ -1,8 +1,7 @@
+#pragma once
+
 // ItemData.h
 //-----------------------------------------------------------------------------
-
-#if !defined ItemData_h
-#define ItemData_h
 
 #include "Util.h"
 #include "ItemField.h"
@@ -190,9 +189,3 @@ private:
   void SetField(CItemField &field, const unsigned char *value,
                 unsigned int length);
 };
-
-#endif
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

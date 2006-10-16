@@ -1,9 +1,9 @@
+#pragma once
+
 // TwoFish.h
 // C++ wrapper of TwoFish for PasswordSafe, based on LibTomCrypt by
 // Tom St Denis, tomstdenis@iahu.ca, http://libtomcrypt.org
 //-----------------------------------------------------------------------------
-#ifndef _TWOFISH_H_
-#define _TWOFISH_H_
 
 #include "Fish.h"
 
@@ -30,8 +30,3 @@ public:
 private:
   twofish_key key_schedule;
 };
-#endif /* _TWOFISH_H_ */
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

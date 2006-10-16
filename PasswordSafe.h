@@ -1,3 +1,5 @@
+#pragma once
+
 // PasswordSafe.h
 // main header file for the PasswordSafe application
 //-----------------------------------------------------------------------------
@@ -51,7 +53,3 @@ extern ThisMfcApp app;
 
 extern const TCHAR *HIDDEN_PASSWORD;
 
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:

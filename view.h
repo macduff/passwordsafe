@@ -1,6 +1,4 @@
-
-#ifndef VIEW_H
-#define VIEW_H
+#pragma once
 
 //  Contains methods to display user interface, called by model
 
@@ -17,5 +15,3 @@ protected:
 	static View * _instance;
 };
 
-
-#endif //  VIEW_H

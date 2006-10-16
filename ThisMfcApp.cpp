@@ -517,6 +517,7 @@ ThisMfcApp::InitInstance()
   //ASSERT(stIcon != NULL);
   m_LockedIcon = app.LoadIcon(IDI_LOCKEDICON);
   m_UnLockedIcon = app.LoadIcon(IDI_UNLOCKEDICON);
+  m_ClosedIcon = app.LoadIcon(IDI_TRAY);
   m_TrayIcon = new CSystemTray(NULL, WM_ICON_NOTIFY, _T("PasswordSafe"),
                                m_LockedIcon, dbox.m_RUEList,
                                WM_ICON_NOTIFY, IDR_POPTRAY);
@@ -683,7 +684,21 @@ ThisMfcApp::SetSystemTrayState(STATE s)
   // tricky initialization order
   if (m_TrayIcon != NULL && s != m_TrayLockedState) {
     m_TrayLockedState = s;
-    m_TrayIcon->SetIcon(s == LOCKED ? m_LockedIcon : m_UnLockedIcon);
+	HICON hIcon(m_LockedIcon);
+	switch (s) {
+		case LOCKED:
+			hIcon = m_LockedIcon;
+			break;
+		case UNLOCKED:
+			hIcon = m_UnLockedIcon;
+			break;
+		case CLOSED:
+			hIcon = m_ClosedIcon;
+			break;
+		default:
+			break;
+	}
+	m_TrayIcon->SetIcon(hIcon);
   }
 }
 
@@ -782,7 +797,7 @@ ThisMfcApp::OnHelp()
 // FindMenuItem() will find a menu item string from the specified
 // popup menu and returns its position (0-based) in the specified 
 // popup menu. It returns -1 if no such menu item string is found.
-int FindMenuItem(CMenu* Menu, LPCTSTR MenuString)
+int ThisMfcApp::FindMenuItem(CMenu* Menu, LPCTSTR MenuString)
 {
   ASSERT(Menu);
   ASSERT(::IsMenu(Menu->GetSafeHmenu()));
@@ -801,7 +816,7 @@ int FindMenuItem(CMenu* Menu, LPCTSTR MenuString)
 // FindMenuItem() will find a menu item ID from the specified
 // popup menu and returns its position (0-based) in the specified 
 // popup menu. It returns -1 if no such menu item string is found.
-int FindMenuItem(CMenu* Menu, int MenuID)
+int ThisMfcApp::FindMenuItem(CMenu* Menu, int MenuID)
 {
   ASSERT(Menu);
   ASSERT(::IsMenu(Menu->GetSafeHmenu()));

@@ -10,6 +10,7 @@
 // dialog boxen
 #include "DboxMain.h"
 
+#include "resource.h"
 #include "PasskeySetup.h"
 #include "TryAgainDlg.h"
 #include "ExportText.h"
@@ -115,6 +116,7 @@ DboxMain::OpenOnInit(void)
     startLockCheckTimer();
     UpdateSystemTray(UNLOCKED);
 	m_saveMRU = true;
+	m_bOpen = true;
     return TRUE;
   default:
     CDialog::OnCancel();
@@ -201,10 +203,46 @@ DboxMain::NewFile(void)
   return PWScore::SUCCESS;
 }
 
+
+void
+DboxMain::OnClose()
+{
+  Close();
+}
+
+int
+DboxMain::Close()
+{
+	if (m_bOpen) {
+		// try and save it first
+		int rc = SaveIfChanged();
+		if (rc != PWScore::SUCCESS)
+			return rc;
+	}
+
+	// Unlock the current file
+	if( !m_core.GetCurFile().IsEmpty() ) {
+		m_core.UnlockFile(m_core.GetCurFile());
+		m_core.SetCurFile(_T(""));
+	}
+
+	// Clear all associated data
+	ClearData();
+	UpdateSystemTray(CLOSED);
+
+	m_bOpen = false;
+	SetMainMenus(MF_DISABLED | MF_GRAYED, FALSE);
+	return PWScore::SUCCESS;
+}
+
 void
 DboxMain::OnOpen()
 {
-  Open();
+  int rc = Open();
+  if (rc == PWScore::SUCCESS) {
+    SetMainMenus(MF_ENABLED, TRUE);
+    m_bOpen = true;
+  }
 }
 
 int
@@ -1663,3 +1701,61 @@ DboxMain::GroupDisplayStatus(char *p_char_displaystatus, int &i, bool bSet)
 	}
 }
 
+void
+DboxMain::SetMainMenus(const UINT imenuflags, const BOOL btoolbar)
+{
+	// Change Main Menus if a database is Open or not
+	CWnd* pMain = AfxGetMainWnd();
+	CMenu* xmainmenu = pMain->GetMenu();
+
+	// Look for "File" menu.
+	int pos = app.FindMenuItem(xmainmenu, _T("&File"));
+	if (pos == -1) // E.g., in non-English versions
+		pos = 0; // best guess...
+
+	CMenu* xfilesubmenu = xmainmenu->GetSubMenu(pos);
+	if (xfilesubmenu != NULL)	// Look for "Save As"
+		pos = app.FindMenuItem(xfilesubmenu, ID_MENUITEM_SAVEAS);
+	else
+		pos = -1;
+
+	if (pos > -1) {
+		// Disable/enable Export and Import menu items
+		xfilesubmenu->EnableMenuItem(pos + 2, MF_BYPOSITION | imenuflags);
+		xfilesubmenu->EnableMenuItem(pos + 3, MF_BYPOSITION | imenuflags);
+	}
+
+	// Look for "Edit" menu.
+	pos = app.FindMenuItem(xmainmenu, _T("&Edit"));
+	if (pos == -1) // E.g., in non-English versions
+		pos = 1; // best guess...
+
+	xmainmenu->EnableMenuItem(pos, MF_BYPOSITION | imenuflags);
+
+	// Look for "View" menu.
+	pos = app.FindMenuItem(xmainmenu, _T("&View"));
+	if (pos == -1) // E.g., in non-English versions
+		pos = 2; // best guess...
+
+	xmainmenu->EnableMenuItem(pos, MF_BYPOSITION | imenuflags);
+
+	// Look for "Manage" menu.
+	pos = app.FindMenuItem(xmainmenu, _T("&Manage"));
+	if (pos == -1) // E.g., in non-English versions
+		pos = 3; // best guess...
+
+	xmainmenu->EnableMenuItem(pos, MF_BYPOSITION | imenuflags);
+
+	if (m_toolbarsSetup == TRUE) {
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SAVE, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_COPYPASSWORD, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_COPYUSERNAME, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_COPYNOTESFLD, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_CLEARCLIPBOARD, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_AUTOTYPE, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_BROWSEURL, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_EDIT, btoolbar);
+		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, btoolbar);
+	}
+}

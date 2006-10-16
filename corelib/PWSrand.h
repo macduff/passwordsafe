@@ -1,8 +1,7 @@
+#pragma once
+
 // PWSrand.h
 //-----------------------------------------------------------------------------
-
-#ifndef PWSrand_h
-#define PWSrand_h
 
 #include "sha256.h"
 
@@ -31,4 +30,3 @@ class PWSrand {
   char rgbRandomData[SHA256::HASHLEN];
   int ibRandomData;
 };
-#endif // PWSrand_h

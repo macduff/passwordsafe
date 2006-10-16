@@ -1,3 +1,5 @@
+#pragma once
+
 // pws_platform.h
 //------------------------------------------------------------------------------
 //
@@ -37,9 +39,6 @@
 // Windows
 //
 //    Win32 X86
-
-#ifndef PwsPlatform_h
-#define PwsPlatform_h
 
 #if defined(_WIN32)
   #include "../stdafx.h" // ONLY place in corelib which refers to parent. Ugh.
@@ -511,5 +510,3 @@ static inline unsigned long ROR64c(unsigned long word, const int i)
    #define byte(x, n) (((x) >> (8 * (n))) & 255)
 #endif   
 
-
-#endif

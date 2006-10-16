@@ -1,8 +1,7 @@
+#pragma once
+
 /// \file PWCharPool.h
 //-----------------------------------------------------------------------------
-
-#ifndef PWCharPool_h
-#define PWCharPool_h
 
 #include "MyString.h"
 
@@ -91,5 +90,3 @@ class CPasswordCharPool
   const BOOL m_usesymbols;
   const BOOL m_usehexdigits;
 };
-
-#endif

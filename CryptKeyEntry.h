@@ -1,8 +1,9 @@
+#pragma once
+
 // CryptKeyEntry.h
 //-----------------------------------------------------------------------------
 
 #include "corelib/MyString.h"
-
 #include "corelib/PwsPlatform.h"
 
 #if defined(POCKET_PC)
@@ -51,7 +52,4 @@ protected:
 };
 
 #undef SUPERCLASS
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:
+

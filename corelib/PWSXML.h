@@ -1,7 +1,7 @@
+#pragma once
+
 // PWSXML.h : header file
 //
-
-#pragma once
 
 #include "PWScore.h"
 #include "MyString.h"

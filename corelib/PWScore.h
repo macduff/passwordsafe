@@ -1,7 +1,7 @@
+#pragma once
+
 // PWScore.h
 //-----------------------------------------------------------------------------
-
-#pragma once
 
 #include <afxtempl.h> // for CList
 #include "ItemData.h"

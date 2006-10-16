@@ -1,4 +1,5 @@
-#ifndef _TYPEDEFS_H
+#pragma once
+
 #ifdef _WIN32
 //Some extra typedefs -- I'm addicted to typedefs
 typedef char    int8;
@@ -25,4 +26,3 @@ typedef u_int16_t	uint16;
 typedef u_int32_t	uint32;
 typedef u_int64_t	uint64;
 #endif
-#endif // _TYPEDEFS_H

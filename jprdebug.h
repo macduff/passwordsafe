@@ -1,9 +1,7 @@
+#pragma once
+
 // jprdebug.h
 //-----------------------------------------------------------------------------
-
-#if !defined(jprdebug_h)
-#define jprdebug_h
-
 
 #if defined(JPRDEBUG)
 
@@ -64,9 +62,3 @@ DBGDUMP(const char* mem, size_t len)
 #   define DEBUGDUMP(mem, len)
 #endif
 
-#endif // jprdebug_h
-
-//-----------------------------------------------------------------------------
-// Local variables:
-// mode: c++
-// End:
