@@ -468,8 +468,13 @@ DboxMain::OnHotKey(WPARAM , LPARAM)
   // to it is meaningless & unused, hence params ignored
   // The hotkey is used to invoke the app window, prompting
   // for passphrase if needed.
-  app.SetHotKeyPressed(true);
-  PostMessage(WM_COMMAND, ID_MENUITEM_UNMINIMIZE);
+  if (IsWindowVisible()) {
+	  SetActiveWindow();
+	  SetForegroundWindow();
+  } else {
+  	app.SetHotKeyPressed(true);
+    PostMessage(WM_COMMAND, ID_MENUITEM_UNMINIMIZE);
+  }
   return 0;
 }
 
@@ -767,12 +772,20 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
 	SetReadOnly(m_IsReadOnly);
     // Set read-only mode if user explicitly requested it OR
     // we could not create a lock file.
-    // Note that we depend on lazy evaluation: if the 1st is true,
-    // the 2nd won't be called!
-    if (index == GCP_FIRST) // if first, then m_IsReadOnly is set in Open
-      SetReadOnly(m_IsReadOnly || !m_core.LockFile(filename, locker));
-    else if (!m_IsReadOnly) // !first, lock if !m_IsReadOnly
-      SetReadOnly(!m_core.LockFile(filename, locker));
+    switch (index) {
+        case GCP_FIRST: // if first, then m_IsReadOnly is set in Open
+            SetReadOnly(m_IsReadOnly || !m_core.LockFile(filename, locker));
+            break;
+        case GCP_NORMAL:
+            if (!m_IsReadOnly) // !first, lock if !m_IsReadOnly
+              SetReadOnly(!m_core.LockFile(filename, locker));
+            break;
+        case GCP_UNMINIMIZE:
+        case GCP_WITHEXIT:
+        default:
+            // user can't change R-O status
+            break;
+    }
     // locker won't be null IFF tried to lock and failed, in which case
     // it shows the current file locker
     if (!locker.IsEmpty()) {

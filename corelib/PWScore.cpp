@@ -1105,8 +1105,7 @@ bool PWScore::LockFile(const CMyString &filename, CMyString &locker, const bool 
 	GetLocker(lock_filename, locker);
 
 	if (cs_me == CString(locker)) {
-		if (!bDB)
-			m_LockCount[iLFHandle]++;
+		m_LockCount[iLFHandle]++;
 		TRACE(_T("%s Lock1   %s, Count now %d\n"), 
 			PWSUtil::GetTimeStamp(), iLFHandle == 0 ? _T("DB") : _T("CF"),
 			m_LockCount[iLFHandle]);

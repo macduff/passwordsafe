@@ -24,7 +24,7 @@ Internally:
 
 Bugs fixed in 3.??
 ==================
-None
+[1578171] Hotkey works again if window just obscured
 
 New Features for 3.04
 =====================
