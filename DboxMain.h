@@ -200,7 +200,8 @@ protected:
   void SetTreeView();
   void SetToolbar(int menuItem);
   void UpdateStatusBar();
-  void SetMainMenus(const UINT imenuflags, const BOOL btool);
+  void UpdateMenuAndToolBar();
+  void SetDCAText();
 
   //Version of message functions with return values
   int Save(void);

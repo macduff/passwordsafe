@@ -116,6 +116,10 @@ DboxMain::OpenOnInit(void)
     startLockCheckTimer();
     UpdateSystemTray(UNLOCKED);
 	m_saveMRU = true;
+  	if (!m_bOpen) {
+  	  // Previous state was closed - reset DCA in status bar
+      SetDCAText();
+	}
 	m_bOpen = true;
     return TRUE;
   default:
@@ -203,7 +207,6 @@ DboxMain::NewFile(void)
   return PWScore::SUCCESS;
 }
 
-
 void
 DboxMain::OnClose()
 {
@@ -229,9 +232,9 @@ DboxMain::Close()
 	// Clear all associated data
 	ClearData();
 	UpdateSystemTray(CLOSED);
-
-	m_bOpen = false;
-	SetMainMenus(MF_DISABLED | MF_GRAYED, FALSE);
+	m_bOpen = false; // needed here for both UpdateStatusBar & UpdateMenuAndToolBar
+	UpdateStatusBar();
+	UpdateMenuAndToolBar();
 	return PWScore::SUCCESS;
 }
 
@@ -240,8 +243,12 @@ DboxMain::OnOpen()
 {
   int rc = Open();
   if (rc == PWScore::SUCCESS) {
-    SetMainMenus(MF_ENABLED, TRUE);
+  	if (!m_bOpen) {
+  	  // Previous state was closed - reset DCA in status bar
+      SetDCAText();
+	}
     m_bOpen = true;
+    UpdateMenuAndToolBar();
   }
 }
 
@@ -1611,10 +1618,8 @@ DboxMain::OnOK()
   } // core.IsChanged()
 
   //Store current filename for next time...
-  if (m_saveMRU)
+  if (m_saveMRU && !(m_core.GetCurFile()).IsEmpty())
     prefs->SetPref(PWSprefs::CurrentFile, m_core.GetCurFile());
-  else
-    prefs->SetPref(PWSprefs::CurrentFile, _T(""));
 
   // Clear clipboard on Exit?  Yes if:
   // a. the app is minimized and the systemtray is enabled
@@ -1698,64 +1703,5 @@ DboxMain::GroupDisplayStatus(char *p_char_displaystatus, int &i, bool bSet)
 			}
 			i++;
 		}
-	}
-}
-
-void
-DboxMain::SetMainMenus(const UINT imenuflags, const BOOL btoolbar)
-{
-	// Change Main Menus if a database is Open or not
-	CWnd* pMain = AfxGetMainWnd();
-	CMenu* xmainmenu = pMain->GetMenu();
-
-	// Look for "File" menu.
-	int pos = app.FindMenuItem(xmainmenu, _T("&File"));
-	if (pos == -1) // E.g., in non-English versions
-		pos = 0; // best guess...
-
-	CMenu* xfilesubmenu = xmainmenu->GetSubMenu(pos);
-	if (xfilesubmenu != NULL)	// Look for "Save As"
-		pos = app.FindMenuItem(xfilesubmenu, ID_MENUITEM_SAVEAS);
-	else
-		pos = -1;
-
-	if (pos > -1) {
-		// Disable/enable Export and Import menu items
-		xfilesubmenu->EnableMenuItem(pos + 2, MF_BYPOSITION | imenuflags);
-		xfilesubmenu->EnableMenuItem(pos + 3, MF_BYPOSITION | imenuflags);
-	}
-
-	// Look for "Edit" menu.
-	pos = app.FindMenuItem(xmainmenu, _T("&Edit"));
-	if (pos == -1) // E.g., in non-English versions
-		pos = 1; // best guess...
-
-	xmainmenu->EnableMenuItem(pos, MF_BYPOSITION | imenuflags);
-
-	// Look for "View" menu.
-	pos = app.FindMenuItem(xmainmenu, _T("&View"));
-	if (pos == -1) // E.g., in non-English versions
-		pos = 2; // best guess...
-
-	xmainmenu->EnableMenuItem(pos, MF_BYPOSITION | imenuflags);
-
-	// Look for "Manage" menu.
-	pos = app.FindMenuItem(xmainmenu, _T("&Manage"));
-	if (pos == -1) // E.g., in non-English versions
-		pos = 3; // best guess...
-
-	xmainmenu->EnableMenuItem(pos, MF_BYPOSITION | imenuflags);
-
-	if (m_toolbarsSetup == TRUE) {
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SAVE, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_COPYPASSWORD, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_COPYUSERNAME, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_COPYNOTESFLD, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_CLEARCLIPBOARD, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_AUTOTYPE, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_BROWSEURL, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_EDIT, btoolbar);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, btoolbar);
 	}
 }

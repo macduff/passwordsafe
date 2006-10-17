@@ -459,7 +459,7 @@ DboxMain::OnOptions()
       	case PWSprefs::DoubleClickCopyPassword: statustext[SB_DBLCLICK] = IDS_STATCOPYPASSWORD; break;
       	case PWSprefs::DoubleClickCopyUsername: statustext[SB_DBLCLICK] = IDS_STATCOPYUSERNAME; break;
 		case PWSprefs::DoubleClickViewEdit: statustext[SB_DBLCLICK] = IDS_STATVIEWEDIT; break;
-		default: ASSERT(0);
+		default: statustext[SB_DBLCLICK] = IDS_STATCOMPANY;
       }
       m_statusBar.SetIndicators(statustext, SB_TOTAL);
 	  UpdateStatusBar();

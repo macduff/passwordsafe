@@ -359,8 +359,8 @@ ThisMfcApp::InitInstance()
 			pos = 0; // best guess...
 
 		CMenu* file_submenu = m_mainmenu->GetSubMenu(pos);
-		if (file_submenu != NULL)	// Look for "Open Database"
-			pos = FindMenuItem(file_submenu, ID_MENUITEM_OPEN);
+		if (file_submenu != NULL)	// Look for "Close Database"
+			pos = FindMenuItem(file_submenu, ID_MENUITEM_CLOSE);
 		else
 			pos = -1;
 
