@@ -98,8 +98,10 @@ ThisMfcApp::~ThisMfcApp()
 #if !defined(POCKET_PC)
 static void Usage()
 {
-  AfxMessageBox(_T("Usage: PasswordSafe [-r|-s] [password database]\n")
-		_T("or PasswordSafe [-e|-d] filename"));
+  AfxMessageBox(_T("Usage: PasswordSafe [-r|-v] [password database]\n")
+                _T("or PasswordSafe [-e|-d] filename\n")
+                _T("-r = open read-only\n-v = validate & repair\n-e/d = encrypt/decrypt file")
+                );
 }
 
 // tests if file exists, returns empty string if so, displays error message if not
@@ -435,13 +437,14 @@ ThisMfcApp::InitInstance()
     } else { // here if first char of arg is '-'
       // first, let's check that there's a second arg
       CString fn = args.Right(args.GetLength()-2);
-      fn.TrimLeft();
+      fn.Trim();
 
-      StripFileQuotes( fn );
+      if (!fn.IsEmpty())
+        StripFileQuotes( fn );
 
-      if (args[1] != 'r' && args[1] != 'R' &&
-          args[1] != 's' && args[1] != 'S' &&
-          (fn.IsEmpty() || !CheckFile(fn))) {
+      const int UC_arg1(toupper(args[1]));
+      if (UC_arg1 != 'R' && UC_arg1 != 'S' &&
+          (fn.IsEmpty() || CheckFile(fn) == FALSE)) {
         Usage();
         return FALSE;
       }
@@ -450,7 +453,7 @@ ThisMfcApp::InitInstance()
 		  fn = (CString)PWSprefs::GetInstance()->GetPref(PWSprefs::CurrentFile);
 
       CMyString passkey;
-      if (args[1] == 'e' || args[1] == 'E' || args[1] == 'd' || args[1] == 'D') {
+      if (UC_arg1 == 'E' || UC_arg1 == 'D') {
         // get password from user if valid flag given. If note, default below will
         // pop usage message
         CCryptKeyEntry dlg(NULL);
@@ -464,29 +467,29 @@ ThisMfcApp::InitInstance()
       }
       BOOL status;
       dbox.SetReadOnly(false);
-      switch (args[1]) {
-      case 'e': case 'E': // do encrpytion
+      switch (UC_arg1) {
+      case 'E': // do encrpytion
         status = EncryptFile(fn, passkey);
         if (!status) {
           AfxMessageBox(_T("Encryption failed"));
         }
         return TRUE;
-      case 'd': case 'D': // do decryption
+      case 'D': // do decryption
         status = DecryptFile(fn, passkey);
         if (!status) {
           // nothing to do - DecryptFile displays its own error messages
         }
         return TRUE;
-      case 'r': case 'R':
+      case 'R':
         dbox.SetReadOnly(true);
         dbox.SetCurFile(fn);
         break;
-      case 's': case 'S':
+      case 'S':
         dbox.SetStartSilent(true);
         dbox.SetCurFile(fn);
         break;
-      case 'v': case 'V':
-        dbox.m_Validate = true;
+      case 'V':
+        dbox.SetValidate(true);
         dbox.SetCurFile(fn);
         break;
       default:

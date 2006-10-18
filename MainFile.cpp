@@ -51,7 +51,7 @@ DboxMain::OpenOnInit(void)
   case PWScore::SUCCESS:
     rc2 = m_core.ReadCurFile(passkey);
 #if !defined(POCKET_PC)
-    m_title = "Password Safe - " + m_core.GetCurFile();
+    m_titlebar = "Password Safe - " + m_core.GetCurFile();
     UpdateSystemTray(UNLOCKED);
 #endif
 	CheckExpiredPasswords();
@@ -177,7 +177,7 @@ DboxMain::New()
 
   m_core.SetCurFile(_T("")); //Force a save as...
 #if !defined(POCKET_PC)
-  m_title = _T("Password Safe - <Untitled>");
+  m_titlebar = _T("Password Safe - <Untitled>");
   app.SetTooltipText(_T("PasswordSafe"));
 #endif
   ChangeOkUpdate();
@@ -232,9 +232,9 @@ DboxMain::Close()
 	// Clear all associated data
 	ClearData();
 	UpdateSystemTray(CLOSED);
-	m_bOpen = false; // needed here for both UpdateStatusBar & UpdateMenuAndToolBar
+	// Call UpdateMenuAndToolBar before UpdateStatusBar, as it sets m_bOpen
+	UpdateMenuAndToolBar(false);
 	UpdateStatusBar();
-	UpdateMenuAndToolBar();
 	return PWScore::SUCCESS;
 }
 
@@ -247,9 +247,41 @@ DboxMain::OnOpen()
   	  // Previous state was closed - reset DCA in status bar
       SetDCAText();
 	}
-    m_bOpen = true;
-    UpdateMenuAndToolBar();
+    UpdateMenuAndToolBar(true);
   }
+}
+
+#if _MFC_VER > 1200
+BOOL
+#else
+void
+#endif
+DboxMain::OnOpenMRU(UINT nID)
+{
+  UINT	uMRUItem = nID - ID_FILE_MRU_ENTRY1;
+
+  CString mruItem = (*app.GetMRU())[uMRUItem];
+
+  // Save just in case need to restore if user cancels
+  const bool last_ro = m_IsReadOnly;
+  // Read-only status will be set by GetAndCheckPassword
+  int rc = Open( mruItem );
+  if (rc == PWScore::SUCCESS) {
+  	UpdateSystemTray(UNLOCKED);
+    m_RUEList.ClearEntries();
+  	if (!m_bOpen) {
+  	  // Previous state was closed - reset DCA in status bar
+      SetDCAText();
+	}
+    UpdateMenuAndToolBar(true);
+  } else {
+  	// Reset Read-only status
+	SetReadOnly(last_ro);
+  }
+
+#if _MFC_VER > 1200
+  return TRUE;
+#endif
 }
 
 int
@@ -379,7 +411,7 @@ DboxMain::Open( const CMyString &pszFilename )
   }
   m_core.SetCurFile(pszFilename);
 #if !defined(POCKET_PC)
-  m_title = _T("Password Safe - ") + m_core.GetCurFile();
+  m_titlebar = _T("Password Safe - ") + m_core.GetCurFile();
 #endif
   CheckExpiredPasswords();
   ChangeOkUpdate();
@@ -436,7 +468,7 @@ DboxMain::Save()
       return PWScore::USER_CANCEL;
     m_core.SetCurFile(NewName);
 #if !defined(POCKET_PC)
-    m_title = _T("Password Safe - ") + m_core.GetCurFile();
+    m_titlebar = _T("Password Safe - ") + m_core.GetCurFile();
     app.SetTooltipText(m_core.GetCurFile());
 #endif
   }
@@ -556,7 +588,7 @@ DboxMain::SaveAs()
     m_core.UnlockFile(m_core.GetCurFile());
   m_core.SetCurFile(newfile);
 #if !defined(POCKET_PC)
-  m_title = _T("Password Safe - ") + m_core.GetCurFile();
+  m_titlebar = _T("Password Safe - ") + m_core.GetCurFile();
   app.SetTooltipText(m_core.GetCurFile());
 #endif
   SetChanged(Clear);

@@ -91,6 +91,7 @@ public:
   void UpdateListItemUser(int lindex, const CString &newUser); // when user edited in tree
   void SetReadOnly(bool state);
   void SetStartSilent(bool state) { m_IsStartSilent = state;}
+  void SetValidate(bool state) { m_bValidate = state;}
   bool MakeRandomPassword(CDialog * const pDialog, CMyString& password);
   BOOL LaunchBrowser(const CString &csURL);
   bool GetShowPasswordInList() const {return m_bShowPasswordInList;}
@@ -116,7 +117,7 @@ public:
 
   // ClassWizard generated virtual function overrides
   //{{AFX_VIRTUAL(DboxMain)
-  bool m_Validate; // do validation after reading db
+  bool m_bValidate; // do validation after reading db
 protected:
   virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
   //}}AFX_VIRTUAL
@@ -133,7 +134,7 @@ protected:
   HGLOBAL hGlobalMemory;
 
 #if !defined(POCKET_PC)
-  CMyString m_title; // what's displayed in the title bar
+  CMyString m_titlebar; // what's displayed in the title bar
 #endif
 
 #if defined(POCKET_PC)
@@ -186,7 +187,7 @@ protected:
   afx_msg void OnSysCommand( UINT nID, LPARAM lParam );
   LRESULT OnHotKey(WPARAM wParam, LPARAM lParam);
   enum STATE {LOCKED, UNLOCKED, CLOSED};  // Really shouldn't be here it, ThisMfcApp own it
-  void UpdateSystemTray(STATE s);
+  void UpdateSystemTray(const STATE s);
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
 
   BOOL PreTranslateMessage(MSG* pMsg);
@@ -200,7 +201,7 @@ protected:
   void SetTreeView();
   void SetToolbar(int menuItem);
   void UpdateStatusBar();
-  void UpdateMenuAndToolBar();
+  void UpdateMenuAndToolBar(const bool bOpen);
   void SetDCAText();
 
   //Version of message functions with return values

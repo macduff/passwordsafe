@@ -477,7 +477,7 @@ BOOL DboxMain::SelectEntry(int i, BOOL MakeVisible)
 void
 DboxMain::RefreshList()
 {
-  if (! m_windowok)
+  if (!m_windowok)
     return;
 
 #if defined(POCKET_PC)
@@ -854,7 +854,12 @@ DboxMain::ClearData(bool clearMRE)
     m_core.GetNextEntry(listPos);
   }
   m_core.ClearData();
-  UpdateSystemTray(LOCKED);
+
+  if (m_bOpen)
+	  UpdateSystemTray(LOCKED);
+  else
+	  UpdateSystemTray(CLOSED);
+
   // If data is cleared, m_selectedAtMinimize is useless,
   // since it will be deleted and rebuilt from the file.
   // This means that selection won't be restored in this case.
@@ -1135,7 +1140,7 @@ DboxMain::GetToken(CString& str, LPCTSTR c)
 }
 
 void
-DboxMain::UpdateSystemTray(STATE s)
+DboxMain::UpdateSystemTray(const STATE s)
 {
   switch (s) {
   case LOCKED:

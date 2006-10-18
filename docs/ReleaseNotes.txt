@@ -10,17 +10,22 @@ releases may be found in the file ChangeLog.txt.
 
 New Features for 3.??
 =====================
-Intermediate Backups supported - can be created before every save
-Configuration data moved from the Windows Registry to a XML file
-DoubleClickAction can now also copy username or notes to the clipboard
+- Intermediate Backups supported - can be automatically created before
+  every save
+- Configuration data moved from the Windows Registry to a XML file with
+  option to delete all PWS information from the user's registry
+- DoubleClickAction can now also copy username or notes to the clipboard
+- Can close the current database without immediately opening another
 
 Changes to Existing Features in 3.??
 ====================================
+- Silent startup opens PWS in "Closed" state
 Internally:
 - Major changes to preferences (in memory copies used, written out only
   when DB saved or application ends)
-- File locking changed to handle DB and Config file locks
-- Internal RecentFileList class to overcome "bug" in MS code
+- File locking changed to handle DB and Config file locks and the user having
+  multiple instances running on same computer
+- Internal RecentFileList class to overcome "bug" in MS code for similar class
 
 Bugs fixed in 3.??
 ==================
@@ -188,6 +193,6 @@ plaintext import/export format.
 
 Known Problems in 3.0Beta1:
 ===========================
-[] No major problems are known in this release. However, it is a FIRST BETA 
+[] No major problems are known in this release. However, it is a FIRST BETA
 release, and should NOT be used on real databases without backups!
 [] Online help has not been updated

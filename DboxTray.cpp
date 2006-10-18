@@ -73,9 +73,11 @@ DboxMain::OnUpdateTrayLockUnLockCommand(CCmdUI *pCmdUI)
 {
 	const CString csUnLock = _T("Unlock Database");
 	const CString csLock = _T("Lock Database");
+	const CString csClosed = _T("No Database Open");
 
+	const int i_state = app.GetSystemTrayState();
 	// Set text to "UnLock" or "Lock"
-	switch (app.GetSystemTrayState()) {
+	switch (i_state) {
 		case ThisMfcApp::UNLOCKED:
 			pCmdUI->SetText(csLock);
 			break;
@@ -83,15 +85,20 @@ DboxMain::OnUpdateTrayLockUnLockCommand(CCmdUI *pCmdUI)
 			pCmdUI->SetText(csUnLock);
 			break;
 		case ThisMfcApp::CLOSED:
+			pCmdUI->Enable(FALSE);
+			pCmdUI->SetText(csClosed);
+			break;
 		default:
 			break;
 	}
 
-	// If dialog visible - obviously unlocked and no need to have option to lock
-	if (this->IsWindowVisible() == FALSE)
-		pCmdUI->Enable(TRUE);
-	else
-		pCmdUI->Enable(FALSE);
+	if (i_state != ThisMfcApp::CLOSED) {
+		// If dialog visible - obviously unlocked and no need to have option to lock
+		if (this->IsWindowVisible() == FALSE)
+			pCmdUI->Enable(TRUE);
+		else
+			pCmdUI->Enable(FALSE);
+	}
 }
 
 void

@@ -169,7 +169,7 @@ DboxMain::Restore()
   m_core.SetCurFile(_T("")); //Force a Save As...
   m_core.SetChanged(Data); //So that the restored file will be saved
 #if !defined(POCKET_PC)
-  m_title = _T("Password Safe - <Untitled Restored Backup>");
+  m_titlebar = _T("Password Safe - <Untitled Restored Backup>");
   app.SetTooltipText(_T("PasswordSafe"));
 #endif
   ChangeOkUpdate();

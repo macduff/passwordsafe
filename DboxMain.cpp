@@ -101,7 +101,7 @@ DboxMain::DboxMain(CWnd* pParent)
      m_selectedAtMinimize(NULL), m_bTSUpdated(false),
      m_iSessionEndingStatus(IDIGNORE),
 	 m_bFindActive(false), m_pchTip(NULL), m_pwchTip(NULL),
-	 m_Validate(false), m_bOpen(false)
+	 m_bValidate(false), m_bOpen(false)
 {
   //{{AFX_DATA_INIT(DboxMain)
   // NOTE: the ClassWizard will add member initialization here
@@ -124,7 +124,7 @@ DboxMain::DboxMain(CWnd* pParent)
                       GetPref(PWSprefs::CurrentFile));
   }
 #if !defined(POCKET_PC)
-  m_title = _T("");
+  m_titlebar = _T("");
   m_toolbarsSetup = FALSE;
 #endif
 
@@ -424,6 +424,8 @@ DboxMain::InitPasswordSafe()
   }
   ChangeOkUpdate();
 
+  setupBars(); // Just to keep things a little bit cleaner
+
 #if !defined(POCKET_PC)
   // {kjp} Can't drag and drop files onto an application in PocketPC
   DragAcceptFiles(TRUE);
@@ -485,22 +487,28 @@ DboxMain::OnHotKey(WPARAM , LPARAM)
 BOOL
 DboxMain::OnInitDialog()
 {
-  ConfigureSystemMenu();
-
   CDialog::OnInitDialog();
 
-  setupBars(); // Just to keep things a little bit cleaner
-
-  if (!m_IsStartSilent && (OpenOnInit() == FALSE))
-      return TRUE;
-
+  ConfigureSystemMenu();
   InitPasswordSafe();
-  // Validation does integrity check & repair on database
-  // currently invoke it iff m_Validate set (e.g., user passed '-v' flag)
-  if (m_Validate) {
-    PostMessage(WM_COMMAND, ID_MENUITEM_VALIDATE);
-    m_Validate = false;
+  
+  if (m_IsStartSilent) {
+  	  // Start up "closed"
+      Close();
+      return TRUE;
   }
+
+  // Validation does integrity check & repair on database
+  // currently invoke it iff m_bValidate set (e.g., user passed '-v' flag)
+  if (m_bValidate) {
+    PostMessage(WM_COMMAND, ID_MENUITEM_VALIDATE);
+    m_bValidate = false;
+    return TRUE;
+  }
+
+  OpenOnInit();
+  RefreshList();
+
   return TRUE;  // return TRUE unless you set the focus to a control
 }
 
@@ -690,7 +698,7 @@ DboxMain::SetChanged(ChangeType changed)
 void
 DboxMain::ChangeOkUpdate()
 {
-  if (! m_windowok)
+  if (!m_windowok)
     return;
 
 #if defined(POCKET_PC)
@@ -699,16 +707,13 @@ DboxMain::ChangeOkUpdate()
   CMenu *menu	= GetMenu();
 #endif
 
+  // Don't need to worry about R-O, as IsChanged can't be true in this case
   menu->EnableMenuItem(ID_MENUITEM_SAVE,
                        m_core.IsChanged() ? MF_ENABLED : MF_GRAYED);
-
-  /*
-    This doesn't exactly belong here, but it makes sure that the
-    title is fresh...
-  */
-#if !defined(POCKET_PC)
-  SetWindowText(LPCTSTR(m_title));
-#endif
+  if (m_toolbarsSetup == TRUE) {
+	m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SAVE,
+	                   m_core.IsChanged() ? TRUE : FALSE);
+  }
   UpdateStatusBar();
 }
 
@@ -1105,35 +1110,6 @@ DboxMain::OnUpdateMRU(CCmdUI* pCmdUI)
   }
 }
 
-#if _MFC_VER > 1200
-BOOL
-#else
-void
-#endif
-DboxMain::OnOpenMRU(UINT nID)
-{
-  UINT	uMRUItem = nID - ID_FILE_MRU_ENTRY1;
-
-  CString mruItem = (*app.GetMRU())[uMRUItem];
-
-  const bool last_ro = m_IsReadOnly; // restore if user cancels
-  SetReadOnly(false);
-  int rc = Open( mruItem );
-  if (rc == PWScore::SUCCESS) {
-  	if (!m_bOpen) {
-  	  // Previous state was closed - reset DCA in status bar
-      SetDCAText();
-	}
-    m_bOpen = true;
-    UpdateMenuAndToolBar();
-  } else
-	  SetReadOnly(last_ro);
-
-#if _MFC_VER > 1200
-  return TRUE;
-#endif
-}
-
 // Called just before any pulldown or popup menu is displayed, so that menu items
 // can be enabled/disabled or checked/unchecked dynamically.
 void
@@ -1361,7 +1337,7 @@ DboxMain::UnMinimize(bool update_windows)
 			case PWScore::SUCCESS:
 				rc2 = m_core.ReadCurFile(passkey);
 #if !defined(POCKET_PC)
-				m_title = _T("Password Safe - ") + m_core.GetCurFile();
+				m_titlebar = _T("Password Safe - ") + m_core.GetCurFile();
 #endif
 				break;
 			case PWScore::CANT_OPEN_FILE:
@@ -1619,6 +1595,13 @@ DboxMain::UpdateStatusBar()
       m_statusBar.SetPaneText(SB_NUM_ENT, _T(" "));
     }
   }
+  /*
+    This doesn't exactly belong here, but it makes sure that the
+    title is fresh...
+  */
+#if !defined(POCKET_PC)
+  SetWindowText(LPCTSTR(m_titlebar));
+#endif
 }
 
 void
@@ -1655,11 +1638,14 @@ void DboxMain::MakeSortedItemList(ItemList &il)
 }
 
 void
-DboxMain::UpdateMenuAndToolBar()
+DboxMain::UpdateMenuAndToolBar(const bool bOpen)
 {
-	const UINT imenuflags = m_bOpen ? MF_ENABLED : MF_DISABLED | MF_GRAYED;
+	// Set new open/close status
+	m_bOpen = bOpen;
+
 	// For open/close
-	const BOOL btoolbar1 = m_bOpen ? TRUE : FALSE;
+	const UINT imenuflags = bOpen ? MF_ENABLED : MF_DISABLED | MF_GRAYED;
+	const BOOL btoolbar1 = bOpen ? TRUE : FALSE;
 	// If open but Read-Only
 	BOOL btoolbar2;
 	if (m_IsReadOnly)
@@ -1683,7 +1669,7 @@ DboxMain::UpdateMenuAndToolBar()
 		pos = -1;
 
 	if (pos > -1) {
-		// Disable/enable Export and Import menu items (sjip over separator)
+		// Disable/enable Export and Import menu items (skip over separator)
 		xfilesubmenu->EnableMenuItem(pos + 2, MF_BYPOSITION | imenuflags);
 		xfilesubmenu->EnableMenuItem(pos + 3, MF_BYPOSITION | imenuflags);
 	}
@@ -1707,7 +1693,12 @@ DboxMain::UpdateMenuAndToolBar()
 	if (pos == -1) // E.g., in non-English versions
 		pos = 3; // best guess...
 
-	xmainmenu->EnableMenuItem(pos, MF_BYPOSITION | imenuflags);
+	xfilesubmenu = xmainmenu->GetSubMenu(pos);
+	// Disable/enable menu items:
+	//   "Change Safe Combination", "Make Backup" & "Restore from Backup"
+	xfilesubmenu->EnableMenuItem(ID_MENUITEM_CHANGECOMBO, MF_BYCOMMAND | imenuflags);
+	xfilesubmenu->EnableMenuItem(ID_MENUITEM_BACKUPSAFE, MF_BYCOMMAND | imenuflags);
+	xfilesubmenu->EnableMenuItem(ID_MENUITEM_RESTORE, MF_BYCOMMAND | imenuflags);
 
 	if (m_toolbarsSetup == TRUE) {
 		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_COPYPASSWORD, btoolbar1);
@@ -1722,4 +1713,5 @@ DboxMain::UpdateMenuAndToolBar()
 		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD, btoolbar2);
 		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, btoolbar2);
 	}
+	m_titlebar = "Password Safe";
 }
