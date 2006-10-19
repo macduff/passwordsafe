@@ -231,10 +231,12 @@ DboxMain::Close()
 
 	// Clear all associated data
 	ClearData();
+	app.SetTooltipText(_T("PasswordSafe"));
 	UpdateSystemTray(CLOSED);
 	// Call UpdateMenuAndToolBar before UpdateStatusBar, as it sets m_bOpen
 	UpdateMenuAndToolBar(false);
 	UpdateStatusBar();
+	m_titlebar = "Password Safe";
 	return PWScore::SUCCESS;
 }
 

@@ -489,6 +489,9 @@ DboxMain::OnInitDialog()
 {
   CDialog::OnInitDialog();
 
+  // Install menu popups for full path on MRU entries
+  m_menuTipManager.Install(AfxGetMainWnd());
+
   ConfigureSystemMenu();
   InitPasswordSafe();
   
@@ -1713,5 +1716,4 @@ DboxMain::UpdateMenuAndToolBar(const bool bOpen)
 		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD, btoolbar2);
 		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, btoolbar2);
 	}
-	m_titlebar = "Password Safe";
 }

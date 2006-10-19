@@ -16,6 +16,7 @@ New Features for 3.??
   option to delete all PWS information from the user's registry
 - DoubleClickAction can now also copy username or notes to the clipboard
 - Can close the current database without immediately opening another
+- Tooltips on recently accessed databases to show their full path
 
 Changes to Existing Features in 3.??
 ====================================

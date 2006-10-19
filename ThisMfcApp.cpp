@@ -100,7 +100,12 @@ static void Usage()
 {
   AfxMessageBox(_T("Usage: PasswordSafe [-r|-v] [password database]\n")
                 _T("or PasswordSafe [-e|-d] filename\n")
-                _T("-r = open read-only\n-v = validate & repair\n-e/d = encrypt/decrypt file")
+				_T("or PasswordSafe [-s]\n\n")
+				_T(" where:\n")
+                _T("\t-r = open read-only\n")
+				_T("\t-v = validate & repair\n")
+				_T("\t-e/d = encrypt/decrypt file\n")
+				_T("\t-s = open silently i.e. no open database")
                 );
 }
 
@@ -443,8 +448,9 @@ ThisMfcApp::InitInstance()
         StripFileQuotes( fn );
 
       const int UC_arg1(toupper(args[1]));
-      if (UC_arg1 != 'R' && UC_arg1 != 'S' &&
-          (fn.IsEmpty() || CheckFile(fn) == FALSE)) {
+	  // The following arguements require the database name and it exists!
+      if ((UC_arg1 == 'R' || UC_arg1 == 'E' || UC_arg1 == 'D' || UC_arg1 == 'V')
+		   && (fn.IsEmpty() || CheckFile(fn) == FALSE)) {
         Usage();
         return FALSE;
       }
@@ -486,7 +492,7 @@ ThisMfcApp::InitInstance()
         break;
       case 'S':
         dbox.SetStartSilent(true);
-        dbox.SetCurFile(fn);
+        dbox.SetCurFile(_T(""));
         break;
       case 'V':
         dbox.SetValidate(true);
@@ -503,7 +509,7 @@ ThisMfcApp::InitInstance()
   /*
    * normal startup
    */
-	
+
   /*
     Here's where PWS currently does DboxMain, which in turn will do
     the initial PasskeyEntry (the one that looks like a splash screen).
@@ -513,7 +519,7 @@ ThisMfcApp::InitInstance()
   */
   m_maindlg = &dbox;
   m_pMainWnd = m_maindlg;
-	
+
   // JHF : no tray icon and menu for PPC
 #if !defined(POCKET_PC)
   //HICON stIcon = app.LoadIcon(IDI_TRAY);

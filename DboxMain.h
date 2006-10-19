@@ -14,6 +14,7 @@
 #endif
 #include "MyTreeCtrl.h"
 #include "RUEList.h"
+#include "MenuTipper.h"
 
 #if defined(POCKET_PC) || (_MFC_VER <= 1200)
 DECLARE_HANDLE(HDROP);
@@ -170,6 +171,7 @@ protected:
   TCHAR *m_pchTip;
 
   CMyString m_TreeViewGroup; // used by OnAdd & OnAddGroup
+  CMenuTipManager m_menuTipManager;
 
   int insertItem(CItemData &itemData, int iIndex = -1);
   CItemData *getSelectedItem();

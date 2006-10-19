@@ -231,6 +231,9 @@
 				RelativePath=".\MainView.cpp">
 			</File>
 			<File
+				RelativePath=".\MenuTipper.cpp">
+			</File>
+			<File
 				RelativePath=".\model.cpp">
 			</File>
 			<File
@@ -264,6 +267,9 @@
 				RelativePath=".\PasskeySetup.cpp">
 			</File>
 			<File
+				RelativePath=".\PupText.cpp">
+			</File>
+			<File
 				RelativePath=".\Properties.cpp">
 			</File>
 			<File
@@ -283,6 +289,9 @@
 			</File>
 			<File
 				RelativePath=".\RUEList.cpp">
+			</File>
+			<File
+				RelativePath=".\Subclass.cpp">
 			</File>
 			<File
 				RelativePath=".\SysColStatic.cpp">
@@ -364,6 +373,9 @@
 				RelativePath=".\jprdebug.h">
 			</File>
 			<File
+				RelativePath=".\MenuTipper.h">
+			</File>
+			<File
 				RelativePath=".\model.h">
 			</File>
 			<File
@@ -406,6 +418,9 @@
 				RelativePath=".\PasswordSafe.h">
 			</File>
 			<File
+				RelativePath=".\PupText.h">
+			</File>
+			<File
 				RelativePath=".\Properties.h">
 			</File>
 			<File
@@ -440,6 +455,9 @@
 			</File>
 			<File
 				RelativePath=".\StdAfx.h">
+			</File>
+			<File
+				RelativePath=".\Subclass.h">
 			</File>
 			<File
 				RelativePath=".\SysColStatic.h">
