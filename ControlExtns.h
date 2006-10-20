@@ -13,6 +13,7 @@ public:
 // Attributes
 private:
 	BOOL m_bIsFocused;
+	BOOL m_bIsDisabled;
 
 	CBrush brInFocus;
 	CBrush brNoFocus;
@@ -34,6 +35,7 @@ protected:
 	//{{AFX_MSG(CEditExtn)
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnKillFocus(CWnd* pNewWnd);
+	afx_msg void OnEnable(BOOL bEnable);
 	afx_msg HBRUSH CtlColor(CDC* pDC, UINT nCtlColor);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

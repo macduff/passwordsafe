@@ -138,7 +138,6 @@ DboxMain::~DboxMain()
   delete m_pwchTip;
 
   ::DeleteObject(m_hFontTree);
-  ReleasePasswordFont();
   CFindDlg::EndIt();
   // Save Find wrap value
   PWSprefs::GetInstance()->SetPref(PWSprefs::FindWraps, m_bFindWrap);

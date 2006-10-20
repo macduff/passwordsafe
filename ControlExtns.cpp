@@ -20,6 +20,7 @@ CEditExtn::CEditExtn()
 {
 	brInFocus.CreateSolidBrush(crefInFocus);
 	brNoFocus.CreateSolidBrush(crefNoFocus);
+	m_bIsDisabled = FALSE;
 }
 
 CEditExtn::~CEditExtn()
@@ -31,6 +32,7 @@ BEGIN_MESSAGE_MAP(CEditExtn, CEdit)
 	ON_WM_SETFOCUS()
 	ON_WM_KILLFOCUS()
 	ON_WM_CTLCOLOR_REFLECT()
+	ON_WM_ENABLE()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -40,6 +42,7 @@ END_MESSAGE_MAP()
 void CEditExtn::OnSetFocus(CWnd* pOldWnd)
 {
 	m_bIsFocused = TRUE;
+	m_bIsDisabled = FALSE;
 	CEdit::OnSetFocus(pOldWnd);
 	Invalidate(TRUE);
 }
@@ -47,12 +50,22 @@ void CEditExtn::OnSetFocus(CWnd* pOldWnd)
 void CEditExtn::OnKillFocus(CWnd* pNewWnd)
 {
 	m_bIsFocused = FALSE;
+	m_bIsDisabled = FALSE;
 	CEdit::OnKillFocus(pNewWnd);
 	Invalidate(TRUE);
 }
 
-HBRUSH CEditExtn::CtlColor(CDC* pDC, UINT /* nCtlColor */)
+void CEditExtn::OnEnable(BOOL bEnable)
 {
+	m_bIsDisabled = (bEnable == FALSE);
+}
+
+HBRUSH CEditExtn::CtlColor(CDC* pDC, UINT /*nCtlColor*/)
+{
+	if (m_bIsDisabled) {
+		return NULL;
+	}
+
 	if (m_bIsFocused == TRUE) {
 		pDC->SetBkColor(crefInFocus);
 		return brInFocus;

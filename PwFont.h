@@ -3,6 +3,5 @@
 // PwFont.h
 //-----------------------------------------------------------------------------
 
-void  SetPasswordFont(CWnd* pDlgItem);
-void ReleasePasswordFont();
+void SetPasswordFont(CWnd* pDlgItem);
 
