@@ -28,7 +28,7 @@ public:
 
   CPWSRecentFileList* GetMRU() { return m_pMRU; }
   void ClearMRU();
-  void AddToMRU(const CString &pszFilename);
+  void AddToMRU(const CString &pszFilename, const bool bstartup = false);
   void WriteMRU(const int &iconfig);
   void ReadMRU(const int &iconfig);
 

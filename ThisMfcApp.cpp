@@ -349,66 +349,66 @@ ThisMfcApp::InitInstance()
   CMenu* new_popupmenu = NULL;
   const int iConfigOptions = prefs->GetConfigOptions();
 
-	if (iConfigOptions != PWSprefs::CF_NONE) {
-		int	nMRUItems = prefs->GetPref(PWSprefs::MaxMRUItems);
+  if (iConfigOptions != PWSprefs::CF_NONE) {
+	int	nMRUItems = prefs->GetPref(PWSprefs::MaxMRUItems);
 
-		m_mruonfilemenu = prefs->GetPref(PWSprefs::MRUOnFileMenu);
+	m_mruonfilemenu = prefs->GetPref(PWSprefs::MRUOnFileMenu);
 
-		m_clipboard_set = false;
+	m_clipboard_set = false;
 
-		m_mainmenu = new CMenu;
-		m_mainmenu->LoadMenu(IDR_MAINMENU);
-		new_popupmenu = new CMenu;
+	m_mainmenu = new CMenu;
+	m_mainmenu->LoadMenu(IDR_MAINMENU);
+	new_popupmenu = new CMenu;
 
-		// Look for "File" menu.
-		int pos = FindMenuItem(m_mainmenu, _T("&File"));
-		if (pos == -1) // E.g., in non-English versions
-			pos = 0; // best guess...
+	// Look for "File" menu.
+	int pos = FindMenuItem(m_mainmenu, _T("&File"));
+	if (pos == -1) // E.g., in non-English versions
+		pos = 0; // best guess...
 
-		CMenu* file_submenu = m_mainmenu->GetSubMenu(pos);
-		if (file_submenu != NULL)	// Look for "Close Database"
-			pos = FindMenuItem(file_submenu, ID_MENUITEM_CLOSE);
-		else
-			pos = -1;
+	CMenu* file_submenu = m_mainmenu->GetSubMenu(pos);
+	if (file_submenu != NULL)	// Look for "Close Database"
+		pos = FindMenuItem(file_submenu, ID_MENUITEM_CLOSE);
+	else
+		pos = -1;
 
-		if (nMRUItems > 0) {
-			if (pos > -1) {
-				int irc;
-				// Create New Popup Menu
-				new_popupmenu->CreatePopupMenu();
+	if (nMRUItems > 0) {
+		if (pos > -1) {
+			int irc;
+			// Create New Popup Menu
+			new_popupmenu->CreatePopupMenu();
 
-				if (!m_mruonfilemenu) {	// MRU entries in popup menu
-					// Insert Item onto new popup
-					irc = new_popupmenu->InsertMenu( 0, MF_BYPOSITION, ID_FILE_MRU_ENTRY1, "Recent" );
-					ASSERT(irc != 0);
+			if (!m_mruonfilemenu) {	// MRU entries in popup menu
+				// Insert Item onto new popup
+				irc = new_popupmenu->InsertMenu( 0, MF_BYPOSITION, ID_FILE_MRU_ENTRY1, "Recent" );
+				ASSERT(irc != 0);
 
-					// Insert Popup onto main menu
-					irc = file_submenu->InsertMenu( pos + 2, MF_BYPOSITION | MF_POPUP, (UINT) new_popupmenu->m_hMenu,
+				// Insert Popup onto main menu
+				irc = file_submenu->InsertMenu( pos + 2, MF_BYPOSITION | MF_POPUP, (UINT) new_popupmenu->m_hMenu,
 																				 "&Recent Safes" );
-					ASSERT(irc != 0);
-				} else {	// MRU entries inline
-					irc = file_submenu->InsertMenu( pos + 2, MF_BYPOSITION, ID_FILE_MRU_ENTRY1, "Recent" );
-					ASSERT(irc != 0);
-				}
+				ASSERT(irc != 0);
+			} else {	// MRU entries inline
+				irc = file_submenu->InsertMenu( pos + 2, MF_BYPOSITION, ID_FILE_MRU_ENTRY1, "Recent" );
+				ASSERT(irc != 0);
+			}
 
-				m_pMRU = new CPWSRecentFileList( 0, _T("MRU"), _T("Safe%d"), nMRUItems );
-				ReadMRU(iConfigOptions);
-				// If new config file, copy the existing ones over now.
-				if (iConfigOptions == PWSprefs::CF_FILE_RW_NEW)
-					WriteMRU(iConfigOptions);
-			}
-		} else {
-			if (pos > -1) {
-				int irc;
-				// Remove extra separator
-				irc = file_submenu->RemoveMenu(pos + 1, MF_BYPOSITION);
-				ASSERT( irc != 0);
-				// Remove Clear MRU menu item.
-				irc = file_submenu->RemoveMenu(ID_MENUITEM_CLEAR_MRU, MF_BYCOMMAND);
-				ASSERT( irc != 0);
-			}
+			m_pMRU = new CPWSRecentFileList( 0, _T("MRU"), _T("Safe%d"), nMRUItems );
+			ReadMRU(iConfigOptions);
+			// If new config file, copy the existing ones over now.
+			if (iConfigOptions == PWSprefs::CF_FILE_RW_NEW)
+				WriteMRU(iConfigOptions);
+		}
+	} else {
+		if (pos > -1) {
+			int irc;
+			// Remove extra separator
+			irc = file_submenu->RemoveMenu(pos + 1, MF_BYPOSITION);
+			ASSERT( irc != 0);
+			// Remove Clear MRU menu item.
+			irc = file_submenu->RemoveMenu(ID_MENUITEM_CLEAR_MRU, MF_BYCOMMAND);
+			ASSERT( irc != 0);
 		}
 	}
+  }
 
   DboxMain dbox(NULL);
 	
@@ -554,7 +554,7 @@ ThisMfcApp::InitInstance()
 }
 
 void
-ThisMfcApp::AddToMRU(const CString &pszFilename)
+ThisMfcApp::AddToMRU(const CString &pszFilename, const bool bstartup)
 {
 	if (m_pMRU == NULL)
 		return;
@@ -564,7 +564,7 @@ ThisMfcApp::AddToMRU(const CString &pszFilename)
 	/* Implemented own CRecentFileList to get around MS problem - see code in
 	   PWSRecentFileList.cpp */
 	if (!csMRUFilename.IsEmpty())
-		m_pMRU->Add(csMRUFilename);
+		m_pMRU->Add(csMRUFilename, bstartup);
 }
 
 void
@@ -675,7 +675,7 @@ ThisMfcApp::ReadMRU(const int &iconfig)
 					csSubkey.Format("Safe%02d", i);
 					const CString csMRUFilename = (PWSprefs::GetInstance()->
 						ReadMRUFromXML(csSubkey));
-					AddToMRU(csMRUFilename);
+					AddToMRU(csMRUFilename, true);
 				}
 				PWSprefs::GetInstance()->SetKeepXMLLock(false);
 			}
