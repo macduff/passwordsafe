@@ -13,8 +13,8 @@
 #include "resource.h"
 #include "PasskeySetup.h"
 #include "TryAgainDlg.h"
-#include "ExportText.h"
-#include "ExportXML.h"
+#include "ExportTextDlg.h"
+#include "ExportXMLDlg.h"
 #include "ImportDlg.h"
 #include "ImportXMLDlg.h"
 #include "ImportXMLErrDlg.h"
@@ -1163,16 +1163,7 @@ DboxMain::OnProperties()
 {
   CProperties dlg;
 
-#define MAX_LEN 55  // pure guess!
-
-  CString t, ttt;
-  t = CString(m_core.GetCurFile());
-  if (t.GetLength() >= MAX_LEN) {
-    dlg.m_database = t.Left(MAX_LEN/2-6) + 
-      _T(" ... ") + t.Right(MAX_LEN/2);
-  } else {
-    dlg.m_database = t;
-  }
+  dlg.m_database = CString(m_core.GetCurFile());
 
   int nmajor = m_core.GetCurrentMajorVersion();
   int nminor = m_core.GetCurrentMinorVersion();
