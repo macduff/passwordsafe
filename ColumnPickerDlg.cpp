@@ -29,8 +29,8 @@ CColumnPickerDlg::CColumnPickerDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CColumnPickerDlg::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(CColumnPickerDlg)
-	m_column_title = 1;  // mandatory
-	m_column_user = 1;   // mandatory
+	m_column_title = BST_INDETERMINATE;  // mandatory
+	m_column_user = BST_INDETERMINATE;   // mandatory
 	//}}AFX_DATA_INIT
 }
 
@@ -109,12 +109,14 @@ void CColumnPickerDlg::OnOK()
 
 void CColumnPickerDlg::OnSetColumnTitle()
 {
-	((CButton*)GetDlgItem(IDC_COLPICK_TITLE))->SetCheck(1);
+    // Disabled control looks bad, just grey out tick using INDETERMINATE trick
+	((CButton*)GetDlgItem(IDC_COLPICK_TITLE))->SetCheck(BST_INDETERMINATE);
     UpdateData(FALSE);
 }
 
 void CColumnPickerDlg::OnSetColumnUser()
 {
-	((CButton*)GetDlgItem(IDC_COLPICK_USER))->SetCheck(1);
+    // Disabled control looks bad, just grey out tick using INDETERMINATE trick
+	((CButton*)GetDlgItem(IDC_COLPICK_USER))->SetCheck(BST_INDETERMINATE);
     UpdateData(FALSE);
 }
