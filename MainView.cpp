@@ -312,7 +312,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive, int *indices)
 
   int ititle(-1);  // Must be there as it is mandatory!
   for (int ic = 0; ic < m_nColumns; ic++) {
-      if (m_nColumnItemType[ic] == CItemData::TITLE) {
+      if (m_nColumnTypeByItem[ic] == CItemData::TITLE) {
           ititle = ic;
           break;
       }
@@ -734,7 +734,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex)
     group.LoadString(IDS_ROOT);
 
   // Insert the first column data
-  switch (m_nColumnItemType[0]) {
+  switch (m_nColumnTypeByItem[0]) {
     case CItemData::GROUP:
       cs_fielddata = group;
       break;
@@ -839,7 +839,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex)
 
   // Set the data in the rest of the columns
   for (int i = 1; i < m_nColumns; i++) {
-    switch (m_nColumnItemType[i]) {
+    switch (m_nColumnTypeByItem[i]) {
       case CItemData::GROUP:
         cs_fielddata = group;
         break;
@@ -953,7 +953,7 @@ void DboxMain::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
 
   // Get column index to CItemData value
   int iItem = pNMListView->iSubItem;
-  int isortcolumn = m_nColumnItemType[iItem];
+  int isortcolumn = m_nColumnTypeByItem[iItem];
   
   if (m_iSortedColumn == isortcolumn) {
     m_bSortAscending = !m_bSortAscending;
@@ -1021,19 +1021,19 @@ DboxMain::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
   HD_NOTIFY *phdn = (HD_NOTIFY *) pNMHDR;
   
   *pResult = TRUE;
-  if (m_nColumnItemWidth == NULL || phdn->pitem == NULL)
+  if (m_nColumnWidthByItem == NULL || phdn->pitem == NULL)
       return;
 
   UINT mask = phdn->pitem->mask;
 
   switch (phdn->hdr.code) {
     case HDN_ENDTRACK:
-      m_nColumnItemWidth[phdn->iItem] = phdn->pitem->cxy;
+      m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
       break;
     case HDN_ITEMCHANGED:
       if ((mask & HDI_WIDTH) == HDI_WIDTH) {
         // column width changed
-        m_nColumnItemWidth[phdn->iItem] = phdn->pitem->cxy;
+        m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
       }
       break;
     default:
@@ -1197,22 +1197,28 @@ BOOL DboxMain::IsWorkstationLocked() const
 void
 DboxMain::OnChangeFont() 
 {
-  HFONT hOldFontTree = (HFONT) m_ctlItemTree.SendMessage(WM_GETFONT);
+  CFont *pOldFontTree;
+  pOldFontTree = m_ctlItemTree.GetFont();
 
   // make sure we know what is inside the font.
   LOGFONT lf;
-  ::GetObject(hOldFontTree, sizeof lf, &lf);
+  pOldFontTree->GetLogFont(&lf);
 
   // present it and possibly change it
   CFontDialog dlg(&lf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT);
   if(dlg.DoModal() == IDOK) {
-    m_hFontTree = ::CreateFontIndirect(&lf);
+    m_pFontTree->DeleteObject();
+    m_pFontTree->CreateFontIndirect(&lf);
     // transfer the fonts to the tree and list windows
-    m_ctlItemTree.SendMessage(WM_SETFONT, (WPARAM) m_hFontTree, true);
-    m_ctlItemList.SendMessage(WM_SETFONT, (WPARAM) m_hFontTree, true);
-    // now can get rid of the old font
-    ::DeleteObject(hOldFontTree);
-        
+    m_ctlItemTree.SetFont(m_pFontTree);
+    m_ctlItemList.SetFont(m_pFontTree);
+    m_pctlItemListHdr->SetFont(m_pFontTree);
+
+    // Recalculate header widths
+    CalcHeaderWidths();
+    // Reset column widths
+    ResizeColumns();
+
     CString str;
     str.Format(_T("%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%s"),
                lf.lfHeight,
@@ -1236,29 +1242,31 @@ DboxMain::OnChangeFont()
 }
 
 void
-DboxMain::ExtractFont(CString& str)
+DboxMain::ExtractFont(CString& str, LOGFONT *ptreefont)
 {
+  ptreefont->lfHeight = _ttol((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfWidth = _ttol((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfEscapement = _ttol((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfOrientation = _ttol((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfWeight = _ttol((LPCTSTR)GetToken(str, _T(",")));
+
 #pragma warning(push)
-#pragma warning(disable:4244)  // possible loss of data 'int' to 'unsigned char'
-  m_treefont.lfHeight = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfWidth = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfEscapement = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfOrientation = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfWeight = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfItalic = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfUnderline = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfStrikeOut = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfCharSet = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfOutPrecision = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfClipPrecision = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfQuality = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  m_treefont.lfPitchAndFamily = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-#if (_MSC_VER >= 1400)
-  _tcscpy_s(m_treefont.lfFaceName, LF_FACESIZE, str);
-#else
-  _tcscpy(m_treefont.lfFaceName, str);
-#endif  
+#pragma warning(disable:4244) //conversion from 'int' to 'BYTE', possible loss of data
+  ptreefont->lfItalic = _ttoi((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfUnderline = _ttoi((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfStrikeOut = _ttoi((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfCharSet = _ttoi((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfOutPrecision = _ttoi((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfClipPrecision = _ttoi((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfQuality = _ttoi((LPCTSTR)GetToken(str, _T(",")));
+  ptreefont->lfPitchAndFamily = _ttoi((LPCTSTR)GetToken(str, _T(",")));
 #pragma warning(pop)
+
+#if (_MSC_VER >= 1400)
+  _tcscpy_s(ptreefont->lfFaceName, LF_FACESIZE, str);
+#else
+  _tcscpy(ptreefont->lfFaceName, str);
+#endif  
 }
 
 CString
@@ -1335,13 +1343,13 @@ DboxMain::LaunchBrowser(const CString &csURL)
 void
 DboxMain::SetColumns()
 {
+  // User hasn't yet saved the columns he/she wants and so gets our order!
+  // Or - user has reset the columns (popup menu from right click on Header)
   CString cs_header;
   HDITEM hdi;
   hdi.mask = HDI_LPARAM;
 
   int ipwd = m_bShowPasswordInList ? 1 : 0;
-  //  User hasn't yet saved the columns he/she wants
-  //  Gets our order!
 
   CRect rect;
   m_ctlItemList.GetClientRect(&rect);
@@ -1353,26 +1361,26 @@ DboxMain::SetColumns()
   int i3rdWidth = prefs->GetPref(PWSprefs::Column3Width,
                                  rect.Width() / 3);
   
-  cs_header.LoadString(IDS_TITLE);
+  cs_header = GetHeaderText(CItemData::TITLE);
   m_ctlItemList.InsertColumn(0, cs_header);
   hdi.lParam = CItemData::TITLE;
   m_pctlItemListHdr->SetItem(0, &hdi);
   m_ctlItemList.SetColumnWidth(0, i1stWidth);
   
-  cs_header.LoadString(IDS_USERNAME);
+  cs_header = GetHeaderText(CItemData::USER);
   m_ctlItemList.InsertColumn(1, cs_header);
   hdi.lParam = CItemData::USER;
   m_pctlItemListHdr->SetItem(1, &hdi);
   m_ctlItemList.SetColumnWidth(1, i2ndWidth);
 
-  cs_header.LoadString(IDS_NOTES);
+  cs_header = GetHeaderText(CItemData::NOTES);
   m_ctlItemList.InsertColumn(2, cs_header);
   hdi.lParam = CItemData::NOTES;
   m_pctlItemListHdr->SetItem(2, &hdi);
   m_ctlItemList.SetColumnWidth(1, i3rdWidth);
     
   if (m_bShowPasswordInList) {
-    cs_header.LoadString(IDS_PASSWORD);
+    cs_header = GetHeaderText(CItemData::PASSWORD);
     m_ctlItemList.InsertColumn(3, cs_header);
     hdi.lParam = CItemData::PASSWORD;
     m_pctlItemListHdr->SetItem(3, &hdi);
@@ -1382,27 +1390,27 @@ DboxMain::SetColumns()
            rect.Width() / 4));
   }
 
-  cs_header.LoadString(IDS_CREATED);
+  cs_header = GetHeaderText(CItemData::CTIME);
   m_ctlItemList.InsertColumn(ipwd + 3, cs_header);
   hdi.lParam = CItemData::CTIME;
   m_pctlItemListHdr->SetItem(ipwd + 3, &hdi);
   
-  cs_header.LoadString(IDS_PASSWORDMODIFIED);
+  cs_header = GetHeaderText(CItemData::PMTIME);
   m_ctlItemList.InsertColumn(ipwd + 4, cs_header);
   hdi.lParam = CItemData::PMTIME;
   m_pctlItemListHdr->SetItem(ipwd + 4, &hdi);
   
-  cs_header.LoadString(IDS_LASTACCESSED);
+  cs_header = GetHeaderText(CItemData::ATIME);
   m_ctlItemList.InsertColumn(ipwd + 5, cs_header);
   hdi.lParam = CItemData::ATIME;
   m_pctlItemListHdr->SetItem(ipwd + 5, &hdi);
   
-  cs_header.LoadString(IDS_PASSWORDEXPIRYDATE);
+  cs_header = GetHeaderText(CItemData::LTIME);
   m_ctlItemList.InsertColumn(ipwd + 6, cs_header);
   hdi.lParam = CItemData::LTIME;
   m_pctlItemListHdr->SetItem(ipwd + 6, &hdi);
   
-  cs_header.LoadString(IDS_LASTMODIFIED);
+  cs_header = GetHeaderText(CItemData::RMTIME);
   m_ctlItemList.InsertColumn(ipwd + 7, cs_header);
   hdi.lParam = CItemData::RMTIME;
   m_pctlItemListHdr->SetItem(ipwd + 7, &hdi);
@@ -1422,11 +1430,11 @@ DboxMain::SetColumns()
 void
 DboxMain::SetColumns(const CString cs_ListColumns, const CString cs_ListColumnsWidths)
 {
+  //  User has saved the columns he/she wants and now we are putting them back
     CString cs_header;
     HDITEM hdi;
     hdi.mask = HDI_LPARAM;
 
-    //  User has saved the columns he/she wants
     std::vector<int> vi_columns;
     std::vector<int> vi_widths;
     std::vector<int>::const_iterator vi_Iter;
@@ -1472,49 +1480,14 @@ DboxMain::SetColumns(const CString cs_ListColumns, const CString cs_ListColumnsW
     free(pWidths);
   
     int icol = 0;
-    bool bNotWanted;
 
     for (vi_Iter = vi_columns.begin();
          vi_Iter != vi_columns.end();
          vi_Iter++) {
-      bNotWanted = false;
       int icolset = (int)*vi_Iter;
       int &iwidth = vi_widths.at(icol);
-      switch (icolset) {
-        case CItemData::GROUP:
-          cs_header.LoadString(IDS_GROUP);
-          break;
-        case CItemData::TITLE:
-          cs_header.LoadString(IDS_TITLE);
-          break;
-       case CItemData::USER:
-          cs_header.LoadString(IDS_USERNAME);
-          break;
-       case CItemData::PASSWORD:
-          cs_header.LoadString(IDS_PASSWORD);
-          break;
-       case CItemData::NOTES:
-          cs_header.LoadString(IDS_NOTES);
-          break;
-       case CItemData::CTIME:        
-          cs_header.LoadString(IDS_CREATED);
-          break;
-       case CItemData::PMTIME:
-          cs_header.LoadString(IDS_PASSWORDMODIFIED);
-          break;
-       case CItemData::ATIME:
-          cs_header.LoadString(IDS_LASTACCESSED);
-          break;
-       case CItemData::LTIME:
-          cs_header.LoadString(IDS_PASSWORDEXPIRYDATE);
-          break;
-       case CItemData::RMTIME:
-          cs_header.LoadString(IDS_LASTMODIFIED);
-          break;
-       default:
-          bNotWanted = true;
-      }
-      if (!bNotWanted) {
+      cs_header = GetHeaderText(icolset);
+      if (!cs_header.IsEmpty()) {
           m_ctlItemList.InsertColumn(icol, cs_header);
           m_ctlItemList.SetColumnWidth(icol, iwidth);
           hdi.lParam = icolset;
@@ -1529,74 +1502,29 @@ DboxMain::SetColumns(const CString cs_ListColumns, const CString cs_ListColumnsW
 }
 
 void
-DboxMain::SetColumns(const std::bitset<CItemData::LAST> bscolumn)
+DboxMain::SetColumns(const CItemData::FieldBits bscolumn)
 {
+  // User has changed columns he/she wants and we have deleted the ones
+  // not required.
+  // Now add any new columns in reverse order at the beginning of the display
     CString cs_header;
-    int nWidth;
-    bool bNotWanted;
     HDITEM hdi;
 
     hdi.mask = HDI_LPARAM;
 
-    for (int i = 15; i >0; i--) {
-      int itype = bscolumn.test(i) ? i : 0;
-      bNotWanted = false;
-      switch (itype) {
-        case CItemData::GROUP:
-          cs_header.LoadString(IDS_GROUP);
-          nWidth = LVSCW_AUTOSIZE_USEHEADER;
-          break;
-        case CItemData::TITLE:
-          cs_header.LoadString(IDS_TITLE);
-          nWidth = LVSCW_AUTOSIZE_USEHEADER;
-          break;
-        case CItemData::USER:
-          cs_header.LoadString(IDS_USERNAME);
-          nWidth = LVSCW_AUTOSIZE_USEHEADER;
-          break;
-        case CItemData::PASSWORD:
-          cs_header.LoadString(IDS_PASSWORD);
-          nWidth = LVSCW_AUTOSIZE_USEHEADER;
-          break;
-        case CItemData::NOTES:
-          cs_header.LoadString(IDS_NOTES);
-          nWidth = LVSCW_AUTOSIZE_USEHEADER;
-          break;
-        case CItemData::CTIME:        
-          cs_header.LoadString(IDS_CREATED);
-          nWidth = m_iDateTimeFieldWidth;
-          break;
-        case CItemData::PMTIME:
-          cs_header.LoadString(IDS_PASSWORDMODIFIED);
-          nWidth = m_iDateTimeFieldWidth;
-          break;
-        case CItemData::ATIME:
-          cs_header.LoadString(IDS_LASTACCESSED);
-          nWidth = m_iDateTimeFieldWidth;
-          break;
-        case CItemData::LTIME:
-          cs_header.LoadString(IDS_PASSWORDEXPIRYDATE);
-          nWidth = m_iDateTimeFieldWidth;
-          break;
-        case CItemData::RMTIME:
-          cs_header.LoadString(IDS_LASTMODIFIED);
-          nWidth = m_iDateTimeFieldWidth;
-          break;
-        default:
-          bNotWanted = true;
-          nWidth = 0;  // Shut up compiler
-      }
-      if (!bNotWanted) {
-          m_ctlItemList.InsertColumn(0, cs_header);
-          m_ctlItemList.SetColumnWidth(0, nWidth);
-          hdi.lParam = itype;
-          m_pctlItemListHdr->SetItem(0, &hdi);
+    for (int i = CItemData::LAST - 1; i >= 0; i--) {
+      if (bscolumn.test(i)) {
+        cs_header = GetHeaderText(i);
+        if (!cs_header.IsEmpty()) {
+            m_ctlItemList.InsertColumn(0, cs_header);
+            m_ctlItemList.SetColumnWidth(0, GetHeaderWidth(i));
+            hdi.lParam = i;
+            m_pctlItemListHdr->SetItem(0, &hdi);
+        }
       }
     }
 
     SetHeaderInfo();
-
-    return;
 }
 
 void
@@ -1613,21 +1541,18 @@ DboxMain::SetHeaderInfo()
   for (i = 0; i < CItemData::LAST; i++) {
     m_nColumnTypeToItem[i] = -1;
     m_nColumnOrderToItem[i] = -1;
-    m_nColumnItemType[i] = -1;
-    m_nColumnItemWidth[i] = -1;
+    m_nColumnTypeByItem[i] = -1;
+    m_nColumnWidthByItem[i] = -1;
   }
 
   m_pctlItemListHdr->GetOrderArray(m_nColumnOrderToItem, m_nColumns);
 
-  // Last column is special
-  m_ctlItemList.SetColumnWidth(m_nColumns - 1, LVSCW_AUTOSIZE_USEHEADER);
-
   for (i = 0; i < m_nColumns; i++) {
     m_pctlItemListHdr->GetItem(m_nColumnOrderToItem[i], &hdi);
     ASSERT(i == hdi.iOrder);
-    m_nColumnTypeToItem[hdi.lParam] = hdi.iOrder;
-    m_nColumnItemType[i] = hdi.lParam;
-    m_nColumnItemWidth[i] = hdi.cxy;
+    m_nColumnTypeToItem[hdi.lParam] = m_nColumnOrderToItem[i];
+    m_nColumnTypeByItem[i] = hdi.lParam;
+    m_nColumnWidthByItem[i] = hdi.cxy;
   }
 
   // Check sort column still there
@@ -1640,6 +1565,20 @@ DboxMain::SetHeaderInfo()
           }
       }
   }
+
+  for (i = 0; i < (m_nColumns - 1); i++) {
+      const int j = m_nColumnOrderToItem[i];
+      const int itype = m_nColumnTypeByItem[j];
+      if (m_nColumnWidthByItem[j] < m_nColumnHeaderWidthByType[itype]) {
+          m_ctlItemList.SetColumnWidth(i, m_nColumnHeaderWidthByType[itype]);
+          m_nColumnWidthByItem[j] = m_nColumnHeaderWidthByType[itype];
+    }
+  }
+
+  // Last column is special
+  m_ctlItemList.SetColumnWidth(m_nColumns - 1, LVSCW_AUTOSIZE_USEHEADER);
+  m_nColumnWidthByItem[m_nColumnOrderToItem[m_nColumns - 1]] = 
+    m_ctlItemList.GetColumnWidth(m_nColumns - 1);
 }
 
 void
@@ -1661,6 +1600,24 @@ DboxMain::OnResetColumns()
 
   // Refresh the ListView
   RefreshList();
+
+  // Reset the column widths
+  ResizeColumns();
+}
+
+void
+DboxMain::ResizeColumns()
+{
+   for (int i = 0; i < (m_nColumns - 1); i++) {
+       const int j = m_nColumnOrderToItem[i];
+       const int itype = m_nColumnTypeByItem[j];
+       m_ctlItemList.SetColumnWidth(i, LVSCW_AUTOSIZE);
+       if (m_nColumnWidthByItem[j] < m_nColumnHeaderWidthByType[itype])
+           m_ctlItemList.SetColumnWidth(i, m_nColumnHeaderWidthByType[itype]);
+   }
+
+  // Last column is special
+  m_ctlItemList.SetColumnWidth(m_nColumns - 1, LVSCW_AUTOSIZE_USEHEADER);
 }
 
 void
@@ -1668,14 +1625,14 @@ DboxMain::OnColumnPicker()
 {
   HDITEM hdi;
   hdi.mask = HDI_LPARAM;
-  std::bitset<CItemData::LAST> bsColumn;
-  std::bitset<CItemData::LAST> bsOldColumn;
-  std::bitset<CItemData::LAST> bsNewColumn;
+  CItemData::FieldBits bsColumn;
+  CItemData::FieldBits bsOldColumn;
+  CItemData::FieldBits bsNewColumn;
 
   int i;
 
   for (i = 0; i < m_nColumns; i++) {
-    bsOldColumn.set(m_nColumnItemType[i], true);
+    bsOldColumn.set(m_nColumnTypeByItem[i], true);
   }
 
   CColumnPickerDlg cpk;
@@ -1692,18 +1649,160 @@ DboxMain::OnColumnPicker()
 
     // Find unwanted columns and delete them
     bsColumn = bsOldColumn & ~bsNewColumn;
-    for (i = 15; i > 0; i--) {
-      if (bsColumn.test(i)) {
-        m_ctlItemList.DeleteColumn(m_nColumnTypeToItem[i]);
+    if (bsColumn.any()) {
+      for (i = CItemData::LAST - 1; i >= 0; i--) {
+        if (bsColumn.test(i)) {
+          m_ctlItemList.DeleteColumn(m_nColumnTypeToItem[i]);
+        }
       }
     }
 
     // Find new columns wanted and add them to the front
     // as we can't guess the order the user wanted
     bsColumn = bsNewColumn & ~bsOldColumn;
-    SetColumns(bsColumn);
+    if (bsColumn.any())
+      SetColumns(bsColumn);
 
     // Refresh the ListView
     RefreshList();
+    ResizeColumns();
+  }
+}
+
+CString DboxMain::GetHeaderText(const int ihdr)
+{
+  CString cs_header;
+  switch (ihdr) {
+    case CItemData::GROUP:
+      cs_header.LoadString(IDS_GROUP);
+      break;
+    case CItemData::TITLE:
+      cs_header.LoadString(IDS_TITLE);
+      break;
+    case CItemData::USER:
+      cs_header.LoadString(IDS_USERNAME);
+      break;
+    case CItemData::PASSWORD:
+      cs_header.LoadString(IDS_PASSWORD);
+      break;
+    case CItemData::NOTES:
+      cs_header.LoadString(IDS_NOTES);
+      break;
+    case CItemData::CTIME:        
+      cs_header.LoadString(IDS_CREATED);
+      break;
+    case CItemData::PMTIME:
+      cs_header.LoadString(IDS_PASSWORDMODIFIED);
+      break;
+    case CItemData::ATIME:
+      cs_header.LoadString(IDS_LASTACCESSED);
+      break;
+    case CItemData::LTIME:
+      cs_header.LoadString(IDS_PASSWORDEXPIRYDATE);
+      break;
+    case CItemData::RMTIME:
+      cs_header.LoadString(IDS_LASTMODIFIED);
+      break;
+    default:
+      cs_header.Empty();
+  }
+  return cs_header;
+}
+
+int DboxMain::GetHeaderWidth(const int ihdr)
+{
+  int nWidth(0);
+      
+  switch (ihdr) {
+    case CItemData::GROUP:
+    case CItemData::TITLE:
+    case CItemData::USER:
+    case CItemData::PASSWORD:
+    case CItemData::NOTES:
+      nWidth = LVSCW_AUTOSIZE_USEHEADER;
+      break;
+    case CItemData::CTIME:        
+    case CItemData::PMTIME:
+    case CItemData::ATIME:
+    case CItemData::LTIME:
+    case CItemData::RMTIME:
+      nWidth = m_iDateTimeFieldWidth;
+      break;
+    default:
+      break;
+  }
+
+  return nWidth;
+}
+
+void DboxMain::CalcHeaderWidths()
+{
+  // Get default column width for datetime fields
+  TCHAR time_str[80], datetime_str[80];
+  // Use "fictitious" longest English date
+  SYSTEMTIME systime;
+  systime.wYear = (WORD)2000;
+  systime.wMonth = (WORD)9;
+  systime.wDay = (WORD)30;
+  systime.wDayOfWeek = (WORD)3;
+  systime.wHour = (WORD)23;
+  systime.wMinute = (WORD)44;
+  systime.wSecond = (WORD)55;
+  systime.wMilliseconds = (WORD)0;
+  TCHAR szBuf[80];
+  VERIFY(::GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SLONGDATE, szBuf, 80));
+  GetDateFormat(LOCALE_USER_DEFAULT, 0, &systime, szBuf, datetime_str, 80);
+  szBuf[0] = _T(' ');  // Put a blank between date and time
+  VERIFY(::GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STIMEFORMAT, &szBuf[1], 79));
+  GetTimeFormat(LOCALE_USER_DEFAULT, 0, &systime, szBuf, time_str, 80);
+#if _MSC_VER >= 1400
+  _tcscat_s(datetime_str, 80, time_str);
+#else
+  _tcscat(datetime_str, 80, time_str);
+#endif
+
+  m_iDateTimeFieldWidth = m_ctlItemList.GetStringWidth(datetime_str) + 6;
+      
+  CString cs_header;
+  for (int i = 0; i < CItemData::LAST; i++) {
+    switch (i) {
+      case CItemData::GROUP:
+        cs_header.LoadString(IDS_GROUP);
+        break;
+      case CItemData::TITLE:
+        cs_header.LoadString(IDS_TITLE);
+        break;
+      case CItemData::USER:
+        cs_header.LoadString(IDS_USERNAME);
+        break;
+      case CItemData::PASSWORD:
+        cs_header.LoadString(IDS_PASSWORD);
+        break;
+      case CItemData::NOTES:
+        cs_header.LoadString(IDS_NOTES);
+        break;
+      case CItemData::CTIME:        
+        cs_header.LoadString(IDS_CREATED);
+        break;
+      case CItemData::PMTIME:
+        cs_header.LoadString(IDS_PASSWORDMODIFIED);
+        break;
+      case CItemData::ATIME:
+        cs_header.LoadString(IDS_LASTACCESSED);
+        break;
+      case CItemData::LTIME:
+        cs_header.LoadString(IDS_PASSWORDEXPIRYDATE);
+        break;
+      case CItemData::RMTIME:
+        cs_header.LoadString(IDS_LASTMODIFIED);
+        break;
+      default:
+        cs_header.Empty();
+    }
+
+    if (!cs_header.IsEmpty())
+      m_nColumnHeaderWidthByType[i] = m_ctlItemList.GetStringWidth(cs_header) + 20;
+    else
+      m_nColumnHeaderWidthByType[i] = -4;
   }
 }

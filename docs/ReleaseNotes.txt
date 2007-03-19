@@ -12,6 +12,7 @@ Bugs fixed in 3.07
 =====================
 [1675716] <ESC> to close application now works
 [1673028] Merge operation now fixed
+[1673028] Similar problem in Compare operation fixed
 
 New Features for 3.07
 ========================
@@ -23,7 +24,8 @@ list view and their order
 
 Changes to Existing Features in 3.07
 ====================================
--
+List view columns now selectable, entries sortable by any column, 
+settings are persistent - Thanks to DK. 
 
 
 Bugs fixed in 3.06.01

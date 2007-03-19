@@ -759,10 +759,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Util.h"
-				>
-			</File>
-			<File
 				RelativePath=".\view.h"
 				>
 			</File>

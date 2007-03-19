@@ -743,7 +743,7 @@ DboxMain::OnExportText()
                     return;
             } // while (1)
 
-            const std::bitset<CItemData::LAST> bsExport = et.m_bsExport;
+            const CItemData::FieldBits bsExport = et.m_bsExport;
             const CString subgroup = et.m_subgroup;
             const int iObject = et.m_subgroup_object;
             const int iFunction = et.m_subgroup_function;
@@ -1090,15 +1090,14 @@ DboxMain::Merge()
         if (rc == IDOK) {
             newfile = (CMyString)fd.GetPathName();
 
-            rc = Merge( newfile );
+            rc = Merge(newfile);
 
-            if ( rc == PWScore::SUCCESS )
+            if (rc == PWScore::SUCCESS)
                 break;
         } else
             return PWScore::USER_CANCEL;
     }
 
-    m_core.UnlockFile(newfile);
     return rc;
 }
 
@@ -1113,11 +1112,12 @@ DboxMain::Merge(const CMyString &pszFilename) {
       //It is the same damn file
       AfxMessageBox(IDS_ALREADYOPEN, MB_OK|MB_ICONWARNING);
       return PWScore::ALREADY_OPEN;
-	}
-  CMyString cs_saveCurFileName(m_core.GetCurFile());
+  }
 
-  // Save current read-only status around opening merge fil R-O
-  bool bCurrentFileIsReadOnly = m_IsReadOnly;
+  // Save current database name
+  const CMyString cs_saveCurFileName(m_core.GetCurFile());
+  // Save current read-only status around opening merge file R-O
+  const bool bCurrentFileIsReadOnly(m_IsReadOnly);
   // Force input database into read-only status
   rc = GetAndCheckPassword(pszFilename, passkey,
                            GCP_NORMAL, // OK, CANCEL, HELP
@@ -1365,9 +1365,13 @@ DboxMain::OnCompare()
 				//It is the same damn file!
 				AfxMessageBox(IDS_COMPARESAME, MB_OK|MB_ICONWARNING);
 			} else {
-				bool bSave_RO_Status = m_IsReadOnly;  // Compare makes files R/O
+                // Save current database name and R/O status
+				const bool bSave_RO_Status(m_IsReadOnly);  // Compare makes files R/O
+                const CMyString cs_saveCurFileName(m_core.GetCurFile());
 				rc = Compare(file2);
+                // Restore current database name and R/O status
 				SetReadOnly(bSave_RO_Status);
+                m_core.SetCurFile(cs_saveCurFileName);
 				break;
 			}
 		} else {
@@ -1384,7 +1388,7 @@ DboxMain::OnCompare()
 struct st_Conflict {
   POSITION cPos;
   POSITION nPos;
-  std::bitset<CItemData::LAST> bsDiffs;
+  CItemData::FieldBits bsDiffs;
 };
 
 int
@@ -1465,8 +1469,8 @@ DboxMain::Compare(const CMyString &pszFilename)
 	int numOnlyInComp = 0;
 	int numConflicts = 0;
 
-	std::bitset<CItemData::LAST> bsConflicts (0);
-	st_Conflict * st_diff;
+	CItemData::FieldBits bsConflicts(0);
+	st_Conflict *st_diff;
 
 	POSITION currentPos = m_core.GetFirstEntryPosition();
 	while (currentPos) {
@@ -1705,11 +1709,11 @@ DboxMain::OnOK()
 
   for (int i = 0; i < m_nColumns; i++) {
 #if _MSC_VER >= 1400
-    _itot_s(m_nColumnItemType[i], buffer, 8, 10);
-    _itot_s(m_nColumnItemWidth[i], widths, 8, 10);
+    _itot_s(m_nColumnTypeByItem[i], buffer, 8, 10);
+    _itot_s(m_nColumnWidthByItem[i], widths, 8, 10);
 #else
-    _itot(m_nColumnItemType[i], buffer, 10);
-    _itot(m_nColumnItemWidth[i], widths, 10);
+    _itot(m_nColumnTypeByItem[i], buffer, 10);
+    _itot(m_nColumnWidthByItem[i], widths, 10);
 #endif
     cs_columns += buffer;
     cs_columnswidths += widths;
