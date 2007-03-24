@@ -69,6 +69,8 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
 	{_T("PreExpiryWarn"), false, false},                            // application
     {_T("ExplorerTypeTree"), false, false},                         // application
     {_T("ListViewGridLines"), false, false},                        // application
+    {_T("MinimizeOnAutotype"), true, false},                        // application
+    {_T("AutoResizeColumns"), false, false},                        // application
 };
 
 // Default value = -1 means set at runtime
@@ -106,6 +108,7 @@ const PWSprefs::stringPref PWSprefs::m_string_prefs[NumStringPrefs] = {
 	{_T("AltBrowser"), _T(""), false},								// application
 	{_T("ListColumns"), _T(""), false},								// application
     {_T("ColumnWidths"), _T(""), false},							// application
+    {_T("DefaultAutotypeString"), _T(""), true},					// database
 };
 
 

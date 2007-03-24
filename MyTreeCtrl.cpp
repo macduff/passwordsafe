@@ -219,6 +219,8 @@ void CMyTreeCtrl::OnEndLabelEdit(LPNMHDR pnmhdr, LRESULT *pLResult)
       int lindex = di->list_index;
 	  ((DboxMain *)m_parent)->UpdateListItemTitle(lindex, newTitle);
       ((DboxMain *)m_parent)->UpdateListItemUser(lindex, newUser);
+      if (prefs->GetPref(PWSprefs::AutoResizeColumns))
+        ((DboxMain *)m_parent)->AutoResizeColumns();
     } else {
       // Update all leaf children with new path element
       // prefix is path up to and NOT including renamed node
@@ -509,6 +511,9 @@ void CMyTreeCtrl::EndDragging(BOOL bCancel)
     ReleaseCapture();
     m_bDragging = FALSE;
     SelectDropTarget(NULL);
+
+    if (PWSprefs::GetInstance()->GetPref(PWSprefs::AutoResizeColumns))
+      ((DboxMain *)m_parent)->AutoResizeColumns();
   }
   if (m_hitemRoot != NULL) {
       DeleteItem(m_hitemRoot);

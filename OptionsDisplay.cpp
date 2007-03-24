@@ -52,6 +52,7 @@ void COptionsDisplay::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_DEFNOTESSHOWINEDIT, m_notesshowinedit);
 	DDX_Check(pDX, IDC_DEFENABLEGRIDLINES, m_enablegrid);
 	DDX_Check(pDX, IDC_PREWARNEXPIRY, m_preexpirywarn);
+	DDX_Check(pDX, IDC_AUTORESIZECOLUMNS, m_autoresize);
 	DDX_Text(pDX, IDC_PREEXPIRYWARNDAYS, m_preexpirywarndays);
 #if defined(POCKET_PC)
 	DDX_Check(pDX, IDC_DCSHOWSPASSWORD, m_dcshowspassword);

@@ -330,7 +330,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ColumnPickerDlg.cpp"
+				RelativePath=".\ColumnChooserDlg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ColumnChooserLC.cpp"
 				>
 			</File>
 			<File
@@ -355,6 +359,14 @@
 			</File>
 			<File
 				RelativePath=".\DboxTray.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DropSource.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DropTarget.cpp"
 				>
 			</File>
 			<File
@@ -399,6 +411,10 @@
 			</File>
 			<File
 				RelativePath=".\KeySend.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\LVHdrCtrl.cpp"
 				>
 			</File>
 			<File
@@ -547,7 +563,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ColumnPickerDlg.h"
+				RelativePath=".\ColumnChooserDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ColumnChooserLC.h"
 				>
 			</File>
 			<File
@@ -568,6 +588,14 @@
 			</File>
 			<File
 				RelativePath=".\DboxMain.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DropSource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DropTarget.h"
 				>
 			</File>
 			<File
@@ -616,6 +644,10 @@
 			</File>
 			<File
 				RelativePath=".\jprdebug.h"
+				>
+			</File>
+			<File
+				RelativePath=".\LVHdrCtrl.h"
 				>
 			</File>
 			<File

@@ -56,7 +56,8 @@ class PWSprefs {
 		   DisplayExpandedAddEditDlg, MaintainDateTimeStamps,
 		   SavePasswordHistory, FindWraps, ShowNotesDefault,
 		   BackupBeforeEverySave, PreExpiryWarn,
-           ExplorerTypeTree, ListViewGridLines,
+           ExplorerTypeTree, ListViewGridLines, MinimizeOnAutotype,
+           AutoResizeColumns,
 		   NumBoolPrefs};
   enum  IntPrefs {Column1Width, Column2Width, Column3Width, Column4Width,
 		  SortedColumn, PWLenDefault, MaxMRUItems, IdleTimeout,
@@ -66,7 +67,7 @@ class PWSprefs {
           NumIntPrefs};
   enum  StringPrefs {CurrentBackup, CurrentFile, LastView, DefUserName,
 		  TreeFont, BackupPrefixValue, BackupDir, AltBrowser, ListColumns,
-          ColumnWidths,
+          ColumnWidths, DefaultAutotypeString,
 		  NumStringPrefs};
 
   // for DoubleClickAction

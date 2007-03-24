@@ -271,6 +271,8 @@ DboxMain::OnOptions()
         GetPref(PWSprefs::ListViewGridLines) ? TRUE : FALSE;
     display.m_notesshowinedit = prefs->
         GetPref(PWSprefs::ShowNotesDefault) ? TRUE : FALSE;
+    display.m_autoresize = prefs->
+        GetPref(PWSprefs::AutoResizeColumns) ? TRUE : FALSE;
     display.m_preexpirywarn = prefs->
         GetPref(PWSprefs::PreExpiryWarn) ? TRUE : FALSE;
     display.m_preexpirywarndays = prefs->
@@ -347,6 +349,10 @@ DboxMain::OnOptions()
         GetPref(PWSprefs::QuerySetDef) ? TRUE : FALSE;
     misc.m_csBrowser = CString(prefs->
                                GetPref(PWSprefs::AltBrowser));
+    misc.m_csAutotype = CString(prefs->
+                               GetPref(PWSprefs::DefaultAutotypeString));
+    misc.m_minauto = prefs->
+        GetPref(PWSprefs::MinimizeOnAutotype) ? TRUE : FALSE;                               
 
     backup.SetCurFile(m_core.GetCurFile());
     backup.m_saveimmediately = prefs->
@@ -405,7 +411,9 @@ DboxMain::OnOptions()
         prefs->SetPref(PWSprefs::ListViewGridLines,
                        display.m_enablegrid == TRUE);
         prefs->SetPref(PWSprefs::ShowNotesDefault,
-                       display.m_notesshowinedit == TRUE);                   
+                       display.m_notesshowinedit == TRUE);
+        prefs->SetPref(PWSprefs::AutoResizeColumns,
+                       display.m_autoresize == TRUE);
         prefs->SetPref(PWSprefs::PreExpiryWarn,
                        display.m_preexpirywarn == TRUE);
         prefs->SetPref(PWSprefs::PreExpiryWarnDays,
@@ -492,6 +500,10 @@ DboxMain::OnOptions()
                        misc.m_querysetdef == TRUE);
         prefs->SetPref(PWSprefs::AltBrowser,
                        misc.m_csBrowser);
+        prefs->SetPref(PWSprefs::DefaultAutotypeString,
+                       misc.m_csAutotype);
+        prefs->SetPref(PWSprefs::MinimizeOnAutotype,
+                       misc.m_minauto == TRUE);
 
         prefs->SetPref(PWSprefs::SaveImmediately,
                        backup.m_saveimmediately == TRUE);
@@ -561,6 +573,7 @@ DboxMain::OnOptions()
         /*
         **  Now update the application according to the options.
         */
+        m_bAutoResize = display.m_autoresize == TRUE;
         m_bAlwaysOnTop = display.m_alwaysontop == TRUE;
         UpdateAlwaysOnTop();
 

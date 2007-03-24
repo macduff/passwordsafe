@@ -125,6 +125,9 @@ DboxMain::OnAdd()
         Save();
 
     ChangeOkUpdate();
+    if (m_bAutoResize)
+      AutoResizeColumns();
+
 	uuid_array_t RUEuuid;
 	temp.GetUUID(RUEuuid);
 	m_RUEList.AddRUEntry(RUEuuid);
@@ -176,6 +179,9 @@ DboxMain::OnDelete()
   if (dodelete) {
 	Delete();
   }
+
+  if (m_bAutoResize)
+    AutoResizeColumns();
 }
 
 void
@@ -336,6 +342,8 @@ DboxMain::EditItem(CItemData *ci)
         SelectEntry(m_ctlItemList.GetItemCount() - 1);
       }
       ChangeOkUpdate();
+      if (m_bAutoResize)
+        AutoResizeColumns();
     } // rc == IDOK
 }
 
@@ -413,6 +421,9 @@ DboxMain::OnDuplicateEntry()
       SelectEntry(m_ctlItemList.GetItemCount() - 1);
     }
     ChangeOkUpdate();
+    if (m_bAutoResize)
+      AutoResizeColumns();
+
 	uuid_array_t RUEuuid;
 	ci2.GetUUID(RUEuuid);
 	m_RUEList.AddRUEntry(RUEuuid);
@@ -537,17 +548,32 @@ void
 DboxMain::AutoType(const CItemData &ci)
 {
   CMyString AutoCmd = ci.GetAutoType();
- const CMyString user(ci.GetUser());
- const CMyString pwd(ci.GetPassword());
- if(AutoCmd.IsEmpty()){
-   // checking for user and password for default settings
-   if(!pwd.IsEmpty()){
-     if(!user.IsEmpty())
-       AutoCmd = _T("\\u\\t\\p\\n");
-     else
-       AutoCmd = _T("\\p\\n");
-   }
- }
+  const CMyString user(ci.GetUser());
+  const CMyString pwd(ci.GetPassword());
+
+  // If empty, try the database default
+  if (AutoCmd.IsEmpty()) {
+    AutoCmd = PWSprefs::GetInstance()->
+                   GetPref(PWSprefs::DefaultAutotypeString);
+
+    // If still empty, take this default
+    if (AutoCmd.IsEmpty()) {
+      // checking for user and password for default settings
+      if (!pwd.IsEmpty()){
+        if (!user.IsEmpty())
+          AutoCmd = _T("\\u\\t\\p\\n");
+        else
+          AutoCmd = _T("\\p\\n");
+      }
+    }
+  }
+
+  // Turn off CAPSLOCK
+  bool bCapsLock = false;
+  if (GetKeyState(VK_CAPITAL)) {
+    bCapsLock = true;
+    SetCapsLock(false);
+  }
 
  CMyString tmp;
  TCHAR curChar;
@@ -560,8 +586,23 @@ DboxMain::AutoType(const CItemData &ci)
  // since that will clear the data [Bugs item #1026630]
  // (this is why we read user & pwd before actual use)
 
- ShowWindow(SW_MINIMIZE);
- Sleep(1000); // Karl Student's suggestion, to ensure focus set correctly on minimize.
+  // Rules are (AlwaysOnTop takes precedence):
+  // 1. If "Always on Top" - hide PWS during Autotype and then make it
+  //    "AlwaysOnTop" again.
+  // 2. If "MinimizeOnAutotype" - minimize PWS during Autotype but do
+  //    not restore it (previous default action - but a pain if locked
+  //    in the system tray!)
+  // 3. If not "MinimizeOnAutotype" - hide PWS during Autotype and show
+  //    it again once finished.
+  bool bMinOnAuto = PWSprefs::GetInstance()->
+                   GetPref(PWSprefs::MinimizeOnAutotype) == TRUE;
+
+  if (m_bAlwaysOnTop || !bMinOnAuto)
+    ShowWindow(SW_HIDE);
+  else
+    ShowWindow(SW_MINIMIZE);
+
+  Sleep(1000); // Karl Student's suggestion, to ensure focus set correctly on minimize.
 
  for(int n = 0; n < N; n++){
    curChar = AutoCmd[n];
@@ -614,4 +655,40 @@ DboxMain::AutoType(const CItemData &ci)
      tmp += curChar;
  }
  ks.SendString(tmp);
+ 
+  Sleep(100);
+
+  // If we hid it, now show it
+  if (m_bAlwaysOnTop) {
+    ShowWindow(SW_SHOW);
+    SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+  } else if (!bMinOnAuto) {
+    ShowWindow(SW_SHOW);
+  }
+
+  // If we turned off CAPSLOCK, put it back
+  if (bCapsLock) {
+      SetCapsLock(true);
+  }
+}
+
+void DboxMain::SetCapsLock(const bool bState)
+{
+  BYTE keyState[256];
+
+  GetKeyboardState((LPBYTE)&keyState);
+  if((bState && !(keyState[VK_CAPITAL] & 1)) ||
+     (!bState && (keyState[VK_CAPITAL] & 1))) {
+      // Simulate a key press
+      keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+      // Simulate a key release
+      keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+  }
+
+  MSG msg;
+  while (::PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) ) {
+    // so there is a message process it.
+    if (!AfxGetThread()->PumpMessage())
+      break;
+  }
 }

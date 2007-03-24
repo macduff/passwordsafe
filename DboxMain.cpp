@@ -83,7 +83,7 @@ DboxMain::DboxMain(CWnd* pParent)
      m_bFindActive(false), m_pchTip(NULL), m_pwchTip(NULL),
      m_bValidate(false), m_bOpen(false), 
      m_IsStartClosed(false), m_IsStartSilent(false), m_bStartHiddenAndMinimized(false),
-     m_bAlreadyToldUserNoSave(false), m_inExit(false)
+     m_bAlreadyToldUserNoSave(false), m_inExit(false), m_pCC(NULL)
 {
   CS_EXPCOLGROUP.LoadString(IDS_MENUEXPCOLGROUP);
   CS_EDITENTRY.LoadString(IDS_MENUEDITENTRY);
@@ -236,9 +236,15 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_NOTIFY(NM_DBLCLK, IDC_ITEMTREE, OnItemDoubleClick)
    ON_NOTIFY(LVN_COLUMNCLICK, IDC_ITEMLIST, OnColumnClick)
    ON_NOTIFY(NM_RCLICK, IDC_LIST_HEADER, OnHeaderRClick)
-   ON_NOTIFY(HDN_ENDDRAG, IDC_LIST_HEADER, OnHeaderEndDrag)
    ON_NOTIFY(HDN_ENDTRACK, IDC_LIST_HEADER, OnHeaderNotify)
-   ON_NOTIFY(HDN_ITEMCHANGED, IDC_LIST_HEADER, OnHeaderNotify)   
+   ON_NOTIFY(HDN_ITEMCHANGED, IDC_LIST_HEADER, OnHeaderNotify)  
+   ON_NOTIFY_EX(HDN_BEGINTRACK, IDC_LIST_HEADER, OnHeaderNotifyEX)
+   ON_NOTIFY_EX(HDN_DIVIDERDBLCLICK, IDC_LIST_HEADER, OnHeaderNotifyEX)
+   ON_NOTIFY_EX(HDN_ENDDRAG, IDC_LIST_HEADER, OnHeaderNotifyEX)
+   ON_NOTIFY_EX(HDN_ITEMCLICK, IDC_LIST_HEADER, OnHeaderNotifyEX)
+   ON_NOTIFY_EX(HDN_ITEMDBLCLICK, IDC_LIST_HEADER, OnHeaderNotifyEX)
+   ON_NOTIFY_EX(HDN_TRACK, IDC_LIST_HEADER, OnHeaderNotifyEX)
+
    ON_COMMAND(ID_MENUITEM_EXIT, OnOK)
    ON_COMMAND(ID_MENUITEM_MINIMIZE, OnMinimize)
    ON_COMMAND(ID_MENUITEM_UNMINIMIZE, OnUnMinimize)
@@ -276,7 +282,9 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
 
    ON_MESSAGE(WM_ICON_NOTIFY, OnTrayNotification)
    ON_MESSAGE(WM_HOTKEY, OnHotKey)
-   ON_MESSAGE(WM_HDR_DRAG_COMPLETE, OnHeaderDragComplete)
+   ON_MESSAGE(WM_HDRTOHDR_DD_COMPLETE, OnHdrToHdrDragComplete)
+   ON_MESSAGE(WM_CCTOHDR_DD_COMPLETE, OnCCToHdrDragComplete)
+   
 	//}}AFX_MSG_MAP
    ON_COMMAND_EX_RANGE(ID_FILE_MRU_ENTRY1, ID_FILE_MRU_ENTRYMAX, OnOpenMRU)
    ON_UPDATE_COMMAND_UI(ID_FILE_MRU_ENTRY1, OnUpdateMRU)
@@ -379,14 +387,18 @@ DboxMain::InitPasswordSafe()
   m_bExplorerTypeTree = prefs->GetPref(PWSprefs::ExplorerTypeTree);
   m_bUseGridLines = prefs->GetPref(PWSprefs::ListViewGridLines);
 
+  // We now do our own Drag & Drop - can't specify LVS_EX_HEADERDRAGDROP
   DWORD dw_ExtendedStyle = LVS_EX_FULLROWSELECT | LVS_EX_HEADERDRAGDROP;
   if (m_bUseGridLines)
       dw_ExtendedStyle |= LVS_EX_GRIDLINES;
 
   m_ctlItemList.SetExtendedStyle(dw_ExtendedStyle);
 
-  m_pctlItemListHdr = m_ctlItemList.GetHeaderCtrl();
-  m_pctlItemListHdr->SetDlgCtrlID(IDC_LIST_HEADER);
+  // Override default HeaderCtrl ID of 0
+  m_LVHdrCtrl.SetDlgCtrlID(IDC_LIST_HEADER);
+
+  // Initialise DropTarget
+  m_LVHdrCtrl.Initialize(&m_LVHdrCtrl);
 
   // Set up fonts before playing with Tree/List views
   m_pFontTree = new CFont;
@@ -400,7 +412,7 @@ DboxMain::InitPasswordSafe()
     // transfer the fonts to the tree windows
     m_ctlItemTree.SetFont(m_pFontTree);
     m_ctlItemList.SetFont(m_pFontTree);
-    m_pctlItemListHdr->SetFont(m_pFontTree);
+    m_LVHdrCtrl.SetFont(m_pFontTree);
     delete ptreefont;
   }
 
@@ -415,6 +427,7 @@ DboxMain::InitPasswordSafe()
 
   CalcHeaderWidths();
 
+  m_bAutoResize = prefs->GetPref(PWSprefs::AutoResizeColumns);
   CString cs_ListColumns = prefs->GetPref(PWSprefs::ListColumns);
   CString cs_ListColumnsWidths = prefs->GetPref(PWSprefs::ColumnWidths);
 
@@ -484,24 +497,32 @@ DboxMain::OnHotKey(WPARAM , LPARAM)
 }
 
 LRESULT
-DboxMain::OnHeaderDragComplete(WPARAM , LPARAM)
+DboxMain::OnHdrToHdrDragComplete(WPARAM wParam, LPARAM lParam)
 {
-    // Now update header info
-    SetHeaderInfo();
+  // Get type of column being moved
+  int iType = (int)wParam;
+  
+  // Get position for it to be placed
+  int iIndex = (int)lParam;
 
-#ifdef _DEBUG
-    TRACE("After drag\n");
-    for (int i = 0; i < m_nColumns; i++) {
-      TRACE("Column=%d,OrderToItem=%d,ItemType=%d,ItemWidth=%d\n", i,
-          m_nColumnOrderToItem[i], m_nColumnTypeByItem[i], m_nColumnWidthByItem[i]);
-    }
-    TRACE("TypeToItem=");
-    for (int i = 0; i < CItemData::LAST; i++) {
-      TRACE("%d ", m_nColumnTypeToItem[i]);
-    }
-    TRACE("\n");
-#endif
-    return 0L;
+  // Delete it
+  m_ctlItemList.DeleteColumn(m_nColumnTypeToItem[iType]);
+
+  // Now add it
+  AddColumn(iType, iIndex);
+
+  return 0L;
+}
+
+LRESULT
+DboxMain::OnCCToHdrDragComplete(WPARAM wParam, LPARAM lParam)
+{
+  if ((int)lParam < 0)
+    DeleteColumn((int)wParam);
+  else
+    AddColumn((int)wParam, (int)lParam);
+
+  return 0L;
 }
 
 BOOL
@@ -511,6 +532,13 @@ DboxMain::OnInitDialog()
 
   // Install menu popups for full path on MRU entries
   m_menuTipManager.Install(AfxGetMainWnd());
+
+  // Subclass the ListView HeaderCtrl
+  CHeaderCtrl* pHeader;
+  pHeader = m_ctlItemList.GetHeaderCtrl();
+  if(pHeader && pHeader->GetSafeHwnd()) {
+    m_LVHdrCtrl.SubclassWindow(pHeader->GetSafeHwnd());
+  }
 
   ConfigureSystemMenu();
   InitPasswordSafe();
@@ -570,6 +598,14 @@ DboxMain::OnDestroy()
   // Get rid of hotkey
   UnregisterHotKey(m_hWnd, PWS_HOTKEY_ID);
 
+  // Stop subclassing the ListView HeaderCtrl
+  if (m_LVHdrCtrl.GetSafeHwnd() != NULL)
+      m_LVHdrCtrl.UnsubclassWindow();
+
+  // Stop Drag & Drop OLE
+  m_LVHdrCtrl.Terminate();
+
+  // and goodbye
   CDialog::OnDestroy();
 }
 
