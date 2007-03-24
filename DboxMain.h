@@ -402,6 +402,7 @@ private:
   int m_nColumnWidthByItem[CItemData::LAST];
   int m_nColumnHeaderWidthByType[CItemData::LAST];
   int m_iheadermaxwidth;
+  int m_iheadermaxcharacters;
   CFont *m_pFontTree;
   CItemData *m_selectedAtMinimize; // to restore selection upon un-minimize
   CString m_lock_displaystatus;

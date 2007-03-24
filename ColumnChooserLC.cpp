@@ -92,6 +92,7 @@ BOOL CColumnChooserLC::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
 
   GlobalUnlock(hGlobal);
 
+  GetParent()->SetFocus();
   return TRUE;
 }
 

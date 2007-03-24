@@ -2,6 +2,7 @@
 
 #include "resource.h"
 #include "ColumnChooserLC.h"
+#include "LVHdrCtrl.h"
 
 // CColumnChooserDlg dialog
 
@@ -16,6 +17,7 @@ public:
   CColumnChooserDlg(CWnd* pParent = NULL);   // standard constructor
   virtual ~CColumnChooserDlg();
   BOOL Create(UINT nID, CWnd *parent);
+  void SetLVHdrCtrlPtr(CLVHdrCtrl *pLVHdrCtrl) {m_pLVHdrCtrl = pLVHdrCtrl;}
 
   // Dialog Data
   //{{AFX_DATA(CColumnChooserDlg)
@@ -30,9 +32,13 @@ protected:
 
   //{{AFX_DATA(CColumnChooserDlg)
   afx_msg void OnDestroy();
+  afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
+  afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
+  afx_msg void OnStyleChanged(int nStyleType, LPSTYLESTRUCT lpStyleStruct);
   //}}AFX_DATA
 
   DECLARE_MESSAGE_MAP()
 
 public:
+  CLVHdrCtrl *m_pLVHdrCtrl;
 };

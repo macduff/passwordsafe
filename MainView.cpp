@@ -1013,7 +1013,6 @@ DboxMain::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
 {
   HD_NOTIFY *phdn = (HD_NOTIFY *) pNMHDR;
 
-  TRACE("NOTIFY called for ");
   *pResult = TRUE;
   if (m_nColumnWidthByItem == NULL || phdn->pitem == NULL)
       return;
@@ -1022,66 +1021,20 @@ DboxMain::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
 
   switch (phdn->hdr.code) {
     case HDN_ENDTRACK:
-      m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
-      TRACE(" HDN_ENDTRACK\n");
-      break;
-    case HDN_ITEMCHANGED:
-      TRACE(" HDN_ITEMCHANGED");
       if ((mask & HDI_WIDTH) == HDI_WIDTH) {
         // column width changed
         m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
-        TRACE(" width change\n");
-      } else
-        TRACE(" mask = %04x\n", mask);
-      break;
-    default:
-      TRACE(" 'not wanted'!\n");
-      break;
-  }
-}
-
-BOOL
-DboxMain::OnHeaderNotifyEX(UINT /* id */, NMHDR* pNMHDR, LRESULT *pResult)
-{ 
-  *pResult = TRUE;
-
-  HD_NOTIFY* pNMListHdr = (HD_NOTIFY*)pNMHDR;
-
-  TRACE("NOTIFY_EX called for");
-
-  switch (pNMListHdr->hdr.code) {
-    case HDN_BEGINDRAG:
-      TRACE(" HDN_BEGINDRAG\n");
-      break;
-    case HDN_BEGINTRACK:
-      TRACE(" HDN_BEGINTRACK\n");
-      break;
-    case HDN_DIVIDERDBLCLICK:
-      TRACE(" HDN_DIVIDERDBLCLICK\n");
-      break;
-    case HDN_ENDDRAG:
-      TRACE(" HDN_ENDDRAG\n");
-      break;
-    case HDN_ENDTRACK:
-      TRACE(" HDN_ENDTRACK\n");
+      }
       break;
     case HDN_ITEMCHANGED:
-      TRACE(" HDN_ITEMCHANGED\n");
-      break;
-    case HDN_ITEMCLICK:
-      TRACE(" HDN_ITEMCLICK\n");
-      break;
-    case HDN_ITEMDBLCLICK:
-      TRACE(" HDN_ITEMDBLCLICK\n");
-      break;
-    case HDN_TRACK:
-      TRACE(" HDN_TRACK\n");
+      if ((mask & HDI_WIDTH) == HDI_WIDTH) {
+        // column width changed
+        m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
+      }
       break;
     default:
-      TRACE(" 'not wanted'!\n");
       break;
   }
-  return TRUE;
 }
 
 void
@@ -1476,11 +1429,12 @@ DboxMain::SetColumns(const CString cs_ListColumns, const CString cs_ListColumnsW
   //  User has saved the columns he/she wants and now we are putting them back
     CString cs_header;
     HDITEM hdi;
-    hdi.mask = HDI_LPARAM;
+    hdi.mask = HDI_LPARAM | HDI_WIDTH;
 
     std::vector<int> vi_columns;
     std::vector<int> vi_widths;
-    std::vector<int>::const_iterator vi_Iter;
+    std::vector<int>::const_iterator vi_IterColumns;
+    std::vector<int>::const_iterator vi_IterWidths;
     const TCHAR pSep[] = _T(",");
     TCHAR *pTemp, *pWidths;
   
@@ -1524,16 +1478,16 @@ DboxMain::SetColumns(const CString cs_ListColumns, const CString cs_ListColumnsW
   
     int icol = 0;
 
-    for (vi_Iter = vi_columns.begin();
-         vi_Iter != vi_columns.end();
-         vi_Iter++) {
-      int icolset = (int)*vi_Iter;
-      int &iwidth = vi_widths.at(icol);
-      cs_header = GetHeaderText(icolset);
+    for (vi_IterColumns = vi_columns.begin(), vi_IterWidths = vi_widths.begin();
+         vi_IterColumns != vi_columns.end();
+         vi_IterColumns++, vi_IterWidths++) {
+      int &iType = (int)*vi_IterColumns;
+      int &iWidth = (int)*vi_IterWidths;
+      cs_header = GetHeaderText(iType);
       if (!cs_header.IsEmpty()) {
           m_ctlItemList.InsertColumn(icol, cs_header);
-          m_ctlItemList.SetColumnWidth(icol, iwidth);
-          hdi.lParam = icolset;
+          hdi.lParam = iType;
+          hdi.cxy = iWidth;
           m_LVHdrCtrl.SetItem(icol, &hdi);
           icol++;
       }
@@ -1579,13 +1533,13 @@ void DboxMain::AddColumn(const int iType, const int iIndex)
   HDITEM hdi;
   int iNewIndex;
 
-  hdi.mask = HDI_LPARAM;
+  hdi.mask = HDI_LPARAM | HDI_WIDTH;
   cs_header = GetHeaderText(iType);
   if (!cs_header.IsEmpty()) {
     iNewIndex = m_ctlItemList.InsertColumn(iIndex, cs_header);
     ASSERT(iNewIndex != -1);
-    m_ctlItemList.SetColumnWidth(iNewIndex, GetHeaderWidth(iType));
     hdi.lParam = iType;
+    hdi.cxy = GetHeaderWidth(iType);
     m_LVHdrCtrl.SetItem(iNewIndex, &hdi);
   }
 
@@ -1626,11 +1580,13 @@ DboxMain::SetHeaderInfo()
   m_LVHdrCtrl.GetOrderArray(m_nColumnOrderToItem, m_nColumns);
 
   for (i = 0; i < m_nColumns; i++) {
-    m_LVHdrCtrl.GetItem(m_nColumnOrderToItem[i], &hdi);
+    const int iItem = m_nColumnOrderToItem[i];
+    m_ctlItemList.SetColumnWidth(iItem, LVSCW_AUTOSIZE);
+    m_LVHdrCtrl.GetItem(iItem, &hdi);
     ASSERT(i == hdi.iOrder);
     m_nColumnTypeToItem[hdi.lParam] = m_nColumnOrderToItem[i];
-    m_nColumnTypeByItem[i] = hdi.lParam;
-    m_nColumnWidthByItem[i] = hdi.cxy;
+    m_nColumnTypeByItem[iItem] = hdi.lParam;
+    m_nColumnWidthByItem[iItem] = hdi.cxy;
   }
 
   // Check sort column still there
@@ -1644,19 +1600,7 @@ DboxMain::SetHeaderInfo()
       }
   }
 
-  for (i = 0; i < (m_nColumns - 1); i++) {
-      const int j = m_nColumnOrderToItem[i];
-      const int itype = m_nColumnTypeByItem[j];
-      if (m_nColumnWidthByItem[j] < m_nColumnHeaderWidthByType[itype]) {
-          m_ctlItemList.SetColumnWidth(i, m_nColumnHeaderWidthByType[itype]);
-          m_nColumnWidthByItem[j] = m_nColumnHeaderWidthByType[itype];
-    }
-  }
-
-  // Last column is special
-  m_ctlItemList.SetColumnWidth(m_nColumns - 1, LVSCW_AUTOSIZE_USEHEADER);
-  m_nColumnWidthByItem[m_nColumnOrderToItem[m_nColumns - 1]] = 
-    m_ctlItemList.GetColumnWidth(m_nColumns - 1);
+  AutoResizeColumns();
 }
 
 void
@@ -1691,15 +1635,22 @@ void
 DboxMain::AutoResizeColumns()
 {
   for (int i = 0; i < (m_nColumns - 1); i++) {
-    const int j = m_nColumnOrderToItem[i];
-    const int itype = m_nColumnTypeByItem[j];
+    const int iItem = m_nColumnOrderToItem[i];
+    const int iType = m_nColumnTypeByItem[iItem];
+
     m_ctlItemList.SetColumnWidth(i, LVSCW_AUTOSIZE);
-    if (m_nColumnWidthByItem[j] < m_nColumnHeaderWidthByType[itype])
-      m_ctlItemList.SetColumnWidth(i, m_nColumnHeaderWidthByType[itype]);
+    m_nColumnWidthByItem[iItem] = m_ctlItemList.GetColumnWidth(i);
+
+    if (m_nColumnWidthByItem[iItem] < m_nColumnHeaderWidthByType[iType]) {
+      m_ctlItemList.SetColumnWidth(i, m_nColumnHeaderWidthByType[iType]);
+      m_nColumnWidthByItem[iItem] = m_nColumnHeaderWidthByType[iType];
+    }
   }
 
   // Last column is special
-  m_ctlItemList.SetColumnWidth(m_nColumns - 1, LVSCW_AUTOSIZE_USEHEADER);
+  const int iLastItem = m_nColumnOrderToItem[m_nColumns - 1];
+  m_ctlItemList.SetColumnWidth(iLastItem, LVSCW_AUTOSIZE_USEHEADER);
+  m_nColumnWidthByItem[iLastItem] = m_ctlItemList.GetColumnWidth(iLastItem);
 }
 
 void
@@ -1718,6 +1669,7 @@ DboxMain::SetupColumnChooser(const bool bShowHide)
       AfxMessageBox("Error creating Dialog");
       return;
     }
+    m_pCC->SetLVHdrCtrlPtr(&m_LVHdrCtrl);
 
     // Set extended style
     DWORD dw_style = m_pCC->m_ccListCtrl.GetExtendedStyle() | LVS_EX_ONECLICKACTIVATE;
@@ -1750,12 +1702,14 @@ DboxMain::SetupColumnChooser(const bool bShowHide)
   m_pCC->m_ccListCtrl.DeleteAllItems();
 
   // and repopulate
+  CString cs_blanks(_T(" "), m_iheadermaxcharacters);
   int iItem;
   for (i = CItemData::LAST - 1; i >= 0; i--) {
     if (m_nColumnTypeToItem[i] == -1) {
       cs_header = GetHeaderText(i);
       if (!cs_header.IsEmpty()) {
-        iItem = m_pCC->m_ccListCtrl.InsertItem(0, cs_header);
+        cs_header += cs_blanks;
+        iItem = m_pCC->m_ccListCtrl.InsertItem(0, cs_header.Left(m_iheadermaxcharacters));
         m_pCC->m_ccListCtrl.SetItemData(iItem, (DWORD)i);
       }
     }
@@ -1861,6 +1815,7 @@ void DboxMain::CalcHeaderWidths()
   m_iDateTimeFieldWidth = m_ctlItemList.GetStringWidth(datetime_str) + 6;
       
   m_iheadermaxwidth = 0;
+  m_iheadermaxcharacters = 0;
   CString cs_header;
 
   for (int i = 0; i < CItemData::LAST; i++) {
@@ -1904,6 +1859,7 @@ void DboxMain::CalcHeaderWidths()
     else
       m_nColumnHeaderWidthByType[i] = -4;
 
+    m_iheadermaxcharacters = max(m_iheadermaxcharacters, cs_header.GetLength());
     m_iheadermaxwidth = max(m_iheadermaxwidth, m_nColumnHeaderWidthByType[i]);
   }
 }
