@@ -428,7 +428,7 @@ DboxMain::InitPasswordSafe()
   if (cs_ListColumns.IsEmpty())
     SetColumns();
   else
-    SetColumns(cs_ListColumns, cs_ListColumnsWidths);
+    SetColumns(cs_ListColumns);
 
   m_iSortedColumn = prefs->GetPref(PWSprefs::SortedColumn);
   if (m_iSortedColumn == 0)
@@ -437,6 +437,9 @@ DboxMain::InitPasswordSafe()
 
   // refresh list will add and size password column if necessary...
   RefreshList();
+
+  if (!cs_ListColumns.IsEmpty())
+    SetColumnWidths(cs_ListColumnsWidths);
 
   ChangeOkUpdate();
 

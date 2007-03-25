@@ -1015,22 +1015,17 @@ DboxMain::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
 
   *pResult = TRUE;
   if (m_nColumnWidthByItem == NULL || phdn->pitem == NULL)
-      return;
+    return;
 
   UINT mask = phdn->pitem->mask;
+  if ((mask & HDI_WIDTH) != HDI_WIDTH)
+    return;
 
+  // column width changed
   switch (phdn->hdr.code) {
     case HDN_ENDTRACK:
-      if ((mask & HDI_WIDTH) == HDI_WIDTH) {
-        // column width changed
-        m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
-      }
-      break;
     case HDN_ITEMCHANGED:
-      if ((mask & HDI_WIDTH) == HDI_WIDTH) {
-        // column width changed
-        m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
-      }
+      m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
       break;
     default:
       break;
@@ -1414,116 +1409,114 @@ DboxMain::SetColumns()
   m_ctlItemList.SetRedraw(FALSE);
 
   for (int i = ipwd + 3; i < (ipwd + 8); i++) {
-	m_ctlItemList.SetColumnWidth(i, LVSCW_AUTOSIZE);
-	m_ctlItemList.SetColumnWidth(i, LVSCW_AUTOSIZE_USEHEADER);
-	m_ctlItemList.SetColumnWidth(i, m_iDateTimeFieldWidth);
+    m_ctlItemList.SetColumnWidth(i, m_iDateTimeFieldWidth);
   }
 
   SetHeaderInfo();
 
   return;
 }
+
 void
-DboxMain::SetColumns(const CString cs_ListColumns, const CString cs_ListColumnsWidths)
+DboxMain::SetColumns(const CString cs_ListColumns)
 {
   //  User has saved the columns he/she wants and now we are putting them back
-    CString cs_header;
-    HDITEM hdi;
-    hdi.mask = HDI_LPARAM | HDI_WIDTH;
 
-    std::vector<int> vi_columns;
-    std::vector<int> vi_widths;
-    std::vector<int>::const_iterator vi_IterColumns;
-    std::vector<int>::const_iterator vi_IterWidths;
-    const TCHAR pSep[] = _T(",");
-    TCHAR *pTemp, *pWidths;
+  CString cs_header;
+  HDITEM hdi;
+  hdi.mask = HDI_LPARAM;
+
+  std::vector<int> vi_columns;
+  std::vector<int>::const_iterator vi_IterColumns;
+  const TCHAR pSep[] = _T(",");
+  TCHAR *pTemp;
   
-    // Duplicate as strtok modifies the string
-    pTemp = _tcsdup((LPCTSTR)cs_ListColumns);
-    pWidths = _tcsdup((LPCTSTR)cs_ListColumnsWidths);
+  // Duplicate as strtok modifies the string
+  pTemp = _tcsdup((LPCTSTR)cs_ListColumns);
   
 #if _MSC_VER >= 1400
-    // Capture columns shown:
-    char *next_token;
-    TCHAR *token = _tcstok_s(pTemp, pSep, &next_token);
-    while(token) {
-      vi_columns.push_back(_ttoi(token));
-      token = _tcstok_s(NULL, pSep, &next_token);
-    }
-    // and their widths
-    next_token = NULL;
-    token = _tcstok_s(pWidths, pSep, &next_token);
-    while(token) {
-      vi_widths.push_back(_ttoi(token));
-      token = _tcstok_s(NULL, pSep, &next_token);
-    }
+  // Capture columns shown:
+  char *next_token;
+  TCHAR *token = _tcstok_s(pTemp, pSep, &next_token);
+  while(token) {
+    vi_columns.push_back(_ttoi(token));
+    token = _tcstok_s(NULL, pSep, &next_token);
+  }
 #else
-    // Capture columns shown:
-    TCHAR *token = _tcstok(pTemp, pSep);
-    while(token) {
-      vi_columns.push_back(_ttoi(token));
-      token = _tcstok(NULL, pSep);
-    }
-    // and their widths
-    token = _tcstok(pWidths, pSep);
-    while(token) {
-      vi_widths.push_back(_ttoi(token));
-      token = _tcstok(NULL, pSep);
-    }
+  // Capture columns shown:
+  TCHAR *token = _tcstok(pTemp, pSep);
+  while(token) {
+    vi_columns.push_back(_ttoi(token));
+    token = _tcstok(NULL, pSep);
+  }
 #endif
-
-    ASSERT(vi_columns.size() == vi_widths.size());
-    free(pTemp);
-    free(pWidths);
-  
-    int icol = 0;
-
-    for (vi_IterColumns = vi_columns.begin(), vi_IterWidths = vi_widths.begin();
-         vi_IterColumns != vi_columns.end();
-         vi_IterColumns++, vi_IterWidths++) {
-      int &iType = (int)*vi_IterColumns;
-      int &iWidth = (int)*vi_IterWidths;
-      cs_header = GetHeaderText(iType);
-      if (!cs_header.IsEmpty()) {
-          m_ctlItemList.InsertColumn(icol, cs_header);
-          hdi.lParam = iType;
-          hdi.cxy = iWidth;
-          m_LVHdrCtrl.SetItem(icol, &hdi);
-          icol++;
-      }
+  free(pTemp);
+ 
+  int icol = 0;
+  for (vi_IterColumns = vi_columns.begin();
+       vi_IterColumns != vi_columns.end();
+       vi_IterColumns++) {
+    int &iType = (int)*vi_IterColumns;
+    cs_header = GetHeaderText(iType);
+    if (!cs_header.IsEmpty()) {
+      m_ctlItemList.InsertColumn(icol, cs_header);
+      hdi.lParam = iType;
+      m_LVHdrCtrl.SetItem(icol, &hdi);
+      icol++;
     }
+  }
 
-    SetHeaderInfo();
+  SetHeaderInfo();
 
-    return;
+  return;
 }
 
 void
-DboxMain::SetColumns(const CItemData::FieldBits bscolumn)
+DboxMain::SetColumnWidths(const CString cs_ListColumnsWidths)
 {
-  // User has changed columns he/she wants and we have deleted the ones
-  // not required.
-  // Now add any new columns in reverse order at the beginning of the display
-    CString cs_header;
-    HDITEM hdi;
+  //  User has saved the columns he/she wants and now we are putting them back
+  HDITEM hdi;
+  hdi.mask = HDI_WIDTH;
 
-    hdi.mask = HDI_LPARAM;
+  std::vector<int> vi_widths;
+  std::vector<int>::const_iterator vi_IterWidths;
+  const TCHAR pSep[] = _T(",");
+  TCHAR *pWidths;
+  
+  // Duplicate as strtok modifies the string
+  pWidths = _tcsdup((LPCTSTR)cs_ListColumnsWidths);
+  
+#if _MSC_VER >= 1400
+  // Capture column widths shown:
+  char *next_token;
+  TCHAR *token = _tcstok_s(pWidths, pSep, &next_token);
+  while(token) {
+    vi_widths.push_back(_ttoi(token));
+    token = _tcstok_s(NULL, pSep, &next_token);
+  }
+#else
+  // Capture columnwidths shown:
+  TCHAR *token = _tcstok(pWidths, pSep);
+  while(token) {
+    vi_widths.push_back(_ttoi(token));
+    token = _tcstok(NULL, pSep);
+  }
+#endif
+  free(pWidths);
+  
+  int icol = 0;
 
-    for (int i = CItemData::LAST - 1; i >= 0; i--) {
-      if (bscolumn.test(i)) {
-        cs_header = GetHeaderText(i);
-        if (!cs_header.IsEmpty()) {
-            m_ctlItemList.InsertColumn(0, cs_header);
-            m_ctlItemList.SetColumnWidth(0, GetHeaderWidth(i));
-            hdi.lParam = i;
-            m_LVHdrCtrl.SetItem(0, &hdi);
-        }
-      }
-    }
+  for (vi_IterWidths = vi_widths.begin();
+       vi_IterWidths != vi_widths.end();
+       vi_IterWidths++) {
+    int &iWidth = (int)*vi_IterWidths;
+    hdi.cxy = iWidth;
+    m_LVHdrCtrl.SetItem(icol, &hdi);
+    m_nColumnWidthByItem[icol] = iWidth;
+    icol++;
+  }
 
-    SetHeaderInfo();
-
-    return;
+  return;
 }
 
 void DboxMain::AddColumn(const int iType, const int iIndex)
@@ -1586,7 +1579,7 @@ DboxMain::SetHeaderInfo()
     ASSERT(i == hdi.iOrder);
     m_nColumnTypeToItem[hdi.lParam] = m_nColumnOrderToItem[i];
     m_nColumnTypeByItem[iItem] = hdi.lParam;
-    m_nColumnWidthByItem[iItem] = hdi.cxy;
+    //m_nColumnWidthByItem[iItem] = hdi.cxy;
   }
 
   // Check sort column still there
@@ -1634,23 +1627,23 @@ DboxMain::OnResetColumns()
 void
 DboxMain::AutoResizeColumns()
 {
-  for (int i = 0; i < (m_nColumns - 1); i++) {
-    const int iItem = m_nColumnOrderToItem[i];
+  for (int icolumn = 0; icolumn < (m_nColumns - 1); icolumn++) {
+    const int iItem = m_nColumnOrderToItem[icolumn];
     const int iType = m_nColumnTypeByItem[iItem];
 
-    m_ctlItemList.SetColumnWidth(i, LVSCW_AUTOSIZE);
-    m_nColumnWidthByItem[iItem] = m_ctlItemList.GetColumnWidth(i);
+    m_ctlItemList.SetColumnWidth(icolumn, LVSCW_AUTOSIZE);
+    m_nColumnWidthByItem[iItem] = m_ctlItemList.GetColumnWidth(icolumn);
 
     if (m_nColumnWidthByItem[iItem] < m_nColumnHeaderWidthByType[iType]) {
-      m_ctlItemList.SetColumnWidth(i, m_nColumnHeaderWidthByType[iType]);
+      m_ctlItemList.SetColumnWidth(icolumn, m_nColumnHeaderWidthByType[iType]);
       m_nColumnWidthByItem[iItem] = m_nColumnHeaderWidthByType[iType];
     }
   }
 
   // Last column is special
   const int iLastItem = m_nColumnOrderToItem[m_nColumns - 1];
-  m_ctlItemList.SetColumnWidth(iLastItem, LVSCW_AUTOSIZE_USEHEADER);
-  m_nColumnWidthByItem[iLastItem] = m_ctlItemList.GetColumnWidth(iLastItem);
+  m_ctlItemList.SetColumnWidth(m_nColumns - 1, LVSCW_AUTOSIZE_USEHEADER);
+  m_nColumnWidthByItem[iLastItem] = m_ctlItemList.GetColumnWidth(m_nColumns - 1);
 }
 
 void
@@ -1666,7 +1659,7 @@ DboxMain::SetupColumnChooser(const bool bShowHide)
     m_pCC = new CColumnChooserDlg;
     BOOL ret = m_pCC->Create(IDD_COLUMNCHOOSER, this);
     if (!ret) {   //Create failed.
-      AfxMessageBox("Error creating Dialog");
+      m_pCC = NULL;
       return;
     }
     m_pCC->SetLVHdrCtrlPtr(&m_LVHdrCtrl);
@@ -1675,15 +1668,20 @@ DboxMain::SetupColumnChooser(const bool bShowHide)
     DWORD dw_style = m_pCC->m_ccListCtrl.GetExtendedStyle() | LVS_EX_ONECLICKACTIVATE;
     m_pCC->m_ccListCtrl.SetExtendedStyle(dw_style);
 
+    // Make sure it doesn't appear obscure the header
+    CRect HDRrect, CCrect;
+    m_LVHdrCtrl.GetWindowRect(&HDRrect);
+    m_pCC->GetWindowRect(&CCrect);
+    // Note (0,0) is the top left of screen
+    if (CCrect.top < HDRrect.bottom) {
+      int x = CCrect.left;
+      int y = HDRrect.bottom + 20;
+      m_pCC->SetWindowPos(0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    }
+
     // Insert column with "dummy" header
     m_pCC->m_ccListCtrl.InsertColumn(0, _T(""));
     m_pCC->m_ccListCtrl.SetColumnWidth(0, m_iheadermaxwidth);
-
-    // Change the text & background colours
-    const COLORREF crBkColor = ::GetSysColor(COLOR_3DFACE);
-    m_pCC->m_ccListCtrl.SetTextBkColor(crBkColor);
-    const COLORREF crTextColor = ::GetSysColor(COLOR_WINDOWTEXT);
-    m_pCC->m_ccListCtrl.SetTextColor(crTextColor);
 
     // Make it just wide enough to take the text
     CRect rect1, rect2;
@@ -1702,14 +1700,16 @@ DboxMain::SetupColumnChooser(const bool bShowHide)
   m_pCC->m_ccListCtrl.DeleteAllItems();
 
   // and repopulate
-  CString cs_blanks(_T(" "), m_iheadermaxcharacters);
   int iItem;
   for (i = CItemData::LAST - 1; i >= 0; i--) {
+    // Can't play with Title or User columns
+    if (i == CItemData::TITLE || i == CItemData::USER)
+      continue;
+
     if (m_nColumnTypeToItem[i] == -1) {
       cs_header = GetHeaderText(i);
       if (!cs_header.IsEmpty()) {
-        cs_header += cs_blanks;
-        iItem = m_pCC->m_ccListCtrl.InsertItem(0, cs_header.Left(m_iheadermaxcharacters));
+        iItem = m_pCC->m_ccListCtrl.InsertItem(0, cs_header);
         m_pCC->m_ccListCtrl.SetItemData(iItem, (DWORD)i);
       }
     }
@@ -1720,10 +1720,10 @@ DboxMain::SetupColumnChooser(const bool bShowHide)
     m_pCC->ShowWindow(m_pCC->IsWindowVisible() ? SW_HIDE : SW_SHOW);
 }
 
-CString DboxMain::GetHeaderText(const int ihdr)
+CString DboxMain::GetHeaderText(const int iType)
 {
   CString cs_header;
-  switch (ihdr) {
+  switch (iType) {
     case CItemData::GROUP:
       cs_header.LoadString(IDS_GROUP);
       break;
@@ -1760,17 +1760,17 @@ CString DboxMain::GetHeaderText(const int ihdr)
   return cs_header;
 }
 
-int DboxMain::GetHeaderWidth(const int ihdr)
+int DboxMain::GetHeaderWidth(const int iType)
 {
   int nWidth(0);
-      
-  switch (ihdr) {
+
+  switch (iType) {
     case CItemData::GROUP:
     case CItemData::TITLE:
     case CItemData::USER:
     case CItemData::PASSWORD:
     case CItemData::NOTES:
-      nWidth = LVSCW_AUTOSIZE_USEHEADER;
+      nWidth = m_nColumnHeaderWidthByType[iType];
       break;
     case CItemData::CTIME:        
     case CItemData::PMTIME:
@@ -1813,9 +1813,8 @@ void DboxMain::CalcHeaderWidths()
 #endif
 
   m_iDateTimeFieldWidth = m_ctlItemList.GetStringWidth(datetime_str) + 6;
-      
-  m_iheadermaxwidth = 0;
-  m_iheadermaxcharacters = 0;
+
+  m_iheadermaxwidth = -1;
   CString cs_header;
 
   for (int i = 0; i < CItemData::LAST; i++) {
@@ -1859,8 +1858,6 @@ void DboxMain::CalcHeaderWidths()
     else
       m_nColumnHeaderWidthByType[i] = -4;
 
-    m_iheadermaxcharacters = max(m_iheadermaxcharacters, cs_header.GetLength());
     m_iheadermaxwidth = max(m_iheadermaxwidth, m_nColumnHeaderWidthByType[i]);
   }
 }
-

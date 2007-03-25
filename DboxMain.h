@@ -120,8 +120,8 @@ public:
   void UpdateListItemUser(const int lindex, const CString &newUser)
   {UpdateListItem(lindex, CItemData::USER, newUser);}
   void SetHeaderInfo();
-  CString GetHeaderText(const int ihdr);
-  int GetHeaderWidth(const int ihdr);
+  CString GetHeaderText(const int iType);
+  int GetHeaderWidth(const int iType);
   void CalcHeaderWidths();
 
   void SetReadOnly(bool state);
@@ -265,9 +265,9 @@ protected:
 
 #if !defined(POCKET_PC)
 	afx_msg void OnTrayLockUnLock();
-    afx_msg void OnUpdateTrayLockUnLockCommand(CCmdUI *pCmdUI);
-    afx_msg void OnTrayClearRecentEntries();
-    afx_msg void OnUpdateTrayClearRecentEntries(CCmdUI *pCmdUI);
+  afx_msg void OnUpdateTrayLockUnLockCommand(CCmdUI *pCmdUI);
+  afx_msg void OnTrayClearRecentEntries();
+  afx_msg void OnUpdateTrayClearRecentEntries(CCmdUI *pCmdUI);
 	afx_msg void OnTrayCopyUsername(UINT nID);
 	afx_msg void OnUpdateTrayCopyUsername(CCmdUI *pCmdUI);
 	afx_msg void OnTrayCopyPassword(UINT nID);
@@ -402,7 +402,6 @@ private:
   int m_nColumnWidthByItem[CItemData::LAST];
   int m_nColumnHeaderWidthByType[CItemData::LAST];
   int m_iheadermaxwidth;
-  int m_iheadermaxcharacters;
   CFont *m_pFontTree;
   CItemData *m_selectedAtMinimize; // to restore selection upon un-minimize
   CString m_lock_displaystatus;
@@ -427,8 +426,8 @@ private:
   void GroupDisplayStatus(TCHAR *p_char_displaystatus, int &i, bool bSet);
   void MakeSortedItemList(ItemList &il);
   void SetColumns();  // default order
-  void SetColumns(const CString cs_ListColumns, const CString cs_ListColumnsWidths);
-  void SetColumns(const CItemData::FieldBits bscolumn);
+  void SetColumns(const CString cs_ListColumns);
+  void SetColumnWidths(const CString cs_ListColumnsWidths);
   void SetupColumnChooser(const bool bShowHide);
   void AddColumn(const int iType, const int iIndex);
   void DeleteColumn(const int iType);
