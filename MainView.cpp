@@ -1522,12 +1522,16 @@ void DboxMain::AddColumn(const int iType, const int iIndex)
   // Add new column of type iType after current column index iIndex
   CString cs_header;
   HDITEM hdi;
-  int iNewIndex, iNewWidth;
+  int iNewIndex(iIndex), iNewWidth;
+
+  //  If iIndex = -1, means drop on the end
+  if (iIndex < 0)
+    iNewIndex = m_nColumns;
 
   hdi.mask = HDI_LPARAM | HDI_WIDTH;
   cs_header = GetHeaderText(iType);
   ASSERT(!cs_header.IsEmpty());
-  iNewIndex = m_ctlItemList.InsertColumn(iIndex, cs_header);
+  iNewIndex = m_ctlItemList.InsertColumn(iNewIndex, cs_header);
   ASSERT(iNewIndex != -1);
   hdi.lParam = iType;
   hdi.cxy = GetHeaderWidth(iType);

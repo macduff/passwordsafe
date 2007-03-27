@@ -87,7 +87,7 @@ BOOL CLVHdrCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
   hdhti.flags = 0;
   ScreenToClient(&hdhti.pt);
   ::SendMessage(this->GetSafeHwnd(), HDM_HITTEST, 0, (LPARAM) &hdhti);
-  
+
   // Now add it
   ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
       WM_CCTOHDR_DD_COMPLETE, (WPARAM)iType, (LPARAM)hdhti.iItem);
