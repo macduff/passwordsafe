@@ -20,7 +20,6 @@ using namespace std ;
 #include "stdafx.h"
 #include "MyTreeCtrl.h"
 #include "DboxMain.h"
-#include "resource3.h"
 #include "corelib/ItemData.h"
 #include "corelib/MyString.h"
 #include "corelib/Util.h"
@@ -38,7 +37,7 @@ typedef SetTreeItem_t *SetTreeItemP_t;
 
 static const TCHAR GROUP_SEP = TCHAR('.');
 
-CMyTreeCtrl::CMyTreeCtrl() : m_bDragging(false), m_pimagelist(NULL), m_hitemRoot(NULL)
+CMyTreeCtrl::CMyTreeCtrl() : m_bDragging(false), m_pimagelist(NULL)
 {
   m_expandedItems = new SetTreeItem_t;
   m_isRestoring = false;
@@ -487,8 +486,6 @@ void CMyTreeCtrl::EndDragging(BOOL bCancel)
     HTREEITEM parent = GetParentItem(m_hitemDrag);
     if (IsLeafNode(m_hitemDrop))
         m_hitemDrop = GetParentItem(m_hitemDrop);
-    if (m_hitemDrop == m_hitemRoot)
-        m_hitemDrop = NULL;
 
     if (!bCancel &&
         m_hitemDrag != m_hitemDrop &&
@@ -514,10 +511,6 @@ void CMyTreeCtrl::EndDragging(BOOL bCancel)
 
     if (PWSprefs::GetInstance()->GetPref(PWSprefs::AutoResizeColumns))
       ((DboxMain *)m_parent)->AutoResizeColumns();
-  }
-  if (m_hitemRoot != NULL) {
-      DeleteItem(m_hitemRoot);
-      m_hitemRoot = NULL;
   }
   KillTimer(m_nTimerID);
   KillTimer(m_nHoverTimerID);
@@ -569,8 +562,6 @@ void CMyTreeCtrl::OnBeginDrag(NMHDR* pNMHDR, LRESULT* pResult)
   
   // Set up the timer
   m_nTimerID = SetTimer(1, 75, NULL);
-  const CString cs_root(MAKEINTRESOURCE(IDS_ROOT));
-  m_hitemRoot = InsertItem(cs_root, TVI_ROOT, TVI_FIRST);
 }
 
 

@@ -35,8 +35,8 @@ DECLARE_HANDLE(HDROP);
 #define WM_ICON_NOTIFY (WM_APP + 10)
 
 // to catch post Header drag
-#define WM_HDRTOHDR_DD_COMPLETE (WM_APP + 20)
-#define WM_CCTOHDR_DD_COMPLETE (WM_APP + 21)
+#define WM_CCTOHDR_DD_COMPLETE (WM_APP + 20)
+#define WM_HDRTOCC_DD_COMPLETE (WM_APP + 21)
 
 // timer event number used to check if the workstation is locked
 #define TIMER_CHECKLOCK 0x04
@@ -68,6 +68,7 @@ private:
   static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
   static CString CS_EDITENTRY, CS_VIEWENTRY, CS_EXPCOLGROUP;
   static CString CS_DELETEENTRY, CS_DELETEGROUP, CS_RENAMEENTRY, CS_RENAMEGROUP;
+    static const CString DEFAULT_AUTOTYPE;
 
 public:
   // default constructor
@@ -225,8 +226,8 @@ protected:
   void ConfigureSystemMenu();
   afx_msg void OnSysCommand( UINT nID, LPARAM lParam );
   LRESULT OnHotKey(WPARAM wParam, LPARAM lParam);
-  LRESULT OnHdrToHdrDragComplete(WPARAM wParam, LPARAM lParam);
   LRESULT OnCCToHdrDragComplete(WPARAM wParam, LPARAM lParam);
+  LRESULT OnHdrToCCDragComplete(WPARAM wParam, LPARAM lParam);
   enum STATE {LOCKED, UNLOCKED, CLOSED};  // Really shouldn't be here it, ThisMfcApp own it
   void UpdateSystemTray(const STATE s);
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
@@ -301,7 +302,6 @@ protected:
   afx_msg void OnItemDoubleClick(NMHDR* pNotifyStruct, LRESULT* result);
   afx_msg void OnHeaderRClick(NMHDR* pNotifyStruct, LRESULT* result);
   afx_msg void OnHeaderNotify(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg BOOL OnHeaderNotifyEX(UINT id, NMHDR* pNotifyStruct, LRESULT* result);
   afx_msg void OnCopyPassword();
   afx_msg void OnCopyNotes();
   afx_msg void OnNew();

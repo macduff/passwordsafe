@@ -544,6 +544,9 @@ DboxMain::OnAutoType()
   }
 }
 
+const CString DboxMain::DEFAULT_AUTOTYPE = _T("\\u\\t\\p\\n");
+
+
 void
 DboxMain::AutoType(const CItemData &ci)
 {
@@ -561,24 +564,24 @@ DboxMain::AutoType(const CItemData &ci)
       // checking for user and password for default settings
       if (!pwd.IsEmpty()){
         if (!user.IsEmpty())
-          AutoCmd = _T("\\u\\t\\p\\n");
+                    AutoCmd = CMyString(DEFAULT_AUTOTYPE);
         else
           AutoCmd = _T("\\p\\n");
       }
     }
   }
 
+    CKeySend ks;
   // Turn off CAPSLOCK
   bool bCapsLock = false;
   if (GetKeyState(VK_CAPITAL)) {
     bCapsLock = true;
-    SetCapsLock(false);
+        ks.SetCapsLock(false);
   }
 
  CMyString tmp;
  TCHAR curChar;
  const int N = AutoCmd.GetLength();
- CKeySend ks;
  ks.ResetKeyboardState();
 
  // Note that minimizing the window before calling ci.Get*()
@@ -650,45 +653,24 @@ DboxMain::AutoType(const CItemData &ci)
        tmp += _T("\\") + curChar;
        break;
      }
-   }
-   else
+        } else
      tmp += curChar;
  }
  ks.SendString(tmp);
+    // If we turned off CAPSLOCK, put it back
+    if (bCapsLock) 
+        ks.SetCapsLock(true);
  
   Sleep(100);
 
   // If we hid it, now show it
   if (m_bAlwaysOnTop) {
-    ShowWindow(SW_SHOW);
-    SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        SetWindowPos(&wndTopMost, 0, 0, 0, 0,
+                     SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
   } else if (!bMinOnAuto) {
-    ShowWindow(SW_SHOW);
+        SetWindowPos(&wndBottom, 0, 0, 0, 0,
+                     SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
   }
 
-  // If we turned off CAPSLOCK, put it back
-  if (bCapsLock) {
-      SetCapsLock(true);
-  }
-}
-
-void DboxMain::SetCapsLock(const bool bState)
-{
-  BYTE keyState[256];
-
-  GetKeyboardState((LPBYTE)&keyState);
-  if((bState && !(keyState[VK_CAPITAL] & 1)) ||
-     (!bState && (keyState[VK_CAPITAL] & 1))) {
-      // Simulate a key press
-      keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
-      // Simulate a key release
-      keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
   }
 
-  MSG msg;
-  while (::PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) ) {
-    // so there is a message process it.
-    if (!AfxGetThread()->PumpMessage())
-      break;
-  }
-}

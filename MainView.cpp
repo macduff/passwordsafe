@@ -730,9 +730,6 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex)
   }
   CMyString cs_fielddata;
 
-  if (group.IsEmpty())
-    group.LoadString(IDS_ROOT);
-
   // Insert the first column data
   switch (m_nColumnTypeByItem[0]) {
     case CItemData::GROUP:
@@ -992,7 +989,8 @@ DboxMain::OnHeaderRClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
   const DWORD dwTrackPopupFlags = TPM_LEFTALIGN | TPM_RIGHTBUTTON;
 #endif
   CMenu menu;
-  GetCursorPos(&m_RCMousePos);
+  CPoint ptMousePos;
+  GetCursorPos(&ptMousePos);
 
   if (menu.LoadMenu(IDR_POPCOLUMNS)) {
     CMenu* pPopup = menu.GetSubMenu(0);
@@ -1003,7 +1001,7 @@ DboxMain::OnHeaderRClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
     else
       pPopup->CheckMenuItem(ID_MENUITEM_COLUMNPICKER, MF_UNCHECKED);
 
-    pPopup->TrackPopupMenu(dwTrackPopupFlags, m_RCMousePos.x, m_RCMousePos.y, this);
+    pPopup->TrackPopupMenu(dwTrackPopupFlags, ptMousePos.x, ptMousePos.y, this);
   }
   *pResult = TRUE;
 }
@@ -1521,26 +1519,30 @@ DboxMain::SetColumnWidths(const CString cs_ListColumnsWidths)
 
 void DboxMain::AddColumn(const int iType, const int iIndex)
 {
-  // Add new column after column
+  // Add new column of type iType after current column index iIndex
   CString cs_header;
   HDITEM hdi;
-  int iNewIndex;
+  int iNewIndex, iNewWidth;
 
   hdi.mask = HDI_LPARAM | HDI_WIDTH;
   cs_header = GetHeaderText(iType);
-  if (!cs_header.IsEmpty()) {
-    iNewIndex = m_ctlItemList.InsertColumn(iIndex, cs_header);
-    ASSERT(iNewIndex != -1);
-    hdi.lParam = iType;
-    hdi.cxy = GetHeaderWidth(iType);
-    m_LVHdrCtrl.SetItem(iNewIndex, &hdi);
-  }
+  ASSERT(!cs_header.IsEmpty());
+  iNewIndex = m_ctlItemList.InsertColumn(iIndex, cs_header);
+  ASSERT(iNewIndex != -1);
+  hdi.lParam = iType;
+  hdi.cxy = GetHeaderWidth(iType);
+  m_LVHdrCtrl.SetItem(iNewIndex, &hdi);
 
   // Reset values
   SetHeaderInfo();
 
   // Now show the user
   RefreshList();
+
+  // Reset width
+  iNewWidth = m_ctlItemList.SetColumnWidth(iNewIndex, LVSCW_AUTOSIZE);
+  if (iNewWidth < GetHeaderWidth(iType))
+    m_ctlItemList.SetColumnWidth(iNewIndex, GetHeaderWidth(iType));
 }
 
 void DboxMain::DeleteColumn(const int iType)
@@ -1579,7 +1581,6 @@ DboxMain::SetHeaderInfo()
     ASSERT(i == hdi.iOrder);
     m_nColumnTypeToItem[hdi.lParam] = m_nColumnOrderToItem[i];
     m_nColumnTypeByItem[iItem] = hdi.lParam;
-    //m_nColumnWidthByItem[iItem] = hdi.cxy;
   }
 
   // Check sort column still there

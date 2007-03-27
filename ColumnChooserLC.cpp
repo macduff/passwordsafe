@@ -58,6 +58,7 @@ DROPEFFECT CColumnChooserLC::OnDragOver(CWnd* /* pWnd */, COleDataObject* /* pDa
 BOOL CColumnChooserLC::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
                               DROPEFFECT /* dropEffect */, CPoint /* point */)
 {
+  // On Drop of column from Header onto Column Chooser Dialog
   HGLOBAL hGlobal;
 
   hGlobal = pDataObject->GetGlobalData(gbl_ccddCPFID);
@@ -66,12 +67,12 @@ BOOL CColumnChooserLC::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
   ASSERT(pData != NULL);
 
   DWORD randID;
-  int dw_type, iFromHdr, iLen;
+  int iDDType, dw_type, iLen;
 
 #if _MSC_VER >= 1400
-  _stscanf_s(pData, _T("%08x%02x%02x%04x"), &randID, &iFromHdr, &dw_type, &iLen);
+  _stscanf_s(pData, _T("%08x%02x%02x%04x"), &randID, &iDDType, &dw_type, &iLen);
 #else
-  _stscanf(pData, _T("08x%02x%02x%04x"), &randID, &iFromHdr, &dw_type, &iLen);
+  _stscanf(pData, _T("08x%02x%02x%04x"), &randID, &iDDType, &dw_type, &iLen);
 #endif
 
   // Check if it is ours?
@@ -81,7 +82,7 @@ BOOL CColumnChooserLC::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
 
   // Check if it is from List View HeaderCtrl?
   // - we don't accept drop from anything else
-  if (iFromHdr != FROMHDR)
+  if (iDDType != FROMHDR)
     return FALSE;
 
   // Now add it
@@ -105,6 +106,7 @@ void CColumnChooserLC::OnLButtonDown(UINT nFlags, CPoint point)
   if (m_iItem == -1)
     return;
 
+  // Start of Drag of column (m_iItem) from Column Chooser dialog to.....
   CString cs_text;
   DWORD dw_type;
 
@@ -139,6 +141,7 @@ void CColumnChooserLC::OnLButtonDown(UINT nFlags, CPoint point)
 
 void CColumnChooserLC::CompleteMove()
 {
+  // After we have dragged successfully from Column Chooser to Header
   if (m_iItem < 0)
     return;
 

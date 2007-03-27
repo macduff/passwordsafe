@@ -354,17 +354,11 @@ private:
     DboxMain &m_dbox;
 };
 
-BOOL
-ThisMfcApp::InitInstance()
+void ThisMfcApp::LoadLocalizedStuff()
 {
     /*
-     * It's always best to start at the beginning.  [Glinda, Witch of the North]
-     */
+      Looks for localized version of resources and help files, loads them if found
 
-    // Get application version information
-    GetApplicationVersionData();
-
-    /*
       Format of resource-only DLL names (in dir returned by GetExeDir)
       pwsafeLL_CC.dll
       or
@@ -506,6 +500,19 @@ ThisMfcApp::InitInstance()
     TRACE(_T("%s Using help file: %s\n"), PWSUtil::GetTimeStamp(), cs_HelpPath);
 
 	m_csHelpFile = cs_HelpPath;
+}
+
+BOOL
+ThisMfcApp::InitInstance()
+{
+    /*
+     * It's always best to start at the beginning.  [Glinda, Witch of the North]
+     */
+
+    // Get application version information
+    GetApplicationVersionData();
+
+    LoadLocalizedStuff();
 
     // PWScore needs it to get into database header if/when saved
     m_core.SetApplicationMajorMinor(m_dwMajorMinor);
@@ -584,6 +591,8 @@ ThisMfcApp::InitInstance()
     else
         pos = -1;
 
+    m_pMRU = new CPWSRecentFileList( 0, _T("MRU"), _T("Safe%d"),
+                                     ((nMRUItems != 0) ? nMRUItems : 1));
     if (nMRUItems > 0) {
         if (pos > -1) {
             int irc;
@@ -608,7 +617,6 @@ ThisMfcApp::InitInstance()
                 ASSERT(irc != 0);
             } // m_mruonfilemenu
 
-            m_pMRU = new CPWSRecentFileList( 0, _T("MRU"), _T("Safe%d"), nMRUItems );
             m_pMRU->ReadList();
         } // pos > -1
     } else { // nMRUItems <= 0

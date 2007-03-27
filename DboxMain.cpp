@@ -276,8 +276,8 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
 
    ON_MESSAGE(WM_ICON_NOTIFY, OnTrayNotification)
    ON_MESSAGE(WM_HOTKEY, OnHotKey)
-   ON_MESSAGE(WM_HDRTOHDR_DD_COMPLETE, OnHdrToHdrDragComplete)
    ON_MESSAGE(WM_CCTOHDR_DD_COMPLETE, OnCCToHdrDragComplete)
+   ON_MESSAGE(WM_HDRTOCC_DD_COMPLETE, OnHdrToCCDragComplete)
    
 	//}}AFX_MSG_MAP
    ON_COMMAND_EX_RANGE(ID_FILE_MRU_ENTRY1, ID_FILE_MRU_ENTRYMAX, OnOpenMRU)
@@ -381,7 +381,6 @@ DboxMain::InitPasswordSafe()
   m_bExplorerTypeTree = prefs->GetPref(PWSprefs::ExplorerTypeTree);
   m_bUseGridLines = prefs->GetPref(PWSprefs::ListViewGridLines);
 
-  // We now do our own Drag & Drop - can't specify LVS_EX_HEADERDRAGDROP
   DWORD dw_ExtendedStyle = LVS_EX_FULLROWSELECT | LVS_EX_HEADERDRAGDROP;
   if (m_bUseGridLines)
       dw_ExtendedStyle |= LVS_EX_GRIDLINES;
@@ -494,30 +493,17 @@ DboxMain::OnHotKey(WPARAM , LPARAM)
 }
 
 LRESULT
-DboxMain::OnHdrToHdrDragComplete(WPARAM wParam, LPARAM lParam)
+DboxMain::OnCCToHdrDragComplete(WPARAM wType, LPARAM afterIndex)
 {
-  // Get type of column being moved
-  int iType = (int)wParam;
-  
-  // Get position for it to be placed
-  int iIndex = (int)lParam;
-
-  // Delete it
-  m_ctlItemList.DeleteColumn(m_nColumnTypeToItem[iType]);
-
-  // Now add it
-  AddColumn(iType, iIndex);
+  AddColumn((int)wType, (int)afterIndex);
 
   return 0L;
 }
 
 LRESULT
-DboxMain::OnCCToHdrDragComplete(WPARAM wParam, LPARAM lParam)
+DboxMain::OnHdrToCCDragComplete(WPARAM wType, LPARAM /* lParam */)
 {
-  if ((int)lParam < 0)
-    DeleteColumn((int)wParam);
-  else
-    AddColumn((int)wParam, (int)lParam);
+  DeleteColumn((int)wType);
 
   return 0L;
 }
