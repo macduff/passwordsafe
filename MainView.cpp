@@ -663,17 +663,23 @@ DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint point)
 void DboxMain::OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult)
 {
   LV_KEYDOWN *pLVKeyDow = (LV_KEYDOWN*)pNMHDR;
+  *pResult = FALSE;
 
   switch (pLVKeyDow->wVKey) {
   case VK_DELETE:
     OnDelete();
+    *pResult = TRUE;
     break;
   case VK_INSERT:
     OnAdd();
+    *pResult = TRUE;
     break;
   }
 
-  *pResult = 0;
+  if (pLVKeyDow->wVKey == VK_ADD && GetKeyState(VK_CONTROL) & 0x80) {
+    AutoResizeColumns();
+    *pResult = TRUE;
+  }
 }
 
 #if !defined(POCKET_PC)
@@ -1522,7 +1528,7 @@ void DboxMain::AddColumn(const int iType, const int iIndex)
   // Add new column of type iType after current column index iIndex
   CString cs_header;
   HDITEM hdi;
-  int iNewIndex(iIndex), iNewWidth;
+  int iNewIndex(iIndex);
 
   //  If iIndex = -1, means drop on the end
   if (iIndex < 0)
@@ -1542,11 +1548,6 @@ void DboxMain::AddColumn(const int iType, const int iIndex)
 
   // Now show the user
   RefreshList();
-
-  // Reset width
-  iNewWidth = m_ctlItemList.SetColumnWidth(iNewIndex, LVSCW_AUTOSIZE);
-  if (iNewWidth < GetHeaderWidth(iType))
-    m_ctlItemList.SetColumnWidth(iNewIndex, GetHeaderWidth(iType));
 }
 
 void DboxMain::DeleteColumn(const int iType)
