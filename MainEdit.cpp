@@ -607,7 +607,7 @@ DboxMain::AutoType(const CItemData &ci)
 
   Sleep(1000); // Karl Student's suggestion, to ensure focus set correctly on minimize.
 
- for(int n = 0; n < N; n++){
+ for(int n = 0; n < N; n++) {
    curChar = AutoCmd[n];
    if(curChar == TCHAR('\\')) {
      n++;
@@ -672,5 +672,4 @@ DboxMain::AutoType(const CItemData &ci)
                      SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
   }
 
-  }
-
+}

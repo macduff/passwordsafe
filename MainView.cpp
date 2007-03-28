@@ -244,7 +244,7 @@ void DboxMain::UpdateListItem(const int lindex, const int type, const CString &n
   HDITEM hdi;
   hdi.mask = HDI_LPARAM;
 
-  int iSubItem = m_nColumnTypeToItem[type];
+  int iSubItem = m_nColumnIndexByType[type];
 
   if (iSubItem > 0) {
     m_ctlItemList.SetItemText(lindex, iSubItem, newText);
@@ -312,7 +312,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive, int *indices)
 
   int ititle(-1);  // Must be there as it is mandatory!
   for (int ic = 0; ic < m_nColumns; ic++) {
-      if (m_nColumnTypeByItem[ic] == CItemData::TITLE) {
+      if (m_nColumnTypeByIndex[ic] == CItemData::TITLE) {
           ititle = ic;
           break;
       }
@@ -663,23 +663,28 @@ DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint point)
 void DboxMain::OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult)
 {
   LV_KEYDOWN *pLVKeyDow = (LV_KEYDOWN*)pNMHDR;
+
+  // FALSE = call next in line to process event
   *pResult = FALSE;
 
   switch (pLVKeyDow->wVKey) {
-  case VK_DELETE:
-    OnDelete();
-    *pResult = TRUE;
-    break;
-  case VK_INSERT:
-    OnAdd();
-    *pResult = TRUE;
-    break;
+    case VK_DELETE:
+      OnDelete();
+      break;
+    case VK_INSERT:
+      OnAdd();
+      break;
+    case VK_ADD:
+      if ((GetKeyState(VK_CONTROL) & 0x8000) == 0)
+        return;
+      SetHeaderInfo();
+      break;
+    default:
+      return;    
   }
 
-  if (pLVKeyDow->wVKey == VK_ADD && GetKeyState(VK_CONTROL) & 0x80) {
-    AutoResizeColumns();
-    *pResult = TRUE;
-  }
+  // We have processed the key stroke - don't call anyone else
+  *pResult = TRUE;
 }
 
 #if !defined(POCKET_PC)
@@ -737,7 +742,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex)
   CMyString cs_fielddata;
 
   // Insert the first column data
-  switch (m_nColumnTypeByItem[0]) {
+  switch (m_nColumnTypeByIndex[0]) {
     case CItemData::GROUP:
       cs_fielddata = group;
       break;
@@ -842,7 +847,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex)
 
   // Set the data in the rest of the columns
   for (int i = 1; i < m_nColumns; i++) {
-    switch (m_nColumnTypeByItem[i]) {
+    switch (m_nColumnTypeByIndex[i]) {
       case CItemData::GROUP:
         cs_fielddata = group;
         break;
@@ -955,8 +960,8 @@ void DboxMain::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
   NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
 
   // Get column index to CItemData value
-  int iItem = pNMListView->iSubItem;
-  int isortcolumn = m_nColumnTypeByItem[iItem];
+  int iIndex = pNMListView->iSubItem;
+  int isortcolumn = m_nColumnTypeByIndex[iIndex];
   
   if (m_iSortedColumn == isortcolumn) {
     m_bSortAscending = !m_bSortAscending;
@@ -976,12 +981,12 @@ void DboxMain::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
   HDITEM hdi;
   hdi.mask = HDI_FORMAT;
 
-  m_LVHdrCtrl.GetItem(iItem, &hdi);
+  m_LVHdrCtrl.GetItem(iIndex, &hdi);
   // Turn off all arrows
   hdi.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);
   // Turn on the correct arrow
   hdi.fmt |= ((m_bSortAscending == TRUE) ? HDF_SORTUP : HDF_SORTDOWN);
-  m_LVHdrCtrl.SetItem(iItem, &hdi);
+  m_LVHdrCtrl.SetItem(iIndex, &hdi);
 
   *pResult = TRUE;
 }
@@ -1013,12 +1018,26 @@ DboxMain::OnHeaderRClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
 }
 
 void
+DboxMain::OnHeaderEndDrag(NMHDR* /* pNMHDR */, LRESULT *pResult)
+{
+  // Called for HDN_ENDDRAG which changes the column order when CC not visible
+  // Unfortunately the changes are only really done when this call returns,
+  // hence the PostMessage to get the information later
+
+  // Get control after operation is really complete
+  PostMessage(WM_HDR_DRAG_COMPLETE);
+
+  // Go do it
+  *pResult = FALSE;
+}
+
+void
 DboxMain::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
 {
   HD_NOTIFY *phdn = (HD_NOTIFY *) pNMHDR;
+  *pResult = FALSE;
 
-  *pResult = TRUE;
-  if (m_nColumnWidthByItem == NULL || phdn->pitem == NULL)
+  if (m_nColumnWidthByIndex == NULL || phdn->pitem == NULL)
     return;
 
   UINT mask = phdn->pitem->mask;
@@ -1029,7 +1048,7 @@ DboxMain::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
   switch (phdn->hdr.code) {
     case HDN_ENDTRACK:
     case HDN_ITEMCHANGED:
-      m_nColumnWidthByItem[phdn->iItem] = phdn->pitem->cxy;
+      m_nColumnWidthByIndex[phdn->iItem] = phdn->pitem->cxy;
       break;
     default:
       break;
@@ -1479,9 +1498,6 @@ void
 DboxMain::SetColumnWidths(const CString cs_ListColumnsWidths)
 {
   //  User has saved the columns he/she wants and now we are putting them back
-  HDITEM hdi;
-  hdi.mask = HDI_WIDTH;
-
   std::vector<int> vi_widths;
   std::vector<int>::const_iterator vi_IterWidths;
   const TCHAR pSep[] = _T(",");
@@ -1508,17 +1524,23 @@ DboxMain::SetColumnWidths(const CString cs_ListColumnsWidths)
 #endif
   free(pWidths);
   
-  int icol = 0;
+  int icol = 0, index;
 
   for (vi_IterWidths = vi_widths.begin();
        vi_IterWidths != vi_widths.end();
        vi_IterWidths++) {
+    if (icol == (m_nColumns - 1))
+      break;
     int &iWidth = (int)*vi_IterWidths;
-    hdi.cxy = iWidth;
-    m_LVHdrCtrl.SetItem(icol, &hdi);
-    m_nColumnWidthByItem[icol] = iWidth;
+    m_ctlItemList.SetColumnWidth(icol, iWidth);
+    index = m_LVHdrCtrl.OrderToIndex(icol);
+    m_nColumnWidthByIndex[index] = iWidth;
     icol++;
   }
+
+  // Last column special
+  index = m_LVHdrCtrl.OrderToIndex(m_nColumns - 1);
+  m_ctlItemList.SetColumnWidth(index, LVSCW_AUTOSIZE_USEHEADER);
 
   return;
 }
@@ -1553,7 +1575,7 @@ void DboxMain::AddColumn(const int iType, const int iIndex)
 void DboxMain::DeleteColumn(const int iType)
 {
   // Delete column
-  m_ctlItemList.DeleteColumn(m_nColumnTypeToItem[iType]);
+  m_ctlItemList.DeleteColumn(m_nColumnIndexByType[iType]);
   
   // Reset values
   SetHeaderInfo();
@@ -1562,38 +1584,38 @@ void DboxMain::DeleteColumn(const int iType)
 void
 DboxMain::SetHeaderInfo()
 {
-  int i;
-  HDITEM hdi;
-  hdi.mask = HDI_LPARAM | HDI_WIDTH | HDI_ORDER;
+  HDITEM hdi_get;
+  // CHeaderCtrl get values
+  hdi_get.mask = HDI_LPARAM | HDI_ORDER;
 
   m_nColumns = m_LVHdrCtrl.GetItemCount();
   ASSERT(m_nColumns > 1);  // Title & User are mandatory!
 
   // re-initialise array
-  for (i = 0; i < CItemData::LAST; i++) {
-    m_nColumnTypeToItem[i] = -1;
-    m_nColumnOrderToItem[i] = -1;
-    m_nColumnTypeByItem[i] = -1;
-    m_nColumnWidthByItem[i] = -1;
+  for (int i = 0; i < CItemData::LAST; i++) {
+    m_nColumnIndexByType[i] = -1;
+    m_nColumnIndexByOrder[i] = -1;
+    m_nColumnTypeByIndex[i] = -1;
+    m_nColumnWidthByIndex[i] = -1;
   }
 
-  m_LVHdrCtrl.GetOrderArray(m_nColumnOrderToItem, m_nColumns);
+  m_LVHdrCtrl.GetOrderArray(m_nColumnIndexByOrder, m_nColumns);
 
-  for (i = 0; i < m_nColumns; i++) {
-    const int iItem = m_nColumnOrderToItem[i];
-    m_ctlItemList.SetColumnWidth(iItem, LVSCW_AUTOSIZE);
-    m_LVHdrCtrl.GetItem(iItem, &hdi);
-    ASSERT(i == hdi.iOrder);
-    m_nColumnTypeToItem[hdi.lParam] = m_nColumnOrderToItem[i];
-    m_nColumnTypeByItem[iItem] = hdi.lParam;
+  for (int iOrder = 0; iOrder < m_nColumns; iOrder++) {
+    const int iIndex = m_nColumnIndexByOrder[iOrder];
+    m_ctlItemList.SetColumnWidth(iIndex, LVSCW_AUTOSIZE);
+    m_LVHdrCtrl.GetItem(iIndex, &hdi_get);
+    ASSERT(iOrder == hdi_get.iOrder);
+    m_nColumnIndexByType[hdi_get.lParam] = iIndex;
+    m_nColumnTypeByIndex[iIndex] = hdi_get.lParam;
   }
 
   // Check sort column still there
-  if (m_nColumnTypeToItem[m_iSortedColumn] == -1) {
+  if (m_nColumnIndexByType[m_iSortedColumn] == -1) {
     // No - take highest visible
-      for (i = 0; i < CItemData::LAST; i++) {
-          if (m_nColumnTypeToItem[i] != -1) {
-              m_iSortedColumn = i;
+      for (int itype = 0; itype < CItemData::LAST; itype++) {
+          if (m_nColumnIndexByType[itype] != -1) {
+              m_iSortedColumn = itype;
               break;
           }
       }
@@ -1605,16 +1627,14 @@ DboxMain::SetHeaderInfo()
 void
 DboxMain::OnResetColumns()
 {
-  int i;
-
   // Delete all existing columns
-  for (i = 0; i < m_nColumns; i++) {
+  for (int i = 0; i < m_nColumns; i++) {
     m_ctlItemList.DeleteColumn(0);
   }
 
   // re-initialise array
-  for (i = 0; i < CItemData::LAST; i++)
-    m_nColumnTypeToItem[i] = -1;
+  for (int itype = 0; itype < CItemData::LAST; itype++)
+    m_nColumnIndexByType[itype] = -1;
 
   // Set default columns
   SetColumns();
@@ -1633,23 +1653,31 @@ DboxMain::OnResetColumns()
 void
 DboxMain::AutoResizeColumns()
 {
-  for (int icolumn = 0; icolumn < (m_nColumns - 1); icolumn++) {
-    const int iItem = m_nColumnOrderToItem[icolumn];
-    const int iType = m_nColumnTypeByItem[iItem];
+  int iIndex, iType;
+  HDITEM hdi_get;
+  // CHeaderCtrl get values
+  hdi_get.mask = HDI_LPARAM | HDI_WIDTH | HDI_ORDER;
 
-    m_ctlItemList.SetColumnWidth(icolumn, LVSCW_AUTOSIZE);
-    m_nColumnWidthByItem[iItem] = m_ctlItemList.GetColumnWidth(icolumn);
+  for (int iOrder = 0; iOrder < m_nColumns; iOrder++) {
+    iIndex = m_nColumnIndexByOrder[iOrder];
+    iType = m_nColumnTypeByIndex[iIndex];
 
-    if (m_nColumnWidthByItem[iItem] < m_nColumnHeaderWidthByType[iType]) {
-      m_ctlItemList.SetColumnWidth(icolumn, m_nColumnHeaderWidthByType[iType]);
-      m_nColumnWidthByItem[iItem] = m_nColumnHeaderWidthByType[iType];
+    m_ctlItemList.SetColumnWidth(iIndex, LVSCW_AUTOSIZE);
+    m_nColumnWidthByIndex[iIndex] = m_ctlItemList.GetColumnWidth(iIndex);
+
+    if (m_nColumnWidthByIndex[iIndex] < m_nColumnHeaderWidthByType[iType]) {
+      m_ctlItemList.SetColumnWidth(iIndex, m_nColumnHeaderWidthByType[iType]);
+      m_nColumnWidthByIndex[iIndex] = m_nColumnHeaderWidthByType[iType];
     }
   }
 
+  m_ctlItemList.UpdateWindow();
+
   // Last column is special
-  const int iLastItem = m_nColumnOrderToItem[m_nColumns - 1];
-  m_ctlItemList.SetColumnWidth(m_nColumns - 1, LVSCW_AUTOSIZE_USEHEADER);
-  m_nColumnWidthByItem[iLastItem] = m_ctlItemList.GetColumnWidth(m_nColumns - 1);
+  iIndex = m_nColumnIndexByOrder[m_nColumns - 1];
+  m_ctlItemList.SetColumnWidth(iIndex, LVSCW_AUTOSIZE);
+  m_ctlItemList.SetColumnWidth(iIndex, LVSCW_AUTOSIZE_USEHEADER);
+  m_nColumnWidthByIndex[iIndex] = m_ctlItemList.GetColumnWidth(iIndex);
 }
 
 void
@@ -1712,7 +1740,7 @@ DboxMain::SetupColumnChooser(const bool bShowHide)
     if (i == CItemData::TITLE || i == CItemData::USER)
       continue;
 
-    if (m_nColumnTypeToItem[i] == -1) {
+    if (m_nColumnIndexByType[i] == -1) {
       cs_header = GetHeaderText(i);
       if (!cs_header.IsEmpty()) {
         iItem = m_pCC->m_ccListCtrl.InsertItem(0, cs_header);
@@ -1823,8 +1851,8 @@ void DboxMain::CalcHeaderWidths()
   m_iheadermaxwidth = -1;
   CString cs_header;
 
-  for (int i = 0; i < CItemData::LAST; i++) {
-    switch (i) {
+  for (int iType = 0; iType < CItemData::LAST; iType++) {
+    switch (iType) {
       case CItemData::GROUP:
         cs_header.LoadString(IDS_GROUP);
         break;
@@ -1860,10 +1888,10 @@ void DboxMain::CalcHeaderWidths()
     }
 
     if (!cs_header.IsEmpty())
-      m_nColumnHeaderWidthByType[i] = m_ctlItemList.GetStringWidth(cs_header) + 20;
+      m_nColumnHeaderWidthByType[iType] = m_ctlItemList.GetStringWidth(cs_header) + 20;
     else
-      m_nColumnHeaderWidthByType[i] = -4;
+      m_nColumnHeaderWidthByType[iType] = -4;
 
-    m_iheadermaxwidth = max(m_iheadermaxwidth, m_nColumnHeaderWidthByType[i]);
+    m_iheadermaxwidth = max(m_iheadermaxwidth, m_nColumnHeaderWidthByType[iType]);
   }
 }

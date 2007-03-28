@@ -236,6 +236,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_NOTIFY(NM_DBLCLK, IDC_ITEMTREE, OnItemDoubleClick)
    ON_NOTIFY(LVN_COLUMNCLICK, IDC_ITEMLIST, OnColumnClick)
    ON_NOTIFY(NM_RCLICK, IDC_LIST_HEADER, OnHeaderRClick)
+   ON_NOTIFY(HDN_ENDDRAG, IDC_LIST_HEADER, OnHeaderEndDrag)
    ON_NOTIFY(HDN_ENDTRACK, IDC_LIST_HEADER, OnHeaderNotify)
    ON_NOTIFY(HDN_ITEMCHANGED, IDC_LIST_HEADER, OnHeaderNotify)
 
@@ -278,6 +279,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_MESSAGE(WM_HOTKEY, OnHotKey)
    ON_MESSAGE(WM_CCTOHDR_DD_COMPLETE, OnCCToHdrDragComplete)
    ON_MESSAGE(WM_HDRTOCC_DD_COMPLETE, OnHdrToCCDragComplete)
+   ON_MESSAGE(WM_HDR_DRAG_COMPLETE, OnHeaderDragComplete)
    
 	//}}AFX_MSG_MAP
    ON_COMMAND_EX_RANGE(ID_FILE_MRU_ENTRY1, ID_FILE_MRU_ENTRYMAX, OnOpenMRU)
@@ -437,9 +439,6 @@ DboxMain::InitPasswordSafe()
   // refresh list will add and size password column if necessary...
   RefreshList();
 
-  if (!cs_ListColumns.IsEmpty())
-    SetColumnWidths(cs_ListColumnsWidths);
-
   ChangeOkUpdate();
 
   setupBars(); // Just to keep things a little bit cleaner
@@ -473,6 +472,10 @@ DboxMain::InitPasswordSafe()
   m_core.SetDefUsername(prefs->GetPref(PWSprefs::DefUserName));
 
   SetMenu(app.m_mainmenu);  // Now show menu...
+
+  // Now do widths!
+  if (!cs_ListColumns.IsEmpty())
+    SetColumnWidths(cs_ListColumnsWidths);
 }
 
 LRESULT
@@ -490,6 +493,22 @@ DboxMain::OnHotKey(WPARAM , LPARAM)
   SetActiveWindow();
   SetForegroundWindow();
   return 0;
+}
+
+LRESULT
+DboxMain::OnHeaderDragComplete(WPARAM /* wParam */, LPARAM /* lParam */)
+{
+  MSG msg;
+  while (::PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))	{
+    // so there is a message process it.
+    if (!AfxGetThread()->PumpMessage())
+      break;
+  }
+
+  // Now update header info
+  SetHeaderInfo();
+
+  return 0L;
 }
 
 LRESULT
@@ -1779,14 +1798,14 @@ DboxMain::UpdateAccessTime(CItemData *ci)
     ci->SetATime();
     SetChanged(TimeStamp);
     // Need to update view if there
-    if (m_nColumnTypeToItem[CItemData::ATIME] != -1) {
+    if (m_nColumnIndexByType[CItemData::ATIME] != -1) {
        // Get index of entry
        DisplayInfo *di = (DisplayInfo *)ci->GetDisplayInfo();
        // Get value in correct format
        CString cs_atime = ci->GetATimeL();
        // Update it
        m_ctlItemList.SetItemText(di->list_index,
-           m_nColumnTypeToItem[CItemData::ATIME], cs_atime);
+           m_nColumnIndexByType[CItemData::ATIME], cs_atime);
     }
   }
 }

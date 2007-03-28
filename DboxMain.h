@@ -35,8 +35,9 @@ DECLARE_HANDLE(HDROP);
 #define WM_ICON_NOTIFY (WM_APP + 10)
 
 // to catch post Header drag
-#define WM_CCTOHDR_DD_COMPLETE (WM_APP + 20)
-#define WM_HDRTOCC_DD_COMPLETE (WM_APP + 21)
+#define WM_HDR_DRAG_COMPLETE (WM_APP + 20)
+#define WM_CCTOHDR_DD_COMPLETE (WM_APP + 21)
+#define WM_HDRTOCC_DD_COMPLETE (WM_APP + 22)
 
 // timer event number used to check if the workstation is locked
 #define TIMER_CHECKLOCK 0x04
@@ -228,6 +229,7 @@ protected:
   LRESULT OnHotKey(WPARAM wParam, LPARAM lParam);
   LRESULT OnCCToHdrDragComplete(WPARAM wParam, LPARAM lParam);
   LRESULT OnHdrToCCDragComplete(WPARAM wParam, LPARAM lParam);
+  LRESULT OnHeaderDragComplete(WPARAM wParam, LPARAM lParam);
   enum STATE {LOCKED, UNLOCKED, CLOSED};  // Really shouldn't be here it, ThisMfcApp own it
   void UpdateSystemTray(const STATE s);
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
@@ -302,6 +304,7 @@ protected:
   afx_msg void OnItemDoubleClick(NMHDR* pNotifyStruct, LRESULT* result);
   afx_msg void OnHeaderRClick(NMHDR* pNotifyStruct, LRESULT* result);
   afx_msg void OnHeaderNotify(NMHDR* pNotifyStruct, LRESULT* result);
+  afx_msg void OnHeaderEndDrag(NMHDR* pNotifyStruct, LRESULT* result);
   afx_msg void OnCopyPassword();
   afx_msg void OnCopyNotes();
   afx_msg void OnNew();
@@ -396,10 +399,10 @@ private:
   bool m_bAutoResize;
   int m_iDateTimeFieldWidth;
   int m_nColumns;
-  int m_nColumnTypeToItem[CItemData::LAST];
-  int m_nColumnOrderToItem[CItemData::LAST];
-  int m_nColumnTypeByItem[CItemData::LAST];
-  int m_nColumnWidthByItem[CItemData::LAST];
+  int m_nColumnIndexByOrder[CItemData::LAST];
+  int m_nColumnIndexByType[CItemData::LAST];
+  int m_nColumnTypeByIndex[CItemData::LAST];
+  int m_nColumnWidthByIndex[CItemData::LAST];
   int m_nColumnHeaderWidthByType[CItemData::LAST];
   int m_iheadermaxwidth;
   CFont *m_pFontTree;
