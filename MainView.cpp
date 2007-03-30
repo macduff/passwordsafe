@@ -1657,7 +1657,6 @@ DboxMain::AutoResizeColumns()
   HDITEM hdi_get;
   // CHeaderCtrl get values
   hdi_get.mask = HDI_LPARAM | HDI_WIDTH | HDI_ORDER;
-
   for (int iOrder = 0; iOrder < m_nColumns; iOrder++) {
     iIndex = m_nColumnIndexByOrder[iOrder];
     iType = m_nColumnTypeByIndex[iIndex];

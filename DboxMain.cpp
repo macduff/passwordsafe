@@ -422,7 +422,6 @@ DboxMain::InitPasswordSafe()
 
   CalcHeaderWidths();
 
-  m_bAutoResize = prefs->GetPref(PWSprefs::AutoResizeColumns);
   CString cs_ListColumns = prefs->GetPref(PWSprefs::ListColumns);
   CString cs_ListColumnsWidths = prefs->GetPref(PWSprefs::ColumnWidths);
 

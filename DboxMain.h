@@ -396,7 +396,6 @@ private:
   bool m_bShowPasswordInList;
   bool m_bExplorerTypeTree;
   bool m_bUseGridLines;
-  bool m_bAutoResize;
   int m_iDateTimeFieldWidth;
   int m_nColumns;
   int m_nColumnIndexByOrder[CItemData::LAST];

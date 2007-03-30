@@ -92,7 +92,7 @@ BOOL CMyTreeCtrl::PreTranslateMessage(MSG* pMsg)
   //hitting the F2 key, being in-place editing of an item
   else if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_F2) {
     HTREEITEM hItem = GetSelectedItem();
-    if (hItem != NULL) 
+    if (hItem != NULL && !((DboxMain *)GetParent())->IsReadOnly())
       EditLabel(hItem);
     return TRUE;
   }
@@ -218,8 +218,6 @@ void CMyTreeCtrl::OnEndLabelEdit(LPNMHDR pnmhdr, LRESULT *pLResult)
       int lindex = di->list_index;
 	  ((DboxMain *)m_parent)->UpdateListItemTitle(lindex, newTitle);
       ((DboxMain *)m_parent)->UpdateListItemUser(lindex, newUser);
-      if (prefs->GetPref(PWSprefs::AutoResizeColumns))
-        ((DboxMain *)m_parent)->AutoResizeColumns();
     } else {
       // Update all leaf children with new path element
       // prefix is path up to and NOT including renamed node
@@ -396,7 +394,6 @@ bool CMyTreeCtrl::TransferItem(HTREEITEM hitemDrag, HTREEITEM hitemDrop)
   tvstruct.item.mask = (TVIF_CHILDREN | TVIF_HANDLE | TVIF_IMAGE
                         | TVIF_SELECTEDIMAGE | TVIF_TEXT);
   GetItem(&tvstruct.item);  // get information of the dragged element
-
   tvstruct.hParent = hitemDrop;
   if (((DboxMain *)GetParent())->IsExplorerTree())
     tvstruct.hInsertAfter = TVI_LAST;
@@ -509,12 +506,11 @@ void CMyTreeCtrl::EndDragging(BOOL bCancel)
     m_bDragging = FALSE;
     SelectDropTarget(NULL);
 
-    if (PWSprefs::GetInstance()->GetPref(PWSprefs::AutoResizeColumns))
-      ((DboxMain *)m_parent)->AutoResizeColumns();
   }
   KillTimer(m_nTimerID);
   KillTimer(m_nHoverTimerID);
 }
+
 
 void CMyTreeCtrl::OnLButtonUp(UINT nFlags, CPoint point)
 {

@@ -57,7 +57,6 @@ class PWSprefs {
 		   SavePasswordHistory, FindWraps, ShowNotesDefault,
 		   BackupBeforeEverySave, PreExpiryWarn,
            ExplorerTypeTree, ListViewGridLines, MinimizeOnAutotype,
-           AutoResizeColumns,
 		   NumBoolPrefs};
   enum  IntPrefs {Column1Width, Column2Width, Column3Width, Column4Width,
 		  SortedColumn, PWLenDefault, MaxMRUItems, IdleTimeout,

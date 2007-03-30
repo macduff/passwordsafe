@@ -125,9 +125,6 @@ DboxMain::OnAdd()
         Save();
 
     ChangeOkUpdate();
-    if (m_bAutoResize)
-      AutoResizeColumns();
-
 	uuid_array_t RUEuuid;
 	temp.GetUUID(RUEuuid);
 	m_RUEList.AddRUEntry(RUEuuid);
@@ -179,9 +176,6 @@ DboxMain::OnDelete()
   if (dodelete) {
 	Delete();
   }
-
-  if (m_bAutoResize)
-    AutoResizeColumns();
 }
 
 void
@@ -342,8 +336,6 @@ DboxMain::EditItem(CItemData *ci)
         SelectEntry(m_ctlItemList.GetItemCount() - 1);
       }
       ChangeOkUpdate();
-      if (m_bAutoResize)
-        AutoResizeColumns();
     } // rc == IDOK
 }
 
@@ -421,9 +413,6 @@ DboxMain::OnDuplicateEntry()
       SelectEntry(m_ctlItemList.GetItemCount() - 1);
     }
     ChangeOkUpdate();
-    if (m_bAutoResize)
-      AutoResizeColumns();
-
 	uuid_array_t RUEuuid;
 	ci2.GetUUID(RUEuuid);
 	m_RUEList.AddRUEntry(RUEuuid);
@@ -550,126 +539,127 @@ const CString DboxMain::DEFAULT_AUTOTYPE = _T("\\u\\t\\p\\n");
 void
 DboxMain::AutoType(const CItemData &ci)
 {
-  CMyString AutoCmd = ci.GetAutoType();
-  const CMyString user(ci.GetUser());
-  const CMyString pwd(ci.GetPassword());
+    CMyString AutoCmd = ci.GetAutoType();
+    const CMyString user(ci.GetUser());
+    const CMyString pwd(ci.GetPassword());
 
-  // If empty, try the database default
-  if (AutoCmd.IsEmpty()) {
-    AutoCmd = PWSprefs::GetInstance()->
-                   GetPref(PWSprefs::DefaultAutotypeString);
-
-    // If still empty, take this default
+    // If empty, try the database default
     if (AutoCmd.IsEmpty()) {
-      // checking for user and password for default settings
-      if (!pwd.IsEmpty()){
-        if (!user.IsEmpty())
+        AutoCmd = PWSprefs::GetInstance()->
+            GetPref(PWSprefs::DefaultAutotypeString);
+
+        // If still empty, take this default
+        if (AutoCmd.IsEmpty()) {
+            // checking for user and password for default settings
+            if (!pwd.IsEmpty()){
+                if (!user.IsEmpty())
                     AutoCmd = CMyString(DEFAULT_AUTOTYPE);
-        else
-          AutoCmd = _T("\\p\\n");
-      }
+                else
+                    AutoCmd = _T("\\p\\n");
+            }
+        }
     }
-  }
 
     CKeySend ks;
-  // Turn off CAPSLOCK
-  bool bCapsLock = false;
-  if (GetKeyState(VK_CAPITAL)) {
-    bCapsLock = true;
+    // Turn off CAPSLOCK
+    bool bCapsLock = false;
+    if (GetKeyState(VK_CAPITAL)) {
+        bCapsLock = true;
         ks.SetCapsLock(false);
-  }
+    }
 
- CMyString tmp;
- TCHAR curChar;
- const int N = AutoCmd.GetLength();
- ks.ResetKeyboardState();
+    CMyString tmp;
+    TCHAR curChar;
+    const int N = AutoCmd.GetLength();
+    ks.ResetKeyboardState();
 
- // Note that minimizing the window before calling ci.Get*()
- // will cause garbage to be read if "lock on minimize" selected,
- // since that will clear the data [Bugs item #1026630]
- // (this is why we read user & pwd before actual use)
+    // Note that minimizing the window before calling ci.Get*()
+    // will cause garbage to be read if "lock on minimize" selected,
+    // since that will clear the data [Bugs item #1026630]
+    // (this is why we read user & pwd before actual use)
 
-  // Rules are (AlwaysOnTop takes precedence):
-  // 1. If "Always on Top" - hide PWS during Autotype and then make it
-  //    "AlwaysOnTop" again.
-  // 2. If "MinimizeOnAutotype" - minimize PWS during Autotype but do
-  //    not restore it (previous default action - but a pain if locked
-  //    in the system tray!)
-  // 3. If not "MinimizeOnAutotype" - hide PWS during Autotype and show
-  //    it again once finished.
-  bool bMinOnAuto = PWSprefs::GetInstance()->
-                   GetPref(PWSprefs::MinimizeOnAutotype) == TRUE;
+    // Rules are (AlwaysOnTop takes precedence):
+    // 1. If "Always on Top" - hide PWS during Autotype and then make it
+    //    "AlwaysOnTop" again.
+    // 2. If "MinimizeOnAutotype" - minimize PWS during Autotype but do
+    //    not restore it (previous default action - but a pain if locked
+    //    in the system tray!)
+    // 3. If not "MinimizeOnAutotype" - hide PWS during Autotype and show
+    //    it again once finished.
+    bool bMinOnAuto = PWSprefs::GetInstance()->
+        GetPref(PWSprefs::MinimizeOnAutotype) == TRUE;
 
-  if (m_bAlwaysOnTop || !bMinOnAuto)
-    ShowWindow(SW_HIDE);
-  else
-    ShowWindow(SW_MINIMIZE);
+    if (m_bAlwaysOnTop || !bMinOnAuto)
+        ShowWindow(SW_HIDE);
+    else
+        ShowWindow(SW_MINIMIZE);
 
-  Sleep(1000); // Karl Student's suggestion, to ensure focus set correctly on minimize.
+    Sleep(1000); // Karl Student's suggestion, to ensure focus set correctly on minimize.
 
- for(int n = 0; n < N; n++) {
-   curChar = AutoCmd[n];
-   if(curChar == TCHAR('\\')) {
-     n++;
-     if(n < N)
-       curChar=AutoCmd[n];
-     switch(curChar){
-     case TCHAR('\\'):
-       tmp += TCHAR('\\');
-       break;
-     case TCHAR('n'):
-     case TCHAR('r'):
-       tmp += TCHAR('\r');
-       break;
-     case TCHAR('t'):
-       tmp += TCHAR('\t');
-       break;
-     case TCHAR('u'):
-       tmp += user;
-       break;
-     case TCHAR('p'):
-       tmp += pwd;
-       break;
-     case TCHAR('d'): {
-       // Delay is going to change - send what we have with old delay
-       ks.SendString(tmp);
-       // start collecting new delay
-       tmp = _T("");
-       int newdelay = 0;
-       int gNumIts = 0;
+    for(int n = 0; n < N; n++){
+        curChar = AutoCmd[n];
+        if(curChar == TCHAR('\\')) {
+            n++;
+            if(n < N)
+                curChar=AutoCmd[n];
+            switch(curChar){
+                case TCHAR('\\'):
+                    tmp += TCHAR('\\');
+                break;
+                case TCHAR('n'):
+                case TCHAR('r'):
+                    tmp += TCHAR('\r');
+                break;
+                case TCHAR('t'):
+                    tmp += TCHAR('\t');
+                break;
+                case TCHAR('u'):
+                    tmp += user;
+                break;
+                case TCHAR('p'):
+                    tmp += pwd;
+                break;
+                case TCHAR('d'): {
+                    // Delay is going to change - send what we have with old delay
+                    ks.SendString(tmp);
+                    // start collecting new delay
+                    tmp = _T("");
+                    int newdelay = 0;
+                    int gNumIts = 0;
 
-       for(n++; n < N && (gNumIts < 3); ++gNumIts, n++)
-         if(isdigit(AutoCmd[n])){
-           newdelay *= 10;
-           newdelay += (AutoCmd[n] - TCHAR('0'));
-         } else
-           break; // for loop
-       n--;
-       ks.SetAndDelay(newdelay);
+                    for(n++; n < N && (gNumIts < 3); ++gNumIts, n++)
+                        if(isdigit(AutoCmd[n])){
+                            newdelay *= 10;
+                            newdelay += (AutoCmd[n] - TCHAR('0'));
+                        } else
+                            break; // for loop
+                    n--;
+                    ks.SetAndDelay(newdelay);
 
-       break; // case
-     }
-     default:
-       tmp += _T("\\") + curChar;
-       break;
-     }
+                    break; // case
+                }
+                default:
+                    tmp += _T("\\") + curChar;
+                    break;
+            }
         } else
-     tmp += curChar;
- }
- ks.SendString(tmp);
+            tmp += curChar;
+    }
+    ks.SendString(tmp);
     // If we turned off CAPSLOCK, put it back
     if (bCapsLock) 
         ks.SetCapsLock(true);
  
-  Sleep(100);
+    Sleep(100);
 
-  // If we hid it, now show it
-  if (m_bAlwaysOnTop) {
+    // If we hid it, now show it
+    if (m_bAlwaysOnTop) {
         SetWindowPos(&wndTopMost, 0, 0, 0, 0,
                      SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-  } else if (!bMinOnAuto) {
+    } else if (!bMinOnAuto) {
         SetWindowPos(&wndBottom, 0, 0, 0, 0,
                      SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-  }
+    }
 
 }
+

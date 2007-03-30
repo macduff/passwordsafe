@@ -70,7 +70,6 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
     {_T("ExplorerTypeTree"), false, false},                         // application
     {_T("ListViewGridLines"), false, false},                        // application
     {_T("MinimizeOnAutotype"), true, false},                        // application
-    {_T("AutoResizeColumns"), false, false},                        // application
 };
 
 // Default value = -1 means set at runtime
