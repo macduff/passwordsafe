@@ -21,11 +21,12 @@
   #include "resource2.h"  // Version, Menu, Toolbar & Accelerator resources
   #include "resource3.h"  // String resources
 #endif
-#include "MyTreeCtrl.h"
+#include "TVTreeCtrl.h"
 #include "RUEList.h"
 #include "MenuTipper.h"
 #include "LVHdrCtrl.h"
 #include "ColumnChooserDlg.h"
+#include "DDSupport.h"
 
 #if defined(POCKET_PC) || (_MFC_VER <= 1200)
 DECLARE_HANDLE(HDROP);
@@ -143,6 +144,10 @@ public:
   bool ExitRequested() const {return m_inExit;}
   void SetCapsLock(const bool bState);
   void AutoResizeColumns();
+  int AddEntry(const CItemData &cinew);
+  void AddEntries(CDDObList &in_oblist, const CMyString DropGroup);
+  CMyString GetUniqueTitle(const CMyString &path, const CMyString &title,
+                           const CMyString &user, const int IDS_MESSAGE);
 
   //{{AFX_DATA(DboxMain)
   enum { IDD = IDD_PASSWORDSAFE_DIALOG };
@@ -151,7 +156,7 @@ public:
 #else
   CListCtrl m_ctlItemList;
 #endif
-  CMyTreeCtrl  m_ctlItemTree;
+  CTVTreeCtrl  m_ctlItemTree;
   CLVHdrCtrl m_LVHdrCtrl;
   CColumnChooserDlg *m_pCC;
   CPoint m_RCMousePos;
@@ -295,6 +300,7 @@ protected:
   virtual void OnCancel();
   afx_msg void OnSize(UINT nType, int cx, int cy);
   afx_msg void OnAbout();
+  afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
   afx_msg void OnU3ShopWebsite();
   afx_msg void OnPasswordSafeWebsite();
   afx_msg void OnBrowse();
@@ -360,6 +366,10 @@ protected:
   afx_msg void OnInitMenu(CMenu* pMenu);
   afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
   afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
+
+  afx_msg void OnBeginLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnExpandCollapse(NMHDR *pNotifyStruct, LRESULT *result);
   //}}AFX_MSG
 
   afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
@@ -437,7 +447,7 @@ private:
 
 // Following used to keep track of display vs data
 // stored as opaque data in CItemData.{Get,Set}DisplayInfo()
-// Exposed here because MyTreeCtrl needs to update it after drag&drop
+// Exposed here because TVTreeCtrl needs to update it after drag&drop
 struct DisplayInfo {
   int list_index;
   HTREEITEM tree_item;

@@ -120,15 +120,25 @@ DboxMain::OnAdd()
 		// For some reason, when adding the first entry, it is not visible!
 		m_ctlItemTree.SetRedraw(TRUE);
 	}
-    m_ctlItemList.SetFocus();
-    if (prefs->GetPref(PWSprefs::SaveImmediately))
-        Save();
+  m_ctlItemList.SetFocus();
+  if (prefs->GetPref(PWSprefs::SaveImmediately))
+    Save();
 
-    ChangeOkUpdate();
+  ChangeOkUpdate();
 	uuid_array_t RUEuuid;
 	temp.GetUUID(RUEuuid);
 	m_RUEList.AddRUEntry(RUEuuid);
   }
+}
+
+int
+DboxMain::AddEntry(const CItemData &cinew)
+{
+  m_core.AddEntryToTail(cinew);
+  int newpos = insertItem(m_core.GetTailEntry());
+  SelectEntry(newpos);
+  FixListIndexes();
+  return newpos;
 }
 
 //Add a group (tree view only)
@@ -360,15 +370,8 @@ DboxMain::OnDuplicateEntry()
     CMyString ci2_title;
       
     // Find a unique "Title"
-    POSITION listpos = NULL;
-    int i = 0;
-    CString s_copy;
-    do {
-      i++;
-      s_copy.Format(IDS_COPYNUMBER, i);
-      ci2_title = ci2_title0 + CMyString(s_copy);
-      listpos = m_core.Find(ci2_group, ci2_title, ci2_user);
-    } while (listpos != NULL);
+    ci2_title = GetUniqueTitle(ci2_group, ci2_title0,
+                               ci2_user, IDS_COPYNUMBER);
       
     // Set up new entry
     CItemData ci2;
@@ -578,21 +581,21 @@ DboxMain::AutoType(const CItemData &ci)
     // since that will clear the data [Bugs item #1026630]
     // (this is why we read user & pwd before actual use)
 
-    // Rules are (AlwaysOnTop takes precedence):
-    // 1. If "Always on Top" - hide PWS during Autotype and then make it
-    //    "AlwaysOnTop" again.
-    // 2. If "MinimizeOnAutotype" - minimize PWS during Autotype but do
+    // Rules are ("Minimize on Autotype" takes precedence):
+    // 1. If "MinimizeOnAutotype" - minimize PWS during Autotype but do
     //    not restore it (previous default action - but a pain if locked
     //    in the system tray!)
-    // 3. If not "MinimizeOnAutotype" - hide PWS during Autotype and show
-    //    it again once finished.
+    // 2. If "Always on Top" - hide PWS during Autotype and then make it
+    //    "AlwaysOnTop" again, unless minimized!
+    // 3. If not "Always on Top" - hide PWS during Autotype and show
+    //    it again once finished - but behind other windows.
     bool bMinOnAuto = PWSprefs::GetInstance()->
         GetPref(PWSprefs::MinimizeOnAutotype) == TRUE;
 
-    if (m_bAlwaysOnTop || !bMinOnAuto)
-        ShowWindow(SW_HIDE);
-    else
+    if (bMinOnAuto)
         ShowWindow(SW_MINIMIZE);
+    else
+        ShowWindow(SW_HIDE);
 
     Sleep(1000); // Karl Student's suggestion, to ensure focus set correctly on minimize.
 
@@ -653,13 +656,72 @@ DboxMain::AutoType(const CItemData &ci)
     Sleep(100);
 
     // If we hid it, now show it
+    if (bMinOnAuto)
+      return;
+
     if (m_bAlwaysOnTop) {
         SetWindowPos(&wndTopMost, 0, 0, 0, 0,
                      SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-    } else if (!bMinOnAuto) {
+    } else {
         SetWindowPos(&wndBottom, 0, 0, 0, 0,
                      SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
     }
 
 }
 
+void DboxMain::AddEntries(CDDObList &in_oblist, const CMyString DropGroup)
+{
+  CItemData tempitem;
+  CDDObject *pDDObject;
+  CMyString Group, Title, User;
+  POSITION pos;
+  TCHAR *dot;
+
+  for (pos = in_oblist.GetHeadPosition(); pos != NULL;) {
+    pDDObject = (CDDObject *)in_oblist.GetAt(pos);
+
+    if (in_oblist.m_bdragleaf) {
+      Group = DropGroup;
+    } else {
+      dot = (!DropGroup.IsEmpty() && !pDDObject->m_DD_Group.IsEmpty()) ? _T(".") : _T("");
+      Group = DropGroup + dot + pDDObject->m_DD_Group;
+    }
+
+    Title = GetUniqueTitle(Group, pDDObject->m_DD_Title, pDDObject->m_DD_User,
+                           IDS_DRAGNUMBER);
+
+    tempitem.Clear();
+
+    if (m_core.Find(pDDObject->m_DD_UUID) != NULL)
+      tempitem.CreateUUID();
+    else
+      tempitem.SetUUID(pDDObject->m_DD_UUID);
+
+    tempitem.SetGroup(Group);
+    tempitem.SetTitle(Title);
+    tempitem.SetUser(pDDObject->m_DD_User);
+    tempitem.SetNotes(pDDObject->m_DD_Notes);
+    tempitem.SetPassword(pDDObject->m_DD_Password);
+    tempitem.SetURL(pDDObject->m_DD_URL);
+    tempitem.SetAutoType(pDDObject->m_DD_AutoType);
+    tempitem.SetPWHistory(pDDObject->m_DD_PWHistory);
+
+    tempitem.SetATime(pDDObject->m_DD_ATime);
+    tempitem.SetCTime(pDDObject->m_DD_CTime);
+    tempitem.SetLTime(pDDObject->m_DD_LTime);
+    tempitem.SetPMTime(pDDObject->m_DD_PMTime);
+    tempitem.SetRMTime(pDDObject->m_DD_RMTime);
+
+    m_core.AddEntryToTail(tempitem);
+    insertItem(m_core.GetTailEntry());
+    FixListIndexes();
+    if (PWSprefs::GetInstance()->
+             GetPref(PWSprefs::SaveImmediately)) {
+      Save();
+    }
+    ChangeOkUpdate();
+    in_oblist.GetNext(pos);
+  }
+
+  RefreshList();
+}

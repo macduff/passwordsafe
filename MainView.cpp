@@ -832,13 +832,13 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex)
     itemData.GetLTime(tLTime);
 	if (tLTime != 0) {
 	    if (tLTime <= now) {
-    	    m_ctlItemTree.SetItemImage(ti, CMyTreeCtrl::EXPIRED_LEAF, CMyTreeCtrl::EXPIRED_LEAF);
+    	    m_ctlItemTree.SetItemImage(ti, CTVTreeCtrl::EXPIRED_LEAF, CTVTreeCtrl::EXPIRED_LEAF);
     	} else if (tLTime < warnexptime) {
-    	    m_ctlItemTree.SetItemImage(ti, CMyTreeCtrl::WARNEXPIRED_LEAF, CMyTreeCtrl::WARNEXPIRED_LEAF);
+    	    m_ctlItemTree.SetItemImage(ti, CTVTreeCtrl::WARNEXPIRED_LEAF, CTVTreeCtrl::WARNEXPIRED_LEAF);
 	    } else
-	        m_ctlItemTree.SetItemImage(ti, CMyTreeCtrl::LEAF, CMyTreeCtrl::LEAF);
+	        m_ctlItemTree.SetItemImage(ti, CTVTreeCtrl::LEAF, CTVTreeCtrl::LEAF);
 	} else
-	  m_ctlItemTree.SetItemImage(ti, CMyTreeCtrl::LEAF, CMyTreeCtrl::LEAF);
+	  m_ctlItemTree.SetItemImage(ti, CTVTreeCtrl::LEAF, CTVTreeCtrl::LEAF);
 	
     ASSERT(ti != NULL);
     itemData.SetDisplayInfo((void *)di);
@@ -1322,6 +1322,7 @@ BOOL
 DboxMain::LaunchBrowser(const CString &csURL)
 {
   CString csAltBrowser;
+  CString csCmdLineParms;
   bool useAltBrowser;
   long hinst;
   CString theURL(csURL);
@@ -1334,6 +1335,9 @@ DboxMain::LaunchBrowser(const CString &csURL)
   if (theURL.Find(_T("://")) == -1)
     theURL = _T("http://") + theURL;
 
+  csCmdLineParms = CString(PWSprefs::GetInstance()->
+                         GetPref(PWSprefs::AltBrowserCmdLineParms));
+  
   csAltBrowser = CString(PWSprefs::GetInstance()->
                          GetPref(PWSprefs::AltBrowser));
 
@@ -1343,6 +1347,8 @@ DboxMain::LaunchBrowser(const CString &csURL)
     hinst = long(::ShellExecute(NULL, NULL, theURL, NULL,
                                 NULL, SW_SHOWNORMAL));
   } else {
+    if (!csCmdLineParms.IsEmpty())
+      theURL = csCmdLineParms + _T(" ") + theURL;
     hinst = long(::ShellExecute(NULL, NULL, csAltBrowser, theURL,
                                 NULL, SW_SHOWNORMAL));
   }

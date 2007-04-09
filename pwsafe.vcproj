@@ -363,6 +363,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DDSupport.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\DropSource.cpp"
 				>
 			</File>
@@ -444,10 +448,6 @@
 			</File>
 			<File
 				RelativePath=".\model.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\MyTreeCtrl.cpp"
 				>
 			</File>
 			<File
@@ -543,6 +543,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TVTreeCtrl.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\winview.cpp"
 				>
 			</File>
@@ -589,6 +593,10 @@
 			</File>
 			<File
 				RelativePath=".\DboxMain.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DDSupport.h"
 				>
 			</File>
 			<File
@@ -657,10 +665,6 @@
 			</File>
 			<File
 				RelativePath=".\model.h"
-				>
-			</File>
-			<File
-				RelativePath=".\MyTreeCtrl.h"
 				>
 			</File>
 			<File
@@ -789,6 +793,10 @@
 			</File>
 			<File
 				RelativePath=".\TryAgainDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TVTreeCtrl.h"
 				>
 			</File>
 			<File
