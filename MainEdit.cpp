@@ -27,6 +27,7 @@
 #include "ClearQuestionDlg.h"
 #include "FindDlg.h"
 
+#include  <Winable.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -576,6 +577,8 @@ DboxMain::AutoType(const CItemData &ci)
     const int N = AutoCmd.GetLength();
     ks.ResetKeyboardState();
 
+    ::BlockInput(true);
+
     // Note that minimizing the window before calling ci.Get*()
     // will cause garbage to be read if "lock on minimize" selected,
     // since that will clear the data [Bugs item #1026630]
@@ -654,6 +657,8 @@ DboxMain::AutoType(const CItemData &ci)
         ks.SetCapsLock(true);
  
     Sleep(100);
+    
+    ::BlockInput(false);
 
     // If we hid it, now show it
     if (bMinOnAuto)
@@ -680,11 +685,11 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const CMyString DropGroup)
   for (pos = in_oblist.GetHeadPosition(); pos != NULL;) {
     pDDObject = (CDDObject *)in_oblist.GetAt(pos);
 
-    if (in_oblist.m_bdragleaf) {
-      Group = DropGroup;
-    } else {
+    if (in_oblist.m_bDragNode) {
       dot = (!DropGroup.IsEmpty() && !pDDObject->m_DD_Group.IsEmpty()) ? _T(".") : _T("");
       Group = DropGroup + dot + pDDObject->m_DD_Group;
+    } else {
+      Group = DropGroup;
     }
 
     Title = GetUniqueTitle(Group, pDDObject->m_DD_Title, pDDObject->m_DD_User,

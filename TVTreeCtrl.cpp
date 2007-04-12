@@ -44,17 +44,12 @@ CTVTreeCtrl::CTVTreeCtrl() : m_pimagelist(NULL), m_pDragImage(NULL)
 {
   m_expandedItems = new SetTreeItem_t;
   m_isRestoring = false;
-
-  //m_hDataReceivedEvent = CreateEvent(NULL, TRUE, FALSE, "PWS_DRAG&DROP");
 }
 
 CTVTreeCtrl::~CTVTreeCtrl()
 {
   delete m_pimagelist;
   delete (SetTreeItem_t *)m_expandedItems;
-  //ResetEvent(m_hDataReceivedEvent);
-  //CloseHandle(m_hDataReceivedEvent);
-  //m_hDataReceivedEvent = NULL;
 }
 
 BEGIN_MESSAGE_MAP(CTVTreeCtrl, CTreeCtrl)
@@ -768,6 +763,7 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
     // Now add it
     CMyString DropGroup = CMyString(GetGroup(m_hitemDrop));
     ProcessData((BYTE *)(pData + sizeof(gbl_classname) - 1 + 10), lBufLen, DropGroup);
+    SelectItem(m_hitemDrop);
   }
 
   GlobalUnlock(hGlobal);
@@ -785,18 +781,16 @@ ignore:
 
 void CTVTreeCtrl::CompleteMove()
 {
-  // If drag within instance
+  // If drag within instance - we have already done ths
   if (memcmp(gbl_classname, m_sending_classname, sizeof(gbl_classname) - 1) == 0)
     return;
 
+  // If drag to another instance, ignore in Read-only mode
+  if (((DboxMain *)GetParent())->IsReadOnly())
+    return;
+
   // After we have dragged successfully from our Tree to another Tree
-  HTREEITEM parent = GetParentItem(m_hitemDrag);
-  DeleteItem(m_hitemDrag);
-  while (parent != NULL && !ItemHasChildren(parent)) {
-    HTREEITEM grandParent = GetParentItem(parent);
-    DeleteItem(parent);
-    parent = grandParent;
-  }
+  ((DboxMain *)m_parent)->Delete();
   ((DboxMain *)m_parent)->RefreshList();
   return;
 }
@@ -810,11 +804,13 @@ bool CTVTreeCtrl::CollectData(BYTE * &out_buffer, long &outLen)
 
   if (IsLeafNode(m_hitemDrag)) {
     ASSERT(itemData != NULL);
+    m_nDragPathLen = 0;
     GetEntryData(out_oblist, ci);
-    out_oblist.m_bdragleaf = true;
+    out_oblist.m_bDragNode = false;
   } else {
+    m_nDragPathLen = GetGroup(GetParentItem(m_hitemDrag)).GetLength();
     GetGroupEntriesData(out_oblist, m_hitemDrag);
-    out_oblist.m_bdragleaf = false;
+    out_oblist.m_bDragNode = true;
   }
 
   CSMemFile *poutDDmemfile;
@@ -956,7 +952,12 @@ CTVTreeCtrl::GetEntryData(CDDObList &out_oblist, CItemData *ci)
 
   memcpy(pDDObject->m_DD_UUID, uuid_array, sizeof(uuid_array));
 
-  pDDObject->m_DD_Group = ci->GetGroup();
+  const CMyString cs_Group = ci->GetGroup();
+  if (out_oblist.m_bDragNode && m_nDragPathLen > 0)
+    pDDObject->m_DD_Group = cs_Group.Right(cs_Group.GetLength() - m_nDragPathLen - 1);
+  else
+    pDDObject->m_DD_Group = cs_Group;
+
   pDDObject->m_DD_Title= ci->GetTitle();
   pDDObject->m_DD_User= ci->GetUser();
   pDDObject->m_DD_Notes = ci->GetNotes();

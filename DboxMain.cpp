@@ -231,7 +231,6 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_WM_SYSCOMMAND()
    ON_WM_TIMER()
    ON_WM_WINDOWPOSCHANGING()
-// ON_WM_COPYDATA()
    
    ON_NOTIFY(LVN_KEYDOWN, IDC_ITEMLIST, OnKeydownItemlist)
    ON_NOTIFY(NM_DBLCLK, IDC_ITEMLIST, OnItemDoubleClick)
@@ -464,11 +463,16 @@ DboxMain::InitPasswordSafe()
     // Sanity checks on stored rect - displays change...
     const int screenWidth = GetSystemMetrics(SM_CXSCREEN);
     const int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-    if (rect.right > screenWidth || rect.bottom > screenHeight ||
-        rect.left > screenWidth || rect.top > screenHeight) {
-      // if any corner is out of screen, fallback to sane values
-      rect.top = rect.left = 10;
-      rect.bottom = 320; rect.right = 230;
+    // MS adds 4 pixels around the max screen size so if, maximized, then
+    // top/left = (-4,-4) instead of (0,0) and bottom/right = (W+4, H+4)
+    // If height/width too big, make them max. allowed values instead.
+    if (rect.Height() > screenHeight) {
+      rect.top = -4;
+      rect.bottom = screenHeight + 4;
+    }
+    if (rect.Width() > screenWidth) {
+      rect.left = -4;
+      rect.right = screenWidth + 4;
     }
     MoveWindow(&rect, TRUE);
   }
@@ -2056,32 +2060,6 @@ CMyString DboxMain::GetUniqueTitle(const CMyString &path, const CMyString &title
   }
   return new_title;
 }
-
-/*
-BOOL DboxMain::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
-{
-  m_cd_dwData = pCopyDataStruct->dwData;
-  m_cd_cbData = pCopyDataStruct->cbData;
-  memcpy(m_cd_pReceiveData, pCopyDataStruct->lpData, m_cbData);
-  m_cd_hWnd = pWnd->m_hWnd;
-
-  if (m_cd_cbData <= 0)
-    return TRUE;
-
-  switch(m_cd_dwData) {
-    case CTVTreeCtrl::REQUEST_INFO:
-      m_ctlItemTree.PackAndSendData(dwSessionNumber);
-      break;
-    case CTVTreeCtrl::SEND_INFO:
-      m_ctlItemTree.UnpackSendingData(received_data);
-      SetEvent(m_ctlItemTree.m_hDataReceivedEvent);
-      break;
-    default:
-      break;
-  }
-  return TRUE;
-}
-*/
 
 void DboxMain::OnBeginLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {

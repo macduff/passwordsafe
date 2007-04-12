@@ -95,8 +95,10 @@ void CDDObList::Serialize(CArchive& ar)
 
   if (ar.IsStoring()) {
     nCount = GetCount();
+
     ar << nCount;
-    ar << m_bdragleaf;
+    ar << m_bDragNode;
+
     Pos = GetHeadPosition();
     while (Pos != NULL) {
       pDDObject = (CDDObject *)GetNext(Pos);
@@ -104,8 +106,10 @@ void CDDObList::Serialize(CArchive& ar)
     }
   } else {
     ASSERT(GetCount() == 0);
+
     ar >> nCount;
-    ar >> m_bdragleaf;
+    ar >> m_bDragNode;
+
     for (n = 0; n < nCount; ++n) {
       pDDObject = new CDDObject();
       pDDObject->Serialize(ar);

@@ -89,9 +89,8 @@ private:
 
 protected:
  CListCtrl *m_pctlItemList;
- //HANDLE m_hDataReceivedEvent;
  HTREEITEM m_hitemDrag;
  HTREEITEM m_hitemDrop;
- DWORD m_dwSessionNumber;
+ int m_nDragPathLen;
  unsigned char m_sending_classname[40];
 };

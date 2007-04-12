@@ -46,7 +46,6 @@ public:
   long m_DD_ATime;
   long m_DD_LTime;
   long m_DD_RMTime;
-
   int m_nVersion;
 
   DECLARE_SERIAL(CDDObject)
@@ -65,5 +64,5 @@ public:
   virtual void Serialize(CArchive& ar);
 
 public:
-  bool m_bdragleaf;
+  bool m_bDragNode;
 };

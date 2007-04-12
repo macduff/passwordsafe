@@ -145,6 +145,7 @@ public:
   void SetCapsLock(const bool bState);
   void AutoResizeColumns();
   int AddEntry(const CItemData &cinew);
+  void Delete(bool inRecursion = false);
   void AddEntries(CDDObList &in_oblist, const CMyString DropGroup);
   CMyString GetUniqueTitle(const CMyString &path, const CMyString &title,
                            const CMyString &user, const int IDS_MESSAGE);
@@ -267,7 +268,6 @@ protected:
   int New(void);
   int Restore(void);
 
-  void Delete(bool inRecursion = false);
   void AutoType(const CItemData &ci);
   void EditItem(CItemData *ci);
 
@@ -300,7 +300,6 @@ protected:
   virtual void OnCancel();
   afx_msg void OnSize(UINT nType, int cx, int cy);
   afx_msg void OnAbout();
-  afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
   afx_msg void OnU3ShopWebsite();
   afx_msg void OnPasswordSafeWebsite();
   afx_msg void OnBrowse();
