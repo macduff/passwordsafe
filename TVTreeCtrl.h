@@ -35,6 +35,7 @@ public:
   enum {REQUEST_INFO = 0, SEND_INFO = 1};
 
   void DeleteWithParents(HTREEITEM hItem); // if a parent node becomes a leaf
+  void DeleteFromSet(HTREEITEM hItem);
   CString GetGroup(HTREEITEM hItem); // get group path to hItem
   HTREEITEM AddGroup(const CString &path);
   bool IsLeafNode(HTREEITEM hItem);
@@ -54,6 +55,7 @@ public:
 
   //{{AFX_MSG(CTVTreeCtrl)
   afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+  afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
   afx_msg void OnDestroy();
   //}}AFX_MSG
 
@@ -88,9 +90,9 @@ private:
   HTREEITEM m_iItem;
 
 protected:
- CListCtrl *m_pctlItemList;
- HTREEITEM m_hitemDrag;
- HTREEITEM m_hitemDrop;
- int m_nDragPathLen;
- unsigned char m_sending_classname[40];
+  CListCtrl *m_pctlItemList;
+  HTREEITEM m_hitemDrag;
+  HTREEITEM m_hitemDrop;
+  unsigned char m_sending_classname[40];
+  int m_nDragPathLen;
 };

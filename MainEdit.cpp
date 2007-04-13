@@ -196,8 +196,8 @@ DboxMain::Delete(bool inRecursion)
     CItemData *ci = getSelectedItem();
     ASSERT(ci != NULL);
 	//  Needed for DeleteTrayRecentEntry later on
-	uuid_array_t RUEuuid;
-	ci->GetUUID(RUEuuid);
+    uuid_array_t RUEuuid;
+    ci->GetUUID(RUEuuid);
     DisplayInfo *di = (DisplayInfo *)ci->GetDisplayInfo();
     ASSERT(di != NULL);
     int curSel = di->list_index;
@@ -208,6 +208,7 @@ DboxMain::Delete(bool inRecursion)
     POSITION listindex = Find(curSel); // Must Find before delete from m_ctlItemList
 
     m_ctlItemList.DeleteItem(curSel);
+    m_ctlItemTree.DeleteFromSet(curTree_item);
     m_ctlItemTree.DeleteWithParents(curTree_item);
     delete di;
 
@@ -728,5 +729,6 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const CMyString DropGroup)
     in_oblist.GetNext(pos);
   }
 
+  FixListIndexes();
   RefreshList();
 }

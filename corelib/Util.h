@@ -34,9 +34,10 @@
 #define V10 0
 #define V15 1
 
-extern void trashMemory(void* buffer, long length );
-extern void trashMemory( LPTSTR buffer, long length );
-extern void trashStringMemory( CString cs_buffer );
+// DK - I  just don't believe the 30!  Why 30, not 128 or 512. I like 1.
+extern void trashMemory(void* buffer, long length, const int numiter = 30);
+extern void trashMemory( LPTSTR buffer, long length, const int numiter = 30 );
+extern void trashStringMemory( CString cs_buffer, const int numiter = 30 );
 extern void burnStack(unsigned long len); // borrowed from libtomcrypt
 
 extern void GenRandhash(const CMyString &passkey,
@@ -53,12 +54,12 @@ extern size_t _writecbc(FILE *fp, const unsigned char* buffer, int length,
                         unsigned char type, Fish *Algorithm,
                         unsigned char* cbcbuffer);
 
-extern size_t _readmemcbc(CSMemFile *pinmemfile, unsigned char* &out_buffer,
+extern size_t _readcbc(CSMemFile *pinmemfile, unsigned char* &out_buffer,
                        long &out_length,
                        unsigned char &type, Fish *Algorithm,
                        unsigned char* cbcbuffer,
                        const unsigned char *TERMINAL_BLOCK = NULL);
-extern void _writememcbc(CSMemFile *poutmemfile, unsigned char* in_buffer,
+extern void _writecbc(CSMemFile *poutmemfile, unsigned char* in_buffer,
                         long in_length,
                         unsigned char type, Fish *Algorithm,
                         unsigned char* cbcbuffer);

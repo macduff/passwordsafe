@@ -146,6 +146,7 @@ public:
   void AutoResizeColumns();
   int AddEntry(const CItemData &cinew);
   void Delete(bool inRecursion = false);
+  void DoItemDoubleClick();
   void AddEntries(CDDObList &in_oblist, const CMyString DropGroup);
   CMyString GetUniqueTitle(const CMyString &path, const CMyString &title,
                            const CMyString &user, const int IDS_MESSAGE);
@@ -306,10 +307,10 @@ protected:
   afx_msg void OnCopyUsername();
   afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
   afx_msg void OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult);
-  afx_msg void OnItemDoubleClick(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg void OnHeaderRClick(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg void OnHeaderNotify(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg void OnHeaderEndDrag(NMHDR* pNotifyStruct, LRESULT* result);
+  afx_msg void OnItemDoubleClick(NMHDR* pNMHDR, LRESULT* pResult);
+  afx_msg void OnHeaderRClick(NMHDR* pNotifyStruct, LRESULT* pResult);
+  afx_msg void OnHeaderNotify(NMHDR* pNotifyStruct, LRESULT* pResult);
+  afx_msg void OnHeaderEndDrag(NMHDR* pNotifyStruct, LRESULT* pResult);
   afx_msg void OnCopyPassword();
   afx_msg void OnCopyNotes();
   afx_msg void OnNew();

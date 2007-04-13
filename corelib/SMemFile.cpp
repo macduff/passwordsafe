@@ -11,11 +11,23 @@
 
 BYTE* CSMemFile::Realloc(BYTE* lpOldMem, SIZE_T nBytes)
 {
+  if (nBytes == 0) {
+    Free(lpOldMem);
+    return NULL;
+  }
+
   size_t old_size = _msize((void *)lpOldMem);
   BYTE* lpNewMem = (BYTE *)malloc(nBytes);
+
+  if (lpNewMem == NULL) {
+    TRACE("SMemfile:Realloc Old size=%d, New Size=%d FAILED\n", old_size, nBytes);
+    return NULL;
+  }
+
   memcpy((void *)lpNewMem, (void *)lpOldMem, old_size);
-  trashMemory(lpOldMem, old_size);
+  trashMemory(lpOldMem, old_size, 1);
   free(lpOldMem);
+
   TRACE("SMemfile:Realloc Old size=%d, New Size=%d\n", old_size, nBytes);
   return lpNewMem;
 }
@@ -28,7 +40,7 @@ void CSMemFile::Free(BYTE* lpMem)
     return;
 
   if (mem_size != 0)
-    trashMemory(lpMem, mem_size);
+    trashMemory(lpMem, mem_size, 1);
 
   free(lpMem);
 }

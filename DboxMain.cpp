@@ -234,7 +234,6 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    
    ON_NOTIFY(LVN_KEYDOWN, IDC_ITEMLIST, OnKeydownItemlist)
    ON_NOTIFY(NM_DBLCLK, IDC_ITEMLIST, OnItemDoubleClick)
-   ON_NOTIFY(NM_DBLCLK, IDC_ITEMTREE, OnItemDoubleClick)
    ON_NOTIFY(LVN_COLUMNCLICK, IDC_ITEMLIST, OnColumnClick)
    ON_NOTIFY(NM_RCLICK, IDC_LIST_HEADER, OnHeaderRClick)
    ON_NOTIFY(HDN_ENDDRAG, IDC_LIST_HEADER, OnHeaderEndDrag)
@@ -647,8 +646,13 @@ void DboxMain::FixListIndexes()
   }
 }
 
+void DboxMain::DoItemDoubleClick()
+{
+  OnItemDoubleClick(NULL, NULL);
+}
+
 void
-DboxMain::OnItemDoubleClick( NMHDR *, LRESULT *)
+DboxMain::OnItemDoubleClick(NMHDR* /* pNMHDR */, LRESULT* /* pResult */)
 {
 	// TreeView only - use DoubleClick to Expand/Collapse group
 	if (m_ctlItemTree.IsWindowVisible()) {

@@ -56,6 +56,7 @@ BEGIN_MESSAGE_MAP(CTVTreeCtrl, CTreeCtrl)
   //{{AFX_MSG_MAP(CTVTreeCtrl)
   ON_WM_DESTROY()
   ON_WM_LBUTTONDOWN()
+  ON_WM_LBUTTONDBLCLK()
   //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -283,6 +284,15 @@ void CTVTreeCtrl::DeleteWithParents(HTREEITEM hItem)
       break;
     hItem = p;
   } while (p != TVI_ROOT && p != NULL);
+}
+
+void CTVTreeCtrl::DeleteFromSet(HTREEITEM hItem)
+{
+  SetTreeItemP_t pSet = SetTreeItemP_t(m_expandedItems);
+  DWORD itemData = GetItemData(hItem);
+  ASSERT(itemData != NULL);
+  CItemData *ci = (CItemData *)itemData;
+  pSet->erase(ci);
 }
 
 // Return the full path leading up to a given item, but
@@ -634,6 +644,10 @@ CTVTreeCtrl::GetNextTreeItem(HTREEITEM hItem)
     return hReturn;
 }
 
+void CTVTreeCtrl::OnLButtonDblClk(UINT /* nFlags */, CPoint /* point */)
+{
+  ((DboxMain *)m_parent)->DoItemDoubleClick();
+}
 
 void CTVTreeCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 {
@@ -828,13 +842,11 @@ bool CTVTreeCtrl::CollectData(BYTE * &out_buffer, long &outLen)
     delete (CDDObject *)out_oblist.RemoveHead();
   } 
 
-  trashMemory(outddmemfile_buffer, dw_outmflen);
+  trashMemory(outddmemfile_buffer, dw_outmflen, 1);
   free(outddmemfile_buffer);
   delete poutDDmemfile;
 
   return (outLen > 0);
-
-  // SendDropData(SendingClass, dwSessionNumber, encrypted_data);
 }
 
 bool CTVTreeCtrl::ProcessData(BYTE *in_buffer, const long &inLen, const CMyString DropGroup)
@@ -858,7 +870,7 @@ bool CTVTreeCtrl::ProcessData(BYTE *in_buffer, const long &inLen, const CMyStrin
   ar_in.Close();
 
   pinDDmemfile->Detach();
-  trashMemory(clear_buffer, clearLen);
+  trashMemory(clear_buffer, clearLen, 1);
   free(clear_buffer);
   delete pinDDmemfile;
 

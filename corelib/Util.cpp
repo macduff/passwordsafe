@@ -41,12 +41,11 @@ xormem(unsigned char* mem1, const unsigned char* mem2, int length)
 
 #pragma optimize("",off)
 void
-trashMemory(void* buffer, long length)
+trashMemory(void* buffer, long length, const int numiter)
 {
   ASSERT(buffer != NULL);
   // {kjp} no point in looping around doing nothing is there?
   if ( length != 0 ) {
-    const int numiter = 30;
     for (int x=0; x<numiter; x++) {
       memset(buffer, 0x00, length);
       memset(buffer, 0xFF, length);
@@ -57,16 +56,16 @@ trashMemory(void* buffer, long length)
 #pragma optimize("",on)
 
 void
-trashMemory( LPTSTR buffer, long length )
+trashMemory( LPTSTR buffer, long length, const int numiter )
 {
-  trashMemory( (void *) buffer, length * sizeof(buffer[0]) );
+  trashMemory( (void *) buffer, length * sizeof(buffer[0]), numiter );
 }
 
 void
-trashStringMemory( CString cs_buffer )
+trashStringMemory( CString cs_buffer, const int numiter )
 {
   TCHAR *lpszString = cs_buffer.GetBuffer(cs_buffer.GetLength());
-  trashMemory( (void *) lpszString, cs_buffer.GetLength() * sizeof(lpszString[0]) );
+  trashMemory( (void *) lpszString, cs_buffer.GetLength() * sizeof(lpszString[0]), numiter );
   cs_buffer.ReleaseBuffer();
 }
 
@@ -299,7 +298,7 @@ _readcbc(FILE *fp,
 
 // Memory, rather than real file, versions
 void
-_writememcbc(CSMemFile *poutmemfile, unsigned char* in_buffer, long in_length,
+_writecbc(CSMemFile *poutmemfile, unsigned char* in_buffer, long in_length,
              unsigned char type, Fish *Algorithm, unsigned char* cbcbuffer)
 {
   const unsigned int BS = Algorithm->GetBlockSize();
@@ -362,7 +361,7 @@ _writememcbc(CSMemFile *poutmemfile, unsigned char* in_buffer, long in_length,
 }
 
 size_t
-_readmemcbc(CSMemFile *pinmemfile, unsigned char* &out_buffer, 
+_readcbc(CSMemFile *pinmemfile, unsigned char* &out_buffer, 
             long &out_length, unsigned char &type,
             Fish *Algorithm, unsigned char* cbcbuffer,
             const unsigned char *TERMINAL_BLOCK)
@@ -402,7 +401,7 @@ _readmemcbc(CSMemFile *pinmemfile, unsigned char* &out_buffer,
   type = lengthblock[sizeof(int)]; // type is first byte after the length
 
   if (length < 0) { // sanity check
-    TRACE("_readmemcbc: Read negative length - aborting\n");
+    TRACE("_readcbc: Read negative length - aborting\n");
     out_buffer = NULL;
     out_length = 0;
     trashMemory(lengthblock, BS);
@@ -474,7 +473,7 @@ EncryptMemory(unsigned char * &in_buffer, long inLen, const CMyString &passwd, C
   Fish *fish = BlowFish::MakeBlowFish((unsigned char *)pwd, passwd.GetLength(),
                                       thesalt, SaltLength);
 
-  _writememcbc(poutMemFile, in_buffer, inLen, (unsigned char)0, fish, ipthing);
+  _writecbc(poutMemFile, in_buffer, inLen, (unsigned char)0, fish, ipthing);
   delete fish;
 }
 
@@ -507,7 +506,7 @@ DecryptMemory(unsigned char * &out_buffer, long &outLen, const CMyString &passwd
   Fish *fish = BlowFish::MakeBlowFish((unsigned char *)pwd, passwd.GetLength(),
                                       salt, SaltLength);
 
-  if (_readmemcbc(pinMemFile, out_buffer, outLen, dummyType, fish, ipthing) == 0) {
+  if (_readcbc(pinMemFile, out_buffer, outLen, dummyType, fish, ipthing) == 0) {
       delete fish;
       delete[] out_buffer; // if not yet allocated, delete[] NULL, which is OK
       return;
