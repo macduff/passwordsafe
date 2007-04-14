@@ -95,4 +95,6 @@ protected:
   HTREEITEM m_hitemDrop;
   unsigned char m_sending_classname[40];
   int m_nDragPathLen;
+  unsigned int  m_uiSendingSession;
+  unsigned int  m_uiReceivingSession;
 };

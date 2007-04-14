@@ -20,6 +20,7 @@ using namespace std ;
 #include "corelib/Util.h"
 #include "corelib/Pwsprefs.h"
 #include "corelib/SMemFile.h"
+#include "corelib/PWSrand.h"
 #include <afxole.h>         // MFC OLE classes
 #include <afxodlgs.h>       // MFC OLE dialog classes
 #include <afxdisp.h >       // MFC OLE automation classes
@@ -40,10 +41,10 @@ typedef SetTreeItem_t *SetTreeItemP_t;
 
 static const TCHAR GROUP_SEP = TCHAR('.');
 
-CTVTreeCtrl::CTVTreeCtrl() : m_pimagelist(NULL), m_pDragImage(NULL)
+CTVTreeCtrl::CTVTreeCtrl() : m_pimagelist(NULL), m_pDragImage(NULL), m_isRestoring(false),
+m_uiSendingSession(0), m_uiReceivingSession(0)
 {
   m_expandedItems = new SetTreeItem_t;
-  m_isRestoring = false;
 }
 
 CTVTreeCtrl::~CTVTreeCtrl()
@@ -464,6 +465,7 @@ bool CTVTreeCtrl::CopyItem(HTREEITEM hitemDrag, HTREEITEM hitemDrop)
 
     // Update Group
     CMyString path, elem;
+    path = CMyString(GetItemText(hitemDrop));
     HTREEITEM p, q = hitemDrop;
     do {
       p = GetParentItem(q);
@@ -692,6 +694,10 @@ void CTVTreeCtrl::OnLButtonDown(UINT nFlags, CPoint point)
   RECT rClient;
   GetClientRect(&rClient);
 
+  // Set our session numbers (should be different!)
+  m_uiSendingSession = PWSrand::GetInstance()->RandUInt();
+  m_uiReceivingSession = PWSrand::GetInstance()->RandUInt();
+
   // Start dragging
   StartDragging((LPCSTR)mf_buffer, dw_mflen, gbl_tcddCPFID, &rClient, &point);
 
@@ -716,9 +722,37 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
 
   UINT uFlags;
   m_hitemDrop = HitTest(point, &uFlags);
-  if ((m_hitemDrop == NULL) || !(TVHT_ONITEM & uFlags)) {
-    return FALSE;
+
+  bool bForceRoot(false);
+  switch (uFlags) {
+    case TVHT_ABOVE:
+    case TVHT_BELOW:
+    case TVHT_TOLEFT:
+    case TVHT_TORIGHT:
+      return FALSE;
+    case TVHT_NOWHERE:
+      if (m_hitemDrop == NULL) {
+        // Treat as drop in root
+        m_hitemDrop = GetRootItem();
+        bForceRoot = true;
+      } else
+        return FALSE;
+      break;
+    case TVHT_ONITEM:
+    case TVHT_ONITEMBUTTON:
+    case TVHT_ONITEMICON:
+    case TVHT_ONITEMINDENT:
+    case TVHT_ONITEMLABEL:
+    case TVHT_ONITEMRIGHT:
+    case TVHT_ONITEMSTATEICON:
+      if (m_hitemDrop == NULL)
+        return FALSE;
+      break;
+    default :
+      return FALSE;
   }
+
+  m_uiReceivingSession = m_uiSendingSession;
 
   // On Drop of data from one tree to another
   HGLOBAL hGlobal;
@@ -750,7 +784,7 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
   if (iDDType != FROMTREE || ((long)memsize < (DD_MEMORY_MINSIZE + lBufLen)))
     goto ignore;
 
-  if (IsLeafNode(m_hitemDrop))
+  if (IsLeafNode(m_hitemDrop) || bForceRoot)
     m_hitemDrop = GetParentItem(m_hitemDrop);
 
   if (our_data) {
@@ -796,7 +830,7 @@ ignore:
 void CTVTreeCtrl::CompleteMove()
 {
   // If drag within instance - we have already done ths
-  if (memcmp(gbl_classname, m_sending_classname, sizeof(gbl_classname) - 1) == 0)
+  if (m_uiReceivingSession == m_uiSendingSession)
     return;
 
   // If drag to another instance, ignore in Read-only mode
