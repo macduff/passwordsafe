@@ -102,11 +102,57 @@ DROPEFFECT CTVTreeCtrl::OnDragEnter(CWnd* pWnd , COleDataObject* pDataObject,
   return CDropTarget::OnDragEnter(pWnd, pDataObject, dwKeyState, point);
 }
 
-DROPEFFECT CTVTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* pDataObject,
+#define RECT_BORDER 10
+
+DROPEFFECT CTVTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* /* pDataObject */,
                   DWORD dwKeyState, CPoint point)
 {
+  CTVTreeCtrl *pDestTreeCtrl;
 
-  return CDropTarget::OnDragOver(pWnd, pDataObject, dwKeyState, point);;
+  DROPEFFECT dropeffectRet = DROPEFFECT_COPY;
+  if ((dwKeyState & MK_SHIFT) == MK_SHIFT)
+    dropeffectRet = DROPEFFECT_MOVE;
+
+  // Expand and highlight the item under the mouse and 
+  pDestTreeCtrl = (CTVTreeCtrl *)pWnd;
+  HTREEITEM hTItem = pDestTreeCtrl->HitTest(point);
+  if (hTItem != NULL) {
+    pDestTreeCtrl->Expand(hTItem, TVE_EXPAND);
+    pDestTreeCtrl->SelectDropTarget(hTItem);
+  }  
+  
+  // Scroll Tree control depending on mouse position
+  CRect rectClient;
+  pWnd->GetClientRect(&rectClient);
+  pWnd->ClientToScreen(rectClient);
+  pWnd->ClientToScreen(&point);
+  int nScrollDir = -1;
+  if (point.y >= rectClient.bottom - RECT_BORDER)
+    nScrollDir = SB_LINEDOWN;
+  else
+  if ((point.y <= rectClient.top + RECT_BORDER) )
+    nScrollDir = SB_LINEUP;
+
+  if (nScrollDir != -1) {
+    int nScrollPos = pWnd->GetScrollPos(SB_VERT);
+    WPARAM wParam = MAKELONG(nScrollDir, nScrollPos);
+    pWnd->SendMessage(WM_VSCROLL, wParam);
+  }
+  
+  nScrollDir = -1;
+  if (point.x <= rectClient.left + RECT_BORDER)
+    nScrollDir = SB_LINELEFT;
+  else
+  if (point.x >= rectClient.right - RECT_BORDER)
+    nScrollDir = SB_LINERIGHT;
+  
+  if (nScrollDir != -1) {
+    int nScrollPos = pWnd->GetScrollPos(SB_VERT);
+    WPARAM wParam = MAKELONG(nScrollDir, nScrollPos);
+    pWnd->SendMessage(WM_HSCROLL, wParam);
+  }
+  
+  return dropeffectRet;  
 }
 
 void CTVTreeCtrl::SetNewStyle(long lStyleMask, BOOL bSetBits)
