@@ -34,10 +34,13 @@
 #define V10 0
 #define V15 1
 
-// DK - I  just don't believe the 30!  Why 30, not 128 or 512. I like 1.
-extern void trashMemory(void* buffer, long length, const int numiter = 30);
-extern void trashMemory( LPTSTR buffer, long length, const int numiter = 30 );
-extern void trashStringMemory( CString cs_buffer, const int numiter = 30 );
+// DK - I  just don't believe the 30!  Why 30, not 128 or 512? I like 1.
+// DK - WHo is going to take real memory out of a PC and search for faint 
+// DK - values of old data? I suppose some with the technology can - but
+// DK - why bother.  I wouldn't.  Let's save some cycles and make it 1.
+extern void trashMemory(void* buffer, long length, const int numiter = 1);
+extern void trashMemory( LPTSTR buffer, long length, const int numiter = 1 );
+extern void trashStringMemory( CString cs_buffer, const int numiter = 1 );
 extern void burnStack(unsigned long len); // borrowed from libtomcrypt
 
 extern void GenRandhash(const CMyString &passkey,

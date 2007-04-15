@@ -922,7 +922,7 @@ bool CTVTreeCtrl::CollectData(BYTE * &out_buffer, long &outLen)
     delete (CDDObject *)out_oblist.RemoveHead();
   } 
 
-  trashMemory(outddmemfile_buffer, dw_outmflen, 1);
+  trashMemory(outddmemfile_buffer, dw_outmflen);
   free(outddmemfile_buffer);
   delete poutDDmemfile;
 
@@ -950,7 +950,7 @@ bool CTVTreeCtrl::ProcessData(BYTE *in_buffer, const long &inLen, const CMyStrin
   ar_in.Close();
 
   pinDDmemfile->Detach();
-  trashMemory(clear_buffer, clearLen, 1);
+  trashMemory(clear_buffer, clearLen);
   free(clear_buffer);
   delete pinDDmemfile;
 

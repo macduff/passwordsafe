@@ -25,7 +25,7 @@ BYTE* CSMemFile::Realloc(BYTE* lpOldMem, SIZE_T nBytes)
   }
 
   memcpy((void *)lpNewMem, (void *)lpOldMem, old_size);
-  trashMemory(lpOldMem, old_size, 1);
+  trashMemory(lpOldMem, old_size);
   free(lpOldMem);
 
   TRACE("SMemfile:Realloc Old size=%d, New Size=%d\n", old_size, nBytes);
@@ -40,7 +40,7 @@ void CSMemFile::Free(BYTE* lpMem)
     return;
 
   if (mem_size != 0)
-    trashMemory(lpMem, mem_size, 1);
+    trashMemory(lpMem, mem_size);
 
   free(lpMem);
 }
