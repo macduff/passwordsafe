@@ -102,7 +102,8 @@ DROPEFFECT CTVTreeCtrl::OnDragEnter(CWnd* pWnd , COleDataObject* pDataObject,
   return CDropTarget::OnDragEnter(pWnd, pDataObject, dwKeyState, point);
 }
 
-#define RECT_BORDER 10
+#define SCROLL_BORDER 25
+#define SCROLL_SPEED_ZONE_WIDTH 20
 
 DROPEFFECT CTVTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* /* pDataObject */,
                   DWORD dwKeyState, CPoint point)
@@ -113,24 +114,37 @@ DROPEFFECT CTVTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* /* pDataObject *
   if ((dwKeyState & MK_SHIFT) == MK_SHIFT)
     dropeffectRet = DROPEFFECT_MOVE;
 
+  // Doesn't matter that we didn't initialize m_calls
+  m_calls++;
+
   // Expand and highlight the item under the mouse and 
   pDestTreeCtrl = (CTVTreeCtrl *)pWnd;
   HTREEITEM hTItem = pDestTreeCtrl->HitTest(point);
-  if (hTItem != NULL) {
+  // Use m_calls to slow down expanding nodes
+  if (hTItem != NULL && (m_calls % 32 == 0)) {
     pDestTreeCtrl->Expand(hTItem, TVE_EXPAND);
     pDestTreeCtrl->SelectDropTarget(hTItem);
   }  
-  
-  // Scroll Tree control depending on mouse position
+
   CRect rectClient;
   pWnd->GetClientRect(&rectClient);
   pWnd->ClientToScreen(rectClient);
   pWnd->ClientToScreen(&point);
+
+  int slowscroll_up = 6 - (rectClient.top + SCROLL_BORDER - point.y) / SCROLL_SPEED_ZONE_WIDTH;
+  int slowscroll_down = 6 - (point.y - rectClient.bottom + SCROLL_BORDER ) / SCROLL_SPEED_ZONE_WIDTH;
+
+  // Scroll Tree control depending on mouse position
+  int iMaxV = GetScrollLimit(SB_VERT);
+  int iPosV = GetScrollPos(SB_VERT);
+
   int nScrollDir = -1;
-  if (point.y >= rectClient.bottom - RECT_BORDER)
+  if ((point.y > rectClient.bottom - SCROLL_BORDER) && (iPosV != iMaxV) &&
+      (m_calls % (slowscroll_down > 0 ? slowscroll_down : 1)) == 0)
     nScrollDir = SB_LINEDOWN;
   else
-  if ((point.y <= rectClient.top + RECT_BORDER) )
+  if ((point.y < rectClient.top + SCROLL_BORDER) && (iPosV != 0) &&
+      (m_calls % (slowscroll_up > 0 ? slowscroll_up : 1)) == 0)
     nScrollDir = SB_LINEUP;
 
   if (nScrollDir != -1) {
@@ -139,11 +153,14 @@ DROPEFFECT CTVTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* /* pDataObject *
     pWnd->SendMessage(WM_VSCROLL, wParam);
   }
   
+  int iPosH = GetScrollPos(SB_HORZ);
+  int iMaxH = GetScrollLimit(SB_HORZ);
+
   nScrollDir = -1;
-  if (point.x <= rectClient.left + RECT_BORDER)
+  if ((point.x < rectClient.left + SCROLL_BORDER) && (iPosH != 0))
     nScrollDir = SB_LINELEFT;
   else
-  if (point.x >= rectClient.right - RECT_BORDER)
+  if ((point.x > rectClient.right - SCROLL_BORDER) && (iPosH != iMaxH))
     nScrollDir = SB_LINERIGHT;
   
   if (nScrollDir != -1) {
@@ -800,6 +817,8 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
 
   m_uiReceivingSession = m_uiSendingSession;
 
+  BOOL retval(FALSE);
+
   // On Drop of data from one tree to another
   HGLOBAL hGlobal;
 
@@ -810,7 +829,7 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
   SIZE_T memsize = GlobalSize(hGlobal);
 
   if (memsize < DD_MEMORY_MINSIZE)
-    goto ignore;
+    goto exit;
 
   memset(m_sending_classname, 0, sizeof(gbl_classname));
   memcpy(m_sending_classname, pData, sizeof(gbl_classname) - 1);
@@ -828,7 +847,7 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
   // Check if it is from another TreeCtrl?
   // - we don't accept drop from anything else
   if (iDDType != FROMTREE || ((long)memsize < (DD_MEMORY_MINSIZE + lBufLen)))
-    goto ignore;
+    goto exit;
 
   if (IsLeafNode(m_hitemDrop) || bForceRoot)
     m_hitemDrop = GetParentItem(m_hitemDrop);
@@ -848,6 +867,7 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
         CopyItem(m_hitemDrag, m_hitemDrop);
       }
       SelectItem(m_hitemDrop);
+      retval = TRUE;
     } else {
       // drag failed or cancelled, revert to last selected
       SelectItem(m_hitemDrag);
@@ -858,19 +878,18 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
     CMyString DropGroup = CMyString(GetGroup(m_hitemDrop));
     ProcessData((BYTE *)(pData + sizeof(gbl_classname) - 1 + 10), lBufLen, DropGroup);
     SelectItem(m_hitemDrop);
+    retval = TRUE;
   }
-
-  GlobalUnlock(hGlobal);
 
   GetParent()->SetFocus();
 
-  ((DboxMain *)m_parent)->SetChanged(DboxMain::Data);
-
-  return TRUE;
-
-ignore:
+exit:
   GlobalUnlock(hGlobal);
-  return FALSE;
+
+  if (retval == TRUE)
+    ((DboxMain *)m_parent)->SetChanged(DboxMain::Data);
+
+  return retval;
 }
 
 void CTVTreeCtrl::CompleteMove()

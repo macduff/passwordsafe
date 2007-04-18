@@ -97,4 +97,5 @@ protected:
   int m_nDragPathLen;
   unsigned int  m_uiSendingSession;
   unsigned int  m_uiReceivingSession;
+  int m_calls;
 };
