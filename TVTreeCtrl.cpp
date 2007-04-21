@@ -849,6 +849,15 @@ BOOL CTVTreeCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
   if (iDDType != FROMTREE || ((long)memsize < (DD_MEMORY_MINSIZE + lBufLen)))
     goto exit;
 
+  if (m_hitemDrop == NULL && GetCount() == 0) {
+    // Dropping on to an empty database
+    CMyString DropGroup (_T(""));
+    ProcessData((BYTE *)(pData + sizeof(gbl_classname) - 1 + 10), lBufLen, DropGroup);
+    SelectItem(GetRootItem());
+    retval = TRUE;
+    goto exit;
+  }
+
   if (IsLeafNode(m_hitemDrop) || bForceRoot)
     m_hitemDrop = GetParentItem(m_hitemDrop);
 
