@@ -39,6 +39,8 @@ DECLARE_HANDLE(HDROP);
 #define WM_CCTOHDR_DD_COMPLETE (WM_APP + 21)
 #define WM_HDRTOCC_DD_COMPLETE (WM_APP + 22)
 
+#define WM_VIEW_COMPARE_RESULT (WM_APP + 30)
+
 // timer event number used to check if the workstation is locked
 #define TIMER_CHECKLOCK 0x04
 // timer event number used to support lock on user-defined timeout
@@ -52,7 +54,7 @@ enum {GCP_FIRST = 0,		// At startup of PWS
 	  GCP_NORMAL = 1,		// Only OK, CANCEL & HELP buttons
 	  GCP_UNMINIMIZE = 2,	// Only OK, CANCEL & HELP buttons
 	  GCP_WITHEXIT = 3,	// OK, CANCEL, EXIT & HELP buttons
-	  GCP_ADVANCED = 4};	// OK, CANCEL, ADVANCED & HELP buttons
+	  GCP_ADVANCED = 4};	// OK, CANCEL, HELP buttons & ADVANCED checkbox
 
 // Drag and Drop source (TREE not implemented)
 enum { FROMCC, FROMHDR, FROMTREE };
@@ -235,6 +237,7 @@ protected:
   enum STATE {LOCKED, UNLOCKED, CLOSED};  // Really shouldn't be here it, ThisMfcApp own it
   void UpdateSystemTray(const STATE s);
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
+  LRESULT OnViewCompareResult(WPARAM wParam, LPARAM lParam);
 
   BOOL PreTranslateMessage(MSG* pMsg);
 
@@ -258,7 +261,7 @@ protected:
   int Close(void);
   int Merge(void);
   int Merge( const CMyString &pszFilename );
-  int Compare( const CMyString &pszFilename );
+  int Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2);
 
   int BackupSafe(void);
   int New(void);
@@ -381,11 +384,12 @@ protected:
   DECLARE_MESSAGE_MAP()
 
   int GetAndCheckPassword(const CMyString &filename, CMyString& passkey,
-                          int index, bool bForceReadOnly = false);
+                          int index, bool bForceReadOnly = false, int icore = 0);
 
 private:
   CMyString m_BrowseURL; // set by OnContextMenu(), used by OnBrowse()
   PWScore  &m_core;
+  PWScore  m_core2; // Used in Merge and Compare
   CMyString m_lastFindStr;
   BOOL m_lastFindCS;
   bool m_IsReadOnly;
@@ -409,6 +413,7 @@ private:
   CFont *m_pFontTree;
   CItemData *m_selectedAtMinimize; // to restore selection upon un-minimize
   CString m_lock_displaystatus;
+  CString m_minmizedisplaystatus;
   bool m_inExit; // help U3ExitNow
 
   BOOL IsWorkstationLocked() const;
@@ -426,7 +431,7 @@ private:
   void FixListIndexes();
   void UpdateAccessTime(CItemData *ci);
   void SaveDisplayStatus();
-  void RestoreDisplayStatus();
+  void RestoreDisplayStatus(bool bUnMinimize = false);
   void GroupDisplayStatus(TCHAR *p_char_displaystatus, int &i, bool bSet);
   void MakeSortedItemList(ItemList &il);
   void SetColumns();  // default order

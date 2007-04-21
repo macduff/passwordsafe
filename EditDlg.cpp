@@ -333,13 +333,15 @@ BOOL CEditDlg::OnInitDialog()
     HideNotes();
   }
 
-  // Populate the groups combo box
-  if (m_ex_group.GetCount() == 0) {
-	CStringArray aryGroups;
-	app.m_core.GetUniqueGroups(aryGroups);
-	for(int igrp = 0; igrp < aryGroups.GetSize(); igrp++) {
-		m_ex_group.AddString((LPCTSTR)aryGroups[igrp]);
-	}
+  if (!m_IsReadOnly) {
+    // Populate the groups combo box
+    if (m_ex_group.GetCount() == 0) {
+	    CStringArray aryGroups;
+      app.m_core.GetUniqueGroups(aryGroups);
+      for (int igrp = 0; igrp < aryGroups.GetSize(); igrp++) {
+        m_ex_group.AddString((LPCTSTR)aryGroups[igrp]);
+      }
+    }
   }
 
   GetDlgItem(IDC_PWHSTATUS)->

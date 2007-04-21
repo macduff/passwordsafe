@@ -280,6 +280,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_MESSAGE(WM_CCTOHDR_DD_COMPLETE, OnCCToHdrDragComplete)
    ON_MESSAGE(WM_HDRTOCC_DD_COMPLETE, OnHdrToCCDragComplete)
    ON_MESSAGE(WM_HDR_DRAG_COMPLETE, OnHeaderDragComplete)
+   ON_MESSAGE(WM_VIEW_COMPARE_RESULT, OnViewCompareResult)
    
 	//}}AFX_MSG_MAP
    ON_COMMAND_EX_RANGE(ID_FILE_MRU_ENTRY1, ID_FILE_MRU_ENTRYMAX, OnOpenMRU)
@@ -928,7 +929,9 @@ DboxMain::OnU3ShopWebsite()
 int
 DboxMain::GetAndCheckPassword(const CMyString &filename,
                               CMyString& passkey,
-                              int index ,bool bForceReadOnly)
+                              int index ,
+                              bool bForceReadOnly,
+                              int icore)
 {
     // index:
     //	GCP_FIRST      (0) first
@@ -942,9 +945,15 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
     // prevent multiple r/w access.
     int retval;
     bool bFileIsReadOnly = false;
+    PWScore *pcore;
+    
+    if (icore == 0)
+      pcore = &m_core;
+    else
+      pcore = &m_core2;
 
     if (!filename.IsEmpty()) {
-        bool exists = m_core.FileExists(filename, bFileIsReadOnly);
+        bool exists = pcore->FileExists(filename, bFileIsReadOnly);
 
         if (!exists) {
             // Used to display an error message, but this is really the caller's business
@@ -998,7 +1007,7 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
     if (rc == IDOK) {
         DBGMSG("PasskeyEntry returns IDOK\n");
         const CString &curFile = dbox_pkentry->GetFileName();
-        m_core.SetCurFile(curFile);
+        pcore->SetCurFile(curFile);
         CMyString locker(_T("")); // null init is important here
         passkey = dbox_pkentry->GetPasskey();
         // This dialog's setting of read-only overrides file dialog
@@ -1008,12 +1017,12 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
         // we could not create a lock file.
         switch (index) {
             case GCP_FIRST: // if first, then m_IsReadOnly is set in Open
-                SetReadOnly(m_IsReadOnly || !m_core.LockFile(curFile, locker));
+                SetReadOnly(m_IsReadOnly || !pcore->LockFile(curFile, locker));
                 break;
             case GCP_NORMAL:
             case GCP_ADVANCED:
                 if (!m_IsReadOnly) // !first, lock if !m_IsReadOnly
-                    SetReadOnly(!m_core.LockFile(curFile, locker));
+                    SetReadOnly(!pcore->LockFile(curFile, locker));
                 else
                     SetReadOnly(m_IsReadOnly);
                 break;
@@ -1067,12 +1076,12 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
         } else { // locker.IsEmpty() means no lock needed or lock was successful
             if (dbox_pkentry->GetStatus() == TAR_NEW) {
                 // Save new file
-                m_core.NewFile(dbox_pkentry->GetPasskey());
-                rc = m_core.WriteCurFile();
+                pcore->NewFile(dbox_pkentry->GetPasskey());
+                rc = pcore->WriteCurFile();
                 
                 if (rc == PWScore::CANT_OPEN_FILE) {
                     CString cs_temp, cs_title(MAKEINTRESOURCE(IDS_FILEWRITEERROR));
-                    cs_temp.Format(IDS_CANTOPENWRITING, m_core.GetCurFile());
+                    cs_temp.Format(IDS_CANTOPENWRITING, pcore->GetCurFile());
                     MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
                     retval = PWScore::USER_CANCEL;
                 } else
@@ -1541,15 +1550,18 @@ LRESULT DboxMain::OnTrayNotification(WPARAM , LPARAM )
 void
 DboxMain::OnMinimize()
 {
+  // Called when the System Tray Minimize menu option is used
   if (m_bStartHiddenAndMinimized)
 	  m_bStartHiddenAndMinimized = false;
 
+  SaveDisplayStatus();
   ShowWindow(SW_MINIMIZE);
 }
 
 void
 DboxMain::OnUnMinimize()
 {
+  // Called when the System Tray Restore menu option is used
   UnMinimize(true);
 }
 
@@ -1655,7 +1667,7 @@ DboxMain::UnMinimize(bool update_windows)
             if (update_windows) {
                 ShowWindow(SW_RESTORE);
                 m_core.SetDisplayStatus(m_lock_displaystatus);
-                RestoreDisplayStatus();
+                RestoreDisplayStatus(true);
                 BringWindowToTop();
             }
         } else {

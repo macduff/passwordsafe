@@ -329,6 +329,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\AdvancedDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ClearQuestionDlg.cpp"
 				>
 			</File>
@@ -341,7 +345,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\CompareXDlg.cpp"
+				RelativePath=".\CompareResultsDlg.cpp"
 				>
 			</File>
 			<File
@@ -389,15 +393,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ExportTextXDlg.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ExportXMLDlg.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ExportXMLXDlg.cpp"
 				>
 			</File>
 			<File
@@ -570,6 +566,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\AdvancedDlg.h"
+				>
+			</File>
+			<File
 				RelativePath=".\BlowFish.h"
 				>
 			</File>
@@ -586,7 +586,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\CompareXDlg.h"
+				RelativePath=".\CompareResultsDlg.h"
 				>
 			</File>
 			<File
@@ -630,15 +630,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ExportTextXDlg.h"
-				>
-			</File>
-			<File
 				RelativePath=".\ExportXMLDlg.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ExportXMLXDlg.h"
 				>
 			</File>
 			<File

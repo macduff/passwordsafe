@@ -17,10 +17,11 @@
 #include "TryAgainDlg.h"
 #include "ExportTextDlg.h"
 #include "ExportXMLDlg.h"
-#include "CompareXDlg.h"
+#include "AdvancedDlg.h"
 #include "ImportDlg.h"
 #include "ImportXMLDlg.h"
 #include "ImportXMLErrDlg.h"
+#include "CompareResultsDlg.h"
 #include "Properties.h"
 #include "corelib/pwsprefs.h"
 #include "corelib/util.h"
@@ -745,16 +746,16 @@ DboxMain::OnExportText()
             } // while (1)
 
             const CItemData::FieldBits bsExport = et.m_bsExport;
-            const CString subgroup = et.m_subgroup;
-            const int iObject = et.m_subgroup_object;
-            const int iFunction = et.m_subgroup_function;
+            const CString subgroup_name = et.m_subgroup_name;
+            const int subgroup_object = et.m_subgroup_object;
+            const int subgroup_function = et.m_subgroup_function;
             TCHAR delimiter = et.m_defexpdelim[0];
 
             ItemList sortedItemList;
             MakeSortedItemList(sortedItemList);
       
-            rc = m_core.WritePlaintextFile(newfile, bsExport, subgroup, iObject, 
-                                           iFunction, delimiter, &sortedItemList);
+            rc = m_core.WritePlaintextFile(newfile, bsExport, subgroup_name, subgroup_object, 
+                                           subgroup_function, delimiter, &sortedItemList);
             sortedItemList.RemoveAll(); // cleanup soonest
 
             if (rc == PWScore::CANT_OPEN_FILE) {
@@ -811,16 +812,16 @@ DboxMain::OnExportXML()
             } // while (1)
 
             const CItemData::FieldBits bsExport = eXML.m_bsExport;
-            const CString subgroup = eXML.m_subgroup;
-            const int iObject = eXML.m_subgroup_object;
-            const int iFunction = eXML.m_subgroup_function;
+            const CString subgroup_name = eXML.m_subgroup_name;
+            const int subgroup_object = eXML.m_subgroup_object;
+            const int subgroup_function = eXML.m_subgroup_function;
             TCHAR delimiter;
             delimiter = eXML.m_defexpdelim[0];
       
             ItemList sortedItemList;
             MakeSortedItemList(sortedItemList);
-            rc = m_core.WriteXMLFile(newfile, bsExport, subgroup, iObject, 
-                                     iFunction, delimiter, &sortedItemList);
+            rc = m_core.WriteXMLFile(newfile, bsExport, subgroup_name, subgroup_object, 
+                                     subgroup_function, delimiter, &sortedItemList);
 
             sortedItemList.RemoveAll(); // cleanup soonest
 
@@ -1120,18 +1121,16 @@ DboxMain::Merge(const CMyString &pszFilename) {
       return PWScore::ALREADY_OPEN;
   }
 
-  // Save current database name
-  const CMyString cs_saveCurFileName(m_core.GetCurFile());
   // Save current read-only status around opening merge file R-O
   const bool bCurrentFileIsReadOnly(m_IsReadOnly);
   // Force input database into read-only status
   rc = GetAndCheckPassword(pszFilename, passkey,
-                           GCP_NORMAL, // OK, CANCEL, HELP
-                           true);  // force readonly
+                           GCP_ADVANCED, // OK, CANCEL, HELP
+                           true,         // force readonly
+                           1);           // Use m_core2
 
   // Restore original database read-only status & name
   SetReadOnly(bCurrentFileIsReadOnly);
-  m_core.SetCurFile(cs_saveCurFileName);
 
   CString cs_temp, cs_title;
   switch (rc) {
@@ -1139,7 +1138,7 @@ DboxMain::Merge(const CMyString &pszFilename) {
       app.AddToMRU(pszFilename);
       break; // Keep going...
 	case PWScore::CANT_OPEN_FILE:
-      cs_temp.Format(IDS_CANTOPEN, m_core.GetCurFile());
+      cs_temp.Format(IDS_CANTOPEN, m_core2.GetCurFile());
       cs_title.LoadString(IDS_FILEOPENERROR);
       MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
 	case TAR_OPEN:
@@ -1155,8 +1154,34 @@ DboxMain::Merge(const CMyString &pszFilename) {
       return PWScore::USER_CANCEL;
 	}
 
-  PWScore otherCore;
-  otherCore.ReadFile(pszFilename, passkey);
+  CString subgroup_name;
+  int subgroup_set(BST_UNCHECKED);
+  int subgroup_object, subgroup_function;
+
+  if (m_bAdvanced) {
+    CAdvancedDlg *pAdv;
+    int rc;    
+    pAdv = new CAdvancedDlg(this, ADV_MERGE);
+
+    app.DisableAccelerator();
+    rc = pAdv->DoModal();
+    app.EnableAccelerator();
+
+    if (rc == IDOK) {
+      subgroup_set = pAdv->m_subgroup_set;
+      if (subgroup_set == BST_CHECKED) {
+        subgroup_name = pAdv->m_subgroup_name;
+        subgroup_object = pAdv->m_subgroup_object;
+        subgroup_function = pAdv->m_subgroup_function;
+      }  
+    } else {
+      m_bAdvanced = false;
+    }
+    delete pAdv;
+    pAdv = NULL;
+  }
+
+  m_core2.ReadFile(pszFilename, passkey);
 
   if (rc == PWScore::CANT_OPEN_FILE) {
       cs_temp.Format(IDS_CANTOPENREADING, pszFilename);
@@ -1169,17 +1194,17 @@ DboxMain::Merge(const CMyString &pszFilename) {
       return PWScore::CANT_OPEN_FILE;
 	}
 
-  otherCore.SetCurFile(pszFilename);
+  m_core2.SetCurFile(pszFilename);
 
   /* Put up hourglass...this might take a while */
   CWaitCursor waitCursor;
 
   /*
     Purpose:
-    Merge entries from otherCore to m_core
+    Merge entries from m_core2 to m_core
 
     Algorithm:
-    Foreach entry in otherCore
+    Foreach entry in m_core2
     Find in m_core
     if find a match
     if pw, notes, & group also matches
@@ -1192,53 +1217,59 @@ DboxMain::Merge(const CMyString &pszFilename) {
   int numAdded = 0;
   int numConflicts = 0;
 
-  POSITION otherPos = otherCore.GetFirstEntryPosition();
+  POSITION otherPos = m_core2.GetFirstEntryPosition();
   while (otherPos) {
-    CItemData otherItem = otherCore.GetEntryAt(otherPos);
-    const CMyString otherGroup = otherItem.GetGroup();
-    const CMyString otherTitle = otherItem.GetTitle();
-    const CMyString otherUser = otherItem.GetUser();
+    CItemData otherItem = m_core2.GetEntryAt(otherPos);
 
-    POSITION foundPos = m_core.Find(otherGroup, otherTitle, otherUser);
-    if (foundPos) {
-      /* found a match, see if other fields also match */
-      CItemData curItem = m_core.GetEntryAt(foundPos);
-      if (otherItem.GetPassword() != curItem.GetPassword() ||
+    if (subgroup_set == BST_UNCHECKED ||
+      otherItem.WantEntry(subgroup_name, subgroup_object, subgroup_function) == TRUE) {
+
+      const CMyString otherGroup = otherItem.GetGroup();
+      const CMyString otherTitle = otherItem.GetTitle();
+      const CMyString otherUser = otherItem.GetUser();
+
+      POSITION foundPos = m_core.Find(otherGroup, otherTitle, otherUser);
+      if (foundPos) {
+        /* found a match, see if other fields also match */
+        CItemData curItem = m_core.GetEntryAt(foundPos);
+        if (otherItem.GetPassword() != curItem.GetPassword() ||
           otherItem.GetNotes() != curItem.GetNotes() ||
           otherItem.GetURL() != curItem.GetURL() ||
           otherItem.GetAutoType() != curItem.GetAutoType()) {
-        /* have a match on title/user, but not on other fields
-           add an entry suffixed with -merged-HHMMSS-DDMMYY */
-        CTime curTime = CTime::GetCurrentTime();
-        CMyString newTitle = otherItem.GetTitle();
-        newTitle += _T("-merged-");
-        CMyString timeStr = curTime.Format(_T("%H%M%S-%m%d%y"));
-        newTitle = newTitle + timeStr;
+          /* have a match on title/user, but not on other fields
+             add an entry suffixed with -merged-HHMMSS-DDMMYY */
+          CTime curTime = CTime::GetCurrentTime();
+          CMyString newTitle = otherItem.GetTitle();
+          newTitle += _T("-merged-");
+          CMyString timeStr = curTime.Format(_T("%H%M%S-%m%d%y"));
+          newTitle = newTitle + timeStr;
 
-        /* note it as an issue for the user */
-        CString warnMsg;
-        warnMsg.Format(IDS_MERGECONFLICTS, otherItem.GetGroup(), otherItem.GetTitle(), otherItem.GetUser(),
-          newTitle, otherItem.GetUser());
+          /* note it as an issue for the user */
+          CString warnMsg;
+          warnMsg.Format(IDS_MERGECONFLICTS, otherItem.GetGroup(), otherItem.GetTitle(), otherItem.GetUser(),
+            newTitle, otherItem.GetUser());
 
-        /* tell the user the bad news */
-        CString cs_title;
-		cs_title.LoadString(IDS_MERGECONFLICTS2);
-        MessageBox(warnMsg, cs_title, MB_OK|MB_ICONWARNING);
+          /* tell the user the bad news */
+          CString cs_title;
+          cs_title.LoadString(IDS_MERGECONFLICTS2);
+          MessageBox(warnMsg, cs_title, MB_OK|MB_ICONWARNING);
 
-        /* do it */
-        otherItem.SetTitle(newTitle);
+          /* do it */
+          otherItem.SetTitle(newTitle);
+          m_core.AddEntryToTail(otherItem);
+
+          numConflicts++;
+        }
+      } else {
+        /* didn't find any match...add it directly */
         m_core.AddEntryToTail(otherItem);
-
-        numConflicts++;
+        numAdded++;
       }
-    } else {
-      /* didn't find any match...add it directly */
-      m_core.AddEntryToTail(otherItem);
-      numAdded++;
     }
-
-    otherCore.GetNextEntry(otherPos);
+    m_core2.GetNextEntry(otherPos);
   }
+
+  m_core2.ClearData();
 
   waitCursor.Restore(); /* restore normal cursor */
 
@@ -1339,7 +1370,7 @@ DboxMain::OnCompare()
 		return;
 	}
 
-	CMyString file2;
+	CMyString cs_file2;
 	CString cs_text(MAKEINTRESOURCE(IDS_PICKCOMPAREFILE));
 
 	//Open-type dialog box
@@ -1367,19 +1398,19 @@ DboxMain::OnCompare()
             return;
         }
 		if (rc == IDOK) {
-			file2 = (CMyString)fd.GetPathName();
+			cs_file2 = (CMyString)fd.GetPathName();
 			//Check that this file isn't the current one!
-			if (file2 == m_core.GetCurFile()) {
+			if (cs_file2 == m_core.GetCurFile()) {
 				//It is the same damn file!
 				AfxMessageBox(IDS_COMPARESAME, MB_OK|MB_ICONWARNING);
 			} else {
                 // Save current database name and R/O status
 				const bool bSave_RO_Status(m_IsReadOnly);  // Compare makes files R/O
-                const CMyString cs_saveCurFileName(m_core.GetCurFile());
-				rc = Compare(file2);
+                const CMyString cs_file1(m_core.GetCurFile());
+				rc = Compare(cs_file1, cs_file2);
                 // Restore current database name and R/O status
 				SetReadOnly(bSave_RO_Status);
-                m_core.SetCurFile(cs_saveCurFileName);
+                m_core.SetCurFile(cs_file1);
 				break;
 			}
 		} else {
@@ -1391,24 +1422,16 @@ DboxMain::OnCompare()
 	return;
 }
 
-// The following structure needed for compare when record is in
-// both databases but there are differences
-struct st_Conflict {
-  POSITION cPos;
-  POSITION nPos;
-  CItemData::FieldBits bsDiffs;
-};
-
 int
-DboxMain::Compare(const CMyString &pszFilename)
+DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 {
 	// open file they want to Compare
 	int rc = PWScore::SUCCESS;
 	CMyString passkey, temp;
 	CString cs_title, cs_text;
 
-	// OK, CANCEL, HELP + force READ-ONLY
-	rc = GetAndCheckPassword(pszFilename, passkey, GCP_ADVANCED, true);
+	// OK, CANCEL, HELP + force READ-ONLY, use m_core2
+	rc = GetAndCheckPassword(cs_Filename2, passkey, GCP_ADVANCED, true, 1);
 	switch (rc) {
 		case PWScore::SUCCESS:
 			break; // Keep going...
@@ -1430,49 +1453,58 @@ DboxMain::Compare(const CMyString &pszFilename)
 	}
 
   CItemData::FieldBits bsCompare;
-  CString subgroup;
-  int iObject;
-  int iFunction;
+  CString subgroup_name;
+  int subgroup_set(BST_UNCHECKED);
+  int subgroup_object, subgroup_function;
 
+  bsCompare.set();  // note: impossible to set them all even via the advanced dialog
   if (m_bAdvanced) {
-    CCompareXDlg cpx;
+    CAdvancedDlg *pAdv;
+    int rc;    
+    pAdv = new CAdvancedDlg(this, ADV_COMPARE);
 
-    int rc = cpx.DoModal();
+    app.DisableAccelerator();
+    rc = pAdv->DoModal();
+    app.EnableAccelerator();
 
     if (rc == IDOK) {
-      bsCompare = cpx.m_bsCompare;
-      subgroup = cpx.m_compare_subgroup_name;
-      iObject = cpx.m_subgroup_object;
-      iFunction = cpx.m_subgroup_function;
+      bsCompare = pAdv->m_bsFields;
+      subgroup_set = pAdv->m_subgroup_set;
+      if (subgroup_set == BST_CHECKED) {
+        subgroup_name = pAdv->m_subgroup_name;
+        subgroup_object = pAdv->m_subgroup_object;
+        subgroup_function = pAdv->m_subgroup_function;
+      }  
     } else {
       m_bAdvanced = false;
-      bsCompare.set();  // note: impossible to set them all even via the advanced dialog
-      subgroup.Empty();
     }
+    delete pAdv;
+    pAdv = NULL;
   }
 
-	PWScore compCore;
-	compCore.ReadFile(pszFilename, passkey);
+	m_core2.ReadFile(cs_Filename2, passkey);
 
 	if (rc == PWScore::CANT_OPEN_FILE) {
-		temp.Format(IDS_CANTOPENREADING, pszFilename);
+		temp.Format(IDS_CANTOPENREADING, cs_Filename2);
 		cs_title.LoadString(IDS_FILEREADERROR);
 		MessageBox(temp, cs_title, MB_OK|MB_ICONWARNING);
 		return PWScore::CANT_OPEN_FILE;
 	}
 
-	CList<POSITION, POSITION&> list_OnlyInCurrent;
-	CList<POSITION, POSITION&> list_OnlyInComp;
-	CList<st_Conflict, st_Conflict&> list_Conflicts;
+	CompareData list_OnlyInCurrent;
+	CompareData list_OnlyInComp;
+	CompareData list_Conflicts;
 
-	compCore.SetCurFile(pszFilename);
+  CompareData::iterator cd_iter;
+
+	m_core2.SetCurFile(cs_Filename2);
 
 	// Put up hourglass...this might take a while
 	CWaitCursor waitCursor;
 
 	/*
       Purpose:
-      Compare entries from comparison database (compCore) with current database (m_core)
+      Compare entries from comparison database (m_core2) with current database (m_core)
 
       Algorithm:
       Foreach entry in current database {
@@ -1500,114 +1532,119 @@ DboxMain::Compare(const CMyString &pszFilename)
 	int numConflicts = 0;
 
 	CItemData::FieldBits bsConflicts(0);
-	st_Conflict *st_diff;
+	st_CompareData st_data;
 
 	POSITION currentPos = m_core.GetFirstEntryPosition();
 	while (currentPos) {
 		CItemData currentItem = m_core.GetEntryAt(currentPos);
 
-    if (m_bAdvanced)
-      if(currentItem.WantItem(subgroup, iObject, iFunction) == FALSE)
-      goto skip_entry1;
+    if (subgroup_set == BST_UNCHECKED ||
+        currentItem.WantEntry(subgroup_name, subgroup_object, subgroup_function) == TRUE) {
+      const CMyString currentGroup = currentItem.GetGroup();
+      const CMyString currentTitle = currentItem.GetTitle();
+      const CMyString currentUser = currentItem.GetUser();
 
-    {
-		const CMyString currentGroup = currentItem.GetGroup();
-		const CMyString currentTitle = currentItem.GetTitle();
-		const CMyString currentUser = currentItem.GetUser();
+      POSITION foundPos = m_core2.Find(currentGroup, currentTitle, currentUser);
+      if (foundPos) {
+        // found a match, see if all other fields also match
+        // Difference flags:
+        /*
+                First word (values in square brackets taken from ItemData.h)
+                1... ....  NAME     [0x0] - n/a - depreciated
+                .1.. ....  UUID     [0x1] - n/a - unique
+                ..1. ....  GROUP    [0x2] - not checked - must be identical
+                ...1 ....  TITLE    [0x3] - not checked - must be identical
+                .... 1...  USER     [0x4] - not checked - must be identical
+                .... .1..  NOTES    [0x5]
+                .... ..1.  PASSWORD [0x6]
+                .... ...1  CTIME    [0x7] - not checked - immaterial
 
-		POSITION foundPos = compCore.Find(currentGroup, currentTitle, currentUser);
-		if (foundPos) {
-			// found a match, see if all other fields also match
-			// Difference flags:
-			/*
-              First word (values in square brackets taken from ItemData.h)
-              1... ....	NAME		[0x0] - n/a - depreciated
-              .1.. ....	UUID		[0x1] - n/a - unique
-              ..1. ....	GROUP		[0x2] - not checked - must be identical
-              ...1 ....	TITLE		[0x3] - not checked - must be identical
-              .... 1...	USER		[0x4] - not checked - must be identical
-              .... .1..	NOTES		[0x5]
-              .... ..1.	PASSWORD	[0x6]
-              .... ...1 CTIME    [0x7] - not checked - immaterial
+                Second word
+                1... ....  PMTIME   [0x8] - not checked - immaterial
+                .1.. ....  ATIME    [0x9] - not checked - immaterial
+                ..1. ....  LTIME    [0xa]
+                ...1 ....  POLICY   [0xb] - not yet implemented
+                .... 1...  RMTIME   [0xc] - not checked - immaterial
+                .... .1..  URL      [0xd]
+                .... ..1.  AUTOTYPE [0xe]
+                .... ...1  PWHIST   [0xf]
+        */
 
-              Second word
-              1... .... PMTIME   [0x8] - not checked - immaterial
-              .1.. .... ATIME    [0x9] - not checked - immaterial
-              ..1. ....	LTIME		[0xa]
-              ...1 ....	POLICY		[0xb] - not yet implemented
-              .... 1... RMTIME   [0xc] - not checked - immaterial
-              .... .1..	URL			[0xd]
-              .... ..1.	AUTOTYPE	[0xe]
-              .... ...1	PWHIST		[0xf]
-			*/
+        bsConflicts.reset();
 
-			bsConflicts.reset();
+        CItemData compItem = m_core2.GetEntryAt(foundPos);
+        if (bsCompare.test(CItemData::NOTES) && currentItem.GetNotes() != compItem.GetNotes())
+          bsConflicts.flip(CItemData::NOTES);
+        if (bsCompare.test(CItemData::PASSWORD) && currentItem.GetPassword() != compItem.GetPassword())
+          bsConflicts.flip(CItemData::PASSWORD);
+        if (m_bAdvanced && bsCompare.test(CItemData::CTIME) && currentItem.GetCTime() != compItem.GetCTime())
+          bsConflicts.flip(CItemData::CTIME);
+        if (m_bAdvanced && bsCompare.test(CItemData::PMTIME) && currentItem.GetPMTime() != compItem.GetPMTime())
+          bsConflicts.flip(CItemData::PMTIME);
+        if (m_bAdvanced && bsCompare.test(CItemData::ATIME) && currentItem.GetATime() != compItem.GetATime())
+          bsConflicts.flip(CItemData::ATIME);
+        if (bsCompare.test(CItemData::LTIME) && currentItem.GetLTime() != compItem.GetLTime())
+          bsConflicts.flip(CItemData::LTIME);
+        if (m_bAdvanced && bsCompare.test(CItemData::RMTIME) && currentItem.GetRMTime() != compItem.GetRMTime())
+          bsConflicts.flip(CItemData::RMTIME);
+        if (bsCompare.test(CItemData::URL) && currentItem.GetURL() != compItem.GetURL())
+          bsConflicts.flip(CItemData::URL);
+        if (bsCompare.test(CItemData::AUTOTYPE) && currentItem.GetAutoType() != compItem.GetAutoType())
+          bsConflicts.flip(CItemData::AUTOTYPE);
+        if (bsCompare.test(CItemData::PWHIST) && currentItem.GetPWHistory() != compItem.GetPWHistory())
+          bsConflicts.flip(CItemData::PWHIST);
 
-			CItemData compItem = compCore.GetEntryAt(foundPos);
-			if (bsCompare.test(CItemData::NOTES) && currentItem.GetNotes() != compItem.GetNotes())
-				bsConflicts.flip(CItemData::NOTES);
-			if (bsCompare.test(CItemData::PASSWORD) && currentItem.GetPassword() != compItem.GetPassword())
-				bsConflicts.flip(CItemData::PASSWORD);
-      if (m_bAdvanced && bsCompare.test(CItemData::CTIME) && currentItem.GetCTime() != compItem.GetCTime())
-				bsConflicts.flip(CItemData::CTIME);
-      if (m_bAdvanced && bsCompare.test(CItemData::PMTIME) && currentItem.GetPMTime() != compItem.GetPMTime())
-				bsConflicts.flip(CItemData::PMTIME);
-      if (m_bAdvanced && bsCompare.test(CItemData::ATIME) && currentItem.GetATime() != compItem.GetATime())
-				bsConflicts.flip(CItemData::ATIME);
-			if (bsCompare.test(CItemData::LTIME) && currentItem.GetLTime() != compItem.GetLTime())
-				bsConflicts.flip(CItemData::LTIME);
-      if (m_bAdvanced && bsCompare.test(CItemData::RMTIME) && currentItem.GetRMTime() != compItem.GetRMTime())
-				bsConflicts.flip(CItemData::RMTIME);
-			if (bsCompare.test(CItemData::URL) && currentItem.GetURL() != compItem.GetURL())
-				bsConflicts.flip(CItemData::URL);
-			if (bsCompare.test(CItemData::AUTOTYPE) && currentItem.GetAutoType() != compItem.GetAutoType())
-				bsConflicts.flip(CItemData::AUTOTYPE);
-			if (bsCompare.test(CItemData::PWHIST) && currentItem.GetPWHistory() != compItem.GetPWHistory())
-				bsConflicts.flip(CItemData::PWHIST);
-
-			if (bsConflicts.any()) {
-                st_diff = new st_Conflict;
-                st_diff->cPos = currentPos;
-                st_diff->nPos = foundPos;
-                st_diff->bsDiffs = bsConflicts;
-                list_Conflicts.AddTail(*st_diff);
-                delete st_diff;
-
-                numConflicts++;
-			}
-        } else {
-            /* didn't find any match... */
-            list_OnlyInCurrent.AddTail(currentPos);
-            numOnlyInCurrent++;
-		}
+        if (bsConflicts.any()) {
+          st_data.pos1 = currentPos;
+          st_data.pos2 = foundPos;
+          st_data.bsDiffs = bsConflicts;
+          st_data.group = currentGroup;
+          st_data.title = currentTitle;
+          st_data.user = currentUser;
+          st_data.index = -1;
+          list_Conflicts.push_back(st_data);
+          numConflicts++;
+        }
+      } else {
+        /* didn't find any match... */
+        st_data.pos1 = currentPos;
+        st_data.pos2 = (POSITION)-1;
+        st_data.bsDiffs.reset();
+        st_data.group = currentGroup;
+        st_data.title = currentTitle;
+        st_data.user = currentUser;
+        st_data.index = 0;
+        list_OnlyInCurrent.push_back(st_data);
+        numOnlyInCurrent++;
+      }
     }
-
-skip_entry1:
 		m_core.GetNextEntry(currentPos);
 	}
 
-	POSITION compPos = compCore.GetFirstEntryPosition();
+	POSITION compPos = m_core2.GetFirstEntryPosition();
 	while (compPos) {
-		CItemData compItem = compCore.GetEntryAt(compPos);
+		CItemData compItem = m_core2.GetEntryAt(compPos);
 
-    if (m_bAdvanced)
-      if(compItem.WantItem(subgroup, iObject, iFunction) == FALSE)
-      goto skip_entry2;
-
-    {
-		const CMyString compGroup = compItem.GetGroup();
-		const CMyString compTitle = compItem.GetTitle();
-		const CMyString compUser = compItem.GetUser();
-
-		if (!m_core.Find(compGroup, compTitle, compUser)) {
-			/* didn't find any match... */
-			list_OnlyInComp.AddTail(compPos);
-			numOnlyInComp++;
-		}
+    if (subgroup_set == BST_UNCHECKED ||
+        compItem.WantEntry(subgroup_name, subgroup_object, subgroup_function) == FALSE) {
+      const CMyString compGroup = compItem.GetGroup();
+      const CMyString compTitle = compItem.GetTitle();
+      const CMyString compUser = compItem.GetUser();
+  
+      if (!m_core.Find(compGroup, compTitle, compUser)) {
+        /* didn't find any match... */
+        st_data.pos1 = (POSITION)-1;
+        st_data.pos2 = compPos;
+        st_data.bsDiffs.reset();
+        st_data.group = compGroup;
+        st_data.title = compTitle;
+        st_data.user = compUser;
+        st_data.index = 1;
+        list_OnlyInComp.push_back(st_data);
+        numOnlyInComp++;
+      }
     }
-
-skip_entry2:
-		compCore.GetNextEntry(compPos);
+		m_core2.GetNextEntry(compPos);
 	}
 
 	waitCursor.Restore(); // restore normal cursor
@@ -1615,117 +1652,68 @@ skip_entry2:
 	// tell the user we're done & provide short Compare report
 	CString resultStr(_T("")), buffer;
 	cs_title.LoadString(IDS_COMPARECOMPLETE);
-	buffer.Format(IDS_COMPARESTATISTICS, m_core.GetCurFile(), pszFilename);
+	buffer.Format(IDS_COMPARESTATISTICS, cs_Filename1, cs_Filename2);
 
 	if (numOnlyInCurrent == 0 && numOnlyInComp == 0 && numConflicts == 0) {
 		cs_text.LoadString(IDS_IDENTICALDATABASES);
 		resultStr += buffer + cs_text;
 		MessageBox(resultStr, cs_title, MB_OK);
-		goto exit;
-	}
+	} else {
+    resultStr += buffer;
+    buffer.Format(IDS_COMPAREONLY1, numOnlyInCurrent);
+    resultStr += buffer;
+    buffer.Format(IDS_COMPAREONLY2, numOnlyInComp);
+    resultStr += buffer;
+    buffer.Format(IDS_COMPAREBOTHDIFF, numConflicts);
+    resultStr += buffer;
 
-	resultStr += buffer;
-	buffer.Format(IDS_COMPAREONLY1, numOnlyInCurrent);
-	resultStr += buffer;
-	buffer.Format(IDS_COMPAREONLY2, numOnlyInComp);
-	resultStr += buffer;
-	buffer.Format(IDS_COMPAREBOTHDIFF, numConflicts);
-	resultStr += buffer;
-	buffer.LoadString(IDS_COMPARECOPYRESULT);
-	resultStr += buffer;
-	int mb_rc = MessageBox(resultStr, cs_title, MB_YESNO | MB_DEFBUTTON2);
+    CCompareResultsDlg CmpRes(this, list_OnlyInCurrent,
+      list_OnlyInComp, 
+      list_Conflicts,
+      cs_Filename1, 
+      cs_Filename2);
 
-	if (mb_rc == IDNO)
-		goto exit;
+    CmpRes.m_ReportSummary = resultStr;
 
-	resultStr.Empty();
-	if (numOnlyInCurrent > 0) {
-		buffer.Format(IDS_COMPAREENTRIES1, m_core.GetCurFile());
-		resultStr += buffer;
-		POSITION currentPos = list_OnlyInCurrent.GetHeadPosition();
-		while (currentPos) {
-			POSITION corepos = list_OnlyInCurrent.GetAt(currentPos);
-			CItemData currentItem = m_core.GetEntryAt(corepos);
-			const CMyString currentGroup = currentItem.GetGroup();
-			const CMyString currentTitle = currentItem.GetTitle();
-			const CMyString currentUser = currentItem.GetUser();
+    CmpRes.DoModal();
+  }
 
-			buffer.Format(IDS_COMPARESTATS, currentGroup, currentTitle, currentUser);
-			resultStr += buffer;
+	list_OnlyInCurrent.clear();
+	list_OnlyInComp.clear();
+	list_Conflicts.clear();
 
-			list_OnlyInCurrent.GetNext(currentPos);
-		}
-		resultStr += _T("\n");
-	}
-
-	if (numOnlyInComp > 0) {
-		buffer.Format(IDS_COMPAREENTRIES2, pszFilename);
-		resultStr += buffer;
-		POSITION compPos = list_OnlyInComp.GetHeadPosition();
-		while (compPos) {
-			POSITION corepos = list_OnlyInComp.GetAt(compPos);
-			CItemData compItem = compCore.GetEntryAt(corepos);
-			const CMyString compGroup = compItem.GetGroup();
-			const CMyString compTitle = compItem.GetTitle();
-			const CMyString compUser = compItem.GetUser();
-
-			buffer.Format(IDS_COMPARESTATS, compGroup, compTitle, compUser);
-			resultStr += buffer;
-
-			list_OnlyInComp.GetNext(compPos);
-		}
-		resultStr += _T("\n");
-	}
-
-	if (numConflicts > 0) {
-		buffer.Format(IDS_COMPAREBOTHDIFF2, m_core.GetCurFile(), pszFilename);
-		resultStr += buffer;
-		POSITION conflictPos = list_Conflicts.GetHeadPosition();
-
-		const CString csx_password(MAKEINTRESOURCE(IDS_COMPPASSWORD));
-		const CString csx_notes(MAKEINTRESOURCE(IDS_COMPNOTES));
-		const CString csx_url(MAKEINTRESOURCE(IDS_COMPURL));
-		const CString csx_autotype(MAKEINTRESOURCE(IDS_COMPAUTOTYPE));
-		const CString csx_ctime(MAKEINTRESOURCE(IDS_COMPCTIME));
-		const CString csx_pmtime(MAKEINTRESOURCE(IDS_COMPPMTIME));
-		const CString csx_atime(MAKEINTRESOURCE(IDS_COMPATIME));
-		const CString csx_ltime(MAKEINTRESOURCE(IDS_COMPLTIME));
-		const CString csx_rmtime(MAKEINTRESOURCE(IDS_COMPRMTIME));
-		const CString csx_pwhistory(MAKEINTRESOURCE(IDS_COMPPWHISTORY));
-
-		while (conflictPos) {
-			st_Conflict st_diff = list_Conflicts.GetAt(conflictPos);
-			CItemData currentItem = m_core.GetEntryAt(st_diff.cPos);
-			const CMyString currentGroup = currentItem.GetGroup();
-			const CMyString currentTitle = currentItem.GetTitle();
-			const CMyString currentUser = currentItem.GetUser();
-
-			buffer.Format(IDS_COMPARESTATS2, currentGroup, currentTitle, currentUser);
-			resultStr += buffer;
-
-			if (st_diff.bsDiffs.test(CItemData::PASSWORD)) resultStr += csx_password;
-			if (st_diff.bsDiffs.test(CItemData::NOTES)) resultStr += csx_notes;
-			if (st_diff.bsDiffs.test(CItemData::URL)) resultStr += csx_url;
-			if (st_diff.bsDiffs.test(CItemData::AUTOTYPE)) resultStr += csx_autotype;
-			if (st_diff.bsDiffs.test(CItemData::CTIME)) resultStr += csx_ctime;
-			if (st_diff.bsDiffs.test(CItemData::PMTIME)) resultStr += csx_pmtime;
-			if (st_diff.bsDiffs.test(CItemData::ATIME)) resultStr += csx_atime;
-			if (st_diff.bsDiffs.test(CItemData::LTIME)) resultStr += csx_ltime;
-			if (st_diff.bsDiffs.test(CItemData::RMTIME)) resultStr += csx_rmtime;
-			if (st_diff.bsDiffs.test(CItemData::PWHIST)) resultStr += csx_pwhistory;
-
-			list_Conflicts.GetNext(conflictPos);
-		}
-	}
-
-	app.SetClipboardData(resultStr);
-
-  exit:
-	list_OnlyInCurrent.RemoveAll();
-	list_OnlyInComp.RemoveAll();
-	list_Conflicts.RemoveAll();
-
+  m_core2.ClearData();
 	return rc;
+}
+
+LRESULT
+DboxMain::OnViewCompareResult(WPARAM wParam, LPARAM lParam)
+{
+  POSITION pos;
+  CItemData *ci;
+
+  TRACE("OnViewCompareResult: wParam=%p, lParam=%d\n", wParam, lParam);
+
+  pos = (POSITION)wParam;
+
+  if ((int)lParam == 0)
+    ci = &m_core.GetEntryAt(pos);
+  else
+    ci = &m_core2.GetEntryAt(pos);
+
+  // Save RO status
+  const bool bSaveRO(m_IsReadOnly);
+
+  // Ensure readonly, so neither core is ever updated
+  m_IsReadOnly = true;
+
+  // View the right entry
+  EditItem(ci);
+
+  // Restore readonly status
+  m_IsReadOnly = bSaveRO;
+
+  return 0L;
 }
 
 void
@@ -1869,13 +1857,19 @@ DboxMain::SaveDisplayStatus()
 	GroupDisplayStatus(p_char_displaystatus, i, true);
 
 	m_core.SetDisplayStatus(p_char_displaystatus, i);
+  // Save it for minimize
+  m_minmizedisplaystatus = CString(p_char_displaystatus, i);
 	delete[] p_char_displaystatus;
 }
 
 void
-DboxMain::RestoreDisplayStatus()
+DboxMain::RestoreDisplayStatus(bool bUnMinimize)
 {
-	CString cs_displaystatus = m_core.GetDisplayStatus();
+	CString cs_displaystatus;
+  if (bUnMinimize)
+    cs_displaystatus = m_minmizedisplaystatus;
+  else 
+    cs_displaystatus = m_core.GetDisplayStatus();    
 
 	if (cs_displaystatus.IsEmpty())
 		return;
