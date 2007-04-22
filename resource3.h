@@ -282,3 +282,5 @@
 #define IDS_PWHIST                      5448
 #define IDS_ORIGINALDB                  5449
 #define IDS_COMPARISONDB                5450
+#define IDS_COMPARERESULTS              5451
+

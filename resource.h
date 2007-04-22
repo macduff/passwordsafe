@@ -305,7 +305,8 @@
 #define IDC_RESULTLIST                  1254
 #define IDC_RESULTLISTHDR               1255
 #define IDC_COPYTOCLIPBOARD             1256
-#define IDC_COMPARESUMMARY              1257
+#define IDC_COMPAREORIGINALDB           1257
+#define IDC_COMPARECOMPARISONDB         1258
 
 // Next default values for new objects
 // 
@@ -313,7 +314,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        239
 #define _APS_NEXT_COMMAND_VALUE         30000
-#define _APS_NEXT_CONTROL_VALUE         1258
+#define _APS_NEXT_CONTROL_VALUE         1259
 #define _APS_NEXT_SYMED_VALUE           127
 #endif
 #endif

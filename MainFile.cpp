@@ -1669,11 +1669,10 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 
     CCompareResultsDlg CmpRes(this, list_OnlyInCurrent,
       list_OnlyInComp, 
-      list_Conflicts,
-      cs_Filename1, 
-      cs_Filename2);
+      list_Conflicts);
 
-    CmpRes.m_ReportSummary = resultStr;
+    CmpRes.m_cs_Filename1 = cs_Filename1;
+    CmpRes.m_cs_Filename2 = cs_Filename2;
 
     CmpRes.DoModal();
   }

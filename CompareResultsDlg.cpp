@@ -27,12 +27,10 @@ IMPLEMENT_DYNAMIC(CCompareResultsDlg, CDialog)
 
 //-----------------------------------------------------------------------------
 CCompareResultsDlg::CCompareResultsDlg(CWnd* pParent,
-  CompareData &OnlyInCurrent, CompareData &OnlyInComp, CompareData &Conflicts,
-  CMyString cs_Filename1, CMyString cs_Filename2)
+  CompareData &OnlyInCurrent, CompareData &OnlyInComp, CompareData &Conflicts)
   : CDialog(CCompareResultsDlg::IDD, pParent),
   m_OnlyInCurrent(OnlyInCurrent), m_OnlyInComp(OnlyInComp), m_Conflicts(Conflicts),
-  m_bSortAscending(true), m_iSortedColumn(-1), 
-  m_cs_Filename1(cs_Filename1), m_cs_Filename2(cs_Filename2)
+  m_bSortAscending(true), m_iSortedColumn(-1)
 {
 }
 
@@ -159,22 +157,48 @@ BOOL CCompareResultsDlg::OnInitDialog()
   m_LCResults.SetRedraw(TRUE);
   m_LCResults.Invalidate();
 
+  // setup status bar for gripper only
+  if (m_statusBar.CreateEx(this, SBARS_SIZEGRIP)) {
+    statustext[0] = IDS_STATCOMPANY;
+    m_statusBar.SetIndicators(statustext, 1);
+    CString s;
+    s.Format(IDS_COMPARERESULTS, 
+      m_OnlyInCurrent.size(), m_OnlyInComp.size(), m_Conflicts.size());
+    m_statusBar.SetPaneText(0, s, TRUE);
+    m_statusBar.SetPaneInfo(0, m_statusBar.GetItemID(0), SBPS_STRETCH, NULL);
+    m_statusBar.UpdateWindow();
+  } else {
+    TRACE(_T("Could not create status bar\n"));
+  }
+
+  // Put on StatusBar
+  CRect rcClientStart;
+  CRect rcClientNow;
+  GetClientRect(rcClientStart);
+  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+  /*RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0,
+                 reposQuery, rcClientNow); */
+
   // Arrange all the controls - needed for resizeable dialog
   CWnd *pwndListCtrl = GetDlgItem(IDC_RESULTLIST);
   CWnd *pwndOKButton = GetDlgItem(IDOK);
   CWnd *pwndCPYButton = GetDlgItem(IDC_COPYTOCLIPBOARD);
 
-  CRect ctrlRect, dlgRect;
+  CRect sbRect, ctrlRect, dlgRect;
   int xleft, ytop;
 
   GetClientRect(&dlgRect); 
   m_DialogMinWidth = dlgRect.Width();
   m_DialogMinHeight = dlgRect.Height();
 
-  pwndListCtrl->GetClientRect(&ctrlRect);
+  m_statusBar.GetWindowRect(&sbRect);
+
+  pwndListCtrl->GetWindowRect(&ctrlRect);
+  ScreenToClient(&ctrlRect);
 
   m_cxBSpace = dlgRect.Size().cx - ctrlRect.Size().cx;
   m_cyBSpace = dlgRect.Size().cy - ctrlRect.Size().cy;
+  m_cySBar = sbRect.Size().cy;
 
   pwndListCtrl->SetWindowPos(NULL, NULL, NULL,
                         dlgRect.Size().cx - (2 * ctrlRect.TopLeft().x),
@@ -184,7 +208,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
   GetWindowRect(&dlgRect); 
   pwndCPYButton->GetWindowRect(&ctrlRect);
   xleft = (m_DialogMinWidth / 4) - (ctrlRect.Width() / 2);
-  ytop = dlgRect.Height() - m_cyBSpace/2;
+  ytop = dlgRect.Height() - m_cyBSpace/2 - m_cySBar;
 
   pwndCPYButton->SetWindowPos(NULL, xleft, ytop, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER);
 
@@ -193,6 +217,8 @@ BOOL CCompareResultsDlg::OnInitDialog()
 
   pwndOKButton->SetWindowPos(NULL, xleft, ytop, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER);
 
+  GetDlgItem(IDC_COMPAREORIGINALDB)->SetWindowText(m_cs_Filename1);
+  GetDlgItem(IDC_COMPARECOMPARISONDB)->SetWindowText(m_cs_Filename2);
   return TRUE;
 }
 
@@ -200,7 +226,6 @@ void CCompareResultsDlg::DoDataExchange(CDataExchange* pDX)
 {
   CDialog::DoDataExchange(pDX);
   DDX_Control(pDX, IDC_RESULTLIST, m_LCResults);
-  DDX_Text(pDX, IDC_COMPARESUMMARY, m_ReportSummary);
 }
 
 BEGIN_MESSAGE_MAP(CCompareResultsDlg, CDialog)
@@ -238,6 +263,9 @@ CCompareResultsDlg::OnItemDoubleClick( NMHDR* /* pNMHDR */, LRESULT *pResult)
   int row, column, colwidth0;
 
   row = m_LCResults.GetNextItem(-1, LVNI_SELECTED);
+
+  if (row == -1)
+    return;
 
   CPoint pt;
   pt = ::GetMessagePos();
@@ -417,14 +445,12 @@ CCompareResultsDlg::OnSize(UINT nType, int cx, int cy)
   CDialog::OnSize(nType, cx, cy);
 
   CWnd *pwndListCtrl = GetDlgItem(IDC_RESULTLIST); 
-  CWnd *pwndEdit = GetDlgItem(IDC_COMPARESUMMARY); 
+  CWnd *pwndODBText = GetDlgItem(IDC_COMPAREORIGINALDB);
+  CWnd *pwndCDBText = GetDlgItem(IDC_COMPARECOMPARISONDB);
   CWnd *pwndCPY = GetDlgItem(IDC_COPYTOCLIPBOARD); 
   CWnd *pwndOK = GetDlgItem(IDOK); 
 
-  if (!IsWindow(pwndListCtrl->GetSafeHwnd()) ||
-      !IsWindow(pwndEdit->GetSafeHwnd()) ||
-      !IsWindow(pwndCPY->GetSafeHwnd()) ||
-      !IsWindow(pwndOK->GetSafeHwnd())) 
+  if (!IsWindow(pwndListCtrl->GetSafeHwnd())) 
     return;
 
   CRect ctrlRect, dlgRect;
@@ -432,15 +458,28 @@ CCompareResultsDlg::OnSize(UINT nType, int cx, int cy)
 
   GetWindowRect(&dlgRect);
 
-  // Allow the result window width to grow/shrink (not height)
-  pwndEdit->GetWindowRect(&ctrlRect);
+  // Allow the database names window width to grow/shrink (not height)
+  pwndODBText->GetWindowRect(&ctrlRect);
   pt_top.x = ctrlRect.left;
   pt_top.y = ctrlRect.top;
   ScreenToClient(&pt_top);
-  pwndEdit->MoveWindow(pt_top.x, pt_top.y,
-                    cx - (2 * pt_top.x),
+  pwndODBText->MoveWindow(pt_top.x, pt_top.y,
+                    cx - pt_top.x - 5,
                     ctrlRect.Height(),
                     TRUE);
+
+  GetDlgItem(IDC_COMPAREORIGINALDB)->SetWindowText(m_cs_Filename1);
+
+  pwndCDBText->GetWindowRect(&ctrlRect);
+  pt_top.x = ctrlRect.left;
+  pt_top.y = ctrlRect.top;
+  ScreenToClient(&pt_top);
+  pwndCDBText->MoveWindow(pt_top.x, pt_top.y,
+                    cx - pt_top.x - 5,
+                    ctrlRect.Height(),
+                    TRUE);
+
+  GetDlgItem(IDC_COMPARECOMPARISONDB)->SetWindowText(m_cs_Filename2);
 
   // Allow ListCtrl to grow/shrink but leave room for the buttons underneath!
   pwndListCtrl->GetWindowRect(&ctrlRect);
@@ -457,7 +496,7 @@ CCompareResultsDlg::OnSize(UINT nType, int cx, int cy)
   int xleft, ytop;
   pwndCPY->GetWindowRect(&ctrlRect);
   xleft = (cx / 4) - (ctrlRect.Width() / 2);
-  ytop = dlgRect.Height() - m_cyBSpace / 2;
+  ytop = dlgRect.Height() - m_cyBSpace / 2 - m_cySBar;
 
   pwndCPY->SetWindowPos(NULL, xleft, ytop, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER);
 
@@ -465,6 +504,16 @@ CCompareResultsDlg::OnSize(UINT nType, int cx, int cy)
   xleft = (3 * cx / 4) - (ctrlRect.Width() / 2);
 
   pwndOK->SetWindowPos(NULL, xleft, ytop, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER);
+
+  m_statusBar.GetWindowRect(&ctrlRect);
+  pt_top.x = ctrlRect.left;
+  pt_top.y = ctrlRect.top;
+  ScreenToClient(&pt_top);
+
+  m_statusBar.MoveWindow(pt_top.x, cy - ctrlRect.Height(),
+                        cx - (2 * pt_top.x),
+                        ctrlRect.Height(),
+                        TRUE); 
 }
 
 void CCompareResultsDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI) 

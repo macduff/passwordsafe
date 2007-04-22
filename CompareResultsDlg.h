@@ -43,14 +43,12 @@ public:
   CCompareResultsDlg(CWnd* pParent,
                      CompareData &OnlyInCurrent,
                      CompareData &OnlyInComp,
-                     CompareData &Conflicts,
-                     CMyString cs_Filename1, CMyString cs_Filename2);
+                     CompareData &Conflicts);
 
   // Dialog Data
   //{{AFX_DATA(CCompareResultsDlg)
   enum { IDD = IDD_COMPARE_RESULTS };
   CListCtrl m_LCResults;
-  CString m_ReportSummary;
   int m_iSortedColumn;
   bool m_bSortAscending;
   CMyString m_cs_Filename1, m_cs_Filename2;
@@ -69,6 +67,9 @@ private:
 
   // Implementation
 protected:
+
+  UINT statustext[1];
+  CStatusBar m_statusBar;
 
   virtual BOOL OnInitDialog();
   // Generated message map functions
@@ -90,7 +91,7 @@ private:
 	CompareData m_OnlyInComp;
 	CompareData m_Conflicts;
 
-  int m_cxBSpace, m_cyBSpace;
+  int m_cxBSpace, m_cyBSpace, m_cySBar;
   int m_DialogMinWidth, m_DialogMinHeight;
 };
 //-----------------------------------------------------------------------------
