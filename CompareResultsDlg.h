@@ -52,9 +52,9 @@ public:
   int m_iSortedColumn;
   bool m_bSortAscending;
   CMyString m_cs_Filename1, m_cs_Filename2;
-
   //}}AFX_DATA
 
+  bool m_bLeftReadOnly, m_bRightReadOnly, m_coreChanged;
   // Overrides
   // ClassWizard generated virtual function overrides
   //{{AFX_VIRTUAL(CCompareResultsDlg)
@@ -70,6 +70,8 @@ protected:
 
   UINT statustext[1];
   CStatusBar m_statusBar;
+  bool CopyLeftOrRight(const bool bCopyLeft);
+  void UpdateStatusBar();
 
   virtual BOOL OnInitDialog();
   // Generated message map functions
@@ -82,6 +84,11 @@ protected:
   afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
   afx_msg void OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
   afx_msg void OnItemDoubleClick(NMHDR* pNotifyStruct, LRESULT* result);
+  afx_msg void OnItemRightClick(NMHDR* pNotifyStruct, LRESULT* result);
+  afx_msg void OnCompareView();
+  afx_msg void OnCompareEdit();
+  afx_msg void OnCompareCopyToOriginalDB();
+  afx_msg void OnCompareCopyToComparisonDB();
   //}}AFX_MSG
 
   DECLARE_MESSAGE_MAP()
@@ -91,8 +98,10 @@ private:
 	CompareData m_OnlyInComp;
 	CompareData m_Conflicts;
 
+  int m_numOnlyInCurrent, m_numOnlyInComp, m_numConflicts;
   int m_cxBSpace, m_cyBSpace, m_cySBar;
   int m_DialogMinWidth, m_DialogMinHeight;
+  int m_row, m_column;
 };
 //-----------------------------------------------------------------------------
 // Local variables:

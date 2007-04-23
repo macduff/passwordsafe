@@ -50,7 +50,8 @@ CString PWScore::m_hdr;
 PWScore::PWScore() : m_currfile(_T("")), m_changed(false),
                      m_usedefuser(false), m_defusername(_T("")),
                      m_ReadFileVersion(PWSfile::UNKNOWN_VERSION),
-                     m_passkey(NULL), m_passkey_len(0)
+                     m_passkey(NULL), m_passkey_len(0),
+                     m_IsReadOnly(false)
 {
   if (!PWScore::m_session_initialized) {
 	CItemData::SetSessionKey(); // per-session initialization
@@ -59,6 +60,8 @@ PWScore::PWScore() : m_currfile(_T("")), m_changed(false),
 
 	PWScore::m_session_initialized = true;
   }
+  m_lockFileHandle = INVALID_HANDLE_VALUE;
+  m_LockCount = 0;
 }
 
 PWScore::~PWScore()

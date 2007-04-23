@@ -29,6 +29,8 @@
 #define IDI_MBWARNICON                  124
 #define IDB_LEAF_WARNEXPIRED            125
 #define IDR_POPCOLUMNS                  126
+#define IDR_POPCOPYTOCOMPARISON         127
+#define IDR_POPCOPYTOORIGINAL           128
 #define IDD_ABOUTBOX                    200
 #define IDD_FIND                        201
 #define IDD_PASSWORDSAFE_DIALOG         202
@@ -315,6 +317,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        239
 #define _APS_NEXT_COMMAND_VALUE         30000
 #define _APS_NEXT_CONTROL_VALUE         1259
-#define _APS_NEXT_SYMED_VALUE           127
+#define _APS_NEXT_SYMED_VALUE           129
 #endif
 #endif

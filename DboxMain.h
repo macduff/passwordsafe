@@ -39,7 +39,10 @@ DECLARE_HANDLE(HDROP);
 #define WM_CCTOHDR_DD_COMPLETE (WM_APP + 21)
 #define WM_HDRTOCC_DD_COMPLETE (WM_APP + 22)
 
-#define WM_VIEW_COMPARE_RESULT (WM_APP + 30)
+#define WM_EDIT_COMPARE_RESULT (WM_APP + 30)
+#define WM_VIEW_COMPARE_RESULT (WM_APP + 31)
+#define WM_COPY_COMPARERESULT_TO_ORIGINALDB (WM_APP + 32)
+#define WM_COPY_COMPARERESULT_TO_COMPARISONDB (WM_APP + 33)
 
 // timer event number used to check if the workstation is locked
 #define TIMER_CHECKLOCK 0x04
@@ -129,10 +132,10 @@ public:
   int GetHeaderWidth(const int iType);
   void CalcHeaderWidths();
 
-  void SetReadOnly(bool state);
-  bool IsReadOnly() const {return m_IsReadOnly;};
+  void UpdateToolBar(bool state);
+  bool IsMcoreReadOnly() const {return m_core.IsReadOnly();};
   void SetStartSilent(bool state);
-  void SetStartClosed(bool state) { m_IsStartClosed = state;}
+  void SetStartClosed(bool state) {m_IsStartClosed = state;}
   void SetValidate(bool state) { m_bValidate = state;}
   bool MakeRandomPassword(CDialog * const pDialog, CMyString& password);
   BOOL LaunchBrowser(const CString &csURL);
@@ -238,6 +241,9 @@ protected:
   void UpdateSystemTray(const STATE s);
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
   LRESULT OnViewCompareResult(WPARAM wParam, LPARAM lParam);
+  LRESULT OnEditCompareResult(WPARAM wParam, LPARAM lParam);
+  LRESULT OnCopyCompareResultToComparisonDB(WPARAM wParam, LPARAM lParam);
+  LRESULT OnCopyCompareResultToOriginalDB(WPARAM wParam, LPARAM lParam);
 
   BOOL PreTranslateMessage(MSG* pMsg);
 
@@ -269,7 +275,7 @@ protected:
 
   void Delete(bool inRecursion = false);
   void AutoType(const CItemData &ci);
-  void EditItem(CItemData *ci);
+  bool EditItem(CItemData *ci);
 
 #if !defined(POCKET_PC)
 	afx_msg void OnTrayLockUnLock();
@@ -388,11 +394,10 @@ protected:
 
 private:
   CMyString m_BrowseURL; // set by OnContextMenu(), used by OnBrowse()
-  PWScore  &m_core;
-  PWScore  m_core2; // Used in Merge and Compare
+  PWScore &m_core;
+  PWScore *m_pcore1; // Used in Merge and Compare
   CMyString m_lastFindStr;
   BOOL m_lastFindCS;
-  bool m_IsReadOnly;
   bool m_IsStartSilent;
   bool m_IsStartClosed;
   bool m_bStartHiddenAndMinimized;

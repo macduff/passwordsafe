@@ -133,11 +133,11 @@ public:
    // GetPlaintext returns all fields separated by separator, if delimiter is != 0, then
    // it's used for multi-line notes and to replace '.' within the Title field.
    CMyString GetPlaintext(const TCHAR &separator, const FieldBits &bsExport,
-   						const TCHAR &delimiter) const;
+                          const TCHAR &delimiter) const;
 
    void CreateUUID(); // V20 - generate UUID for new item
    void SetName(const CMyString &name,
-		const CMyString &defaultUsername); // V17 - deprecated - replaced by SetTitle & SetUser
+       const CMyString &defaultUsername); // V17 - deprecated - replaced by SetTitle & SetUser
    void SetTitle(const CMyString &title, TCHAR delimiter = 0);
    void SetUser(const CMyString &user); // V20
    void SetPassword(const CMyString &password);
@@ -146,8 +146,8 @@ public:
    void SetGroup(const CMyString &group); // V20
    void SetURL(const CMyString &URL); // V30
    void SetAutoType(const CMyString &autotype); // V30
-   void SetATime() {return SetTime(ATIME);}  // V30
-   void SetATime(time_t t) {return SetTime(ATIME, t);}  // V30
+   void SetATime() {SetTime(ATIME);}  // V30
+   void SetATime(time_t t) {SetTime(ATIME, t);}  // V30
    void SetATime(const CString &time_str) {return SetTime(ATIME, time_str);}  // V30
    void SetCTime() {SetTime(CTIME);}  // V30
    void SetCTime(time_t t) {SetTime(CTIME, t);}  // V30

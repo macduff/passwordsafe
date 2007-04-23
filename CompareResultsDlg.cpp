@@ -15,6 +15,8 @@
 #include "DboxMain.h"  // For WM_VIEW_COMPARE_RESULT
 #include "CompareResultsDlg.h"
 #include "corelib/PWScore.h"
+#include "resource.h"
+#include "resource2.h"
 #include "resource3.h"
 
 #ifdef _DEBUG
@@ -30,7 +32,7 @@ CCompareResultsDlg::CCompareResultsDlg(CWnd* pParent,
   CompareData &OnlyInCurrent, CompareData &OnlyInComp, CompareData &Conflicts)
   : CDialog(CCompareResultsDlg::IDD, pParent),
   m_OnlyInCurrent(OnlyInCurrent), m_OnlyInComp(OnlyInComp), m_Conflicts(Conflicts),
-  m_bSortAscending(true), m_iSortedColumn(-1)
+  m_bSortAscending(true), m_iSortedColumn(-1), m_coreChanged(false)
 {
 }
 
@@ -82,8 +84,11 @@ BOOL CCompareResultsDlg::OnInitDialog()
 
   int i, iItem = 0;
   CompareData::iterator cd_iter;
+  m_numOnlyInCurrent = m_OnlyInCurrent.size();
+  m_numOnlyInComp = m_OnlyInComp.size();
+  m_numConflicts = m_Conflicts.size();
 
-	if (m_OnlyInCurrent.size() > 0) {
+	if (m_numOnlyInCurrent > 0) {
     for (cd_iter = m_OnlyInCurrent.begin(); cd_iter != m_OnlyInCurrent.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
@@ -101,7 +106,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
 		}
 	}
 
-	if (m_OnlyInComp.size() > 0) {
+	if (m_numOnlyInComp > 0) {
     for (cd_iter = m_OnlyInComp.begin(); cd_iter != m_OnlyInComp.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
@@ -119,7 +124,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
 		}
 	}
 
-	if (m_Conflicts.size() > 0) {
+	if (m_numConflicts > 0) {
     for (cd_iter = m_Conflicts.begin(); cd_iter != m_Conflicts.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
@@ -161,12 +166,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
   if (m_statusBar.CreateEx(this, SBARS_SIZEGRIP)) {
     statustext[0] = IDS_STATCOMPANY;
     m_statusBar.SetIndicators(statustext, 1);
-    CString s;
-    s.Format(IDS_COMPARERESULTS, 
-      m_OnlyInCurrent.size(), m_OnlyInComp.size(), m_Conflicts.size());
-    m_statusBar.SetPaneText(0, s, TRUE);
-    m_statusBar.SetPaneInfo(0, m_statusBar.GetItemID(0), SBPS_STRETCH, NULL);
-    m_statusBar.UpdateWindow();
+    UpdateStatusBar();
   } else {
     TRACE(_T("Could not create status bar\n"));
   }
@@ -176,8 +176,6 @@ BOOL CCompareResultsDlg::OnInitDialog()
   CRect rcClientNow;
   GetClientRect(rcClientStart);
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
-  /*RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0,
-                 reposQuery, rcClientNow); */
 
   // Arrange all the controls - needed for resizeable dialog
   CWnd *pwndListCtrl = GetDlgItem(IDC_RESULTLIST);
@@ -232,10 +230,15 @@ BEGIN_MESSAGE_MAP(CCompareResultsDlg, CDialog)
   ON_WM_SIZE()
   ON_WM_GETMINMAXINFO()
   ON_NOTIFY(NM_DBLCLK, IDC_RESULTLIST, OnItemDoubleClick)
+  ON_NOTIFY(NM_RCLICK, IDC_RESULTLIST, OnItemRightClick)
   ON_BN_CLICKED(ID_HELP, OnHelp)
   ON_BN_CLICKED(IDOK, OnOK)
   ON_BN_CLICKED(IDC_COPYTOCLIPBOARD, OnCopyToClipboard)
   ON_NOTIFY(HDN_ITEMCLICK, IDC_RESULTLISTHDR, OnColumnClick)
+  ON_COMMAND(ID_MENUITEM_COMPEDIT, OnCompareEdit)
+  ON_COMMAND(ID_MENUITEM_COMPVIEW, OnCompareView)
+  ON_COMMAND(ID_MENUITEM_COPY_TO_ORINIGAL, OnCompareCopyToOriginalDB)
+  ON_COMMAND(ID_MENUITEM_COPY_TO_COMPARISON, OnCompareCopyToComparisonDB)
 END_MESSAGE_MAP()
 
 void
@@ -258,40 +261,208 @@ CCompareResultsDlg::OnHelp()
 }
 
 void
-CCompareResultsDlg::OnItemDoubleClick( NMHDR* /* pNMHDR */, LRESULT *pResult)
+CCompareResultsDlg::UpdateStatusBar()
 {
-  int row, column, colwidth0;
+  CString s;
+  s.Format(IDS_COMPARERESULTS, m_numOnlyInCurrent, m_numOnlyInComp, m_numConflicts);
+  m_statusBar.SetPaneText(0, s, TRUE);
+  m_statusBar.SetPaneInfo(0, m_statusBar.GetItemID(0), SBPS_STRETCH, NULL);
+  m_statusBar.UpdateWindow();
+}
+  
+void
+CCompareResultsDlg::OnCompareView()
+{
+  st_CompareData *st_data;
+  st_data = (st_CompareData *)m_LCResults.GetItemData(m_row);
+  int pos_index = st_data->index;
+  if (m_column == pos_index || pos_index == -1) {
+    POSITION pos = (m_column == 0) ? st_data->pos1 : st_data->pos2;
+    ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
+                  WM_VIEW_COMPARE_RESULT, (WPARAM)pos, (LPARAM)pos_index);
+  }
+}
 
-  row = m_LCResults.GetNextItem(-1, LVNI_SELECTED);
+void
+CCompareResultsDlg::OnCompareEdit()
+{
+  st_CompareData *st_data;
+  st_data = (st_CompareData *)m_LCResults.GetItemData(m_row);
+  int pos_index = st_data->index;
+  if (m_column == pos_index || pos_index == -1) {
+    POSITION pos = (m_column == 0) ? st_data->pos1 : st_data->pos2;
+    LRESULT lres;
+    lres = ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
+                  WM_EDIT_COMPARE_RESULT, (WPARAM)pos, (LPARAM)pos_index);
+    if (lres == TRUE)
+      m_coreChanged = true;
+  }
+}
 
-  if (row == -1)
+void
+CCompareResultsDlg::OnCompareCopyToOriginalDB()
+{
+  if (m_bLeftReadOnly)
     return;
 
+  if (CopyLeftOrRight(true))
+    m_coreChanged = true;
+}
+
+void
+CCompareResultsDlg::OnCompareCopyToComparisonDB()
+{
+  if (m_bRightReadOnly)
+    return;
+
+  CopyLeftOrRight(false);
+}
+
+bool
+CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
+{
+  // Check not already copied one way or another
+  CString cs_text = m_LCResults.GetItemText(m_row, m_column);
+  if (cs_text == _T("="))
+    return false;
+
+  CString cs_msg;
+  int iMSG;
+
+  if (bCopyLeft) {
+    cs_msg.Format(IDS_COPYLEFTRIGHT, _T("Comparison"), _T("Original"));
+    iMSG = WM_COPY_COMPARERESULT_TO_ORIGINALDB;
+  } else {
+    cs_msg.Format(IDS_COPYLEFTRIGHT, _T("Original"), _T("Comparison"));
+    iMSG = WM_COPY_COMPARERESULT_TO_COMPARISONDB;
+  }
+  if (AfxMessageBox(cs_msg, MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) != IDYES)
+    return false;
+
+  LRESULT lres;
+  st_CompareData *st_data;
+  st_data = (st_CompareData *)m_LCResults.GetItemData(m_row);
+  int pos_index = st_data->index;
+  if (m_column == pos_index || pos_index == -1) {
+    POSITION pos = (m_column == 0) ? st_data->pos1 : st_data->pos2;
+    lres = ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
+                  iMSG, (WPARAM)pos, (LPARAM)pos_index);
+  } else
+    return false;
+
+  if (lres != 0)
+    return false;
+
+  m_LCResults.SetItemText(m_row, 0, _T("="));
+  m_LCResults.SetItemText(m_row, COMPARE, _T("="));
+  for (int i = USER + 1; i < LAST; i++)
+     m_LCResults.SetItemText(m_row, i, _T("="));
+
+  switch (pos_index) {
+    case -1:
+      m_numConflicts--;
+      break;
+    case 0:
+      m_numOnlyInCurrent--;
+      break;
+    case 1:
+      m_numOnlyInComp--;
+      break;
+    default:
+      ASSERT(0);
+  }
+  UpdateStatusBar();
+
+  st_data->index = -2;
+  return true;
+}
+
+void
+CCompareResultsDlg::OnItemDoubleClick( NMHDR* /* pNMHDR */, LRESULT *pResult)
+{
+  *pResult = 0;
+
+  m_row = m_LCResults.GetNextItem(-1, LVNI_SELECTED);
+
+  if (m_row == -1)
+    return;
+
+  bool bSourceRO;
   CPoint pt;
   pt = ::GetMessagePos();
   ScreenToClient(&pt);
 
+  int colwidth0 = m_LCResults.GetColumnWidth(0);
+
+  if (pt.x <= colwidth0) {
+    m_column = 0;
+    bSourceRO = m_bLeftReadOnly;
+  } else if  (pt.x <= (colwidth0 + m_LCResults.GetColumnWidth(1))) {
+    m_column = 1;
+    bSourceRO = m_bRightReadOnly;
+  } else
+    return;
+
+  if (bSourceRO)
+    OnCompareView();
+  else
+    OnCompareEdit();
+}
+
+void
+CCompareResultsDlg::OnItemRightClick( NMHDR* /* pNMHDR */, LRESULT *pResult)
+{
+  *pResult = 0;
+
+  m_row = m_LCResults.GetNextItem(-1, LVNI_SELECTED);
+
+  if (m_row == -1)
+    return;
+
+  CPoint msg_pt;
+  msg_pt = ::GetMessagePos();
+  CPoint client_pt(msg_pt);
+  ScreenToClient(&client_pt);
+
+  int ipopup, colwidth0;
+  bool bTargetRO, bSourceRO;
   colwidth0 = m_LCResults.GetColumnWidth(0);
 
-  if (pt.x <= colwidth0)
-    column = 0;
-  else if  (pt.x <= (colwidth0 + m_LCResults.GetColumnWidth(1)))
-    column = 1;
-  else
-    column = LAST;
+  if (client_pt.x <= colwidth0) {
+    m_column = 0;
+    ipopup = IDR_POPCOPYTOCOMPARISON;
+    bTargetRO = m_bRightReadOnly;
+    bSourceRO = m_bLeftReadOnly;
+  } else if  (client_pt.x <= (colwidth0 + m_LCResults.GetColumnWidth(1))) {
+    m_column = 1;
+    ipopup = IDR_POPCOPYTOORIGINAL;
+    bTargetRO = m_bLeftReadOnly;
+    bSourceRO = m_bRightReadOnly;
+  } else
+    return;
 
-  if (column < 2) {
-    st_CompareData *st_data;
-    st_data = (st_CompareData *)m_LCResults.GetItemData(row);
-    int pos_index = st_data->index;
-    if (column == pos_index || pos_index == -1) {
-      POSITION pos = (column == 0) ? st_data->pos1 : st_data->pos2;
-      ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
-                    WM_VIEW_COMPARE_RESULT, (WPARAM)pos, (LPARAM)pos_index);
-    }
+  st_CompareData *st_data;
+  st_data = (st_CompareData *)m_LCResults.GetItemData(m_row);
+  int pos_index = st_data->index;
+  if (m_column != pos_index && pos_index != -1)
+    return;
+
+  CMenu menu;
+  if (menu.LoadMenu(ipopup)) {
+    CMenu* pPopup = menu.GetSubMenu(0);
+    ASSERT(pPopup != NULL);
+
+    // Disable copy if target is read-only
+    if (bTargetRO)
+      pPopup->EnableMenuItem(1, MF_BYPOSITION | MF_GRAYED);
+
+    // Disable edit if source read-only
+    if (bSourceRO) 
+      pPopup->ModifyMenu(ID_MENUITEM_COMPEDIT, MF_BYCOMMAND,
+                         ID_MENUITEM_COMPVIEW, _T("View Entry"));
+
+    pPopup->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, msg_pt.x, msg_pt.y, this);
   }
-
-  *pResult = 0;
 }
 
 void

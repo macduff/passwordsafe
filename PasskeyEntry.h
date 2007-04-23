@@ -47,7 +47,7 @@ public:
 		            bool bReadOnly = false, bool bForceReadOnly = false); 
 
   int GetStatus() const {return m_status;}
-  bool IsReadOnly() const {return m_ReadOnly == TRUE;}
+  bool IsReadOnly() const {return m_PKE_ReadOnly == TRUE;}
   bool IsAdvanced() const {return m_bAdvanced == TRUE;}
   const CMyString &GetPasskey() const {return m_passkey;}
   const CString &GetFileName() const {return m_filespec;}
@@ -65,7 +65,7 @@ private:
 #endif
 	CEdit m_ctlPasskey;
     CMyString m_passkey;
-    BOOL m_ReadOnly;
+    BOOL m_PKE_ReadOnly;
     BOOL m_bAdvanced;
     bool m_bForceReadOnly;
 	//}}AFX_DATA

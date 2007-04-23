@@ -56,7 +56,7 @@ CPasskeyEntry::CPasskeyEntry(CWnd* pParent,
      m_filespec(a_filespec), m_orig_filespec(a_filespec),
      m_tries(0),
      m_status(TAR_INVALID),
-     m_ReadOnly(bReadOnly ? TRUE : FALSE),
+     m_PKE_ReadOnly(bReadOnly ? TRUE : FALSE),
      m_bForceReadOnly(bForceReadOnly),
      m_bAdvanced(FALSE)
 {
@@ -96,7 +96,7 @@ void CPasskeyEntry::DoDataExchange(CDataExchange* pDX)
         DDX_Control(pDX, IDC_DATABASECOMBO, m_MRU_combo);
     if (m_index == GCP_ADVANCED)
         DDX_Check(pDX, IDC_ADVANCED, m_bAdvanced);
-	DDX_Check(pDX, IDC_READONLY, m_ReadOnly);
+	DDX_Check(pDX, IDC_READONLY, m_PKE_ReadOnly);
 	//}}AFX_DATA_MAP
 }
 
@@ -446,8 +446,8 @@ void CPasskeyEntry::OnOpenFileBrowser()
         return;
     }
     if (rc == IDOK) {
-        m_ReadOnly = fd.GetReadOnlyPref();
-  		((CButton *)GetDlgItem(IDC_READONLY))->SetCheck(m_ReadOnly == TRUE
+        m_PKE_ReadOnly = fd.GetReadOnlyPref();
+  		((CButton *)GetDlgItem(IDC_READONLY))->SetCheck(m_PKE_ReadOnly == TRUE
                                                         ? BST_CHECKED
                                                         : BST_UNCHECKED);
         m_filespec = fd.GetPathName();

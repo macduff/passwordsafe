@@ -93,13 +93,17 @@ class PWScore {
                      const CString &userBackupPrefix, const CString &userBackupDir);
   int CheckPassword(const CMyString &filename, CMyString &passkey);
   void ChangePassword(const CMyString & newPassword);
-  bool LockFile(const CMyString &filename, CMyString &locker) const
-  {return PWSfile::LockFile(filename, locker);} // legacy/convenience
+  bool LockFile(const CMyString &filename, CMyString &locker)
+    {return PWSfile::LockFile(filename, locker,
+                     m_lockFileHandle, m_LockCount);}
   bool IsLockedFile(const CMyString &filename) const
-  {return PWSfile::IsLockedFile(filename);} // legacy/convenience
-  void UnlockFile(const CMyString &filename) const
-  {return PWSfile::UnlockFile(filename);}
+    {return PWSfile::IsLockedFile(filename);}
+  void UnlockFile(const CMyString &filename)
+    {return PWSfile::UnlockFile(filename, 
+                     m_lockFileHandle, m_LockCount);}
   void SetApplicationMajorMinor(DWORD dwMajorMinor) {m_dwMajorMinor = dwMajorMinor;}
+  void SetReadOnly(bool state) { m_IsReadOnly = state;}
+  bool IsReadOnly() const {return m_IsReadOnly;};
 
   // Return list of unique groups
   void GetUniqueGroups(CStringArray &ary);
@@ -145,6 +149,8 @@ class PWScore {
   static unsigned char m_session_salt[20];
   static unsigned char m_session_initialized;
   static CString m_hdr;
+  HANDLE m_lockFileHandle;
+  int m_LockCount;
 
   CMyString GetPassKey() const; // returns cleartext - USE WITH CARE
   // Following used by SetPassKey
@@ -163,6 +169,7 @@ class PWScore {
   ItemList m_pwlist;
 
   bool m_changed;
+  bool m_IsReadOnly;
 
   CString m_displaystatus;
   CString m_wholastsaved, m_whenlastsaved, m_whatlastsaved;

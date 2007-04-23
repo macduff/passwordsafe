@@ -44,10 +44,11 @@ class PWSfile {
   static int CheckPassword(const CMyString &filename,
                            const CMyString &passkey, VERSION &version);
 
-  enum {DATABASE_LOCK = 0, CONFIG_LOCK};
-  static bool LockFile(const CMyString &filename, CMyString &locker, const bool bDB = true);
-  static bool IsLockedFile(const CMyString &filename, const bool bDB = true);
-  static void UnlockFile(const CMyString &filename, const bool bDB = true);
+  static bool LockFile(const CMyString &filename, CMyString &locker,
+                       HANDLE &lockFileHandle, int &LockCount);
+  static bool IsLockedFile(const CMyString &filename);
+  static void UnlockFile(const CMyString &filename,
+                       HANDLE &lockFileHandle, int &LockCount);
   static bool GetLocker(const CMyString &filename, CMyString &locker);
 
   virtual ~PWSfile();

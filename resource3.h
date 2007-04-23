@@ -283,4 +283,4 @@
 #define IDS_ORIGINALDB                  5449
 #define IDS_COMPARISONDB                5450
 #define IDS_COMPARERESULTS              5451
-
+#define IDS_COPYLEFTRIGHT               5452

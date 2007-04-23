@@ -92,7 +92,7 @@ BOOL CMyTreeCtrl::PreTranslateMessage(MSG* pMsg)
   //hitting the F2 key, being in-place editing of an item
   else if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_F2) {
     HTREEITEM hItem = GetSelectedItem();
-    if (hItem != NULL && !((DboxMain *)GetParent())->IsReadOnly())
+    if (hItem != NULL && !((DboxMain *)GetParent())->IsMcoreReadOnly())
       EditLabel(hItem);
     return TRUE;
   }
@@ -162,7 +162,7 @@ static void splitLeafText(const TCHAR *lt, CString &newTitle, CString &newUser)
 
 void CMyTreeCtrl::OnEndLabelEdit(LPNMHDR pnmhdr, LRESULT *pLResult)
 {
-  if (((DboxMain *)GetParent())->IsReadOnly())
+  if (((DboxMain *)GetParent())->IsMcoreReadOnly())
     return; // don't drag in read-only mode
 
   NMTVDISPINFO *ptvinfo = (NMTVDISPINFO *)pnmhdr;
@@ -545,7 +545,7 @@ void CMyTreeCtrl::OnBeginDrag(NMHDR* pNMHDR, LRESULT* pResult)
   NM_TREEVIEW* pNMTreeView = (NM_TREEVIEW*)pNMHDR;
   *pResult = 0;
 
-  if (((DboxMain *)GetParent())->IsReadOnly())
+  if (((DboxMain *)GetParent())->IsMcoreReadOnly())
       return; // don't drag in read-only mode
 
   GetCursorPos(&ptAction);

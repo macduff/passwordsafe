@@ -77,7 +77,7 @@ DboxMain::DboxMain(CWnd* pParent)
      m_bSortAscending(true), m_iSortedColumn(CItemData::TITLE),
      m_lastFindCS(FALSE), m_lastFindStr(_T("")),
      m_core(app.m_core), m_lock_displaystatus(_T("")),
-     m_pFontTree(NULL), m_IsReadOnly(false),
+     m_pFontTree(NULL),
      m_selectedAtMinimize(NULL), m_bTSUpdated(false),
      m_iSessionEndingStatus(IDIGNORE),
      m_bFindActive(false), m_pchTip(NULL), m_pwchTip(NULL),
@@ -280,7 +280,10 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_MESSAGE(WM_CCTOHDR_DD_COMPLETE, OnCCToHdrDragComplete)
    ON_MESSAGE(WM_HDRTOCC_DD_COMPLETE, OnHdrToCCDragComplete)
    ON_MESSAGE(WM_HDR_DRAG_COMPLETE, OnHeaderDragComplete)
+   ON_MESSAGE(WM_EDIT_COMPARE_RESULT, OnEditCompareResult)
    ON_MESSAGE(WM_VIEW_COMPARE_RESULT, OnViewCompareResult)
+   ON_MESSAGE(WM_COPY_COMPARERESULT_TO_COMPARISONDB, OnCopyCompareResultToComparisonDB)
+   ON_MESSAGE(WM_COPY_COMPARERESULT_TO_ORIGINALDB, OnCopyCompareResultToOriginalDB)
    
 	//}}AFX_MSG_MAP
    ON_COMMAND_EX_RANGE(ID_FILE_MRU_ENTRY1, ID_FILE_MRU_ENTRYMAX, OnOpenMRU)
@@ -599,7 +602,7 @@ DboxMain::OnDestroy()
 {
   const CMyString filename(m_core.GetCurFile());
   // The only way we're the locker is if it's locked & we're !readonly
-  if (!filename.IsEmpty() && !m_IsReadOnly && m_core.IsLockedFile(filename))
+  if (!filename.IsEmpty() && !m_core.IsReadOnly() && m_core.IsLockedFile(filename))
     m_core.UnlockFile(filename);
 
   // Get rid of hotkey
@@ -738,9 +741,9 @@ DboxMain::OnUpdateROCommand(CCmdUI *pCmdUI)
 
   // Use this callback for commands that need to
   // be disabled in read-only mode
-  pCmdUI->Enable(m_IsReadOnly ? FALSE : TRUE);
+  pCmdUI->Enable(m_core.IsReadOnly() ? FALSE : TRUE);
 #ifdef DEMO
-  if (!m_IsReadOnly) {
+  if (!m_core.IsReadOnly()) {
       bool isLimited = (m_core.GetNumEntries() >= MAXDEMO);
       if (isLimited) {
           switch (pCmdUI->m_nID) {
@@ -950,7 +953,7 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
     if (icore == 0)
       pcore = &m_core;
     else
-      pcore = &m_core2;
+      pcore = m_pcore1;
 
     if (!filename.IsEmpty()) {
         bool exists = pcore->FileExists(filename, bFileIsReadOnly);
@@ -968,14 +971,14 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
 
     if (bFileIsReadOnly || bForceReadOnly) {
         // As file is read-only, we must honour it and not permit user to change it
-        m_IsReadOnly = true;
+        pcore->SetReadOnly(true);
         bFileIsReadOnly = true;
     }
     static CPasskeyEntry *dbox_pkentry = NULL;
     int rc = 0;
     if (dbox_pkentry == NULL) {
         dbox_pkentry = new CPasskeyEntry(this, filename,
-                                         index, m_IsReadOnly, bFileIsReadOnly);
+                                         index, pcore->IsReadOnly(), bFileIsReadOnly);
 
         int nMajor(0), nMinor(0), nBuild(0);
         DWORD dwMajorMinor = app.GetFileVersionMajorMinor();
@@ -1011,20 +1014,20 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
         CMyString locker(_T("")); // null init is important here
         passkey = dbox_pkentry->GetPasskey();
         // This dialog's setting of read-only overrides file dialog
-        m_IsReadOnly = dbox_pkentry->IsReadOnly();
-        SetReadOnly(m_IsReadOnly);
+        bool bIsReadOnly = dbox_pkentry->IsReadOnly();
+        pcore->SetReadOnly(bIsReadOnly);
         // Set read-only mode if user explicitly requested it OR
         // we could not create a lock file.
         switch (index) {
             case GCP_FIRST: // if first, then m_IsReadOnly is set in Open
-                SetReadOnly(m_IsReadOnly || !pcore->LockFile(curFile, locker));
+                pcore->SetReadOnly(bIsReadOnly || !pcore->LockFile(curFile, locker));
                 break;
             case GCP_NORMAL:
             case GCP_ADVANCED:
-                if (!m_IsReadOnly) // !first, lock if !m_IsReadOnly
-                    SetReadOnly(!pcore->LockFile(curFile, locker));
+                if (!bIsReadOnly) // !first, lock if !bIsReadOnly
+                    pcore->SetReadOnly(!pcore->LockFile(curFile, locker));
                 else
-                    SetReadOnly(m_IsReadOnly);
+                    pcore->SetReadOnly(bIsReadOnly);
                 break;
             case GCP_UNMINIMIZE:
             case GCP_WITHEXIT:
@@ -1032,6 +1035,7 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
                 // user can't change R-O status
                 break;
         }
+        UpdateToolBar(bIsReadOnly);
         // locker won't be null IFF tried to lock and failed, in which case
         // it shows the current file locker
         if (!locker.IsEmpty()) {
@@ -1059,11 +1063,13 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
             switch(user_choice) {
                 case IDYES:
                 case IDOK:
-                    SetReadOnly(true);
+                    pcore->SetReadOnly(true);
+                    UpdateToolBar(true);
                     retval = PWScore::SUCCESS;
                     break;
                 case IDNO:
-                    SetReadOnly(false); // Caveat Emptor!
+                    pcore->SetReadOnly(false); // Caveat Emptor!
+                    UpdateToolBar(false);
                     retval = PWScore::SUCCESS;
                     break;
                 case IDCANCEL:
@@ -1386,7 +1392,7 @@ DboxMain::OnInitMenu(CMenu* pMenu)
         ID_MENUITEM_DELETE, CS_DELETEENTRY);
     pMenu->ModifyMenu(ID_MENUITEM_RENAME, MF_BYCOMMAND,
         ID_MENUITEM_RENAME, CS_RENAMEENTRY);
-    if (m_IsReadOnly) {
+    if (m_core.IsReadOnly()) {
       pMenu->ModifyMenu(ID_MENUITEM_EDIT, MF_BYCOMMAND,
         ID_MENUITEM_EDIT, CS_VIEWENTRY);
     } else {
@@ -1816,7 +1822,7 @@ DboxMain::UpdateAccessTime(CItemData *ci)
   bool bMaintainDateTimeStamps = PWSprefs::GetInstance()->
     GetPref(PWSprefs::MaintainDateTimeStamps);
 
-  if (!m_IsReadOnly && bMaintainDateTimeStamps) {
+  if (!m_core.IsReadOnly() && bMaintainDateTimeStamps) {
     ci->SetATime();
     SetChanged(TimeStamp);
     // Need to update view if there
@@ -1850,7 +1856,7 @@ DboxMain::OnQueryEndSession()
 	// Save Application related preferences
 	prefs->SaveApplicationPreferences();
 
-	if (m_IsReadOnly)
+	if (m_core.IsReadOnly())
 		return TRUE;
 
 	if (m_bTSUpdated && m_core.GetNumEntries() > 0) {
@@ -1913,7 +1919,7 @@ DboxMain::UpdateStatusBar()
   	if (m_bOpen) {
       s = m_core.IsChanged() ? _T("*") : _T(" ");
       m_statusBar.SetPaneText(SB_MODIFIED, s);
-      s = m_IsReadOnly ? _T("R-O") : _T("R/W");
+      s = m_core.IsReadOnly() ? _T("R-O") : _T("R/W");
       m_statusBar.SetPaneText(SB_READONLY, s);
       s.Format(IDS_NUMITEMS, m_core.GetNumEntries());
       m_statusBar.SetPaneText(SB_NUM_ENT, s);
@@ -1978,7 +1984,7 @@ DboxMain::UpdateMenuAndToolBar(const bool bOpen)
 	const BOOL btoolbar1 = bOpen ? TRUE : FALSE;
 	// If open but Read-Only
 	BOOL btoolbar2;
-	if (m_IsReadOnly)
+	if (m_core.IsReadOnly())
 		btoolbar2 = FALSE;
 	else
 		btoolbar2 = btoolbar1;
