@@ -478,15 +478,17 @@ DboxMain::RefreshList()
     m_core.GetNextEntry(listPos);
   }
 
-  m_ctlItemList.SortItems(CompareFunc, (LPARAM)this);
 #if defined(POCKET_PC)
   SetCursor( NULL );
 #endif
-  m_ctlItemTree.RestoreExpanded();
 
   if (m_bExplorerTypeTree) {
-      SortTree(TVI_ROOT);
+    SortTree(TVI_ROOT);
+  } else {
+    m_ctlItemList.SortItems(CompareFunc, (LPARAM)this);
   }
+
+  m_ctlItemTree.RestoreExpanded();
 
   // re-enable and force redraw!
   m_ctlItemList.SetRedraw( TRUE ); m_ctlItemList.Invalidate();
