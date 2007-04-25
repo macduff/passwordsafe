@@ -1113,7 +1113,8 @@ DboxMain::Merge(const CMyString &pszFilename) {
   /* open file they want to merge */
   int rc = PWScore::SUCCESS;
   CMyString passkey, temp;
-  m_pcore1 = new PWScore;
+  PWScore *pothercore;
+  pothercore = new PWScore;
 
   //Check that this file isn't already open
   if (pszFilename == m_core.GetCurFile()) {
@@ -1122,36 +1123,32 @@ DboxMain::Merge(const CMyString &pszFilename) {
       return PWScore::ALREADY_OPEN;
   }
 
-  // Save current read-only status around opening merge file R-O
-  const bool bCurrentFileIsReadOnly(m_core.IsReadOnly());
   // Force input database into read-only status
   rc = GetAndCheckPassword(pszFilename, passkey,
                            GCP_ADVANCED, // OK, CANCEL, HELP
                            true,         // force readonly
-                           1);           // Use m_core2
-
-  // Restore original database read-only status & name
-  m_core.SetReadOnly(bCurrentFileIsReadOnly);
+                           pothercore);  // Use other core
 
   CString cs_temp, cs_title;
   switch (rc) {
-	case PWScore::SUCCESS:
+	  case PWScore::SUCCESS:
       app.AddToMRU(pszFilename);
       break; // Keep going...
-	case PWScore::CANT_OPEN_FILE:
-      cs_temp.Format(IDS_CANTOPEN, m_pcore1->GetCurFile());
+	  case PWScore::CANT_OPEN_FILE:
+      cs_temp.Format(IDS_CANTOPEN, pothercore->GetCurFile());
       cs_title.LoadString(IDS_FILEOPENERROR);
       MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
-	case TAR_OPEN:
-      return Open();
-	case TAR_NEW:
-      return New();
-	case PWScore::WRONG_PASSWORD:
-	case PWScore::USER_CANCEL:
+	  case TAR_OPEN:
+	  case TAR_NEW:
+	  case PWScore::WRONG_PASSWORD:
+	  case PWScore::USER_CANCEL:
       /*
         If the user just cancelled out of the password dialog,
         assume they want to return to where they were before...
       */
+      pothercore->ClearData();
+      delete pothercore;
+      pothercore = NULL;
       return PWScore::USER_CANCEL;
 	}
 
@@ -1182,7 +1179,7 @@ DboxMain::Merge(const CMyString &pszFilename) {
     pAdv = NULL;
   }
 
-  m_pcore1->ReadFile(pszFilename, passkey);
+  pothercore->ReadFile(pszFilename, passkey);
 
   if (rc == PWScore::CANT_OPEN_FILE) {
       cs_temp.Format(IDS_CANTOPENREADING, pszFilename);
@@ -1192,10 +1189,13 @@ DboxMain::Merge(const CMyString &pszFilename) {
 		Everything stays as is... Worst case,
 		they saved their file....
       */
+      pothercore->ClearData();
+      delete pothercore;
+      pothercore = NULL;
       return PWScore::CANT_OPEN_FILE;
 	}
 
-  m_pcore1->SetCurFile(pszFilename);
+  pothercore->SetCurFile(pszFilename);
 
   /* Put up hourglass...this might take a while */
   CWaitCursor waitCursor;
@@ -1218,9 +1218,9 @@ DboxMain::Merge(const CMyString &pszFilename) {
   int numAdded = 0;
   int numConflicts = 0;
 
-  POSITION otherPos = m_pcore1->GetFirstEntryPosition();
+  POSITION otherPos = pothercore->GetFirstEntryPosition();
   while (otherPos) {
-    CItemData otherItem = m_pcore1->GetEntryAt(otherPos);
+    CItemData otherItem = pothercore->GetEntryAt(otherPos);
 
     if (subgroup_set == BST_UNCHECKED ||
       otherItem.WantEntry(subgroup_name, subgroup_object, subgroup_function) == TRUE) {
@@ -1267,12 +1267,12 @@ DboxMain::Merge(const CMyString &pszFilename) {
         numAdded++;
       }
     }
-    m_pcore1->GetNextEntry(otherPos);
+    pothercore->GetNextEntry(otherPos);
   }
 
-  m_pcore1->ClearData();
-  delete m_pcore1;
-  m_pcore1 = NULL;
+  pothercore->ClearData();
+  delete pothercore;
+  pothercore = NULL;
 
   waitCursor.Restore(); /* restore normal cursor */
 
@@ -1425,12 +1425,16 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 {
 	// open file they want to Compare
 	int rc = PWScore::SUCCESS;
+
 	CMyString passkey, temp;
 	CString cs_title, cs_text;
-  m_pcore1 = new PWScore;
+  PWScore *pothercore;
 
-	// OK, CANCEL, HELP + force READ-ONLY, use m_core2
-	rc = GetAndCheckPassword(cs_Filename2, passkey, GCP_ADVANCED, true, 1);
+  pothercore = new PWScore;
+
+	// OK, CANCEL, HELP + force READ-ONLY, use pothercore
+	rc = GetAndCheckPassword(cs_Filename2, passkey, GCP_ADVANCED, false,
+	                  pothercore);
 	switch (rc) {
 		case PWScore::SUCCESS:
 			break; // Keep going...
@@ -1481,22 +1485,56 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
     pAdv = NULL;
   }
 
-	m_pcore1->ReadFile(cs_Filename2, passkey);
+  // Not really needed but...
+  pothercore->ClearData();
 
-	if (rc == PWScore::CANT_OPEN_FILE) {
-		temp.Format(IDS_CANTOPENREADING, cs_Filename2);
-		cs_title.LoadString(IDS_FILEREADERROR);
-		MessageBox(temp, cs_title, MB_OK|MB_ICONWARNING);
-		return PWScore::CANT_OPEN_FILE;
-	}
+	pothercore->ReadFile(cs_Filename2, passkey);
+
+  switch (rc) {
+    case PWScore::SUCCESS:
+      break;
+    case PWScore::CANT_OPEN_FILE:
+      temp.Format(IDS_CANTOPENREADING, cs_Filename2);
+      MessageBox(temp, cs_title, MB_OK | MB_ICONWARNING);
+      break;
+    case PWScore::BAD_DIGEST:
+      {
+        temp.Format(IDS_FILECORRUPT, cs_Filename2);
+        const int yn = MessageBox(temp, cs_title, MB_YESNO|MB_ICONERROR);
+        if (yn == IDYES)
+          rc = PWScore::SUCCESS;
+        break;
+      }
+#ifdef DEMO
+    case PWScore::LIMIT_REACHED:
+      {
+        CString cs_msg; cs_msg.Format(IDS_LIMIT_MSG2, MAXDEMO);
+        CString cs_title(MAKEINTRESOURCE(IDS_LIMIT_TITLE));
+        MessageBox(cs_msg, cs_title, MB_ICONWARNING);
+        break;
+      }
+#endif
+    default:
+      temp.Format(IDS_UNKNOWNERROR, cs_Filename2);
+      MessageBox(temp, cs_title, MB_OK|MB_ICONERROR);
+      break;
+  }
+
+  if (rc != PWScore::SUCCESS) {
+    pothercore->ClearData();
+    pothercore->SetCurFile(_T(""));
+    delete pothercore;
+    pothercore = NULL;
+    return rc;
+  }
+
+  pothercore->SetCurFile(cs_Filename2);
 
 	CompareData list_OnlyInCurrent;
 	CompareData list_OnlyInComp;
 	CompareData list_Conflicts;
 
   CompareData::iterator cd_iter;
-
-	m_pcore1->SetCurFile(cs_Filename2);
 
 	// Put up hourglass...this might take a while
 	CWaitCursor waitCursor;
@@ -1543,7 +1581,7 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
       const CMyString currentTitle = currentItem.GetTitle();
       const CMyString currentUser = currentItem.GetUser();
 
-      POSITION foundPos = m_pcore1->Find(currentGroup, currentTitle, currentUser);
+      POSITION foundPos = pothercore->Find(currentGroup, currentTitle, currentUser);
       if (foundPos) {
         // found a match, see if all other fields also match
         // Difference flags:
@@ -1571,7 +1609,7 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 
         bsConflicts.reset();
 
-        CItemData compItem = m_pcore1->GetEntryAt(foundPos);
+        CItemData compItem = pothercore->GetEntryAt(foundPos);
         if (bsCompare.test(CItemData::NOTES) && currentItem.GetNotes() != compItem.GetNotes())
           bsConflicts.flip(CItemData::NOTES);
         if (bsCompare.test(CItemData::PASSWORD) && currentItem.GetPassword() != compItem.GetPassword())
@@ -1594,25 +1632,25 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
           bsConflicts.flip(CItemData::PWHIST);
 
         if (bsConflicts.any()) {
-          st_data.pos1 = currentPos;
-          st_data.pos2 = foundPos;
+          st_data.pos0 = currentPos;
+          st_data.pos1 = foundPos;
           st_data.bsDiffs = bsConflicts;
           st_data.group = currentGroup;
           st_data.title = currentTitle;
           st_data.user = currentUser;
-          st_data.index = -1;
+          st_data.column = -1;
           list_Conflicts.push_back(st_data);
           numConflicts++;
         }
       } else {
         /* didn't find any match... */
-        st_data.pos1 = currentPos;
-        st_data.pos2 = (POSITION)-1;
+        st_data.pos0 = currentPos;
+        st_data.pos1 = (POSITION)-1;
         st_data.bsDiffs.reset();
         st_data.group = currentGroup;
         st_data.title = currentTitle;
         st_data.user = currentUser;
-        st_data.index = 0;
+        st_data.column = 0;
         list_OnlyInCurrent.push_back(st_data);
         numOnlyInCurrent++;
       }
@@ -1620,9 +1658,9 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 		m_core.GetNextEntry(currentPos);
 	}
 
-	POSITION compPos = m_pcore1->GetFirstEntryPosition();
+	POSITION compPos = pothercore->GetFirstEntryPosition();
 	while (compPos) {
-		CItemData compItem = m_pcore1->GetEntryAt(compPos);
+		CItemData compItem = pothercore->GetEntryAt(compPos);
 
     if (subgroup_set == BST_UNCHECKED ||
         compItem.WantEntry(subgroup_name, subgroup_object, subgroup_function) == FALSE) {
@@ -1632,24 +1670,24 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
   
       if (!m_core.Find(compGroup, compTitle, compUser)) {
         /* didn't find any match... */
-        st_data.pos1 = (POSITION)-1;
-        st_data.pos2 = compPos;
+        st_data.pos0 = (POSITION)-1;
+        st_data.pos1 = compPos;
         st_data.bsDiffs.reset();
         st_data.group = compGroup;
         st_data.title = compTitle;
         st_data.user = compUser;
-        st_data.index = 1;
+        st_data.column = 1;
         list_OnlyInComp.push_back(st_data);
         numOnlyInComp++;
       }
     }
-		m_pcore1->GetNextEntry(compPos);
+		pothercore->GetNextEntry(compPos);
 	}
 
 	waitCursor.Restore(); // restore normal cursor
 
 	// tell the user we're done & provide short Compare report
-	CString resultStr(_T("")), buffer;
+  CString resultStr(_T("")), buffer;
 	cs_title.LoadString(IDS_COMPARECOMPLETE);
 	buffer.Format(IDS_COMPARESTATISTICS, cs_Filename1, cs_Filename2);
 
@@ -1667,138 +1705,195 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
     resultStr += buffer;
 
     CCompareResultsDlg CmpRes(this, list_OnlyInCurrent,
-      list_OnlyInComp, 
-      list_Conflicts);
+      list_OnlyInComp, list_Conflicts, &m_core, pothercore);
 
     CmpRes.m_cs_Filename1 = cs_Filename1;
     CmpRes.m_cs_Filename2 = cs_Filename2;
-    CmpRes.m_bLeftReadOnly = m_core.IsReadOnly();
-    CmpRes.m_bRightReadOnly = m_pcore1->IsReadOnly();
+    CmpRes.m_bOriginalDBReadOnly = m_core.IsReadOnly();
+    CmpRes.m_bComparisonDBReadOnly = pothercore->IsReadOnly();
 
     CmpRes.DoModal();
-    if (CmpRes.m_coreChanged) {
+    if (CmpRes.m_OriginalDBChanged) {
       FixListIndexes();
       RefreshList();
     }
+
+    if (CmpRes.m_ComparisonDBChanged) {
+      SaveCore(pothercore);
+    }
+
+    if (pothercore->IsLockedFile(pothercore->GetCurFile()))
+      pothercore->UnlockFile(pothercore->GetCurFile());
   }
 
 	list_OnlyInCurrent.clear();
 	list_OnlyInComp.clear();
 	list_Conflicts.clear();
 
-  m_pcore1->ClearData();
-  delete m_pcore1;
-  m_pcore1 = NULL;
+  pothercore->ClearData();
+  pothercore->SetCurFile(_T(""));
+  delete pothercore;
+  pothercore = NULL;
+
 	return rc;
 }
 
-LRESULT
-DboxMain::OnViewCompareResult(WPARAM wParam, LPARAM lParam)
+int
+DboxMain::SaveCore(PWScore *pcore)
 {
-  POSITION pos;
-  CItemData *ci;
+  // Stolen from Save!
+  int rc;
+  CString cs_title, cs_msg, cs_temp;
+  PWSprefs *prefs = PWSprefs::GetInstance();
 
-  pos = (POSITION)wParam;
-
-  bool bSaveRO = m_core.IsReadOnly();
-
-  if ((int)lParam == 0) {
-    ci = &m_core.GetEntryAt(pos);
-  } else {
-    ci = &m_pcore1->GetEntryAt(pos);
-    // Lie as we can't yet get Edit to work as View for second core
-    m_core.SetReadOnly(true);
+  if (pcore->GetReadFileVersion() == PWSfile::VCURRENT) {
+    if (prefs->GetPref(PWSprefs::BackupBeforeEverySave)) {
+      int maxNumIncBackups = prefs->GetPref(PWSprefs::BackupMaxIncremented);
+      int backupSuffix = prefs->GetPref(PWSprefs::BackupSuffix);
+      CString userBackupPrefix = CString(prefs->GetPref(PWSprefs::BackupPrefixValue));
+      CString userBackupDir = CString(prefs->GetPref(PWSprefs::BackupDir));
+      if (!pcore->BackupCurFile(maxNumIncBackups, backupSuffix,
+                                userBackupPrefix, userBackupDir))
+        AfxMessageBox(IDS_NOIBACKUP, MB_OK);
+    }
+  } else { // file version mis-match
+    CMyString NewName = PWSUtil::GetNewFileName(pcore->GetCurFile(), DEFAULT_SUFFIX );
+    cs_msg.Format(IDS_NEWFORMAT, pcore->GetCurFile(), NewName);
+    cs_title.LoadString(IDS_VERSIONWARNING);
+    if (MessageBox(cs_msg, cs_title, MB_OKCANCEL | MB_ICONWARNING) == IDCANCEL)
+      return PWScore::USER_CANCEL;
+    pcore->SetCurFile(NewName);
   }
+  rc = pcore->WriteCurFile();
 
-  // View the right entry
-  EditItem(ci);
-
-  // Reset m_core R/O status
-  m_core.SetReadOnly(bSaveRO);
-
-  return 0L;
+  if (rc == PWScore::CANT_OPEN_FILE) {
+    cs_temp.Format(IDS_CANTOPENWRITING, pcore->GetCurFile());
+    cs_title.LoadString(IDS_FILEWRITEERROR);
+    MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
+    return PWScore::CANT_OPEN_FILE;
+  }
+  pcore->SetChanged(false);
+  return PWScore::SUCCESS;
 }
 
 LRESULT
-DboxMain::OnEditCompareResult(WPARAM wParam, LPARAM lParam)
+DboxMain::OnProcessCompareResultFunction(WPARAM wParam, LPARAM lParam)
 {
-  POSITION pos;
+  st_CompareInfo *st_info;
+  LRESULT lres(FALSE);
+
+  st_info = (st_CompareInfo *)wParam;
+
+  PWScore *pcore = (st_info->column == 0) ? st_info->pcore0 : st_info->pcore1;
+  POSITION pos = (st_info->column == 0) ? st_info->pos0 : st_info->pos1;
+  switch ((int)lParam) {
+    case CCompareResultsDlg::EDIT:
+      lres = EditCompareResult(pcore, pos);
+      break;      
+    case CCompareResultsDlg::VIEW:
+      lres = ViewCompareResult(pcore, pos);
+      break;
+    case CCompareResultsDlg::COPY_TO_ORIGINALDB:
+      lres = CopyCompareResult(st_info->pcore1, st_info->pcore0, st_info->pos1);
+      break;
+    case CCompareResultsDlg::COPY_TO_COMPARISONDB:
+      lres = CopyCompareResult(st_info->pcore0, st_info->pcore1, st_info->pos0);
+      break;
+    default:
+      ASSERT(0);
+  }
+  return lres;
+}
+
+LRESULT
+DboxMain::ViewCompareResult(PWScore *pcore, POSITION pos)
+{  
   CItemData *ci;
 
-  pos = (POSITION)wParam;
+  ci = &pcore->GetEntryAt(pos);
 
-  if ((int)lParam == 0)
-    ci = &m_core.GetEntryAt(pos);
-  else
-    ci = &m_pcore1->GetEntryAt(pos);
+  // View the correct entry and make sure R/O
+  bool bSaveRO = m_core.IsReadOnly();
+  m_core.SetReadOnly(true);
 
-  // View the right entry
-  bool rc = EditItem(ci);
+  EditItem(ci);
 
-  if (rc)
+  m_core.SetReadOnly(bSaveRO);
+
+  return FALSE;
+}
+
+LRESULT
+DboxMain::EditCompareResult(PWScore *pcore, POSITION pos)
+{
+  CItemData *ci;
+
+  ci = &pcore->GetEntryAt(pos);;
+
+  // Edit the correct entry
+  if (EditItem(ci))
     return TRUE;
   else
     return FALSE;
 }
 
 LRESULT
-DboxMain::OnCopyCompareResultToOriginalDB(WPARAM wParam, LPARAM /* lParam */)
+DboxMain::CopyCompareResult(PWScore *pfromcore, PWScore *ptocore, POSITION fromPos)
 {
-  // Copy Left means from *m_pcore1 -> m_core
-  POSITION leftPos, rightRos, uuidPos;
-  CItemData *rightItem, *leftItem;
+  // Copy *pfromcore -> *ptocore entry at fromPos
+
+  POSITION toPos, touuidPos;
+  CItemData *fromEntry, *toEntry;
   CMyString group, title, user, notes, password, url, autotype, pwhistory;
-  uuid_array_t rUUID;
+  uuid_array_t fromUUID;
   time_t ct, at, lt, pmt, rmt;
 
-  rightRos = (POSITION)wParam;
+  fromEntry = &pfromcore->GetEntryAt(fromPos);
 
-  rightItem = &m_pcore1->GetEntryAt(rightRos);
+  fromEntry->GetUUID(fromUUID);
+  group = fromEntry->GetGroup();
+  title = fromEntry->GetTitle();
+  user = fromEntry->GetUser();
+  notes = fromEntry->GetNotes();
+  password = fromEntry->GetPassword();
+  url = fromEntry->GetURL();
+  autotype = fromEntry->GetAutoType();
+  pwhistory = fromEntry->GetPWHistory();
+  fromEntry->GetCTime(ct);
+  fromEntry->GetATime(at);
+  fromEntry->GetLTime(lt);
+  fromEntry->GetPMTime(pmt);
+  fromEntry->GetRMTime(rmt);
 
-  rightItem->GetUUID(rUUID);
-  group = rightItem->GetGroup();
-  title = rightItem->GetTitle();
-  user = rightItem->GetUser();
-  notes = rightItem->GetNotes();
-  password = rightItem->GetPassword();
-  url = rightItem->GetURL();
-  autotype = rightItem->GetAutoType();
-  pwhistory = rightItem->GetPWHistory();
-  rightItem->GetCTime(ct);
-  rightItem->GetATime(at);
-  rightItem->GetLTime(lt);
-  rightItem->GetPMTime(pmt);
-  rightItem->GetRMTime(rmt);
-
-  uuidPos = m_core.Find(rUUID);
+  touuidPos = ptocore->Find(fromUUID);
 
   // Is it already there:?
-  leftPos = m_core.Find(group, title, user);
-  if (leftPos) {
+  toPos = ptocore->Find(group, title, user);
+  if (toPos) {
     // Yes - just overwrite everything!
-    leftItem = &m_core.GetEntryAt(leftPos);
+    toEntry = &ptocore->GetEntryAt(toPos);
 
-    leftItem->SetNotes(notes);
-    leftItem->SetPassword(password);
-    leftItem->SetURL(url);
-    leftItem->SetAutoType(autotype);
-    leftItem->SetPWHistory(pwhistory);
-    leftItem->SetCTime(ct);
-    leftItem->SetATime(at);
-    leftItem->SetLTime(lt);
-    leftItem->SetPMTime(pmt);
-    leftItem->SetRMTime(rmt);
+    toEntry->SetNotes(notes);
+    toEntry->SetPassword(password);
+    toEntry->SetURL(url);
+    toEntry->SetAutoType(autotype);
+    toEntry->SetPWHistory(pwhistory);
+    toEntry->SetCTime(ct);
+    toEntry->SetATime(at);
+    toEntry->SetLTime(lt);
+    toEntry->SetPMTime(pmt);
+    toEntry->SetRMTime(rmt);
 
     // If the UUID is not in use, copy it too, otherwise reuse current
-    if (!uuidPos)
-      leftItem->SetUUID(rUUID);
+    if (!touuidPos)
+      toEntry->SetUUID(fromUUID);
 
   } else {
     CItemData temp;
 
     // If the UUID is not in use, copy it too otherwise create it
-    if (!uuidPos)
-      temp.SetUUID(rUUID);
+    if (!touuidPos)
+      temp.SetUUID(fromUUID);
     else
       temp.CreateUUID();
 
@@ -1815,92 +1910,11 @@ DboxMain::OnCopyCompareResultToOriginalDB(WPARAM wParam, LPARAM /* lParam */)
     temp.SetLTime(lt);
     temp.SetPMTime(pmt);
     temp.SetRMTime(rmt);
-    m_core.AddEntryToTail(temp);
+    ptocore->AddEntryToTail(temp);
   }
 
-  m_core.SetChanged(true);
-  return 0L;
-}
-
-LRESULT
-DboxMain::OnCopyCompareResultToComparisonDB(WPARAM wParam, LPARAM /* lParam */)
-{
-  // Copy Right means from m_core -> *m_pcore1
-  POSITION leftPos, rightPos, uuidPos;
-  CItemData *rightItem, *leftItem;
-  CMyString group, title, user, notes, password, url, autotype, pwhistory;
-  uuid_array_t rUUID;
-  time_t ct, at, lt, pmt, rmt;
-
-  leftPos = (POSITION)wParam;
-
-  leftItem = &m_core.GetEntryAt(leftPos);
-
-  leftItem->GetUUID(rUUID);
-  group = leftItem->GetGroup();
-  title = leftItem->GetTitle();
-  user = leftItem->GetUser();
-  notes = leftItem->GetNotes();
-  password = leftItem->GetPassword();
-  url = leftItem->GetURL();
-  autotype = leftItem->GetAutoType();
-  pwhistory = leftItem->GetPWHistory();
-  leftItem->GetCTime(ct);
-  leftItem->GetATime(at);
-  leftItem->GetLTime(lt);
-  leftItem->GetPMTime(pmt);
-  leftItem->GetRMTime(rmt);
-  
-  uuidPos = m_pcore1->Find(rUUID);
-
-  // Is it already there:?
-  rightPos = m_pcore1->Find(group, title, user);
-  if (rightPos) {
-    // Yes - just overwrite everything!
-    rightItem = &m_pcore1->GetEntryAt(rightPos);
-
-    rightItem->SetNotes(notes);
-    rightItem->SetPassword(password);
-    rightItem->SetURL(url);
-    rightItem->SetAutoType(autotype);
-    rightItem->SetPWHistory(pwhistory);
-    rightItem->SetCTime(ct);
-    rightItem->SetATime(at);
-    rightItem->SetLTime(lt);
-    rightItem->SetPMTime(pmt);
-    rightItem->SetRMTime(rmt);
-
-    // If the UUID is not in use, copy it too, otherwise reuse current
-    if (!uuidPos)
-      rightItem->SetUUID(rUUID);
-
-  } else {
-    CItemData temp;
-
-    // If the UUID is not in use, copy it too otherwise create it
-    if (!uuidPos)
-      temp.SetUUID(rUUID);
-    else
-      temp.CreateUUID();
-
-    temp.SetGroup(group);
-    temp.SetTitle(title);
-    temp.SetUser(user);
-    temp.SetPassword(password);
-    temp.SetNotes(notes);
-    temp.SetURL(url);
-    temp.SetAutoType(autotype);
-    temp.SetPWHistory(pwhistory);
-    temp.SetCTime(ct);
-    temp.SetATime(at);
-    temp.SetLTime(lt);
-    temp.SetPMTime(pmt);
-    temp.SetRMTime(rmt);
-    m_pcore1->AddEntryToTail(temp);
-  }
-
-  m_pcore1->SetChanged(true);
-  return 0L;
+  ptocore->SetChanged(true);
+  return TRUE;
 }
 
 void

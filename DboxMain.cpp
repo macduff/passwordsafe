@@ -76,7 +76,7 @@ DboxMain::DboxMain(CWnd* pParent)
      m_toolbarsSetup(FALSE),
      m_bSortAscending(true), m_iSortedColumn(CItemData::TITLE),
      m_lastFindCS(FALSE), m_lastFindStr(_T("")),
-     m_core(app.m_core), m_lock_displaystatus(_T("")),
+     m_core(app.m_core), m_lock_displaystatus(_T("")), 
      m_pFontTree(NULL),
      m_selectedAtMinimize(NULL), m_bTSUpdated(false),
      m_iSessionEndingStatus(IDIGNORE),
@@ -280,10 +280,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
    ON_MESSAGE(WM_CCTOHDR_DD_COMPLETE, OnCCToHdrDragComplete)
    ON_MESSAGE(WM_HDRTOCC_DD_COMPLETE, OnHdrToCCDragComplete)
    ON_MESSAGE(WM_HDR_DRAG_COMPLETE, OnHeaderDragComplete)
-   ON_MESSAGE(WM_EDIT_COMPARE_RESULT, OnEditCompareResult)
-   ON_MESSAGE(WM_VIEW_COMPARE_RESULT, OnViewCompareResult)
-   ON_MESSAGE(WM_COPY_COMPARERESULT_TO_COMPARISONDB, OnCopyCompareResultToComparisonDB)
-   ON_MESSAGE(WM_COPY_COMPARERESULT_TO_ORIGINALDB, OnCopyCompareResultToOriginalDB)
+   ON_MESSAGE(WM_COMPARE_RESULT_FUNCTION, OnProcessCompareResultFunction)
    
 	//}}AFX_MSG_MAP
    ON_COMMAND_EX_RANGE(ID_FILE_MRU_ENTRY1, ID_FILE_MRU_ENTRYMAX, OnOpenMRU)
@@ -934,7 +931,7 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
                               CMyString& passkey,
                               int index ,
                               bool bForceReadOnly,
-                              int icore)
+                              PWScore *pcore)
 {
     // index:
     //	GCP_FIRST      (0) first
@@ -948,12 +945,8 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
     // prevent multiple r/w access.
     int retval;
     bool bFileIsReadOnly = false;
-    PWScore *pcore;
-    
-    if (icore == 0)
-      pcore = &m_core;
-    else
-      pcore = m_pcore1;
+
+    if (pcore == 0) pcore = &m_core;
 
     if (!filename.IsEmpty()) {
         bool exists = pcore->FileExists(filename, bFileIsReadOnly);

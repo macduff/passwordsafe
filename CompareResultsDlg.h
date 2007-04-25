@@ -14,25 +14,35 @@
 #include "corelib/ItemData.h"
 #include "corelib/MyString.h"
 
-// The following structure needed for compare when record is in
-// both databases but there are differences
+// The following structure is needed for compare when record is in
+// both databases (column = -1) but there are differences
+// Subset used when record is in only one (column = 0 or 1)
+// If entries made equal by copying, column set to -2.
 struct st_CompareData {
+  POSITION pos0;
   POSITION pos1;
-  POSITION pos2;
   CItemData::FieldBits bsDiffs;
   CMyString group;
   CMyString title;
   CMyString user;
-  int index;
+  int column;
   int listindex;
 };
 
+// Vector of entries passed from DboxMain::Compare to CompareResultsDlg
+// Used for "Only in Original DB", "only in Comparison DB" and
+// in "Both with Differences"
 typedef std::vector<st_CompareData> CompareData;
 
-// Column indices
-enum {CURRENT = 0, COMPARE, GROUP, TITLE, USER, PASSWORD, NOTES, URL,
-      AUTOTYPE, PWHIST, CTIME, ATIME, LTIME, PMTIME, RMTIME,
-      LAST};
+// The following structure is needed for compare to send back data
+// to allow copying, viewing and editing of entries
+struct st_CompareInfo {
+  PWScore *pcore0;
+  PWScore *pcore1;
+  POSITION pos0;
+  POSITION pos1;
+  int column;
+};
 
 class CCompareResultsDlg : public CDialog
 {
@@ -43,7 +53,16 @@ public:
   CCompareResultsDlg(CWnd* pParent,
                      CompareData &OnlyInCurrent,
                      CompareData &OnlyInComp,
-                     CompareData &Conflicts);
+                     CompareData &Conflicts,
+                     PWScore *pcore0, PWScore *pcore1);
+
+  // st_CompareInfo Functions
+  enum {EDIT = 0, VIEW, COPY_TO_ORIGINALDB, COPY_TO_COMPARISONDB};
+
+  // Column indices
+  enum {CURRENT = 0, COMPARE, GROUP, TITLE, USER, PASSWORD, NOTES, URL,
+        AUTOTYPE, PWHIST, CTIME, ATIME, LTIME, PMTIME, RMTIME,
+        LAST};
 
   // Dialog Data
   //{{AFX_DATA(CCompareResultsDlg)
@@ -54,7 +73,8 @@ public:
   CMyString m_cs_Filename1, m_cs_Filename2;
   //}}AFX_DATA
 
-  bool m_bLeftReadOnly, m_bRightReadOnly, m_coreChanged;
+  bool m_bOriginalDBReadOnly, m_bComparisonDBReadOnly;
+  bool m_OriginalDBChanged, m_ComparisonDBChanged;
   // Overrides
   // ClassWizard generated virtual function overrides
   //{{AFX_VIRTUAL(CCompareResultsDlg)
@@ -72,6 +92,7 @@ protected:
   CStatusBar m_statusBar;
   bool CopyLeftOrRight(const bool bCopyLeft);
   void UpdateStatusBar();
+  bool ProcessFunction(const int ifunction);
 
   virtual BOOL OnInitDialog();
   // Generated message map functions
@@ -85,8 +106,7 @@ protected:
   afx_msg void OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
   afx_msg void OnItemDoubleClick(NMHDR* pNotifyStruct, LRESULT* result);
   afx_msg void OnItemRightClick(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg void OnCompareView();
-  afx_msg void OnCompareEdit();
+  afx_msg void OnCompareViewEdit();
   afx_msg void OnCompareCopyToOriginalDB();
   afx_msg void OnCompareCopyToComparisonDB();
   //}}AFX_MSG
@@ -97,6 +117,8 @@ private:
 	CompareData m_OnlyInCurrent;
 	CompareData m_OnlyInComp;
 	CompareData m_Conflicts;
+
+	PWScore *m_pcore0, *m_pcore1;
 
   int m_numOnlyInCurrent, m_numOnlyInComp, m_numConflicts;
   int m_cxBSpace, m_cyBSpace, m_cySBar;

@@ -39,10 +39,8 @@ DECLARE_HANDLE(HDROP);
 #define WM_CCTOHDR_DD_COMPLETE (WM_APP + 21)
 #define WM_HDRTOCC_DD_COMPLETE (WM_APP + 22)
 
-#define WM_EDIT_COMPARE_RESULT (WM_APP + 30)
-#define WM_VIEW_COMPARE_RESULT (WM_APP + 31)
-#define WM_COPY_COMPARERESULT_TO_ORIGINALDB (WM_APP + 32)
-#define WM_COPY_COMPARERESULT_TO_COMPARISONDB (WM_APP + 33)
+// Process Compare Result Dialog click/menu functions
+#define WM_COMPARE_RESULT_FUNCTION (WM_APP + 30)
 
 // timer event number used to check if the workstation is locked
 #define TIMER_CHECKLOCK 0x04
@@ -240,10 +238,11 @@ protected:
   enum STATE {LOCKED, UNLOCKED, CLOSED};  // Really shouldn't be here it, ThisMfcApp own it
   void UpdateSystemTray(const STATE s);
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
-  LRESULT OnViewCompareResult(WPARAM wParam, LPARAM lParam);
-  LRESULT OnEditCompareResult(WPARAM wParam, LPARAM lParam);
-  LRESULT OnCopyCompareResultToComparisonDB(WPARAM wParam, LPARAM lParam);
-  LRESULT OnCopyCompareResultToOriginalDB(WPARAM wParam, LPARAM lParam);
+
+  LRESULT OnProcessCompareResultFunction(WPARAM wParam, LPARAM lParam);
+  LRESULT ViewCompareResult(PWScore *pcore, POSITION pos);
+  LRESULT EditCompareResult(PWScore *pcore, POSITION pos);
+  LRESULT CopyCompareResult(PWScore *pfromcore, PWScore *ptocore, POSITION pos);
 
   BOOL PreTranslateMessage(MSG* pMsg);
 
@@ -262,6 +261,7 @@ protected:
   //Version of message functions with return values
   int Save(void);
   int SaveAs(void);
+  int SaveCore(PWScore *pcore);
   int Open(void);
   int Open( const CMyString &pszFilename );
   int Close(void);
@@ -390,12 +390,12 @@ protected:
   DECLARE_MESSAGE_MAP()
 
   int GetAndCheckPassword(const CMyString &filename, CMyString& passkey,
-                          int index, bool bForceReadOnly = false, int icore = 0);
+                          int index, bool bForceReadOnly = false,
+                          PWScore *pcore = 0);
 
 private:
   CMyString m_BrowseURL; // set by OnContextMenu(), used by OnBrowse()
   PWScore &m_core;
-  PWScore *m_pcore1; // Used in Merge and Compare
   CMyString m_lastFindStr;
   BOOL m_lastFindCS;
   bool m_IsStartSilent;

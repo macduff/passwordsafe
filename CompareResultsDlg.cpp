@@ -29,10 +29,13 @@ IMPLEMENT_DYNAMIC(CCompareResultsDlg, CDialog)
 
 //-----------------------------------------------------------------------------
 CCompareResultsDlg::CCompareResultsDlg(CWnd* pParent,
-  CompareData &OnlyInCurrent, CompareData &OnlyInComp, CompareData &Conflicts)
+  CompareData &OnlyInCurrent, CompareData &OnlyInComp, CompareData &Conflicts,
+  PWScore *pcore0, PWScore *pcore1)
   : CDialog(CCompareResultsDlg::IDD, pParent),
   m_OnlyInCurrent(OnlyInCurrent), m_OnlyInComp(OnlyInComp), m_Conflicts(Conflicts),
-  m_bSortAscending(true), m_iSortedColumn(-1), m_coreChanged(false)
+  m_pcore0(pcore0), m_pcore1(pcore1),
+  m_bSortAscending(true), m_iSortedColumn(-1),
+  m_OriginalDBChanged(false), m_ComparisonDBChanged(false)
 {
 }
 
@@ -185,7 +188,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
   CRect sbRect, ctrlRect, dlgRect;
   int xleft, ytop;
 
-  GetClientRect(&dlgRect); 
+  GetClientRect(&dlgRect);
   m_DialogMinWidth = dlgRect.Width();
   m_DialogMinHeight = dlgRect.Height();
 
@@ -203,7 +206,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
                         dlgRect.Size().cy - m_cyBSpace,
                         SWP_NOMOVE | SWP_NOZORDER);
 
-  GetWindowRect(&dlgRect); 
+  GetWindowRect(&dlgRect);
   pwndCPYButton->GetWindowRect(&ctrlRect);
   xleft = (m_DialogMinWidth / 4) - (ctrlRect.Width() / 2);
   ytop = dlgRect.Height() - m_cyBSpace/2 - m_cySBar;
@@ -235,9 +238,8 @@ BEGIN_MESSAGE_MAP(CCompareResultsDlg, CDialog)
   ON_BN_CLICKED(IDOK, OnOK)
   ON_BN_CLICKED(IDC_COPYTOCLIPBOARD, OnCopyToClipboard)
   ON_NOTIFY(HDN_ITEMCLICK, IDC_RESULTLISTHDR, OnColumnClick)
-  ON_COMMAND(ID_MENUITEM_COMPEDIT, OnCompareEdit)
-  ON_COMMAND(ID_MENUITEM_COMPVIEW, OnCompareView)
-  ON_COMMAND(ID_MENUITEM_COPY_TO_ORINIGAL, OnCompareCopyToOriginalDB)
+  ON_COMMAND(ID_MENUITEM_COMPVIEWEDIT, OnCompareViewEdit)
+  ON_COMMAND(ID_MENUITEM_COPY_TO_ORIGINAL, OnCompareCopyToOriginalDB)
   ON_COMMAND(ID_MENUITEM_COPY_TO_COMPARISON, OnCompareCopyToComparisonDB)
 END_MESSAGE_MAP()
 
@@ -269,53 +271,63 @@ CCompareResultsDlg::UpdateStatusBar()
   m_statusBar.SetPaneInfo(0, m_statusBar.GetItemID(0), SBPS_STRETCH, NULL);
   m_statusBar.UpdateWindow();
 }
-  
-void
-CCompareResultsDlg::OnCompareView()
+
+bool
+CCompareResultsDlg::ProcessFunction(const int ifunction)
 {
+  st_CompareInfo *st_info;
+  st_info = new st_CompareInfo;
+
   st_CompareData *st_data;
+  bool rc(false);
+
   st_data = (st_CompareData *)m_LCResults.GetItemData(m_row);
-  int pos_index = st_data->index;
-  if (m_column == pos_index || pos_index == -1) {
-    POSITION pos = (m_column == 0) ? st_data->pos1 : st_data->pos2;
-    ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
-                  WM_VIEW_COMPARE_RESULT, (WPARAM)pos, (LPARAM)pos_index);
+  int pos_column = st_data->column;
+  if (m_column == pos_column || pos_column == -1) {
+    st_info->pcore0 = m_pcore0;
+    st_info->pcore1 = m_pcore1;
+    st_info->pos0 = st_data->pos0;
+    st_info->pos1 = st_data->pos1;
+    st_info->column = m_column;
+
+    LRESULT lres = ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
+                  WM_COMPARE_RESULT_FUNCTION, (WPARAM)st_info, (LPARAM)ifunction);
+    if (lres  == TRUE)
+      rc = true;
   }
+  delete st_info;
+  return rc;
 }
 
 void
-CCompareResultsDlg::OnCompareEdit()
+CCompareResultsDlg::OnCompareViewEdit()
 {
-  st_CompareData *st_data;
-  st_data = (st_CompareData *)m_LCResults.GetItemData(m_row);
-  int pos_index = st_data->index;
-  if (m_column == pos_index || pos_index == -1) {
-    POSITION pos = (m_column == 0) ? st_data->pos1 : st_data->pos2;
-    LRESULT lres;
-    lres = ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
-                  WM_EDIT_COMPARE_RESULT, (WPARAM)pos, (LPARAM)pos_index);
-    if (lres == TRUE)
-      m_coreChanged = true;
-  }
+  bool bSourceRO = (m_column == 0) ? m_bOriginalDBReadOnly : m_bComparisonDBReadOnly;
+
+  if (bSourceRO || m_column == 1)
+    ProcessFunction(VIEW);
+  else
+    ProcessFunction(EDIT);
 }
 
 void
 CCompareResultsDlg::OnCompareCopyToOriginalDB()
 {
-  if (m_bLeftReadOnly)
+  if (m_bOriginalDBReadOnly)
     return;
 
   if (CopyLeftOrRight(true))
-    m_coreChanged = true;
+    m_OriginalDBChanged = true;
 }
 
 void
 CCompareResultsDlg::OnCompareCopyToComparisonDB()
 {
-  if (m_bRightReadOnly)
+  if (m_bComparisonDBReadOnly)
     return;
 
-  CopyLeftOrRight(false);
+  if (CopyLeftOrRight(false))
+    m_ComparisonDBChanged = true;
 }
 
 bool
@@ -327,38 +339,38 @@ CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
     return false;
 
   CString cs_msg;
-  int iMSG;
+  int ifunction;
 
+  const CString cs_originaldb(MAKEINTRESOURCE(IDS_ORIGINALDB));
+  const CString cs_comparisondb(MAKEINTRESOURCE(IDS_COMPARISONDB));
   if (bCopyLeft) {
-    cs_msg.Format(IDS_COPYLEFTRIGHT, _T("Comparison"), _T("Original"));
-    iMSG = WM_COPY_COMPARERESULT_TO_ORIGINALDB;
+    cs_msg.Format(IDS_COPYLEFTRIGHT, cs_comparisondb, cs_originaldb);
+    ifunction = COPY_TO_ORIGINALDB;
   } else {
-    cs_msg.Format(IDS_COPYLEFTRIGHT, _T("Original"), _T("Comparison"));
-    iMSG = WM_COPY_COMPARERESULT_TO_COMPARISONDB;
+    cs_msg.Format(IDS_COPYLEFTRIGHT, cs_originaldb, cs_comparisondb);
+    ifunction = COPY_TO_COMPARISONDB;
   }
   if (AfxMessageBox(cs_msg, MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) != IDYES)
     return false;
 
-  LRESULT lres;
+  LRESULT lres(FALSE);
   st_CompareData *st_data;
   st_data = (st_CompareData *)m_LCResults.GetItemData(m_row);
-  int pos_index = st_data->index;
-  if (m_column == pos_index || pos_index == -1) {
-    POSITION pos = (m_column == 0) ? st_data->pos1 : st_data->pos2;
-    lres = ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
-                  iMSG, (WPARAM)pos, (LPARAM)pos_index);
+  int pos_column = st_data->column;
+  if (m_column == pos_column || pos_column == -1) {
+    lres = ProcessFunction(ifunction);
   } else
     return false;
 
-  if (lres != 0)
+  if (lres != TRUE)
     return false;
 
   m_LCResults.SetItemText(m_row, 0, _T("="));
   m_LCResults.SetItemText(m_row, COMPARE, _T("="));
   for (int i = USER + 1; i < LAST; i++)
-     m_LCResults.SetItemText(m_row, i, _T("="));
+     m_LCResults.SetItemText(m_row, i, _T("-"));
 
-  switch (pos_index) {
+  switch (pos_column) {
     case -1:
       m_numConflicts--;
       break;
@@ -373,7 +385,7 @@ CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
   }
   UpdateStatusBar();
 
-  st_data->index = -2;
+  st_data->column = -2;
   return true;
 }
 
@@ -396,17 +408,14 @@ CCompareResultsDlg::OnItemDoubleClick( NMHDR* /* pNMHDR */, LRESULT *pResult)
 
   if (pt.x <= colwidth0) {
     m_column = 0;
-    bSourceRO = m_bLeftReadOnly;
+    bSourceRO = m_bOriginalDBReadOnly;
   } else if  (pt.x <= (colwidth0 + m_LCResults.GetColumnWidth(1))) {
     m_column = 1;
-    bSourceRO = m_bRightReadOnly;
+    bSourceRO = m_bComparisonDBReadOnly;
   } else
     return;
 
-  if (bSourceRO)
-    OnCompareView();
-  else
-    OnCompareEdit();
+  OnCompareViewEdit();
 }
 
 void
@@ -431,20 +440,20 @@ CCompareResultsDlg::OnItemRightClick( NMHDR* /* pNMHDR */, LRESULT *pResult)
   if (client_pt.x <= colwidth0) {
     m_column = 0;
     ipopup = IDR_POPCOPYTOCOMPARISON;
-    bTargetRO = m_bRightReadOnly;
-    bSourceRO = m_bLeftReadOnly;
+    bTargetRO = m_bComparisonDBReadOnly;
+    bSourceRO = m_bOriginalDBReadOnly;
   } else if  (client_pt.x <= (colwidth0 + m_LCResults.GetColumnWidth(1))) {
     m_column = 1;
     ipopup = IDR_POPCOPYTOORIGINAL;
-    bTargetRO = m_bLeftReadOnly;
-    bSourceRO = m_bRightReadOnly;
+    bTargetRO = m_bOriginalDBReadOnly;
+    bSourceRO = m_bComparisonDBReadOnly;
   } else
     return;
 
   st_CompareData *st_data;
   st_data = (st_CompareData *)m_LCResults.GetItemData(m_row);
-  int pos_index = st_data->index;
-  if (m_column != pos_index && pos_index != -1)
+  int pos_column = st_data->column;
+  if (m_column != pos_column && pos_column != -1)
     return;
 
   CMenu menu;
@@ -456,10 +465,12 @@ CCompareResultsDlg::OnItemRightClick( NMHDR* /* pNMHDR */, LRESULT *pResult)
     if (bTargetRO)
       pPopup->EnableMenuItem(1, MF_BYPOSITION | MF_GRAYED);
 
-    // Disable edit if source read-only
-    if (bSourceRO) 
-      pPopup->ModifyMenu(ID_MENUITEM_COMPEDIT, MF_BYCOMMAND,
-                         ID_MENUITEM_COMPVIEW, _T("View Entry"));
+    // Disable edit if source read-only OR if Comparison DB
+    if (bSourceRO || m_column == 1) {
+      const CString cs_View_Entry(MAKEINTRESOURCE(IDS_VIEWENTRY));
+      pPopup->ModifyMenu(ID_MENUITEM_COMPVIEWEDIT, MF_BYCOMMAND,
+                         ID_MENUITEM_COMPVIEWEDIT, cs_View_Entry);
+    }
 
     pPopup->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, msg_pt.x, msg_pt.y, this);
   }
@@ -470,7 +481,7 @@ CCompareResultsDlg::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
 {
   NMHEADER *pNMHeaderCtrl  = (NMHEADER *)pNMHDR;
 
-  // Get column index to CItemData value
+  // Get column number to CItemData value
   int isortcolumn = pNMHeaderCtrl->iItem;
 
   if (m_iSortedColumn == isortcolumn) {
@@ -482,7 +493,7 @@ CCompareResultsDlg::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
 
   m_LCResults.SortItems(CRCompareFunc, (LPARAM)this);
 
-  // Reset item index
+  // Reset item listindex
   for (int i = 0; i < m_LCResults.GetItemCount(); i++) {
     st_CompareData *st_data = (st_CompareData *)m_LCResults.GetItemData(i);
     st_data->listindex = i;
@@ -611,17 +622,17 @@ CCompareResultsDlg::OnCopyToClipboard()
 }
 
 void
-CCompareResultsDlg::OnSize(UINT nType, int cx, int cy) 
+CCompareResultsDlg::OnSize(UINT nType, int cx, int cy)
 {
   CDialog::OnSize(nType, cx, cy);
 
-  CWnd *pwndListCtrl = GetDlgItem(IDC_RESULTLIST); 
+  CWnd *pwndListCtrl = GetDlgItem(IDC_RESULTLIST);
   CWnd *pwndODBText = GetDlgItem(IDC_COMPAREORIGINALDB);
   CWnd *pwndCDBText = GetDlgItem(IDC_COMPARECOMPARISONDB);
-  CWnd *pwndCPY = GetDlgItem(IDC_COPYTOCLIPBOARD); 
-  CWnd *pwndOK = GetDlgItem(IDOK); 
+  CWnd *pwndCPY = GetDlgItem(IDC_COPYTOCLIPBOARD);
+  CWnd *pwndOK = GetDlgItem(IDOK);
 
-  if (!IsWindow(pwndListCtrl->GetSafeHwnd())) 
+  if (!IsWindow(pwndListCtrl->GetSafeHwnd()))
     return;
 
   CRect ctrlRect, dlgRect;
@@ -661,7 +672,7 @@ CCompareResultsDlg::OnSize(UINT nType, int cx, int cy)
   pwndListCtrl->MoveWindow(pt_top.x, pt_top.y,
                         cx - (2 * pt_top.x),
                         cy - m_cyBSpace,
-                        TRUE); 
+                        TRUE);
 
   // Keep buttons in the bottom area
   int xleft, ytop;
@@ -684,10 +695,10 @@ CCompareResultsDlg::OnSize(UINT nType, int cx, int cy)
   m_statusBar.MoveWindow(pt_top.x, cy - ctrlRect.Height(),
                         cx - (2 * pt_top.x),
                         ctrlRect.Height(),
-                        TRUE); 
+                        TRUE);
 }
 
-void CCompareResultsDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI) 
+void CCompareResultsDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 {
   CWnd::OnGetMinMaxInfo(lpMMI);
 
