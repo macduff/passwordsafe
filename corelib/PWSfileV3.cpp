@@ -19,7 +19,7 @@ static unsigned char TERMINAL_BLOCK[TwoFish::BLOCKSIZE] = {
   'P', 'W', 'S', '3', '-', 'E', 'O', 'F'};
 
 PWSfileV3::PWSfileV3(const CMyString &filename, RWmode mode, VERSION version)
-  : PWSfile(filename,mode), m_utf8(NULL), m_utf8Len(0), m_utf8MaxLen(0),
+  : PWSfile(filename, mode), m_utf8(NULL), m_utf8Len(0), m_utf8MaxLen(0),
     m_wc(NULL), m_wcMaxLen(0), m_tmp(NULL), m_tmpMaxLen(0)
 {
   m_curversion = version;
@@ -929,6 +929,8 @@ bool PWSfileV3::IsV3x(const CMyString &filename, VERSION &v)
   ASSERT(fd != NULL);
   char tag[sizeof(V3TAG)];
   fread(tag, 1, sizeof(tag), fd);
+	fclose(fd);
+
   if (memcmp(tag, V3TAG, sizeof(tag)) == 0) {
     v = V30;
     return true;

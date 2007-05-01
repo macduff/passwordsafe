@@ -99,48 +99,57 @@ DboxMain::OpenOnInit(void)
     break;
   }
 
+  BOOL retval(FALSE);
   switch (rc2) {
-  case PWScore::BAD_DIGEST: {
-    CString cs_msg; cs_msg.Format(IDS_FILECORRUPT, m_core.GetCurFile());
-    CString cs_title(MAKEINTRESOURCE(IDS_FILEREADERROR));
-    const int yn = MessageBox(cs_msg, cs_title, MB_YESNO|MB_ICONERROR);
-    if (yn == IDNO) {
-      CDialog::OnCancel();
-      return FALSE;
+    case PWScore::BAD_DIGEST: {
+      CString cs_msg; cs_msg.Format(IDS_FILECORRUPT, m_core.GetCurFile());
+      CString cs_title(MAKEINTRESOURCE(IDS_FILEREADERROR));
+      const int yn = MessageBox(cs_msg, cs_title, MB_YESNO|MB_ICONERROR);
+      if (yn == IDNO) {
+        CDialog::OnCancel();
+        break;
+      }
     }
-  }
     // DELIBERATE FALL-THRU if user chose YES
-  case PWScore::SUCCESS:
-    m_needsreading = false;
-    startLockCheckTimer();
-    UpdateSystemTray(UNLOCKED);
-  	if (!m_bOpen) {
-  	  // Previous state was closed - reset DCA in status bar
-      SetDCAText();
-	}
-	m_bOpen = true;
-    app.AddToMRU(m_core.GetCurFile());
-    return TRUE;
+    case PWScore::SUCCESS:
+      m_needsreading = false;
+      startLockCheckTimer();
+      UpdateSystemTray(UNLOCKED);
+    	if (!m_bOpen) {
+        // Previous state was closed - reset DCA in status bar
+        SetDCAText();
+	    }
+	    m_bOpen = true;
+      app.AddToMRU(m_core.GetCurFile());
+      retval = TRUE;
+      break;
 #ifdef DEMO
-        case PWScore::LIMIT_REACHED: {
-            CString cs_msg; cs_msg.Format(IDS_LIMIT_MSG, MAXDEMO);
-            CString cs_title(MAKEINTRESOURCE(IDS_LIMIT_TITLE));
-            const int yn = MessageBox(cs_msg, cs_title,
-                                      MB_YESNO|MB_ICONWARNING);
-            if (yn == IDNO) {
-                CDialog::OnCancel();
-            }
-            m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD,
+    case PWScore::LIMIT_REACHED: {
+      CString cs_msg; cs_msg.Format(IDS_LIMIT_MSG, MAXDEMO);
+      CString cs_title(MAKEINTRESOURCE(IDS_LIMIT_TITLE));
+      const int yn = MessageBox(cs_msg, cs_title,
+                                MB_YESNO|MB_ICONWARNING);
+      if (yn == IDNO) {
+        CDialog::OnCancel();
+      }
+      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD,
                                                        FALSE);
 
-            return TRUE;
-        }
+      retval = TRUE;
+    }
 #endif
-  default:
-    if (!m_IsStartSilent)
-      CDialog::OnCancel();
-    return FALSE;
+    default:
+      if (!m_IsStartSilent)
+        CDialog::OnCancel();
   }
+  if (retval == TRUE) {
+    m_core.SetDefUsername(PWSprefs::GetInstance()->
+                GetPref(PWSprefs::DefUserName));
+    m_core.SetUseDefUser(PWSprefs::GetInstance()->
+                GetPref(PWSprefs::UseDefUser) ? true : false);
+  }
+
+  return retval;
 }
 
 void
@@ -207,6 +216,7 @@ DboxMain::NewFile(void)
     return PWScore::USER_CANCEL;  //User cancelled password entry
 
   ClearData();
+  PWSprefs::GetInstance()->SetDatabasePrefsToDefaults();
   const CMyString filename(m_core.GetCurFile());
   // The only way we're the locker is if it's locked & we're !readonly
   if (!filename.IsEmpty() && !m_core.IsReadOnly() && m_core.IsLockedFile(filename))
@@ -247,6 +257,10 @@ DboxMain::Close()
 
 	// Clear all associated data
 	ClearData();
+
+  // Reset core
+  m_core.ReInit();
+
 	app.SetTooltipText(_T("PasswordSafe"));
 	UpdateSystemTray(CLOSED);
 	// Call UpdateMenuAndToolBar before UpdateStatusBar, as it sets m_bOpen
@@ -455,6 +469,10 @@ DboxMain::Open( const CMyString &pszFilename )
     ChangeOkUpdate();
     RefreshList();
     SetInitialDatabaseDisplay();
+    m_core.SetDefUsername(PWSprefs::GetInstance()->
+                GetPref(PWSprefs::DefUserName));
+    m_core.SetUseDefUser(PWSprefs::GetInstance()->
+                GetPref(PWSprefs::UseDefUser) ? true : false);
     return rc;
 }
 
@@ -1432,7 +1450,10 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 
   pothercore = new PWScore;
 
-	// OK, CANCEL, HELP + force READ-ONLY, use pothercore
+  // Reading a new file changes the preferences!
+  const CMyString cs_SavePrefString(PWSprefs::GetInstance()->Store());
+
+	// OK, CANCEL, HELP + (nolonger force R/O) + use pothercore
 	rc = GetAndCheckPassword(cs_Filename2, passkey, GCP_ADVANCED, false,
 	                  pothercore);
 	switch (rc) {
@@ -1734,6 +1755,9 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
   pothercore->SetCurFile(_T(""));
   delete pothercore;
   pothercore = NULL;
+
+  // Reset database preferences - first to defaults then add saved changes!
+  PWSprefs::GetInstance()->Load(cs_SavePrefString);
 
 	return rc;
 }

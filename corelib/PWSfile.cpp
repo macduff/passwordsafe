@@ -115,7 +115,7 @@ PWSfile::PWSfile(const CMyString &filename, RWmode mode)
     m_curversion(UNKNOWN_VERSION), m_rw(mode),
     m_fd(NULL), m_prefString(_T("")), m_fish(NULL), m_terminal(NULL),
     m_file_displaystatus(_T("")), m_whenlastsaved(_T("")),
-	m_wholastsaved(_T("")), m_whatlastsaved(_T(""))
+    m_wholastsaved(_T("")), m_whatlastsaved(_T(""))
 {
 }
 
@@ -134,7 +134,6 @@ void PWSfile::FOpen()
   m_fd = _tfopen((LPCTSTR) m_filename, m);
 #endif
 }
-
 
 int PWSfile::Close()
 {
@@ -167,7 +166,6 @@ size_t PWSfile::WriteCBC(unsigned char type, const unsigned char *data,
 
 size_t PWSfile::ReadCBC(unsigned char &type, CMyString &data)
 {
-
   unsigned char *buffer = NULL;
   unsigned int buffer_len = 0;
   size_t retval;
@@ -192,7 +190,6 @@ size_t PWSfile::ReadCBC(unsigned char &type, CMyString &data)
 size_t PWSfile::ReadCBC(unsigned char &type, unsigned char *data,
                         unsigned int &length)
 {
-
   unsigned char *buffer = NULL;
   unsigned int buffer_len = 0;
   size_t retval;
@@ -335,9 +332,9 @@ bool PWSfile::LockFile(const CMyString &filename, CMyString &locker,
   TCHAR fname[_MAX_FNAME];
   TCHAR ext[_MAX_EXT];
 #if _MSC_VER >= 1400
-  _tsplitpath_s(filename, NULL, 0, NULL, 0, fname, _MAX_FNAME, ext, _MAX_EXT);
+  _tsplitpath_s(lock_filename, NULL, 0, NULL, 0, fname, _MAX_FNAME, ext, _MAX_EXT);
 #else
-  _tsplitpath(filename, NULL, NULL, fname, ext);
+  _tsplitpath(lock_filename, NULL, NULL, fname, ext);
 #endif
 
   // Use Win32 API for locking - supposedly better at
@@ -426,14 +423,6 @@ void PWSfile::UnlockFile(const CMyString &filename,
   const CString host = si->GetCurrentHost();
   const CString pid = si->GetCurrentPID();
 
-  TCHAR fname[_MAX_FNAME];
-  TCHAR ext[_MAX_EXT];
-#if _MSC_VER >= 1400
-  _tsplitpath_s(filename, NULL, 0, NULL, 0, fname, _MAX_FNAME, ext, _MAX_EXT);
-#else
-  _tsplitpath(filename, NULL, NULL, fname, ext);
-#endif
-
   // Use Win32 API for locking - supposedly better at
   // detecting dead locking processes
   if (lockFileHandle != INVALID_HANDLE_VALUE) {
@@ -442,7 +431,15 @@ void PWSfile::UnlockFile(const CMyString &filename,
     GetLockFileName(filename, lock_filename);
 	GetLocker(lock_filename, locker);
 
-	if (cs_me == CString(locker) && LockCount > 1) {
+  TCHAR fname[_MAX_FNAME];
+  TCHAR ext[_MAX_EXT];
+#if _MSC_VER >= 1400
+  _tsplitpath_s(lock_filename, NULL, 0, NULL, 0, fname, _MAX_FNAME, ext, _MAX_EXT);
+#else
+  _tsplitpath(lock_filename, NULL, NULL, fname, ext);
+#endif
+
+  if (cs_me == CString(locker) && LockCount > 1) {
 		LockCount--;
       TRACE(_T("%s Unlock2; Count now %d; File: %s%s\n"), 
 			      PWSUtil::GetTimeStamp(), LockCount, fname, ext);
