@@ -35,7 +35,10 @@ CCompareResultsDlg::CCompareResultsDlg(CWnd* pParent,
   m_OnlyInCurrent(OnlyInCurrent), m_OnlyInComp(OnlyInComp), m_Conflicts(Conflicts),
   m_pcore0(pcore0), m_pcore1(pcore1),
   m_bSortAscending(true), m_iSortedColumn(-1),
-  m_OriginalDBChanged(false), m_ComparisonDBChanged(false)
+  m_OriginalDBChanged(false), m_ComparisonDBChanged(false),
+  m_DialogMinWidth(455), m_DialogMinHeight(415)
+  // Need to set default values for MinWidth & MinHeight as OnGetMinMaxInfo is 
+  // called during Create before set in InitDialog
 {
 }
 
@@ -91,7 +94,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
   m_numOnlyInComp = m_OnlyInComp.size();
   m_numConflicts = m_Conflicts.size();
 
-	if (m_numOnlyInCurrent > 0) {
+  if (m_numOnlyInCurrent > 0) {
     for (cd_iter = m_OnlyInCurrent.begin(); cd_iter != m_OnlyInCurrent.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
@@ -106,10 +109,10 @@ BOOL CCompareResultsDlg::OnInitDialog()
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, (DWORD)&st_data);
       iItem++;
-		}
-	}
+    }
+  }
 
-	if (m_numOnlyInComp > 0) {
+  if (m_numOnlyInComp > 0) {
     for (cd_iter = m_OnlyInComp.begin(); cd_iter != m_OnlyInComp.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
@@ -124,10 +127,10 @@ BOOL CCompareResultsDlg::OnInitDialog()
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, (DWORD)&st_data);
       iItem++;
-		}
-	}
+    }
+  }
 
-	if (m_numConflicts > 0) {
+  if (m_numConflicts > 0) {
     for (cd_iter = m_Conflicts.begin(); cd_iter != m_Conflicts.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
@@ -136,22 +139,22 @@ BOOL CCompareResultsDlg::OnInitDialog()
       m_LCResults.SetItemText(iItem, GROUP, st_data.group);
       m_LCResults.SetItemText(iItem, TITLE, st_data.title);
       m_LCResults.SetItemText(iItem, USER, st_data.user);
-  	  m_LCResults.SetItemText(iItem, PASSWORD, st_data.bsDiffs.test(CItemData::PASSWORD) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, NOTES, st_data.bsDiffs.test(CItemData::NOTES) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, URL, st_data.bsDiffs.test(CItemData::URL) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, AUTOTYPE, st_data.bsDiffs.test(CItemData::AUTOTYPE) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, PWHIST, st_data.bsDiffs.test(CItemData::PWHIST) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, CTIME, st_data.bsDiffs.test(CItemData::CTIME) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, ATIME, st_data.bsDiffs.test(CItemData::ATIME) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, LTIME, st_data.bsDiffs.test(CItemData::LTIME) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, PMTIME, st_data.bsDiffs.test(CItemData::PMTIME) ? _T("X") : _T("-"));
-  	  m_LCResults.SetItemText(iItem, RMTIME, st_data.bsDiffs.test(CItemData::RMTIME) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, PASSWORD, st_data.bsDiffs.test(CItemData::PASSWORD) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, NOTES, st_data.bsDiffs.test(CItemData::NOTES) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, URL, st_data.bsDiffs.test(CItemData::URL) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, AUTOTYPE, st_data.bsDiffs.test(CItemData::AUTOTYPE) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, PWHIST, st_data.bsDiffs.test(CItemData::PWHIST) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, CTIME, st_data.bsDiffs.test(CItemData::CTIME) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, ATIME, st_data.bsDiffs.test(CItemData::ATIME) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, LTIME, st_data.bsDiffs.test(CItemData::LTIME) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, PMTIME, st_data.bsDiffs.test(CItemData::PMTIME) ? _T("X") : _T("-"));
+      m_LCResults.SetItemText(iItem, RMTIME, st_data.bsDiffs.test(CItemData::RMTIME) ? _T("X") : _T("-"));
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, (DWORD)&st_data);
       iItem++;
-		}
-	}
+    }
+  }
 
   m_LCResults.SetRedraw(FALSE);
   for (i = 0; i < LAST; i++) {
@@ -527,7 +530,7 @@ CCompareResultsDlg::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
    * the two items are equivalent."
    */
 int CALLBACK CCompareResultsDlg::CRCompareFunc(LPARAM lParam1, LPARAM lParam2,
-				   LPARAM lParamSort)
+           LPARAM lParamSort)
 {
 
   // m_bSortAscending to determine the direction of the sort (duh)
@@ -557,68 +560,68 @@ CCompareResultsDlg::OnCopyToClipboard()
   CString resultStr(_T(""));
   CString buffer;
 
-	if (m_OnlyInCurrent.size() > 0) {
-		buffer.Format(IDS_COMPAREENTRIES1, m_cs_Filename1);
-		resultStr += buffer;
+  if (m_OnlyInCurrent.size() > 0) {
+    buffer.Format(IDS_COMPAREENTRIES1, m_cs_Filename1);
+    resultStr += buffer;
     for (cd_iter = m_OnlyInCurrent.begin(); cd_iter != m_OnlyInCurrent.end();
          cd_iter++) {
       const st_CompareData &st_data = *cd_iter;
 
-			buffer.Format(IDS_COMPARESTATS, st_data.group, st_data.title, st_data.user);
-			resultStr += buffer;
-		}
-		resultStr += _T("\n");
-	}
+      buffer.Format(IDS_COMPARESTATS, st_data.group, st_data.title, st_data.user);
+      resultStr += buffer;
+    }
+    resultStr += _T("\n");
+  }
 
-	if (m_OnlyInComp.size() > 0) {
-		buffer.Format(IDS_COMPAREENTRIES2, m_cs_Filename2);
-		resultStr += buffer;
+  if (m_OnlyInComp.size() > 0) {
+    buffer.Format(IDS_COMPAREENTRIES2, m_cs_Filename2);
+    resultStr += buffer;
     for (cd_iter = m_OnlyInComp.begin(); cd_iter != m_OnlyInComp.end();
          cd_iter++) {
       const st_CompareData &st_data = *cd_iter;
 
       buffer.Format(IDS_COMPARESTATS, st_data.group, st_data.title, st_data.user);
-			resultStr += buffer;
-		}
-		resultStr += _T("\n");
-	}
+      resultStr += buffer;
+    }
+    resultStr += _T("\n");
+  }
 
-	if (m_Conflicts.size() > 0) {
-		buffer.Format(IDS_COMPAREBOTHDIFF2, m_cs_Filename1, m_cs_Filename2);
-		resultStr += buffer;
+  if (m_Conflicts.size() > 0) {
+    buffer.Format(IDS_COMPAREBOTHDIFF2, m_cs_Filename1, m_cs_Filename2);
+    resultStr += buffer;
 
-		const CString csx_password(MAKEINTRESOURCE(IDS_COMPPASSWORD));
-		const CString csx_notes(MAKEINTRESOURCE(IDS_COMPNOTES));
-		const CString csx_url(MAKEINTRESOURCE(IDS_COMPURL));
-		const CString csx_autotype(MAKEINTRESOURCE(IDS_COMPAUTOTYPE));
-		const CString csx_ctime(MAKEINTRESOURCE(IDS_COMPCTIME));
-		const CString csx_pmtime(MAKEINTRESOURCE(IDS_COMPPMTIME));
-		const CString csx_atime(MAKEINTRESOURCE(IDS_COMPATIME));
-		const CString csx_ltime(MAKEINTRESOURCE(IDS_COMPLTIME));
-		const CString csx_rmtime(MAKEINTRESOURCE(IDS_COMPRMTIME));
-		const CString csx_pwhistory(MAKEINTRESOURCE(IDS_COMPPWHISTORY));
+    const CString csx_password(MAKEINTRESOURCE(IDS_COMPPASSWORD));
+    const CString csx_notes(MAKEINTRESOURCE(IDS_COMPNOTES));
+    const CString csx_url(MAKEINTRESOURCE(IDS_COMPURL));
+    const CString csx_autotype(MAKEINTRESOURCE(IDS_COMPAUTOTYPE));
+    const CString csx_ctime(MAKEINTRESOURCE(IDS_COMPCTIME));
+    const CString csx_pmtime(MAKEINTRESOURCE(IDS_COMPPMTIME));
+    const CString csx_atime(MAKEINTRESOURCE(IDS_COMPATIME));
+    const CString csx_ltime(MAKEINTRESOURCE(IDS_COMPLTIME));
+    const CString csx_rmtime(MAKEINTRESOURCE(IDS_COMPRMTIME));
+    const CString csx_pwhistory(MAKEINTRESOURCE(IDS_COMPPWHISTORY));
 
     for (cd_iter = m_Conflicts.begin(); cd_iter != m_Conflicts.end();
          cd_iter++) {
       const st_CompareData &st_data = *cd_iter;
 
       buffer.Format(IDS_COMPARESTATS2, st_data.group, st_data.title, st_data.user);
-			resultStr += buffer;
+      resultStr += buffer;
 
- 			if (st_data.bsDiffs.test(CItemData::PASSWORD)) resultStr += csx_password;
-			if (st_data.bsDiffs.test(CItemData::NOTES)) resultStr += csx_notes;
-			if (st_data.bsDiffs.test(CItemData::URL)) resultStr += csx_url;
-			if (st_data.bsDiffs.test(CItemData::AUTOTYPE)) resultStr += csx_autotype;
-			if (st_data.bsDiffs.test(CItemData::CTIME)) resultStr += csx_ctime;
-			if (st_data.bsDiffs.test(CItemData::PMTIME)) resultStr += csx_pmtime;
-			if (st_data.bsDiffs.test(CItemData::ATIME)) resultStr += csx_atime;
-			if (st_data.bsDiffs.test(CItemData::LTIME)) resultStr += csx_ltime;
-			if (st_data.bsDiffs.test(CItemData::RMTIME)) resultStr += csx_rmtime;
-			if (st_data.bsDiffs.test(CItemData::PWHIST)) resultStr += csx_pwhistory;
-		}
-	}
+       if (st_data.bsDiffs.test(CItemData::PASSWORD)) resultStr += csx_password;
+      if (st_data.bsDiffs.test(CItemData::NOTES)) resultStr += csx_notes;
+      if (st_data.bsDiffs.test(CItemData::URL)) resultStr += csx_url;
+      if (st_data.bsDiffs.test(CItemData::AUTOTYPE)) resultStr += csx_autotype;
+      if (st_data.bsDiffs.test(CItemData::CTIME)) resultStr += csx_ctime;
+      if (st_data.bsDiffs.test(CItemData::PMTIME)) resultStr += csx_pmtime;
+      if (st_data.bsDiffs.test(CItemData::ATIME)) resultStr += csx_atime;
+      if (st_data.bsDiffs.test(CItemData::LTIME)) resultStr += csx_ltime;
+      if (st_data.bsDiffs.test(CItemData::RMTIME)) resultStr += csx_rmtime;
+      if (st_data.bsDiffs.test(CItemData::PWHIST)) resultStr += csx_pwhistory;
+    }
+  }
 
-	app.SetClipboardData(resultStr);
+  app.SetClipboardData(resultStr);
 }
 
 void
@@ -700,7 +703,9 @@ CCompareResultsDlg::OnSize(UINT nType, int cx, int cy)
 
 void CCompareResultsDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 {
-  CWnd::OnGetMinMaxInfo(lpMMI);
+  CDialog::OnGetMinMaxInfo(lpMMI);
 
-  lpMMI->ptMinTrackSize = CPoint(m_DialogMinWidth, m_DialogMinHeight);
+  if (this->GetSafeHwnd() != NULL) {
+    lpMMI->ptMinTrackSize = CPoint(m_DialogMinWidth, m_DialogMinHeight);
+  }
 }
