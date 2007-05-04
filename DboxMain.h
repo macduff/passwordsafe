@@ -73,7 +73,7 @@ private:
   static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
   static CString CS_EDITENTRY, CS_VIEWENTRY, CS_EXPCOLGROUP;
   static CString CS_DELETEENTRY, CS_DELETEGROUP, CS_RENAMEENTRY, CS_RENAMEGROUP;
-    static const CString DEFAULT_AUTOTYPE;
+  static const CString DEFAULT_AUTOTYPE;
 
 public:
   // default constructor
@@ -210,7 +210,12 @@ protected:
   int m_iSessionEndingStatus;
   bool m_bFindActive;
   bool m_bFindWrap;
-  bool m_bAdvanced; // Used by Compare
+
+  // Used for Advanced functions
+  CItemData::FieldBits m_bsFields;
+  bool m_bAdvanced;
+  CString m_subgroup_name;
+  int m_subgroup_set, m_subgroup_object, m_subgroup_function;
 
   WCHAR *m_pwchTip;
   TCHAR *m_pchTip;
@@ -391,7 +396,7 @@ protected:
 
   int GetAndCheckPassword(const CMyString &filename, CMyString& passkey,
                           int index, bool bForceReadOnly = false,
-                          PWScore *pcore = 0);
+                          PWScore *pcore = 0, int adv_type = -1);
 
 private:
   CMyString m_BrowseURL; // set by OnContextMenu(), used by OnBrowse()

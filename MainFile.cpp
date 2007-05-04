@@ -17,10 +17,10 @@
 #include "TryAgainDlg.h"
 #include "ExportTextDlg.h"
 #include "ExportXMLDlg.h"
-#include "AdvancedDlg.h"
 #include "ImportDlg.h"
 #include "ImportXMLDlg.h"
 #include "ImportXMLErrDlg.h"
+#include "AdvancedDlg.h"
 #include "CompareResultsDlg.h"
 #include "Properties.h"
 #include "corelib/pwsprefs.h"
@@ -1145,7 +1145,8 @@ DboxMain::Merge(const CMyString &pszFilename) {
   rc = GetAndCheckPassword(pszFilename, passkey,
                            GCP_ADVANCED, // OK, CANCEL, HELP
                            true,         // force readonly
-                           pothercore);  // Use other core
+                           pothercore,   // Use other core
+                           ADV_MERGE);   // Advanced type
 
   CString cs_temp, cs_title;
   switch (rc) {
@@ -1169,33 +1170,6 @@ DboxMain::Merge(const CMyString &pszFilename) {
       pothercore = NULL;
       return PWScore::USER_CANCEL;
 	}
-
-  CString subgroup_name;
-  int subgroup_set(BST_UNCHECKED);
-  int subgroup_object, subgroup_function;
-
-  if (m_bAdvanced) {
-    CAdvancedDlg *pAdv;
-    int rc;    
-    pAdv = new CAdvancedDlg(this, ADV_MERGE);
-
-    app.DisableAccelerator();
-    rc = pAdv->DoModal();
-    app.EnableAccelerator();
-
-    if (rc == IDOK) {
-      subgroup_set = pAdv->m_subgroup_set;
-      if (subgroup_set == BST_CHECKED) {
-        subgroup_name = pAdv->m_subgroup_name;
-        subgroup_object = pAdv->m_subgroup_object;
-        subgroup_function = pAdv->m_subgroup_function;
-      }  
-    } else {
-      m_bAdvanced = false;
-    }
-    delete pAdv;
-    pAdv = NULL;
-  }
 
   pothercore->ReadFile(pszFilename, passkey);
 
@@ -1240,50 +1214,50 @@ DboxMain::Merge(const CMyString &pszFilename) {
   while (otherPos) {
     CItemData otherItem = pothercore->GetEntryAt(otherPos);
 
-    if (subgroup_set == BST_UNCHECKED ||
-      otherItem.WantEntry(subgroup_name, subgroup_object, subgroup_function) == TRUE) {
+    if (m_subgroup_set == BST_CHECKED &&
+      otherItem.WantEntry(m_subgroup_name, m_subgroup_object, m_subgroup_function) == FALSE)
+      continue;
 
-      const CMyString otherGroup = otherItem.GetGroup();
-      const CMyString otherTitle = otherItem.GetTitle();
-      const CMyString otherUser = otherItem.GetUser();
+    const CMyString otherGroup = otherItem.GetGroup();
+    const CMyString otherTitle = otherItem.GetTitle();
+    const CMyString otherUser = otherItem.GetUser();
 
-      POSITION foundPos = m_core.Find(otherGroup, otherTitle, otherUser);
-      if (foundPos) {
-        /* found a match, see if other fields also match */
-        CItemData curItem = m_core.GetEntryAt(foundPos);
-        if (otherItem.GetPassword() != curItem.GetPassword() ||
-          otherItem.GetNotes() != curItem.GetNotes() ||
-          otherItem.GetURL() != curItem.GetURL() ||
-          otherItem.GetAutoType() != curItem.GetAutoType()) {
-          /* have a match on title/user, but not on other fields
-             add an entry suffixed with -merged-HHMMSS-DDMMYY */
-          CTime curTime = CTime::GetCurrentTime();
-          CMyString newTitle = otherItem.GetTitle();
-          newTitle += _T("-merged-");
-          CMyString timeStr = curTime.Format(_T("%H%M%S-%m%d%y"));
-          newTitle = newTitle + timeStr;
+    POSITION foundPos = m_core.Find(otherGroup, otherTitle, otherUser);
+    if (foundPos) {
+      /* found a match, see if other fields also match */
+      CItemData curItem = m_core.GetEntryAt(foundPos);
+      if (otherItem.GetPassword() != curItem.GetPassword() ||
+        otherItem.GetNotes() != curItem.GetNotes() ||
+        otherItem.GetURL() != curItem.GetURL() ||
+        otherItem.GetAutoType() != curItem.GetAutoType()) {
 
-          /* note it as an issue for the user */
-          CString warnMsg;
-          warnMsg.Format(IDS_MERGECONFLICTS, otherItem.GetGroup(), otherItem.GetTitle(), otherItem.GetUser(),
-            newTitle, otherItem.GetUser());
+        /* have a match on title/user, but not on other fields
+           add an entry suffixed with -merged-HHMMSS-DDMMYY */
+        CTime curTime = CTime::GetCurrentTime();
+        CMyString newTitle = otherItem.GetTitle();
+        newTitle += _T("-merged-");
+        CMyString timeStr = curTime.Format(_T("%H%M%S-%m%d%y"));
+        newTitle = newTitle + timeStr;
 
-          /* tell the user the bad news */
-          CString cs_title;
-          cs_title.LoadString(IDS_MERGECONFLICTS2);
-          MessageBox(warnMsg, cs_title, MB_OK|MB_ICONWARNING);
+        /* note it as an issue for the user */
+        CString warnMsg;
+        warnMsg.Format(IDS_MERGECONFLICTS, otherItem.GetGroup(), otherItem.GetTitle(),
+          otherItem.GetUser(), newTitle, otherItem.GetUser());
 
-          /* do it */
-          otherItem.SetTitle(newTitle);
-          m_core.AddEntryToTail(otherItem);
+        /* tell the user the bad news */
+        CString cs_title;
+        cs_title.LoadString(IDS_MERGECONFLICTS2);
+        MessageBox(warnMsg, cs_title, MB_OK|MB_ICONWARNING);
 
-          numConflicts++;
-        }
-      } else {
-        /* didn't find any match...add it directly */
+        /* do it */
+        otherItem.SetTitle(newTitle);
         m_core.AddEntryToTail(otherItem);
-        numAdded++;
+        numConflicts++;
       }
+    } else {
+      /* didn't find any match...add it directly */
+      m_core.AddEntryToTail(otherItem);
+      numAdded++;
     }
     pothercore->GetNextEntry(otherPos);
   }
@@ -1342,7 +1316,7 @@ DboxMain::OnProperties()
 #endif
 	  wls.ReleaseBuffer();
 	  ASSERT(iread == 1);
-      dlg.m_whenlastsaved =
+    dlg.m_whenlastsaved =
           CString(PWSUtil::ConvertToDateTimeString((time_t) t, TMC_EXPORT_IMPORT));
   }
 
@@ -1358,17 +1332,17 @@ DboxMain::OnProperties()
 #else
 	  int iread = _stscanf(lpszWLS, _T("%4x"), &ulen);
 #endif
-	wls.ReleaseBuffer();
-	ASSERT(iread == 1);
-	dlg.m_wholastsaved.Format(_T("%s on %s"), wls.Mid(4, ulen), wls.Mid(ulen + 4));
+    wls.ReleaseBuffer();
+	  ASSERT(iread == 1);
+    dlg.m_wholastsaved.Format(_T("%s on %s"), wls.Mid(4, ulen), wls.Mid(ulen + 4));
   }
 
   wls = m_core.GetWhatLastSaved();
   if (wls.GetLength() == 0) {
-	dlg.m_whatlastsaved.LoadString(IDS_UNKNOWN);
-	dlg.m_whenlastsaved.Trim();
+    dlg.m_whatlastsaved.LoadString(IDS_UNKNOWN);
+    dlg.m_whenlastsaved.Trim();
   } else
-	dlg.m_whatlastsaved = wls;
+    dlg.m_whatlastsaved = wls;
 
   dlg.DoModal();
 }
@@ -1453,9 +1427,9 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
   // Reading a new file changes the preferences!
   const CMyString cs_SavePrefString(PWSprefs::GetInstance()->Store());
 
-	// OK, CANCEL, HELP + (nolonger force R/O) + use pothercore
+	// OK, CANCEL, HELP, ADVANCED + (nolonger force R/O) + use pothercore
 	rc = GetAndCheckPassword(cs_Filename2, passkey, GCP_ADVANCED, false,
-	                  pothercore);
+	                  pothercore, ADV_COMPARE);
 	switch (rc) {
 		case PWScore::SUCCESS:
 			break; // Keep going...
@@ -1475,36 +1449,6 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 			*/
 			return PWScore::USER_CANCEL;
 	}
-
-  CItemData::FieldBits bsCompare;
-  CString subgroup_name;
-  int subgroup_set(BST_UNCHECKED);
-  int subgroup_object, subgroup_function;
-
-  bsCompare.set();  // note: impossible to set them all even via the advanced dialog
-  if (m_bAdvanced) {
-    CAdvancedDlg *pAdv;
-    int rc;    
-    pAdv = new CAdvancedDlg(this, ADV_COMPARE);
-
-    app.DisableAccelerator();
-    rc = pAdv->DoModal();
-    app.EnableAccelerator();
-
-    if (rc == IDOK) {
-      bsCompare = pAdv->m_bsFields;
-      subgroup_set = pAdv->m_subgroup_set;
-      if (subgroup_set == BST_CHECKED) {
-        subgroup_name = pAdv->m_subgroup_name;
-        subgroup_object = pAdv->m_subgroup_object;
-        subgroup_function = pAdv->m_subgroup_function;
-      }  
-    } else {
-      m_bAdvanced = false;
-    }
-    delete pAdv;
-    pAdv = NULL;
-  }
 
   // Not really needed but...
   pothercore->ClearData();
@@ -1596,8 +1540,8 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 	while (currentPos) {
 		CItemData currentItem = m_core.GetEntryAt(currentPos);
 
-    if (subgroup_set == BST_UNCHECKED ||
-        currentItem.WantEntry(subgroup_name, subgroup_object, subgroup_function) == TRUE) {
+    if (m_subgroup_set == BST_UNCHECKED ||
+        currentItem.WantEntry(m_subgroup_name, m_subgroup_object, m_subgroup_function) == TRUE) {
       const CMyString currentGroup = currentItem.GetGroup();
       const CMyString currentTitle = currentItem.GetTitle();
       const CMyString currentUser = currentItem.GetUser();
@@ -1631,25 +1575,25 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
         bsConflicts.reset();
 
         CItemData compItem = pothercore->GetEntryAt(foundPos);
-        if (bsCompare.test(CItemData::NOTES) && currentItem.GetNotes() != compItem.GetNotes())
+        if (m_bsFields.test(CItemData::NOTES) && currentItem.GetNotes() != compItem.GetNotes())
           bsConflicts.flip(CItemData::NOTES);
-        if (bsCompare.test(CItemData::PASSWORD) && currentItem.GetPassword() != compItem.GetPassword())
+        if (m_bsFields.test(CItemData::PASSWORD) && currentItem.GetPassword() != compItem.GetPassword())
           bsConflicts.flip(CItemData::PASSWORD);
-        if (m_bAdvanced && bsCompare.test(CItemData::CTIME) && currentItem.GetCTime() != compItem.GetCTime())
+        if (m_bAdvanced && m_bsFields.test(CItemData::CTIME) && currentItem.GetCTime() != compItem.GetCTime())
           bsConflicts.flip(CItemData::CTIME);
-        if (m_bAdvanced && bsCompare.test(CItemData::PMTIME) && currentItem.GetPMTime() != compItem.GetPMTime())
+        if (m_bAdvanced && m_bsFields.test(CItemData::PMTIME) && currentItem.GetPMTime() != compItem.GetPMTime())
           bsConflicts.flip(CItemData::PMTIME);
-        if (m_bAdvanced && bsCompare.test(CItemData::ATIME) && currentItem.GetATime() != compItem.GetATime())
+        if (m_bAdvanced && m_bsFields.test(CItemData::ATIME) && currentItem.GetATime() != compItem.GetATime())
           bsConflicts.flip(CItemData::ATIME);
-        if (bsCompare.test(CItemData::LTIME) && currentItem.GetLTime() != compItem.GetLTime())
+        if (m_bsFields.test(CItemData::LTIME) && currentItem.GetLTime() != compItem.GetLTime())
           bsConflicts.flip(CItemData::LTIME);
-        if (m_bAdvanced && bsCompare.test(CItemData::RMTIME) && currentItem.GetRMTime() != compItem.GetRMTime())
+        if (m_bAdvanced && m_bsFields.test(CItemData::RMTIME) && currentItem.GetRMTime() != compItem.GetRMTime())
           bsConflicts.flip(CItemData::RMTIME);
-        if (bsCompare.test(CItemData::URL) && currentItem.GetURL() != compItem.GetURL())
+        if (m_bsFields.test(CItemData::URL) && currentItem.GetURL() != compItem.GetURL())
           bsConflicts.flip(CItemData::URL);
-        if (bsCompare.test(CItemData::AUTOTYPE) && currentItem.GetAutoType() != compItem.GetAutoType())
+        if (m_bsFields.test(CItemData::AUTOTYPE) && currentItem.GetAutoType() != compItem.GetAutoType())
           bsConflicts.flip(CItemData::AUTOTYPE);
-        if (bsCompare.test(CItemData::PWHIST) && currentItem.GetPWHistory() != compItem.GetPWHistory())
+        if (m_bsFields.test(CItemData::PWHIST) && currentItem.GetPWHistory() != compItem.GetPWHistory())
           bsConflicts.flip(CItemData::PWHIST);
 
         if (bsConflicts.any()) {
@@ -1683,8 +1627,8 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 	while (compPos) {
 		CItemData compItem = pothercore->GetEntryAt(compPos);
 
-    if (subgroup_set == BST_UNCHECKED ||
-        compItem.WantEntry(subgroup_name, subgroup_object, subgroup_function) == FALSE) {
+    if (m_subgroup_set == BST_UNCHECKED ||
+        compItem.WantEntry(m_subgroup_name, m_subgroup_object, m_subgroup_function) == FALSE) {
       const CMyString compGroup = compItem.GetGroup();
       const CMyString compTitle = compItem.GetTitle();
       const CMyString compUser = compItem.GetUser();

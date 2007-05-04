@@ -931,14 +931,15 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
                               CMyString& passkey,
                               int index ,
                               bool bForceReadOnly,
-                              PWScore *pcore)
+                              PWScore *pcore,
+                              int adv_type)
 {
     // index:
     //	GCP_FIRST      (0) first
     //	GCP_NORMAL     (1) OK, CANCEL & HELP buttons
     //	GCP_UNMINIMIZE (2) OK, CANCEL & HELP buttons
     //	GCP_WITHEXIT   (3) OK, CANCEL, EXIT & HELP buttons
-    //	GCP_ADVANCED   (4) OK, CANCEL, HELP buttons + ADVANCED checkbox
+    //	GCP_ADVANCED   (4) OK, CANCEL, HELP & ADVANCED buttons
 
     // Called for an existing database. Prompt user
     // for password, verify against file. Lock file to
@@ -971,7 +972,9 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
     int rc = 0;
     if (dbox_pkentry == NULL) {
         dbox_pkentry = new CPasskeyEntry(this, filename,
-                                         index, pcore->IsReadOnly(), bFileIsReadOnly);
+                                         index, pcore->IsReadOnly(),
+                                         bFileIsReadOnly,
+                                         adv_type);
 
         int nMajor(0), nMinor(0), nBuild(0);
         DWORD dwMajorMinor = app.GetFileVersionMajorMinor();
@@ -991,8 +994,16 @@ DboxMain::GetAndCheckPassword(const CMyString &filename,
         rc = dbox_pkentry->DoModal();
         app.EnableAccelerator();
 
-        if (rc == IDOK && index == GCP_ADVANCED)
-          m_bAdvanced = dbox_pkentry->IsAdvanced();
+        if (rc == IDOK && index == GCP_ADVANCED) {
+          m_bAdvanced = dbox_pkentry->m_bAdvanced;
+          m_bsFields = dbox_pkentry->m_bsFields;
+          m_subgroup_set = dbox_pkentry->m_subgroup_set;
+          if (m_subgroup_set == BST_CHECKED) {
+            m_subgroup_name = dbox_pkentry->m_subgroup_name;
+            m_subgroup_object = dbox_pkentry->m_subgroup_object;
+            m_subgroup_function = dbox_pkentry->m_subgroup_function;
+          }
+        }
 
     } else { // already present - bring to front
         dbox_pkentry->BringWindowToTop(); // can happen with systray lock
