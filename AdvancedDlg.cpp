@@ -34,17 +34,27 @@ int CAdvancedDlg::dialog_lookup[ADV_LAST] = {
 /////////////////////////////////////////////////////////////////////////////
 // CAdvancedDlg dialog
 
-CAdvancedDlg::CAdvancedDlg(CWnd* pParent /* = NULL */, int iIndex)
-  : CDialog(dialog_lookup[iIndex], pParent) , m_iIndex(iIndex), m_ToolTipCtrl(NULL)
+CAdvancedDlg::CAdvancedDlg(CWnd* pParent /* = NULL */, int iIndex,
+                           CItemData::FieldBits bsFields, CString subgroup_name, int subgroup_set, 
+                           int subgroup_object, int subgroup_function)
+  : CDialog(dialog_lookup[iIndex], pParent) , m_iIndex(iIndex), 
+    m_bsFields(bsFields), m_subgroup_name(subgroup_name), 
+    m_subgroup_set(subgroup_set), m_subgroup_object(subgroup_object),
+    m_subgroup_function(subgroup_function), m_ToolTipCtrl(NULL)
 {
   //{{AFX_DATA_INIT(CAdvancedDlg)
-  m_subgroup_set = BST_UNCHECKED;
-  m_subgroup_name = _T("*");
-  m_subgroup_case = BST_UNCHECKED;
-  m_subgroup_function = 0;
-  m_subgroup_object = 0;
   //}}AFX_DATA_INIT
-  m_bsFields.set();  // note: impossible to set them all even via the advanced dialog
+
+  if (m_subgroup_function < 0) {
+    m_subgroup_case = BST_CHECKED;
+    m_subgroup_function *= (-1);
+  }
+
+  if (m_subgroup_set == BST_UNCHECKED)
+    m_subgroup_name = _T("*");
+
+  if (m_bsFields.count() == 0)
+    m_bsFields.set();
 }
 
 CAdvancedDlg::~CAdvancedDlg()
@@ -355,24 +365,6 @@ void CAdvancedDlg::OnHelp()
       ASSERT(FALSE);
   }
   HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
-}
-
-void CAdvancedDlg::Set(const CItemData::FieldBits &bsFields, const CString &subgroup_name,
-                       const int &subgroup_set, const int &subgroup_object, 
-                       const int &subgroup_function)
-{
-  m_bsFields = bsFields;
-
-  m_subgroup_set = subgroup_set;
-  if (m_subgroup_set == BST_CHECKED) {
-    m_subgroup_name = subgroup_name;
-    m_subgroup_object = subgroup_object;
-    m_subgroup_function = subgroup_function;
-    if (subgroup_function < 0) {
-      m_subgroup_case = BST_CHECKED;
-      m_subgroup_function *= (-1);
-    }
-  }
 }
 
 void CAdvancedDlg::OnOK()

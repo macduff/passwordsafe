@@ -63,5 +63,4 @@ protected:
 
 private:
 	void AFXAPI DDV_CheckExpDelimiter(CDataExchange* pDX, const CString &delimiter);
-  int m_called_advanced;
 };

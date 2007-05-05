@@ -63,8 +63,7 @@ CPasskeyEntry::CPasskeyEntry(CWnd* pParent,
      m_bForceReadOnly(bForceReadOnly),
      m_adv_type(adv_type), m_bAdvanced(false),
      m_subgroup_set(BST_UNCHECKED),
-     m_subgroup_name(_T("")), m_subgroup_object(0), m_subgroup_function(0),
-     m_called_advanced(0)
+     m_subgroup_name(_T("")), m_subgroup_object(0), m_subgroup_function(0)
 {
   //{{AFX_DATA_INIT(CPasskeyEntry)
   //}}AFX_DATA_INIT
@@ -352,10 +351,7 @@ CPasskeyEntry::OnExitAdvanced()
   CAdvancedDlg *pAdv;
   int rc;
 
-  pAdv = new CAdvancedDlg(this, m_adv_type);
-
-  if (m_called_advanced > 0)
-    pAdv->Set(m_bsFields, m_subgroup_name, m_subgroup_set, 
+  pAdv = new CAdvancedDlg(this, m_adv_type, m_bsFields, m_subgroup_name, m_subgroup_set, 
               m_subgroup_object, m_subgroup_function);
 
   app.DisableAccelerator();
@@ -364,7 +360,6 @@ CPasskeyEntry::OnExitAdvanced()
 
   if (rc == IDOK) {
     m_bAdvanced = true;
-    m_called_advanced++;
     m_bsFields = pAdv->m_bsFields;
     m_subgroup_set = pAdv->m_subgroup_set;
     if (m_subgroup_set == BST_CHECKED) {

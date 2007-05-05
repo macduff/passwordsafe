@@ -30,7 +30,10 @@ class CAdvancedDlg : public CDialog
 {
 // Construction
 public:
-	CAdvancedDlg(CWnd* pParent = NULL, int iIndex = -1);   // standard constructor
+	CAdvancedDlg(CWnd* pParent = NULL, int iIndex = -1,
+    CItemData::FieldBits bsFields = 0, CString subgroup_name = _T(""),
+    int subgroup_set = BST_UNCHECKED, 
+    int subgroup_object = 0, int subgroup_function = 0);   // standard constructor
   virtual CAdvancedDlg::~CAdvancedDlg();
 
 // Dialog Data
@@ -42,9 +45,6 @@ public:
 
 	//}}AFX_DATA
 
-  void Set(const CItemData::FieldBits &bsFields, const CString &subgroup_name,
-           const int &subgroup_set, const int &subgroup_object, 
-           const int &subgroup_function);
 	CItemData::FieldBits m_bsFields;
 
 // Overrides
