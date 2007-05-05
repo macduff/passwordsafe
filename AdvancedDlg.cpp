@@ -41,8 +41,10 @@ CAdvancedDlg::CAdvancedDlg(CWnd* pParent /* = NULL */, int iIndex)
   m_subgroup_set = BST_UNCHECKED;
   m_subgroup_name = _T("*");
   m_subgroup_case = BST_UNCHECKED;
-  m_subgroup_object = -1;
+  m_subgroup_function = 0;
+  m_subgroup_object = 0;
   //}}AFX_DATA_INIT
+  m_bsFields.set();  // note: impossible to set them all even via the advanced dialog
 }
 
 CAdvancedDlg::~CAdvancedDlg()
@@ -56,7 +58,7 @@ BOOL CAdvancedDlg::OnInitDialog()
   CDialog::OnInitDialog();
 
   CString cs_text;
-  int iItem(-1);
+  int iItem(-1), i;
 
   switch (m_iIndex) {
     case ADV_COMPARE:
@@ -75,109 +77,6 @@ BOOL CAdvancedDlg::OnInitDialog()
       ASSERT(FALSE);
   }
   SetWindowText(cs_text);
-
-  if (m_iIndex != ADV_MERGE) {
-    m_pLC_List = (CListCtrl*)GetDlgItem(IDC_ADVANCED_LIST);
-    m_pLC_Selected = (CListCtrl*)GetDlgItem(IDC_ADVANCED_SELECTED);
-
-    m_pLC_List->InsertColumn(0, _T(""));
-    m_pLC_Selected->InsertColumn(0, _T(""));
-    m_pLC_List->SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
-    m_pLC_Selected->SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
-
-    if (m_index == ADV_COMPARE) {
-      cs_text.LoadString(IDS_CREATED);
-      iItem = m_pLC_List->InsertItem(++iItem, cs_text);
-      m_pLC_List->SetItemData(iItem, CItemData::CTIME);
-      cs_text.LoadString(IDS_PASSWORDMODIFIED);
-      iItem = m_pLC_List->InsertItem(++iItem, cs_text);
-      m_pLC_List->SetItemData(iItem, CItemData::PMTIME);
-      cs_text.LoadString(IDS_LASTACCESSED);
-      iItem = m_pLC_List->InsertItem(++iItem, cs_text);
-      m_pLC_List->SetItemData(iItem, CItemData::ATIME);
-      cs_text.LoadString(IDS_LASTMODIFIED);
-      iItem = m_pLC_List->InsertItem(++iItem, cs_text);
-      m_pLC_List->SetItemData(iItem, CItemData::RMTIME);
-    } else {
-      cs_text.LoadString(IDS_CREATED);
-      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-      m_pLC_Selected->SetItemData(iItem, CItemData::CTIME);
-      cs_text.LoadString(IDS_PASSWORDMODIFIED);
-      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-      m_pLC_Selected->SetItemData(iItem, CItemData::PMTIME);
-      cs_text.LoadString(IDS_LASTACCESSED);
-      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-      m_pLC_Selected->SetItemData(iItem, CItemData::ATIME);
-      cs_text.LoadString(IDS_LASTMODIFIED);
-      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-      m_pLC_Selected->SetItemData(iItem, CItemData::RMTIME);
-    }
-
-    cs_text.LoadString(IDS_NOTES);
-    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-    m_pLC_Selected->SetItemData(iItem, CItemData::NOTES);
-    cs_text.LoadString(IDS_URL);
-    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-    m_pLC_Selected->SetItemData(iItem, CItemData::URL);
-    cs_text.LoadString(IDS_AUTOTYPE);
-    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-    m_pLC_Selected->SetItemData(iItem, CItemData::AUTOTYPE);
-    cs_text.LoadString(IDS_EXPIRYDATETIME);
-    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-    m_pLC_Selected->SetItemData(iItem, CItemData::LTIME);
-    cs_text.LoadString(IDS_PWHIST);
-    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-    m_pLC_Selected->SetItemData(iItem, CItemData::PWHIST);
-
-    switch (m_iIndex) {
-      case ADV_EXPORT_XML:
-        cs_text.LoadString(IDS_GROUP);
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::GROUP);
-        cs_text.LoadString(IDS_ADVANCED_TITLETEXT); // <-- Special
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::TITLE);
-        cs_text.LoadString(IDS_ADVANCED_PASSWORDTEXT); // <-- Special
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::PASSWORD);
-        cs_text.LoadString(IDS_USERNAME);
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::USER);
-        break;
-      case ADV_COMPARE:
-        cs_text.LoadString(IDS_ADVANCED_GROUPTEXT); // <-- Special
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::GROUP);
-        cs_text.LoadString(IDS_ADVANCED_TITLETEXT); // <-- Special
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::TITLE);
-        cs_text.LoadString(IDS_ADVANCED_USERTEXT); // <-- Special
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::USER);
-        cs_text.LoadString(IDS_PASSWORD);
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::PASSWORD);
-        break;
-      default:
-        cs_text.LoadString(IDS_GROUP);
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::GROUP);
-        cs_text.LoadString(IDS_TITLE);
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::TITLE);
-        cs_text.LoadString(IDS_PASSWORD);
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::PASSWORD);
-        cs_text.LoadString(IDS_USERNAME);
-        iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
-        m_pLC_Selected->SetItemData(iItem, CItemData::USER);
-    }
-
-    m_pLC_List->SortItems(AdvCompareFunc, NULL);
-    m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
-  }
-
-  m_bsFields.set();  // note: impossible to set them all even via the advanced dialog
 
   CComboBox *cboSubgroupFunction = (CComboBox *)GetDlgItem(IDC_ADVANCED_SUBGROUP_FUNCTION);
   if (cboSubgroupFunction->GetCount () == 0) {
@@ -206,7 +105,13 @@ BOOL CAdvancedDlg::OnInitDialog()
     iItem = cboSubgroupFunction->AddString(cs_text);
     cboSubgroupFunction->SetItemData(iItem, CItemData::SGF_NOTCONTAIN);
   }
-  cboSubgroupFunction->SetCurSel(0);
+
+  for (i = 0; i < cboSubgroupFunction->GetCount(); i++) {
+    if ((int)cboSubgroupFunction->GetItemData(i) == m_subgroup_function) {
+      cboSubgroupFunction->SetCurSel(i);
+      break;
+    }
+  }
 
   CComboBox *cboSubgroupObject = (CComboBox *)GetDlgItem(IDC_ADVANCED_SUBGROUP_OBJECT);
   if (cboSubgroupObject->GetCount () == 0) {
@@ -229,10 +134,150 @@ BOOL CAdvancedDlg::OnInitDialog()
     iItem = cboSubgroupObject->AddString(cs_text);
     cboSubgroupObject->SetItemData(iItem, CItemData::SGO_NOTES);
   }
-  cboSubgroupObject->SetCurSel(0);
+
+  for (i = 0; i < cboSubgroupObject->GetCount(); i++) {
+    if ((int)cboSubgroupObject->GetItemData(i) == m_subgroup_object) {
+      cboSubgroupObject->SetCurSel(i);
+      break;
+    }
+  }
+
+  BOOL bEnable = (m_subgroup_set == BST_CHECKED) ? TRUE : FALSE;
+  GetDlgItem(IDC_ADVANCED_SUBGROUP_FUNCTION)->EnableWindow(bEnable);
+  GetDlgItem(IDC_ADVANCED_SUBGROUP_OBJECT)->EnableWindow(bEnable);
+  GetDlgItem(IDC_ADVANCED_SUBGROUP_NAME)->EnableWindow(bEnable);
+  GetDlgItem(IDC_ADVANCED_SUBGROUP_CASE)->EnableWindow(bEnable);
 
   if (m_iIndex == ADV_MERGE)
     return TRUE;
+
+  m_pLC_List = (CListCtrl*)GetDlgItem(IDC_ADVANCED_LIST);
+  m_pLC_Selected = (CListCtrl*)GetDlgItem(IDC_ADVANCED_SELECTED);
+
+  m_pLC_List->InsertColumn(0, _T(""));
+  m_pLC_Selected->InsertColumn(0, _T(""));
+  m_pLC_List->SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
+  m_pLC_Selected->SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
+
+  if (m_index == ADV_COMPARE) {
+    cs_text.LoadString(IDS_CREATED);
+    iItem = m_pLC_List->InsertItem(++iItem, cs_text);
+    m_pLC_List->SetItemData(iItem, CItemData::CTIME);
+    cs_text.LoadString(IDS_PASSWORDMODIFIED);
+    iItem = m_pLC_List->InsertItem(++iItem, cs_text);
+    m_pLC_List->SetItemData(iItem, CItemData::PMTIME);
+    cs_text.LoadString(IDS_LASTACCESSED);
+    iItem = m_pLC_List->InsertItem(++iItem, cs_text);
+    m_pLC_List->SetItemData(iItem, CItemData::ATIME);
+    cs_text.LoadString(IDS_LASTMODIFIED);
+    iItem = m_pLC_List->InsertItem(++iItem, cs_text);
+    m_pLC_List->SetItemData(iItem, CItemData::RMTIME);
+  } else {
+    cs_text.LoadString(IDS_CREATED);
+    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+    m_pLC_Selected->SetItemData(iItem, CItemData::CTIME);
+    cs_text.LoadString(IDS_PASSWORDMODIFIED);
+    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+    m_pLC_Selected->SetItemData(iItem, CItemData::PMTIME);
+    cs_text.LoadString(IDS_LASTACCESSED);
+    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+    m_pLC_Selected->SetItemData(iItem, CItemData::ATIME);
+    cs_text.LoadString(IDS_LASTMODIFIED);
+    iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+    m_pLC_Selected->SetItemData(iItem, CItemData::RMTIME);
+  }
+
+  cs_text.LoadString(IDS_NOTES);
+  iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+  m_pLC_Selected->SetItemData(iItem, CItemData::NOTES);
+  cs_text.LoadString(IDS_URL);
+  iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+  m_pLC_Selected->SetItemData(iItem, CItemData::URL);
+  cs_text.LoadString(IDS_AUTOTYPE);
+  iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+  m_pLC_Selected->SetItemData(iItem, CItemData::AUTOTYPE);
+  cs_text.LoadString(IDS_EXPIRYDATETIME);
+  iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+  m_pLC_Selected->SetItemData(iItem, CItemData::LTIME);
+  cs_text.LoadString(IDS_PWHIST);
+  iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+  m_pLC_Selected->SetItemData(iItem, CItemData::PWHIST);
+
+  switch (m_iIndex) {
+    case ADV_EXPORT_XML:
+      cs_text.LoadString(IDS_GROUP);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::GROUP);
+      cs_text.LoadString(IDS_ADVANCED_TITLETEXT); // <-- Special
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::TITLE);
+      cs_text.LoadString(IDS_ADVANCED_PASSWORDTEXT); // <-- Special
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::PASSWORD);
+      cs_text.LoadString(IDS_USERNAME);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::USER);
+      break;
+    case ADV_COMPARE:
+      cs_text.LoadString(IDS_ADVANCED_GROUPTEXT); // <-- Special
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::GROUP);
+      cs_text.LoadString(IDS_ADVANCED_TITLETEXT); // <-- Special
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::TITLE);
+      cs_text.LoadString(IDS_ADVANCED_USERTEXT); // <-- Special
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::USER);
+      cs_text.LoadString(IDS_PASSWORD);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::PASSWORD);
+      break;
+    default:
+      cs_text.LoadString(IDS_GROUP);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::GROUP);
+      cs_text.LoadString(IDS_TITLE);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::TITLE);
+      cs_text.LoadString(IDS_PASSWORD);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::PASSWORD);
+      cs_text.LoadString(IDS_USERNAME);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::USER);
+  }
+
+  if (m_bsFields.count() != 0) {
+    LVFINDINFO findinfo;
+    CString cs_text;
+    int iItem;
+    DWORD dw_data;
+
+    memset(&findinfo, 0, sizeof(findinfo));
+
+    findinfo.flags = LVFI_PARAM;
+
+    for (int i = 0; i < CItemData::LAST; i++) {
+      // If selected, leave in the list of selected fields
+      if (m_bsFields.test(i))
+        continue;
+
+      // Not selected - find entry in list of selected fields and move it
+      findinfo.lParam = i;
+      iItem = m_pLC_Selected->FindItem(&findinfo);
+      if (iItem == -1)
+        continue;
+
+      cs_text = m_pLC_Selected->GetItemText(iItem, 0);
+      dw_data = m_pLC_Selected->GetItemData(iItem);
+      m_pLC_Selected->DeleteItem(iItem);
+      iItem = m_pLC_List->InsertItem(0, cs_text);
+      m_pLC_List->SetItemData(iItem, dw_data);
+    }
+  }
+
+  m_pLC_List->SortItems(AdvCompareFunc, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
 
 	// Tooltips
 	EnableToolTips();
@@ -277,6 +322,7 @@ void CAdvancedDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CAdvancedDlg, CDialog)
   //{{AFX_MSG_MAP(CAdvancedDlg)
+  ON_BN_CLICKED(IDC_ADVANCED_SUBGROUP_SET, OnSetSubGroup)
   ON_BN_CLICKED(IDC_ADVANCED_SELECTSOME, OnSelectSome)
   ON_BN_CLICKED(IDC_ADVANCED_SELECTALL, OnSelectAll)
   ON_BN_CLICKED(IDC_ADVANCED_DESELECTSOME, OnDeselectSome)
@@ -309,6 +355,24 @@ void CAdvancedDlg::OnHelp()
       ASSERT(FALSE);
   }
   HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+}
+
+void CAdvancedDlg::Set(const CItemData::FieldBits &bsFields, const CString &subgroup_name,
+                       const int &subgroup_set, const int &subgroup_object, 
+                       const int &subgroup_function)
+{
+  m_bsFields = bsFields;
+
+  m_subgroup_set = subgroup_set;
+  if (m_subgroup_set == BST_CHECKED) {
+    m_subgroup_name = subgroup_name;
+    m_subgroup_object = subgroup_object;
+    m_subgroup_function = subgroup_function;
+    if (subgroup_function < 0) {
+      m_subgroup_case = BST_CHECKED;
+      m_subgroup_function *= (-1);
+    }
+  }
 }
 
 void CAdvancedDlg::OnOK()
@@ -380,8 +444,12 @@ void CAdvancedDlg::OnOK()
 void CAdvancedDlg::OnSetSubGroup()
 {
   m_subgroup_set = ((CButton*)GetDlgItem(IDC_ADVANCED_SUBGROUP_SET))->GetCheck();
-  GetDlgItem(IDC_ADVANCED_SUBGROUP_NAME)->
-    EnableWindow(m_subgroup_set == BST_CHECKED ? TRUE : FALSE);
+
+  BOOL bEnable = (m_subgroup_set == BST_CHECKED) ? TRUE : FALSE;
+  GetDlgItem(IDC_ADVANCED_SUBGROUP_FUNCTION)->EnableWindow(bEnable);
+  GetDlgItem(IDC_ADVANCED_SUBGROUP_OBJECT)->EnableWindow(bEnable);
+  GetDlgItem(IDC_ADVANCED_SUBGROUP_NAME)->EnableWindow(bEnable);
+  GetDlgItem(IDC_ADVANCED_SUBGROUP_CASE)->EnableWindow(bEnable);
 }
 
 void CAdvancedDlg::OnSelectSome()

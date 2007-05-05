@@ -116,6 +116,9 @@ public:
     afx_msg void OnComboEditChange();
     afx_msg void OnComboSelChange();
     afx_msg void OnOpenFileBrowser();
+
+private:
+  int m_called_advanced;
 };
 
 #undef SUPERCLASS

@@ -42,6 +42,9 @@ public:
 
 	//}}AFX_DATA
 
+  void Set(const CItemData::FieldBits &bsFields, const CString &subgroup_name,
+           const int &subgroup_set, const int &subgroup_object, 
+           const int &subgroup_function);
 	CItemData::FieldBits m_bsFields;
 
 // Overrides
