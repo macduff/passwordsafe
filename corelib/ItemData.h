@@ -14,6 +14,8 @@
 #include "Util.h"
 #include "ItemField.h"
 #include "UUIDGen.h"
+#include "UnknownRecordField.h"
+
 #include <time.h> // for time_t
 #include <bitset>
 #include <vector>
@@ -68,14 +70,18 @@ class CItemData
 public:
   enum {
     START = 0x00,
-    NAME = 0x00, UUID=0x01, GROUP = 0x02, TITLE = 0x03, USER = 0x04, NOTES = 0x05,
-	PASSWORD = 0x06, CTIME = 0x07, PMTIME = 0x08, ATIME = 0x09, LTIME = 0x0a,
-	POLICY = 0x0b, RMTIME = 0x0c, URL = 0x0d, AUTOTYPE = 0x0e, PWHIST = 0x0f,
-    LAST, END = 0xff}; // field types, per formatV{2,3}.txt
+    NAME = 0x00, UUID = 0x01, GROUP = 0x02, TITLE = 0x03, USER = 0x04, NOTES = 0x05,
+    PASSWORD = 0x06, CTIME = 0x07, PMTIME = 0x08, ATIME = 0x09, LTIME = 0x0a,
+    POLICY = 0x0b, RMTIME = 0x0c, URL = 0x0d, AUTOTYPE = 0x0e, PWHIST = 0x0f,
+    LAST,        // Start of unknown fields!
+    END = 0xff}; // field types, per formatV{2,3}.txt
 
   // For subgroup processing in GetPlainText from ExportTextXDlg
-  // SubGroup Function
-  enum {SGF_EQUALS = 1, SGF_NOTEQUAL, SGF_BEGINS, SGF_NOTBEGIN, SGF_ENDS, SGF_NOTEND, SGF_CONTAINS, SGF_NOTCONTAIN};
+  // SubGroup Function - if value used is negative, compare IS case sensitive
+  enum {SGF_EQUALS = 1, SGF_NOTEQUAL, 
+    SGF_BEGINS, SGF_NOTBEGIN, 
+    SGF_ENDS, SGF_NOTEND, 
+    SGF_CONTAINS, SGF_NOTCONTAIN};
   // SubGroup Object
   enum {SGO_GROUP, SGO_TITLE, SGO_USER, SGO_GROUPTITLE, SGO_URL, SGO_NOTES};
 
@@ -83,10 +89,15 @@ public:
   typedef std::bitset<LAST> FieldBits;
 
   static void SetSessionKey(); // call exactly once per session
+
+  static bool IsTextField(unsigned char t);
+
    //Construction
   CItemData();
 
    CItemData(const CItemData& stuffhere);
+
+   ~CItemData();
 
    //Data retrieval
    CMyString GetName() const; // V17 - deprecated - replaced by GetTitle & GetUser
@@ -133,11 +144,19 @@ public:
    // GetPlaintext returns all fields separated by separator, if delimiter is != 0, then
    // it's used for multi-line notes and to replace '.' within the Title field.
    CMyString GetPlaintext(const TCHAR &separator, const FieldBits &bsExport,
-                          const TCHAR &delimiter) const;
+   						const TCHAR &delimiter) const;
+   void GetUnknownField(unsigned char &type, unsigned int &length,
+                        unsigned char * &pdata,
+                        const unsigned int &num) const;
+   void SetUnknownField(const unsigned char type,
+                        const unsigned int length,
+                        const unsigned char * ufield);
+   int NumberUnknownFields() const
+     {return (int)m_URFL.size();}
 
    void CreateUUID(); // V20 - generate UUID for new item
    void SetName(const CMyString &name,
-       const CMyString &defaultUsername); // V17 - deprecated - replaced by SetTitle & SetUser
+	 const CMyString &defaultUsername); // V17 - deprecated - replaced by SetTitle & SetUser
    void SetTitle(const CMyString &title, TCHAR delimiter = 0);
    void SetUser(const CMyString &user); // V20
    void SetPassword(const CMyString &password);
@@ -195,6 +214,9 @@ private:
   CItemField m_tttRMTime;	// last 'R'ecord 'M'odification time
   CItemField m_PWHistory;
 
+  // Save unknown record fields on read to put back on write unchanged
+  UnknownRecordFieldList m_URFL;
+
   // random key for storing stuff in memory, just to remove dependence
   // on passphrase
   static bool IsSessionKeySet;
@@ -223,6 +245,13 @@ private:
   void SetField(CItemField &field, const unsigned char *value,
                 unsigned int length);
 };
+
+inline bool CItemData::IsTextField(unsigned char t)
+{
+    return !(t == UUID || t == CTIME || t == PMTIME ||
+             t == ATIME || t == LTIME || t == RMTIME ||
+             t >= LAST);
+}
 
 #endif
 //-----------------------------------------------------------------------------

@@ -38,7 +38,7 @@ PWSprefs *PWSprefs::self = NULL;
 const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
 	{_T("alwaysontop"), false, false},								// application
 	{_T("showpwdefault"), false, true},								// database
-	{_T("showpwinlist"), false, true},								// database
+	{_T("ShowPasswordInTree"), false, true},					// database
 	{_T("sortascending"), true, true},								// database
 	{_T("usedefuser"), false, true},								// database
 	{_T("saveimmediately"), true, true},							// database
@@ -73,6 +73,7 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
   {_T("ExplorerTypeTree"), false, false},                         // application
   {_T("ListViewGridLines"), false, false},                        // application
   {_T("MinimizeOnAutotype"), true, false},                        // application
+  {_T("ShowUsernameInTree"), true, true},								// database
 };
 
 // Default value = -1 means set at runtime

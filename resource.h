@@ -293,11 +293,15 @@
 #define IDC_ALTBROWSER_CMDLINE          1251
 #define IDC_EXPORT_ADVANCED             1252
 #define IDC_XML_ADVANCED                1253
-#define IDC_RESULTLIST                  1254
-#define IDC_RESULTLISTHDR               1255
-#define IDC_COPYTOCLIPBOARD             1256
-#define IDC_COMPAREORIGINALDB           1257
-#define IDC_COMPARECOMPARISONDB         1258
+#define IDC_DEFUNSHOWINTREE             1254
+#define IDC_FILEUUID                    1255
+#define IDC_UNKNOWNFIELDS               1256
+#define IDC_RESULTLIST                  1257
+#define IDC_RESULTLISTHDR               1258
+#define IDC_COPYTOCLIPBOARD             1259
+#define IDC_COMPAREORIGINALDB           1260
+#define IDC_COMPARECOMPARISONDB         1261
+#define IDC_SHOW_IDENTICAL_ENTRIES      1262
 
 // Next default values for new objects
 // 
@@ -305,7 +309,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        239
 #define _APS_NEXT_COMMAND_VALUE         30000
-#define _APS_NEXT_CONTROL_VALUE         1259
+#define _APS_NEXT_CONTROL_VALUE         1263
 #define _APS_NEXT_SYMED_VALUE           129
 #endif
 #endif

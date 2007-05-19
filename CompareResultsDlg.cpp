@@ -15,6 +15,9 @@
 #include "DboxMain.h"  // For WM_VIEW_COMPARE_RESULT
 #include "CompareResultsDlg.h"
 #include "corelib/PWScore.h"
+#include <vector>
+#include <algorithm>
+#include <functional>
 #include "resource.h"
 #include "resource2.h"
 #include "resource3.h"
@@ -29,13 +32,16 @@ IMPLEMENT_DYNAMIC(CCompareResultsDlg, CDialog)
 
 //-----------------------------------------------------------------------------
 CCompareResultsDlg::CCompareResultsDlg(CWnd* pParent,
-  CompareData &OnlyInCurrent, CompareData &OnlyInComp, CompareData &Conflicts,
-  PWScore *pcore0, PWScore *pcore1)
+  CompareData &OnlyInCurrent, CompareData &OnlyInComp,
+  CompareData &Conflicts, CompareData &Identical,
+  CItemData::FieldBits &bsFields, PWScore *pcore0, PWScore *pcore1)
   : CDialog(CCompareResultsDlg::IDD, pParent),
-  m_OnlyInCurrent(OnlyInCurrent), m_OnlyInComp(OnlyInComp), m_Conflicts(Conflicts),
-  m_pcore0(pcore0), m_pcore1(pcore1),
+  m_OnlyInCurrent(OnlyInCurrent), m_OnlyInComp(OnlyInComp),
+  m_Conflicts(Conflicts), m_Identical(Identical),
+  m_bsFields(bsFields), m_pcore0(pcore0), m_pcore1(pcore1),
   m_bSortAscending(true), m_iSortedColumn(-1),
   m_OriginalDBChanged(false), m_ComparisonDBChanged(false),
+  m_ShowIdenticalEntries(BST_UNCHECKED),
   m_DialogMinWidth(455), m_DialogMinHeight(415)
   // Need to set default values for MinWidth & MinHeight as OnGetMinMaxInfo is 
   // called during Create before set in InitDialog
@@ -57,55 +63,83 @@ BOOL CCompareResultsDlg::OnInitDialog()
   m_LCResults.InsertColumn(CURRENT, cs_header);
   cs_header.LoadString(IDS_COMPARISONDB);
   m_LCResults.InsertColumn(COMPARE, cs_header);
+
   cs_header.LoadString(IDS_GROUP);
   m_LCResults.InsertColumn(GROUP, cs_header);
   cs_header.LoadString(IDS_TITLE);
   m_LCResults.InsertColumn(TITLE, cs_header);
   cs_header.LoadString(IDS_USERNAME);
   m_LCResults.InsertColumn(USER, cs_header);
-  cs_header.LoadString(IDS_PASSWORD);
-  m_LCResults.InsertColumn(PASSWORD, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_NOTES);
-  m_LCResults.InsertColumn(NOTES, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_URL);
-  m_LCResults.InsertColumn(URL, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_AUTOTYPE);
-  m_LCResults.InsertColumn(AUTOTYPE, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_PWHIST );
-  m_LCResults.InsertColumn(PWHIST, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_CREATED);
-  m_LCResults.InsertColumn(CTIME, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_LASTACCESSED);
-  m_LCResults.InsertColumn(ATIME, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_PASSWORDEXPIRYDATE);
-  m_LCResults.InsertColumn(LTIME, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_PASSWORDMODIFIED);
-  m_LCResults.InsertColumn(PMTIME, cs_header, LVCFMT_CENTER);
-  cs_header.LoadString(IDS_LASTMODIFIED);
-  m_LCResults.InsertColumn(RMTIME, cs_header, LVCFMT_CENTER);
+
+  if (m_bsFields.test(CItemData::PASSWORD)) {
+    cs_header.LoadString(IDS_PASSWORD);
+    m_LCResults.InsertColumn(PASSWORD, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::NOTES)) {
+    cs_header.LoadString(IDS_NOTES);
+    m_LCResults.InsertColumn(NOTES, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::URL)) {
+    cs_header.LoadString(IDS_URL);
+    m_LCResults.InsertColumn(URL, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::AUTOTYPE)) {
+    cs_header.LoadString(IDS_AUTOTYPE);
+    m_LCResults.InsertColumn(AUTOTYPE, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::PWHIST)) {
+    cs_header.LoadString(IDS_PWHIST);
+    m_LCResults.InsertColumn(PWHIST, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::CTIME)) {
+    cs_header.LoadString(IDS_CREATED);
+    m_LCResults.InsertColumn(CTIME, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::ATIME)) {
+    cs_header.LoadString(IDS_LASTACCESSED);
+    m_LCResults.InsertColumn(ATIME, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::LTIME)) {
+    cs_header.LoadString(IDS_PASSWORDEXPIRYDATE);
+    m_LCResults.InsertColumn(LTIME, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::PMTIME)) {
+    cs_header.LoadString(IDS_PASSWORDMODIFIED);
+    m_LCResults.InsertColumn(PMTIME, cs_header, LVCFMT_CENTER);
+  }
+  if (m_bsFields.test(CItemData::RMTIME)) {
+    cs_header.LoadString(IDS_LASTMODIFIED);
+    m_LCResults.InsertColumn(RMTIME, cs_header, LVCFMT_CENTER);
+  }
+  m_nCols = m_LCResults.GetHeaderCtrl()->GetItemCount();
 
   m_LCResults.SetItemCount(m_OnlyInCurrent.size() +
                            m_OnlyInComp.size() +
-                           m_Conflicts.size());
+                           m_Conflicts.size() +
+                           m_Identical.size());
 
   int i, iItem = 0;
   CompareData::iterator cd_iter;
   m_numOnlyInCurrent = m_OnlyInCurrent.size();
   m_numOnlyInComp = m_OnlyInComp.size();
   m_numConflicts = m_Conflicts.size();
+  m_numIdentical = m_Identical.size();
 
   if (m_numOnlyInCurrent > 0) {
     for (cd_iter = m_OnlyInCurrent.begin(); cd_iter != m_OnlyInCurrent.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
-      m_LCResults.InsertItem(iItem, _T("Y"));
+      if (st_data.unknflds0)
+        m_LCResults.InsertItem(iItem, _T("Y*"));
+      else
+        m_LCResults.InsertItem(iItem, _T("Y"));
+
       m_LCResults.SetItemText(iItem, COMPARE, _T("-"));
       m_LCResults.SetItemText(iItem, GROUP, st_data.group);
       m_LCResults.SetItemText(iItem, TITLE, st_data.title);
       m_LCResults.SetItemText(iItem, USER, st_data.user);
-      for (i = USER + 1; i < LAST; i++)
-        m_LCResults.SetItemText(iItem, i, _T("-"));
-
+      for (i = 0; i < m_nCols - 5; i++)
+        m_LCResults.SetItemText(iItem, USER + 1 + i, _T("-"));
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, (DWORD)&st_data);
       iItem++;
@@ -117,12 +151,16 @@ BOOL CCompareResultsDlg::OnInitDialog()
       st_CompareData &st_data = *cd_iter;
 
       m_LCResults.InsertItem(iItem, _T("-"));
-      m_LCResults.SetItemText(iItem, COMPARE, _T("Y"));
+      if (st_data.unknflds1)
+        m_LCResults.SetItemText(iItem, COMPARE, _T("Y*"));
+      else
+        m_LCResults.SetItemText(iItem, COMPARE, _T("Y"));
+
       m_LCResults.SetItemText(iItem, GROUP, st_data.group);
       m_LCResults.SetItemText(iItem, TITLE, st_data.title);
       m_LCResults.SetItemText(iItem, USER, st_data.user);
-      for (i = USER + 1; i < LAST; i++)
-        m_LCResults.SetItemText(iItem, i, _T("-"));
+      for (i = 0; i < m_nCols - 5; i++)
+        m_LCResults.SetItemText(iItem, USER + 1 + i, _T("-"));
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, (DWORD)&st_data);
@@ -131,24 +169,44 @@ BOOL CCompareResultsDlg::OnInitDialog()
   }
 
   if (m_numConflicts > 0) {
+    int icol;
     for (cd_iter = m_Conflicts.begin(); cd_iter != m_Conflicts.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
-      m_LCResults.InsertItem(iItem, _T("Y"));
-      m_LCResults.SetItemText(iItem, COMPARE, _T("Y"));
+      if (st_data.unknflds0)
+        m_LCResults.InsertItem(iItem, _T("Y*"));
+      else
+        m_LCResults.InsertItem(iItem, _T("Y"));
+      if (st_data.unknflds1)
+        m_LCResults.SetItemText(iItem, COMPARE, _T("Y*"));
+      else
+        m_LCResults.SetItemText(iItem, COMPARE, _T("Y"));
+
       m_LCResults.SetItemText(iItem, GROUP, st_data.group);
       m_LCResults.SetItemText(iItem, TITLE, st_data.title);
       m_LCResults.SetItemText(iItem, USER, st_data.user);
-      m_LCResults.SetItemText(iItem, PASSWORD, st_data.bsDiffs.test(CItemData::PASSWORD) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, NOTES, st_data.bsDiffs.test(CItemData::NOTES) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, URL, st_data.bsDiffs.test(CItemData::URL) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, AUTOTYPE, st_data.bsDiffs.test(CItemData::AUTOTYPE) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, PWHIST, st_data.bsDiffs.test(CItemData::PWHIST) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, CTIME, st_data.bsDiffs.test(CItemData::CTIME) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, ATIME, st_data.bsDiffs.test(CItemData::ATIME) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, LTIME, st_data.bsDiffs.test(CItemData::LTIME) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, PMTIME, st_data.bsDiffs.test(CItemData::PMTIME) ? _T("X") : _T("-"));
-      m_LCResults.SetItemText(iItem, RMTIME, st_data.bsDiffs.test(CItemData::RMTIME) ? _T("X") : _T("-"));
+
+      icol = 4;
+      if (m_bsFields.test(CItemData::PASSWORD))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PASSWORD) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::NOTES))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::NOTES) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::URL))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::URL) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::AUTOTYPE))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::AUTOTYPE) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::PWHIST))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PWHIST) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::CTIME))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::CTIME) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::ATIME))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::ATIME) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::LTIME))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::LTIME) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::PMTIME))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PMTIME) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::RMTIME))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::RMTIME) ? _T("X") : _T("-"));
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, (DWORD)&st_data);
@@ -157,7 +215,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
   }
 
   m_LCResults.SetRedraw(FALSE);
-  for (i = 0; i < LAST; i++) {
+  for (i = 0; i < m_nCols - 1; i++) {
     m_LCResults.SetColumnWidth(i, LVSCW_AUTOSIZE_USEHEADER);
     int header_width = m_LCResults.GetColumnWidth(i);
     m_LCResults.SetColumnWidth(i, LVSCW_AUTOSIZE);
@@ -165,6 +223,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
     if (header_width > data_width)
       m_LCResults.SetColumnWidth(i, LVSCW_AUTOSIZE_USEHEADER);
   }
+  m_LCResults.SetColumnWidth(m_nCols - 1, LVSCW_AUTOSIZE_USEHEADER);
   m_LCResults.SetRedraw(TRUE);
   m_LCResults.Invalidate();
 
@@ -240,11 +299,69 @@ BEGIN_MESSAGE_MAP(CCompareResultsDlg, CDialog)
   ON_BN_CLICKED(ID_HELP, OnHelp)
   ON_BN_CLICKED(IDOK, OnOK)
   ON_BN_CLICKED(IDC_COPYTOCLIPBOARD, OnCopyToClipboard)
+  ON_BN_CLICKED(IDC_SHOW_IDENTICAL_ENTRIES, OnShowIdenticalEntries)
   ON_NOTIFY(HDN_ITEMCLICK, IDC_RESULTLISTHDR, OnColumnClick)
   ON_COMMAND(ID_MENUITEM_COMPVIEWEDIT, OnCompareViewEdit)
   ON_COMMAND(ID_MENUITEM_COPY_TO_ORIGINAL, OnCompareCopyToOriginalDB)
   ON_COMMAND(ID_MENUITEM_COPY_TO_COMPARISON, OnCompareCopyToComparisonDB)
 END_MESSAGE_MAP()
+
+void
+CCompareResultsDlg::OnShowIdenticalEntries()
+{
+  m_ShowIdenticalEntries = ((CButton*)GetDlgItem(IDC_SHOW_IDENTICAL_ENTRIES))->GetCheck();
+
+  m_LCResults.SetRedraw(FALSE);
+
+  CompareData::iterator cd_iter;
+  int i, iItem = 0;
+  if (m_ShowIdenticalEntries == BST_CHECKED) {
+    if (m_numIdentical > 0) {
+      for (cd_iter = m_Identical.begin(); cd_iter != m_Identical.end(); cd_iter++) {
+        st_CompareData &st_data = *cd_iter;
+
+        if (st_data.unknflds0)
+          m_LCResults.InsertItem(iItem, _T("=*"));
+        else
+          m_LCResults.InsertItem(iItem, _T("="));
+        if (st_data.unknflds1)
+          m_LCResults.SetItemText(iItem, COMPARE, _T("=*"));
+        else
+          m_LCResults.SetItemText(iItem, COMPARE, _T("="));
+
+        m_LCResults.SetItemText(iItem, GROUP, st_data.group);
+        m_LCResults.SetItemText(iItem, TITLE, st_data.title);
+        m_LCResults.SetItemText(iItem, USER, st_data.user);
+        for (i = 0; i < m_nCols - 5; i++)
+          m_LCResults.SetItemText(iItem, USER + 1 + i, _T("-"));
+
+        st_data.listindex = iItem;
+        m_LCResults.SetItemData(iItem, (DWORD)&st_data);
+        iItem++;
+      }
+    }
+  } else {
+    if (m_numIdentical > 0) {
+      for (i = m_LCResults.GetItemCount() - 1; i >= 0; i--) {
+        if (m_LCResults.GetItemText(i, 0).Left(1) == _T("="))
+          m_LCResults.DeleteItem(i);
+      }
+    }
+  }
+
+  for (i = 0; i < m_nCols - 1; i++) {
+    m_LCResults.SetColumnWidth(i, LVSCW_AUTOSIZE_USEHEADER);
+    int header_width = m_LCResults.GetColumnWidth(i);
+    m_LCResults.SetColumnWidth(i, LVSCW_AUTOSIZE);
+    int data_width = m_LCResults.GetColumnWidth(i);
+    if (header_width > data_width)
+      m_LCResults.SetColumnWidth(i, LVSCW_AUTOSIZE_USEHEADER);
+  }
+  m_LCResults.SetColumnWidth(m_nCols - 1, LVSCW_AUTOSIZE_USEHEADER);
+
+  m_LCResults.SetRedraw(TRUE);
+  m_LCResults.Invalidate();
+}
 
 void
 CCompareResultsDlg::OnCancel()
@@ -269,7 +386,8 @@ void
 CCompareResultsDlg::UpdateStatusBar()
 {
   CString s;
-  s.Format(IDS_COMPARERESULTS, m_numOnlyInCurrent, m_numOnlyInComp, m_numConflicts);
+  s.Format(IDS_COMPARERESULTS, m_numOnlyInCurrent, m_numOnlyInComp,
+                               m_numConflicts, m_numIdentical);
   m_statusBar.SetPaneText(0, s, TRUE);
   m_statusBar.SetPaneInfo(0, m_statusBar.GetItemID(0), SBPS_STRETCH, NULL);
   m_statusBar.UpdateWindow();
@@ -333,12 +451,23 @@ CCompareResultsDlg::OnCompareCopyToComparisonDB()
     m_ComparisonDBChanged = true;
 }
 
+struct equal_id
+{
+   equal_id(int const& id) : m_id(id) {}
+   bool operator()(st_CompareData const& rdata) const
+   {
+     return (rdata.id == m_id);
+   }
+
+   int m_id;
+};
+
 bool
 CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
 {
   // Check not already copied one way or another
   CString cs_text = m_LCResults.GetItemText(m_row, m_column);
-  if (cs_text == _T("="))
+  if (cs_text.Compare(_T("=")) == 0)
     return false;
 
   CString cs_msg;
@@ -353,6 +482,8 @@ CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
     cs_msg.Format(IDS_COPYLEFTRIGHT, cs_originaldb, cs_comparisondb);
     ifunction = COPY_TO_COMPARISONDB;
   }
+  if (cs_text.Right(1) == _T("*"))
+    cs_msg += CString(MAKEINTRESOURCE(IDS_COPYUNKNOWNFIELDS));
   if (AfxMessageBox(cs_msg, MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) != IDYES)
     return false;
 
@@ -368,24 +499,49 @@ CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
   if (lres != TRUE)
     return false;
 
-  m_LCResults.SetItemText(m_row, 0, _T("="));
-  m_LCResults.SetItemText(m_row, COMPARE, _T("="));
-  for (int i = USER + 1; i < LAST; i++)
-     m_LCResults.SetItemText(m_row, i, _T("-"));
+  if (st_data->unknflds0)
+    m_LCResults.SetItemText(m_row, 0, _T("=*"));
+  else
+    m_LCResults.SetItemText(m_row, 0, _T("="));
+  if (st_data->unknflds1)
+    m_LCResults.SetItemText(m_row, COMPARE, _T("=*"));
+  else
+    m_LCResults.SetItemText(m_row, COMPARE, _T("="));
 
+  for (int i = 0; i < m_nCols - 5; i++)
+    m_LCResults.SetItemText(m_row, USER + 1 + i, _T("-"));
+
+  st_CompareData st_newdata;
+  st_newdata = *st_data;
+  st_newdata.bsDiffs.reset();
+
+  int id = st_data->id;
+  CompareData::iterator cd_iter;
   switch (pos_column) {
     case -1:
       m_numConflicts--;
+      cd_iter = std::find_if(m_Conflicts.begin(), m_Conflicts.end(), equal_id(id));
+      if (cd_iter != m_Conflicts.end())
+        m_Conflicts.erase(cd_iter);
       break;
     case 0:
       m_numOnlyInCurrent--;
+      cd_iter = std::find_if(m_OnlyInCurrent.begin(), m_OnlyInCurrent.end(), equal_id(id));
+      if (cd_iter != m_OnlyInCurrent.end())
+        m_OnlyInCurrent.erase(cd_iter);
       break;
     case 1:
       m_numOnlyInComp--;
+      cd_iter = std::find_if(m_OnlyInComp.begin(), m_OnlyInComp.end(), equal_id(id));
+      if (cd_iter != m_OnlyInComp.end())
+        m_OnlyInComp.erase(cd_iter);
       break;
     default:
       ASSERT(0);
   }
+  m_numIdentical++;
+  st_newdata.id = m_numIdentical;
+  m_Identical.push_back(st_newdata);
   UpdateStatusBar();
 
   st_data->column = -2;
@@ -608,7 +764,7 @@ CCompareResultsDlg::OnCopyToClipboard()
       buffer.Format(IDS_COMPARESTATS2, st_data.group, st_data.title, st_data.user);
       resultStr += buffer;
 
-       if (st_data.bsDiffs.test(CItemData::PASSWORD)) resultStr += csx_password;
+      if (st_data.bsDiffs.test(CItemData::PASSWORD)) resultStr += csx_password;
       if (st_data.bsDiffs.test(CItemData::NOTES)) resultStr += csx_notes;
       if (st_data.bsDiffs.test(CItemData::URL)) resultStr += csx_url;
       if (st_data.bsDiffs.test(CItemData::AUTOTYPE)) resultStr += csx_autotype;

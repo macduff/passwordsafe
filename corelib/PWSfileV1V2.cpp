@@ -109,11 +109,23 @@ int PWSfileV1V2::Open(const CMyString &passkey)
   ASSERT(m_curversion == V17 || m_curversion == V20);
 
   m_passkey = passkey;
-  LPCTSTR passstr = LPCTSTR(m_passkey);
-
   FOpen();
   if (m_fd == NULL)
     return CANT_OPEN_FILE;
+
+  LPCTSTR passstr = LPCTSTR(m_passkey);
+  unsigned long passLen = passkey.GetLength();
+  unsigned char *pstr;
+
+#ifdef UNICODE
+  pstr = new unsigned char[2*passLen];
+  int len = WideCharToMultiByte(CP_ACP, 0, passstr, passLen,
+                  LPSTR(pstr), 2*passLen, NULL, NULL);
+  ASSERT(len != 0);
+  passLen = len;
+#else
+  pstr = (unsigned char *)passstr;
+#endif
 
   if (m_rw == Write) {
     // Following used to verify passkey against file's passkey
@@ -133,27 +145,34 @@ int PWSfileV1V2::Open(const CMyString &passkey)
 
     PWSrand::GetInstance()->GetRandomData( m_ipthing, 8);
     fwrite(m_ipthing, 1, 8, m_fd);
-    m_fish = BlowFish::MakeBlowFish((const unsigned char *)passstr,
-                                    m_passkey.GetLength(),
-                                    m_salt, SaltLength);
+
+    m_fish = BlowFish::MakeBlowFish(pstr, passLen,
+                    m_salt, SaltLength);
     if (m_curversion == V20) {
       status = WriteV2Header();
     }
   } else { // open for read
     status = CheckPassword(m_filename, m_passkey, m_fd);
     if (status != SUCCESS) {
+#ifdef UNICODE
+      trashMemory(pstr, 2*passLen);
+      delete[] pstr;
+#endif
       Close();
       return status;
     }
     fread(m_salt, 1, SaltLength, m_fd);
     fread(m_ipthing, 1, 8, m_fd);
 
-    m_fish = BlowFish::MakeBlowFish((const unsigned char *)passstr,
-                                    m_passkey.GetLength(),
-                                    m_salt, SaltLength);
+    m_fish = BlowFish::MakeBlowFish(pstr, passLen,
+                    m_salt, SaltLength);
     if (m_curversion == V20)
       status = ReadV2Header();
   } // read mode
+#ifdef UNICODE
+    trashMemory(pstr, 2*passLen);
+    delete[] pstr;
+#endif
   return status;
 }
 
@@ -180,9 +199,9 @@ int PWSfileV1V2::CheckPassword(const CMyString &filename,
   unsigned char randstuff[StuffSize];
   unsigned char randhash[20];   // HashSize
 
-   fread(randstuff, 1, 8, fd);
-   randstuff[8] = randstuff[9] = TCHAR('\0'); // Gross fugbix
-   fread(randhash, 1, 20, fd);
+  fread(randstuff, 1, 8, fd);
+  randstuff[8] = randstuff[9] = '\0'; // Gross fugbix
+  fread(randhash, 1, 20, fd);
 
    if (a_fd == NULL) // if we opened the file, we close it...
      fclose(fd);
@@ -214,6 +233,37 @@ static CMyString ReMergeNotes(const CItemData &item)
     notes += at;
   }
   return notes;
+}
+
+
+size_t PWSfileV1V2::WriteCBC(unsigned char type, const CString &data)
+{
+#ifndef UNICODE
+  // We do a double cast because the LPCTSTR cast operator is overridden
+  // by the CString class to access the pointer we need,
+  // but we in fact need it as an unsigned char. Grrrr.
+  LPCTSTR datastr = LPCTSTR(data);
+
+  return PWSfile::WriteCBC(type, (const unsigned char *)datastr,
+                           data.GetLength());
+#else
+  // xlate wchar_t to ACP
+    wchar_t *wcPtr = const_cast<CString &>(data).GetBuffer();
+    int wcLen = data.GetLength()+1;
+    int mbLen = 2*wcLen;
+    unsigned char *acp = new unsigned char[mbLen];
+    int acpLen = WideCharToMultiByte(CP_ACP,      // code page
+                                     0, // performance and mapping flags
+                                    wcPtr, wcLen, // wide-character string
+                                    LPSTR(acp), mbLen, // buffer and length
+                                    NULL,NULL); // use sys defs for unmappables
+    ASSERT(acpLen != 0);
+    acpLen--; // remove unneeded null termination
+    size_t retval = PWSfile::WriteCBC(type, acp, acpLen);
+    trashMemory(acp, mbLen);
+    delete[] acp;
+    return retval;
+#endif
 }
 
 int PWSfileV1V2::WriteRecord(const CItemData &item)
@@ -266,7 +316,7 @@ int PWSfileV1V2::WriteRecord(const CItemData &item)
     {
       uuid_array_t uuid_array;
       item.GetUUID(uuid_array);
-      WriteCBC(CItemData::UUID, uuid_array, sizeof(uuid_array));
+      PWSfile::WriteCBC(CItemData::UUID, uuid_array, sizeof(uuid_array));
     }
     WriteCBC(CItemData::GROUP, item.GetGroup());
     WriteCBC(CItemData::TITLE, item.GetTitle());
@@ -328,6 +378,59 @@ static void ExtractURL(CMyString &notesStr, CMyString &outurl)
     outurl = url;
     notesStr = instr;
   }
+}
+
+size_t PWSfileV1V2::ReadCBC(unsigned char &type, CMyString &data)
+{
+  unsigned char *buffer = NULL;
+  unsigned int buffer_len = 0;
+  size_t retval;
+
+  ASSERT(m_fish != NULL && m_IV != NULL);
+  retval = _readcbc(m_fd, buffer, buffer_len, type,
+                    m_fish, m_IV, m_terminal);
+
+  if (buffer_len > 0) {
+#ifdef UNICODE
+      wchar_t *wc = new wchar_t[buffer_len+1];
+      
+      int wcLen = MultiByteToWideChar(CP_ACP,      // code page
+                                      MB_ERR_INVALID_CHARS,
+                                      LPCSTR(buffer),       // string to map
+                                      buffer_len,
+                                      wc, buffer_len+1);
+    if (wcLen == 0) {
+        DWORD errCode = GetLastError();
+        switch (errCode) {
+            case ERROR_INSUFFICIENT_BUFFER:
+                TRACE("INSUFFICIENT BUFFER"); break;
+            case ERROR_INVALID_FLAGS:
+                TRACE("INVALID FLAGS"); break;
+            case ERROR_INVALID_PARAMETER:
+                TRACE("INVALID PARAMETER"); break;
+            case ERROR_NO_UNICODE_TRANSLATION:
+                TRACE("NO UNICODE TRANSLATION"); break;
+            default:
+                ASSERT(0);
+        }
+    }
+    ASSERT(wcLen != 0);
+    wc[wcLen-1] = TCHAR('\0');
+    data = wc;
+    trashMemory(wc, wcLen);
+    delete[] wc;
+#else
+CMyString str(LPCTSTR(buffer), buffer_len);
+    data = str;
+#endif
+    trashMemory(buffer, buffer_len);
+    delete[] buffer;
+  } else {
+    data = _T("");
+    // no need to delete[] buffer, since _readcbc will not allocate if
+    // buffer_len is zero
+  }
+  return retval;
 }
 
 int PWSfileV1V2::ReadRecord(CItemData &item)
@@ -402,8 +505,6 @@ int PWSfileV1V2::ReadRecord(CItemData &item)
                         case CItemData::RMTIME:
                         case CItemData::POLICY:
                         default:
-                            // XXX Set a flag here so user can be warned that
-                            // XXX we read a file format we don't fully support
                             break;
                     } // switch
                 } // if (fieldLen > 0)

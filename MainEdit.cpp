@@ -202,6 +202,9 @@ DboxMain::Delete(bool inRecursion)
     m_ctlItemTree.DeleteWithParents(curTree_item);
     delete di;
 
+    if (ci->NumberUnknownFields() > 0)
+      m_core.DecrementNumRecordsWithUnknownFields();
+
     m_core.RemoveEntryAt(listindex);
     FixListIndexes();
     if (m_ctlItemList.IsWindowVisible()) {

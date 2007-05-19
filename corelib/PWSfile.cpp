@@ -17,6 +17,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+int PWSfile::m_nITER;
+
 PWSfile *PWSfile::MakePWSfile(const CMyString &a_filename, VERSION &version,
                               RWmode mode, int &status)
 {
@@ -115,7 +117,8 @@ PWSfile::PWSfile(const CMyString &filename, RWmode mode)
     m_curversion(UNKNOWN_VERSION), m_rw(mode),
     m_fd(NULL), m_prefString(_T("")), m_fish(NULL), m_terminal(NULL),
     m_file_displaystatus(_T("")), m_whenlastsaved(_T("")),
-    m_wholastsaved(_T("")), m_whatlastsaved(_T(""))
+    m_wholastsaved(_T("")), m_whatlastsaved(_T("")),
+    m_nRecordsWithUnknownFields(0)
 {
 }
 
@@ -135,6 +138,7 @@ void PWSfile::FOpen()
 #endif
 }
 
+
 int PWSfile::Close()
 {
   delete m_fish;
@@ -146,17 +150,6 @@ int PWSfile::Close()
   return SUCCESS;
 }
 
-size_t PWSfile::WriteCBC(unsigned char type, const CString &data)
-{
-  // We do a double cast because the LPCTSTR cast operator is overridden
-  // by the CString class to access the pointer we need,
-  // but we in fact need it as an unsigned char. Grrrr.
-  LPCTSTR datastr = LPCTSTR(data);
-
-  return WriteCBC(type, (const unsigned char *)datastr,
-                  data.GetLength());
-}
-
 size_t PWSfile::WriteCBC(unsigned char type, const unsigned char *data,
                          unsigned int length)
 {
@@ -164,30 +157,8 @@ size_t PWSfile::WriteCBC(unsigned char type, const unsigned char *data,
   return _writecbc(m_fd, data, length, type, m_fish, m_IV);
 }
 
-size_t PWSfile::ReadCBC(unsigned char &type, CMyString &data)
-{
-  unsigned char *buffer = NULL;
-  unsigned int buffer_len = 0;
-  size_t retval;
 
-  ASSERT(m_fish != NULL && m_IV != NULL);
-  retval = _readcbc(m_fd, buffer, buffer_len, type,
-                    m_fish, m_IV, m_terminal);
-
-  if (buffer_len > 0) {
-    CMyString str(LPCTSTR(buffer), buffer_len);
-    data = str;
-    trashMemory(buffer, buffer_len);
-    delete[] buffer;
-  } else {
-    data = _T("");
-    // no need to delete[] buffer, since _readcbc will not allocate if
-    // buffer_len is zero
-  }
-  return retval;
-}
-
-size_t PWSfile::ReadCBC(unsigned char &type, unsigned char *data,
+size_t PWSfile::ReadCBC(unsigned char &type, unsigned char* &data,
                         unsigned int &length)
 {
   unsigned char *buffer = NULL;
@@ -199,13 +170,17 @@ size_t PWSfile::ReadCBC(unsigned char &type, unsigned char *data,
                     m_fish, m_IV, m_terminal);
 
   if (buffer_len > 0) {
-    if (buffer_len < length)
+    if (buffer_len < length || data == NULL)
       length = buffer_len; // set to length read
     // if buffer_len > length, data is truncated to length
     // probably an error.
-    memcpy(data, buffer, length);
-    trashMemory(buffer, buffer_len);
-    delete[] buffer;
+    if (data != NULL) {
+        memcpy(data, buffer, length);
+        trashMemory(buffer, buffer_len);
+        delete[] buffer;
+    } else { // NULL data means pass buffer directly to caller
+        data = buffer; // caller must trash & delete[]!
+    }
   } else {
     // no need to delete[] buffer, since _readcbc will not allocate if
     // buffer_len is zero
@@ -249,10 +224,10 @@ int PWSfile::CheckPassword(const CMyString &filename,
  * As of 3.05, there's a need to lock the application's configuration
  * file as well, potentially concurrently with the database file.
  * Problem is, we need to keep state information (HANDLE, LockCount) per
- * locked file.
- * With multiple files open, the lockfile HANDLE and count is maintained by
- * the owner (PWScore and PWSprefs) and a reference to it is passed to the
- * lockng routines.
+ * locked file. since the filenames are unique, indeally we'd maintain a map
+ * between the filename and the resources. For now, we require the application
+ * to differentiate between them for us by the bool param bDB. Less elegant,
+ * but *much* easier than setting up a map...
  */
 
 static void GetLockFileName(const CMyString &filename,
@@ -488,7 +463,7 @@ bool PWSfile::GetLocker(const CMyString &lock_filename, CMyString &locker)
 {
 	bool bResult = false;
 	// read locker data ("user@machine:nnnnnnnn") from file
-	TCHAR lockerStr[UNLEN + MAX_COMPUTERNAME_LENGTH + sizeof(TCHAR) * 11];
+	TCHAR lockerStr[UNLEN + MAX_COMPUTERNAME_LENGTH + 11];
 	// flags here counter (my) intuition, but see
 	// http://msdn.microsoft.com/library/default.asp?url=/library/en-us/fileio/base/creating_and_opening_files.asp
 	HANDLE h2 = ::CreateFile(LPCTSTR(lock_filename),
@@ -503,7 +478,7 @@ bool PWSfile::GetLocker(const CMyString &lock_filename, CMyString &locker)
 					&bytesRead, NULL);
 		CloseHandle(h2);
 		if (bytesRead > 0) {
-			lockerStr[bytesRead] = TCHAR('\0');
+			lockerStr[bytesRead/sizeof(TCHAR)] = TCHAR('\0');
 			locker = lockerStr;
 			bResult = true;
 		} else { // read failed for some reason
@@ -511,4 +486,30 @@ bool PWSfile::GetLocker(const CMyString &lock_filename, CMyString &locker)
 		} // read info from lock file
 	}
 	return bResult;
+}
+
+void PWSfile::SetFileUUID(const uuid_array_t &file_uuid_array)
+{
+  memcpy(m_file_uuid_array, file_uuid_array, sizeof(file_uuid_array));
+}
+
+void PWSfile::GetFileUUID(uuid_array_t &file_uuid_array)
+{
+  memcpy(file_uuid_array, m_file_uuid_array, sizeof(file_uuid_array));
+}
+
+void PWSfile::GetUnknownHeaderFields(UnknownHeaderFieldList &UHFL)
+{
+  if (!m_UHFL.empty())
+    UHFL = m_UHFL;
+  else
+    UHFL.clear();
+}
+
+void PWSfile::SetUnknownHeaderFields(UnknownHeaderFieldList &UHFL)
+{
+  if (!UHFL.empty())
+    m_UHFL = UHFL;
+  else
+    m_UHFL.clear();
 }

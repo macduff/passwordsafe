@@ -196,6 +196,7 @@ DboxMain::New()
     return PWScore::USER_CANCEL;
 
   m_core.SetCurFile(_T("")); //Force a save as...
+  m_core.ClearFileUUID();
 #if !defined(POCKET_PC)
   m_titlebar.LoadString(IDS_UNTITLED);
   app.SetTooltipText(_T("PasswordSafe"));
@@ -467,6 +468,11 @@ DboxMain::Open( const CMyString &pszFilename )
 #endif
     CheckExpiredPasswords();
     ChangeOkUpdate();
+    // Init stuff for list/tree view - refresh as stored in DB
+    m_bShowUsernameInTree = PWSprefs::GetInstance()->
+                                GetPref(PWSprefs::ShowUsernameInTree);
+    m_bShowPasswordInTree = PWSprefs::GetInstance()->
+                                GetPref(PWSprefs::ShowPasswordInTree);
     RefreshList();
     SetInitialDatabaseDisplay();
     m_core.SetDefUsername(PWSprefs::GetInstance()->
@@ -637,8 +643,14 @@ DboxMain::SaveAs()
     MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
     return PWScore::CANT_OPEN_FILE;
   }
+  // Save file UUID, clear it to generate new one, restore if necessary
+  uuid_array_t file_uuid_array;
+  m_core.GetFileUUID(file_uuid_array);
+  m_core.ClearFileUUID();
+
   rc = m_core.WriteFile(newfile);
   if (rc == PWScore::CANT_OPEN_FILE) {
+    m_core.SetFileUUID(file_uuid_array);
     m_core.UnlockFile(newfile);
     cs_temp.Format(IDS_CANTOPENWRITING, newfile);
     cs_title.LoadString(IDS_FILEWRITEERROR);
@@ -1033,8 +1045,11 @@ DboxMain::OnImportXML()
         CString strErrors;
         CString XMLFilename = (CMyString)fd.GetPathName();
         int numValidated, numImported;
+        bool bBadUnknownFileFields, bBadUnknownRecordFields;
         CWaitCursor waitCursor;  // This may take a while!
-        rc = m_core.ImportXMLFile(ImportedPrefix, XMLFilename, XSDFilename, strErrors, numValidated, numImported);
+        rc = m_core.ImportXMLFile(ImportedPrefix, XMLFilename, XSDFilename, strErrors,
+                                  numValidated, numImported,
+                                  bBadUnknownFileFields, bBadUnknownRecordFields);
         waitCursor.Restore();  // Restore normal cursor
 
         switch (rc) {
@@ -1045,7 +1060,7 @@ DboxMain::OnImportXML()
                 dlg.m_strResultText = strErrors;
                 dlg.DoModal();
             }
-            break;
+              break;
             case PWScore::XML_FAILED_IMPORT:
             {
                 CImportXMLErrDlg dlg;
@@ -1053,16 +1068,25 @@ DboxMain::OnImportXML()
                 dlg.m_strResultText = strErrors;
                 dlg.DoModal();
             }
-            break;
+              break;
             case PWScore::SUCCESS:
             {
-                if (!strErrors.IsEmpty()) {
+                if (!strErrors.IsEmpty() ||
+                    bBadUnknownFileFields || bBadUnknownRecordFields) {
                     cs_temp.Format(IDS_XMLIMPORTWITHERRORS,
                                    XMLFilename, numValidated, numImported);
                     CImportXMLErrDlg dlg;
+
                     dlg.m_strActionText = cs_temp;
-                    dlg.m_strResultText = strErrors;
+                    dlg.m_strActionText.Empty();
+                    if (!strErrors.IsEmpty())
+                      dlg.m_strResultText = strErrors + _T("\n");
+                    if (bBadUnknownFileFields)
+                      dlg.m_strResultText += CString(MAKEINTRESOURCE(IDS_XMLUNKNHDRIGNORED)) + _T("\n");
+                    if (bBadUnknownRecordFields)
+                      dlg.m_strResultText += CString(MAKEINTRESOURCE(IDS_XMLUNKNRECIGNORED));
                     dlg.DoModal();
+                    ChangeOkUpdate();
                 } else {
                     cs_temp.Format(IDS_XMLIMPORTOK,
                                    numValidated, (numValidated != 1) ? _T("s") : _T(""),
@@ -1072,10 +1096,10 @@ DboxMain::OnImportXML()
                     ChangeOkUpdate();
                 }
             }
-            RefreshList();
-            break;
+              RefreshList();
+              break;
             default:
-                ASSERT(0);
+              ASSERT(0);
         } // switch
     }
 }
@@ -1342,7 +1366,34 @@ DboxMain::OnProperties()
     dlg.m_whatlastsaved.LoadString(IDS_UNKNOWN);
     dlg.m_whenlastsaved.Trim();
   } else
-    dlg.m_whatlastsaved = wls;
+	dlg.m_whatlastsaved = wls;
+
+  uuid_array_t file_uuid_array, ref_uuid_array;
+  memset(ref_uuid_array, 0x00, sizeof(ref_uuid_array));
+  m_core.GetFileUUID(file_uuid_array);
+
+  if (memcmp(file_uuid_array, ref_uuid_array, sizeof(file_uuid_array)) == 0)
+    wls = _T("N/A");
+  else
+    wls.Format(_T("%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"),
+     file_uuid_array[0],  file_uuid_array[1],  file_uuid_array[2],  file_uuid_array[3],
+     file_uuid_array[4],  file_uuid_array[5],  file_uuid_array[6],  file_uuid_array[7],
+     file_uuid_array[8],  file_uuid_array[9],  file_uuid_array[10], file_uuid_array[11],
+     file_uuid_array[12], file_uuid_array[13], file_uuid_array[14], file_uuid_array[15]);
+  dlg.m_file_uuid = wls;
+
+  const CString cs_Yes(MAKEINTRESOURCE(IDS_YES));
+  const CString cs_No(MAKEINTRESOURCE(IDS_NO));
+  const CString cs_HdrYesNo = m_core.HasHeaderUnknownFields() ? cs_Yes : cs_No;
+
+  dlg.m_unknownfields.Format(IDS_UNKNOWNFIELDS, cs_HdrYesNo);
+  int num = m_core.GetNumRecordsWithUnknownFields();
+  if (num == 0)
+    dlg.m_unknownfields += cs_No + _T(")");
+  else {
+    wls.Format(_T("%d"), num);
+    dlg.m_unknownfields += wls +_T(")");
+  }
 
   dlg.DoModal();
 }
@@ -1498,6 +1549,7 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 	CompareData list_OnlyInCurrent;
 	CompareData list_OnlyInComp;
 	CompareData list_Conflicts;
+  CompareData list_Identical;
 
   CompareData::iterator cd_iter;
 
@@ -1532,6 +1584,7 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
 	int numOnlyInCurrent = 0;
 	int numOnlyInComp = 0;
 	int numConflicts = 0;
+  int numIdentical = 0;
 
 	CItemData::FieldBits bsConflicts(0);
 	st_CompareData st_data;
@@ -1597,6 +1650,7 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
           bsConflicts.flip(CItemData::PWHIST);
 
         if (bsConflicts.any()) {
+          numConflicts++;
           st_data.pos0 = currentPos;
           st_data.pos1 = foundPos;
           st_data.bsDiffs = bsConflicts;
@@ -1604,11 +1658,27 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
           st_data.title = currentTitle;
           st_data.user = currentUser;
           st_data.column = -1;
+          st_data.unknflds0 = currentItem.NumberUnknownFields() > 0;
+          st_data.unknflds1 = compItem.NumberUnknownFields() > 0;
+          st_data.id = numConflicts;
           list_Conflicts.push_back(st_data);
-          numConflicts++;
+        } else {
+          numIdentical++;
+          st_data.pos0 = currentPos;
+          st_data.pos1 = foundPos;
+          st_data.bsDiffs = bsConflicts;
+          st_data.group = currentGroup;
+          st_data.title = currentTitle;
+          st_data.user = currentUser;
+          st_data.column = -1;
+          st_data.unknflds0 = currentItem.NumberUnknownFields() > 0;
+          st_data.unknflds1 = compItem.NumberUnknownFields() > 0;
+          st_data.id = numIdentical;
+          list_Identical.push_back(st_data);
         }
       } else {
         /* didn't find any match... */
+        numOnlyInCurrent++;
         st_data.pos0 = currentPos;
         st_data.pos1 = (POSITION)-1;
         st_data.bsDiffs.reset();
@@ -1616,8 +1686,10 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
         st_data.title = currentTitle;
         st_data.user = currentUser;
         st_data.column = 0;
+        st_data.unknflds0 = currentItem.NumberUnknownFields() > 0;
+        st_data.unknflds1 = false;
+        st_data.id = numOnlyInCurrent;
         list_OnlyInCurrent.push_back(st_data);
-        numOnlyInCurrent++;
       }
     }
 		m_core.GetNextEntry(currentPos);
@@ -1635,6 +1707,7 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
   
       if (!m_core.Find(compGroup, compTitle, compUser)) {
         /* didn't find any match... */
+        numOnlyInComp++;
         st_data.pos0 = (POSITION)-1;
         st_data.pos1 = compPos;
         st_data.bsDiffs.reset();
@@ -1642,8 +1715,10 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
         st_data.title = compTitle;
         st_data.user = compUser;
         st_data.column = 1;
+        st_data.unknflds0 = false;
+        st_data.unknflds1 = compItem.NumberUnknownFields() > 0;
+        st_data.id = numOnlyInComp;
         list_OnlyInComp.push_back(st_data);
-        numOnlyInComp++;
       }
     }
 		pothercore->GetNextEntry(compPos);
@@ -1669,8 +1744,9 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
     buffer.Format(IDS_COMPAREBOTHDIFF, numConflicts);
     resultStr += buffer;
 
-    CCompareResultsDlg CmpRes(this, list_OnlyInCurrent,
-      list_OnlyInComp, list_Conflicts, &m_core, pothercore);
+    CCompareResultsDlg CmpRes(this, list_OnlyInCurrent, list_OnlyInComp, 
+                                    list_Conflicts, list_Identical, 
+                                    m_bsFields, &m_core, pothercore);
 
     CmpRes.m_cs_Filename1 = cs_Filename1;
     CmpRes.m_cs_Filename2 = cs_Filename2;

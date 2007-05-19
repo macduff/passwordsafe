@@ -14,6 +14,8 @@
 #include "PWSrand.h"
 
 #include <time.h>
+#include <vector>
+#include <algorithm>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -55,6 +57,17 @@ CItemData::CItemData(const CItemData &that) :
   m_display_info(that.m_display_info)
 {
   ::memcpy((char*)m_salt, (char*)that.m_salt, SaltLength);
+  if (!that.m_URFL.empty())
+    m_URFL = that.m_URFL;
+  else
+    m_URFL.clear();
+}
+
+CItemData::~CItemData()
+{
+  if (!m_URFL.empty()) {
+    m_URFL.clear();
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -192,6 +205,32 @@ void CItemData::GetUUID(uuid_array_t &uuid_array) const
 {
   unsigned int length = sizeof(uuid_array);
   GetField(m_UUID, (unsigned char *)uuid_array, length);
+}
+
+void CItemData::GetUnknownField(unsigned char &type, unsigned int &length,
+                                unsigned char * &pdata,
+                                const unsigned int &num) const
+{
+  const UnknownRecordFieldEntry &unkrfe = m_URFL.at(num);
+
+  type = unkrfe.uc_Type;
+  length = (int)unkrfe.st_Length + 16;
+  // Caller to free!
+  pdata = new unsigned char[length];
+
+  GetField(unkrfe.if_UField, pdata, length);
+}
+
+void
+CItemData::SetUnknownField(const unsigned char type,
+                           const unsigned int length,
+                           const unsigned char * ufield)
+{
+  UnknownRecordFieldEntry unkrfe(LAST);
+  SetField(unkrfe.if_UField, ufield, length);
+  unkrfe.uc_Type = type;
+  unkrfe.st_Length = length;
+  m_URFL.push_back(unkrfe);
 }
 
 /*
@@ -336,9 +375,9 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
     return ret;
 }
 
-  void CItemData::SplitName(const CMyString &name,
+void CItemData::SplitName(const CMyString &name,
                             CMyString &title, CMyString &username)
-  {
+{
     int pos = name.FindByte(SPLTCHR);
     if (pos==-1) {//Not a split name
       int pos2 = name.FindByte(DEFUSERCHR);
@@ -360,37 +399,36 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
       temp.TrimLeft();
       username = temp;
     }
-  }
+}
 
-  //-----------------------------------------------------------------------------
-  // Setters
+//-----------------------------------------------------------------------------
+// Setters
 
-  void CItemData::SetField(CItemField &field, const CMyString &value)
-  {
+void CItemData::SetField(CItemField &field, const CMyString &value)
+{
     BlowFish *bf = MakeBlowFish();
     field.Set(value, bf);
     delete bf;
-  }
+}
 
-  void CItemData::SetField(CItemField &field, const unsigned char *value, unsigned int length)
-  {
+void CItemData::SetField(CItemField &field, const unsigned char *value, unsigned int length)
+{
     BlowFish *bf = MakeBlowFish();
     field.Set(value, length, bf);
     delete bf;
-  }
+}
 
-  void CItemData::CreateUUID()
-  {
+void CItemData::CreateUUID()
+{
     CUUIDGen uuid;
     uuid_array_t uuid_array;
     uuid.GetUUID(uuid_array);
     SetUUID(uuid_array);
-  }
+}
 
-
-  void
-    CItemData::SetName(const CMyString &name, const CMyString &defaultUsername)
-  {
+void
+CItemData::SetName(const CMyString &name, const CMyString &defaultUsername)
+{
     // the m_name is from pre-2.0 versions, and may contain the title and user
     // separated by SPLTCHR. Also, DEFUSERCHR signified that the default username is to be used.
     // Here we fill the title and user fields so that
@@ -410,11 +448,11 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
     m_Title.Set(title, bf);
     m_User.Set(user, bf);
     delete bf;
-  }
+}
 
-  void
-    CItemData::SetTitle(const CMyString &title, TCHAR delimiter)
-  {
+void
+CItemData::SetTitle(const CMyString &title, TCHAR delimiter)
+{
 	if (delimiter == 0)
       SetField(m_Title, title);
 	else {
@@ -438,23 +476,23 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
 
       SetField(m_Title, new_title);
 	}
-  }
+}
 
-  void
-    CItemData::SetUser(const CMyString &user)
-  {
+void
+CItemData::SetUser(const CMyString &user)
+{
     SetField(m_User, user);
-  }
+}
 
-  void
-    CItemData::SetPassword(const CMyString &password)
-  {
+void
+CItemData::SetPassword(const CMyString &password)
+{
     SetField(m_Password, password);
-  }
+}
 
-  void
-    CItemData::SetNotes(const CMyString &notes, TCHAR delimiter)
-  {
+void
+CItemData::SetNotes(const CMyString &notes, TCHAR delimiter)
+{
     if (delimiter == 0)
       SetField(m_Notes, notes);
     else {
@@ -482,43 +520,43 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
 
       SetField(m_Notes, multiline_notes);
     }
-  }
+}
 
-  void
-    CItemData::SetGroup(const CMyString &title)
-  {
+void
+CItemData::SetGroup(const CMyString &title)
+{
     SetField(m_Group, title);
-  }
+}
 
-  void
-    CItemData::SetUUID(const uuid_array_t &UUID)
-  {
+void
+CItemData::SetUUID(const uuid_array_t &UUID)
+{
     SetField(m_UUID, (const unsigned char *)UUID, sizeof(UUID));
-  }
+}
 
-  void
-    CItemData::SetURL(const CMyString &URL)
-  {
+void
+CItemData::SetURL(const CMyString &URL)
+{
     SetField(m_URL, URL);
-  }
+}
 
-  void
-    CItemData::SetAutoType(const CMyString &autotype)
-  {
+void
+CItemData::SetAutoType(const CMyString &autotype)
+{
     SetField(m_AutoType, autotype);
-  }
+}
 
-  void
-    CItemData::SetTime(int whichtime)
-  {
+void
+CItemData::SetTime(int whichtime)
+{
     time_t t;
     time(&t);
     SetTime(whichtime, t);
-  }
+}
 
-  void
-    CItemData::SetTime(int whichtime, time_t t)
-  {
+void
+CItemData::SetTime(int whichtime, time_t t)
+{
     switch (whichtime) {
     case ATIME:
       SetField(m_tttATime, (const unsigned char *)&t, sizeof(t));
@@ -538,11 +576,11 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
     default:
       ASSERT(0);
     }
-  }
+}
 
-  void
-    CItemData::SetTime(int whichtime, const CString &time_str)
-  {
+void
+CItemData::SetTime(int whichtime, const CString &time_str)
+{
     if (time_str.GetLength() == 0) {
       SetTime(whichtime, (time_t)0);
       return;
@@ -559,7 +597,7 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
       return;
 
     SetTime(whichtime, t);
-  }
+}
 
 void
 CItemData::SetPWHistory(const CMyString &PWHistory)
@@ -594,7 +632,6 @@ CItemData::CreatePWHistoryList(BOOL &status,
   	return (len != 0 ? 1 : 0);
 
   TCHAR *lpszPWHistory = pwh.GetBuffer(len + sizeof(TCHAR));
-  TCHAR *lpszPW;
 
 #if _MSC_VER >= 1400
   int iread = _stscanf_s(lpszPWHistory, _T("%01d%02x%02x"), &s, &m, &n);
@@ -602,7 +639,7 @@ CItemData::CreatePWHistoryList(BOOL &status,
   int iread = _stscanf(lpszPWHistory, _T("%01d%02x%02x"), &s, &m, &n);
 #endif
   if (iread != 3)
-	return 1;
+    return 1;
 
   lpszPWHistory += 5;
   for (int i = 0; i < n; i++) {
@@ -619,8 +656,8 @@ CItemData::CreatePWHistoryList(BOOL &status,
     pwh_ent.changedate =
       PWSUtil::ConvertToDateTimeString((time_t) t, time_format);
     if (pwh_ent.changedate.IsEmpty()) {
-		//                       1234567890123456789
-		pwh_ent.changedate = _T("1970-01-01 00:00:00");
+		  //                       1234567890123456789
+      pwh_ent.changedate = _T("1970-01-01 00:00:00");
     }
     lpszPWHistory += 8;
 #if _MSC_VER >= 1400
@@ -633,19 +670,7 @@ CItemData::CreatePWHistoryList(BOOL &status,
     	break;
     }
     lpszPWHistory += 4;
-    lpszPW = tmp.GetBuffer(ipwlen + sizeof(TCHAR));
-#if _MSC_VER >= 1400
-    memcpy_s(lpszPW, ipwlen + sizeof(TCHAR), lpszPWHistory, ipwlen);
-#else
-    memcpy(lpszPW, lpszPWHistory, ipwlen);
-#endif
-    lpszPW[ipwlen] = TCHAR('\0');
-    tmp.ReleaseBuffer();
-    if (tmp.GetLength() != ipwlen) {
-    	i_error = 1;
-    	break;
-    }
-    pwh_ent.password = tmp;
+    pwh_ent.password = CMyString(lpszPWHistory, ipwlen);
     lpszPWHistory += ipwlen;
     pPWHistList->push_back(pwh_ent);
   }
@@ -686,6 +711,10 @@ CItemData::operator=(const CItemData &that)
     m_tttRMTime = that.m_tttRMTime;
     m_PWHistory = that.m_PWHistory;
     m_display_info = that.m_display_info;
+    if (!that.m_URFL.empty())
+      m_URFL = that.m_URFL;
+    else
+      m_URFL.clear();
 
     memcpy((char*)m_salt, (char*)that.m_salt, SaltLength);
   }
@@ -709,6 +738,7 @@ CItemData::Clear()
   m_tttLTime.Empty();
   m_tttRMTime.Empty();
   m_PWHistory.Empty();
+  m_URFL.clear();
 }
 
 int

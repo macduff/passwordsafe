@@ -51,7 +51,7 @@ PWScore::PWScore() : m_currfile(_T("")), m_changed(false),
                      m_usedefuser(false), m_defusername(_T("")),
                      m_ReadFileVersion(PWSfile::UNKNOWN_VERSION),
                      m_passkey(NULL), m_passkey_len(0),
-                     m_IsReadOnly(false)
+                     m_IsReadOnly(false), m_nRecordsWithUnknownFields(0)
 {
   if (!PWScore::m_session_initialized) {
 	CItemData::SetSessionKey(); // per-session initialization
@@ -69,6 +69,9 @@ PWScore::~PWScore()
   if (m_passkey_len > 0) {
     trashMemory(m_passkey, ((m_passkey_len + 7)/8)*8);
     delete[] m_passkey;
+  }
+  if (!m_UHFL.empty()) {
+    m_UHFL.clear();
   }
 }
 
@@ -94,14 +97,19 @@ PWScore::ReInit(void)
   m_ReadFileVersion = PWSfile::UNKNOWN_VERSION;
   m_passkey = NULL;
   m_passkey_len = 0;
+  m_nRecordsWithUnknownFields = 0;
 }
 
 void
 PWScore::NewFile(const CMyString &passkey)
 {
    ClearData();
-   ReInit();
    SetPassKey(passkey);
+   m_changed = false;
+   // default username is a per-database preference - wipe clean
+   // for new database:
+   m_usedefuser = false;
+   m_defusername = _T("");
 }
 
 int
@@ -115,6 +123,13 @@ PWScore::WriteFile(const CMyString &filename, PWSfile::VERSION version)
     delete out;
     return status;
   }
+
+  // Re-use file's UUID and number of hash iterations
+  out->SetFileUUID(m_file_uuid_array);
+  out->SetFileHashIterations(m_nITER);
+
+  // Give PWSfileV3 the unknown headers to write out
+  out->SetUnknownHeaderFields(m_UHFL);
 
   // preferences are kept in header, which is written in OpenWriteFile,
   // so we need to update the prefernce string here
@@ -151,6 +166,7 @@ PWScore::WriteFile(const CMyString &filename, PWSfile::VERSION version)
   m_wholastsaved = out->GetWhoLastSaved();
   m_whenlastsaved = out->GetWhenLastSaved();
   m_whatlastsaved = out->GetWhatLastSaved();
+  out->GetFileUUID(m_file_uuid_array);
 
   out->Close();
   delete out;
@@ -180,7 +196,7 @@ PWScore::WritePlaintextFile(const CMyString &filename,
 	if ( bsFields.count() == bsFields.size()) {
 	  if (m_hdr.IsEmpty())
 	    m_hdr.LoadString(IDSC_EXPORTHEADER);
-	  ofs << m_hdr << endl;
+	  ofs << LPCTSTR(m_hdr) << endl;
 	} else {
 		CString hdr = _T(""), cs_temp;
 		if (bsFields.test(CItemData::GROUP)) {
@@ -236,7 +252,7 @@ PWScore::WritePlaintextFile(const CMyString &filename,
 		if (hdr.Right(1) == _T("\t"))
 			hdr_len--;
 
-		ofs << hdr.Left(hdr_len) << endl;
+		ofs << LPCTSTR(hdr.Left(hdr_len)) << endl;
   }
 
   CItemData temp;
@@ -250,8 +266,8 @@ PWScore::WritePlaintextFile(const CMyString &filename,
     if (subgroup_name.IsEmpty() || 
         temp.WantEntry(subgroup_name, subgroup_object, subgroup_function) == TRUE) {
       const CMyString line = temp.GetPlaintext(TCHAR('\t'), bsFields, delimiter);
-      if (!line.IsEmpty() != 0)
-    	  ofs << line << endl;
+      if (line.IsEmpty())
+    	  ofs << LPCTSTR(line) << endl;
     }
 
     pwlist.GetNext(listPos);
@@ -261,6 +277,21 @@ PWScore::WritePlaintextFile(const CMyString &filename,
   return SUCCESS;
 }
 
+static void WriteXMLTime(ofstreamT &of, int indent, const TCHAR *name, time_t t)
+{
+    int i;
+    const CString tmp = PWSUtil::ConvertToDateTimeString(t, TMC_XML);
+
+    for (i = 0; i < indent; i++) of << _T("\t");
+    of << _T("<") << name << _T(">") << endl;
+    for (i = 0; i <= indent; i++) of << _T("\t");
+    of << _T("<date>") << LPCTSTR(tmp.Left(10)) << _T("</date>") << endl;
+    for (i = 0; i <= indent; i++) of << _T("\t");
+    of << _T("<time>") << LPCTSTR(tmp.Right(8)) << _T("</time>") << endl;
+    for (i = 0; i < indent; i++) of << _T("\t");
+    of << _T("</") << name << _T(">") << endl;
+}
+
 int
 PWScore::WriteXMLFile(const CMyString &filename,
                       const CItemData::FieldBits &bsFields,
@@ -268,12 +299,12 @@ PWScore::WriteXMLFile(const CMyString &filename,
                       const int &subgroup_object, const int &subgroup_function,
                       const TCHAR delimiter, const ItemList *il)
 {
-	ofstream of(filename);
+	ofstreamT of(filename);
 
 	if (!of)
 		return CANT_OPEN_FILE;
 
-	CMyString tmp, pwh;
+	CMyString pwh, tmp;
 	CString cs_tmp;
 	uuid_array_t uuid_array;
 
@@ -307,17 +338,96 @@ PWScore::WriteXMLFile(const CMyString &filename,
 	tmp = m_currfile;
 	tmp.Replace(_T("&"), _T("&amp;"));
 	of << _T("delimiter=\"") << delimiter << _T("\"") << endl;
-	of << _T("Database=\"") << tmp << _T("\"") << endl;
-	of << _T("ExportTimeStamp=\"") << now << _T("\"") << endl;
+	of << _T("Database=\"") << LPCTSTR(tmp) << _T("\"") << endl;
+	of << _T("ExportTimeStamp=\"") << LPCTSTR(now) << _T("\"") << endl;
 	cs_tmp.Format(_T("%d.%02d"), m_nCurrentMajorVersion, m_nCurrentMinorVersion);
-	of << _T("FromDatabaseFormat=\"") << cs_tmp << _T("\"") << endl;
+	of << _T("FromDatabaseFormat=\"") << LPCTSTR(cs_tmp) << _T("\"") << endl;
 	if (!m_wholastsaved.IsEmpty())
-		of << _T("WhoSaved=\"") << wls << _T("\"") << endl;
+      of << _T("WhoSaved=\"") << LPCTSTR(wls) << _T("\"") << endl;
 	if (!m_whatlastsaved.IsEmpty())
-		of << _T("WhatSaved=\"") << m_whatlastsaved << _T("\"") << endl;
-	of << _T("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"") << endl;
+      of << _T("WhatSaved=\"") << LPCTSTR(m_whatlastsaved) << _T("\"") << endl;
+
+  if (m_whenlastsaved.GetLength() == 8) {
+	  long t;
+	  TCHAR *lpszWLS = m_whenlastsaved.GetBuffer(9);
+#if _MSC_VER >= 1400
+	  int iread = _stscanf_s(lpszWLS, _T("%8x"), &t);
+#else
+	  int iread = _stscanf(lpszWLS, _T("%8x"), &t);
+#endif
+	  m_whenlastsaved.ReleaseBuffer();
+	  ASSERT(iread == 1);
+    wls = CString(PWSUtil::ConvertToDateTimeString((time_t) t, TMC_XML));
+    of << _T("WhenLastSaved=\"") << LPCTSTR(wls) << _T("\"") << endl;
+  }
+
+  TCHAR uuid_buffer[37];
+#if _MSC_VER >= 1400
+	_stprintf_s(uuid_buffer, 37,
+                  _T("%02x%02x%02x%02x-%02x%02x-%0x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"),
+                  m_file_uuid_array[0],  m_file_uuid_array[1],
+                  m_file_uuid_array[2],  m_file_uuid_array[3],
+                  m_file_uuid_array[4],  m_file_uuid_array[5],
+                  m_file_uuid_array[6],  m_file_uuid_array[7],
+                  m_file_uuid_array[8],  m_file_uuid_array[9],
+                  m_file_uuid_array[10], m_file_uuid_array[11],
+                  m_file_uuid_array[12], m_file_uuid_array[13],
+                  m_file_uuid_array[14], m_file_uuid_array[15]);
+#else
+  _stprintf(uuid_buffer,
+                  _T("%02x%02x%02x%02x-%02x%02x-%0x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"), 
+                  m_file_uuid_array[0],  m_file_uuid_array[1],
+                  m_file_uuid_array[2],  m_file_uuid_array[3],
+                  m_file_uuid_array[4],  m_file_uuid_array[5],
+                  m_file_uuid_array[6],  m_file_uuid_array[7],
+                  m_file_uuid_array[8],  m_file_uuid_array[9],
+                  m_file_uuid_array[10], m_file_uuid_array[11],
+                  m_file_uuid_array[12], m_file_uuid_array[13],
+                  m_file_uuid_array[14], m_file_uuid_array[15]);
+#endif
+  uuid_buffer[36] = TCHAR('\0');
+  of << _T("Database_uuid=\"") << uuid_buffer << _T("\"") << endl;
+  of << _T("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"") << endl;
 	of << _T("xsi:noNamespaceSchemaLocation=\"pwsafe.xsd\">") << endl;
 	of << endl;
+
+  if (m_nITER > MIN_HASH_ITERATIONS) {
+      cs_tmp.Format(_T("%d"), m_nITER);
+      of << _T("\t<NumberHashIterations>") << LPCTSTR(cs_tmp) << _T("</NumberHashIterations>") << endl;
+  }
+
+  if (m_UHFL.size() > 0) {
+    of << _T("\t<unknownheaderfields>") << endl;
+    UnknownHeaderFieldList::const_iterator vi_IterUHFE;
+    for (vi_IterUHFE = m_UHFL.begin();
+         vi_IterUHFE != m_UHFL.end();
+         vi_IterUHFE++) {
+      UnknownHeaderFieldEntry unkhfe = *vi_IterUHFE;
+      if (unkhfe.st_Length <= 0)
+        continue;
+#if _MSC_VER >= 1400
+		  _itot_s( (int)unkhfe.uc_Type, buffer, 8, 10 );
+#else
+		  _itot( (int)unkhfe.uc_Type, buffer, 10 );
+#endif
+      unsigned char * pmem;
+      pmem = unkhfe.uc_pUField;
+
+#ifdef BASE64
+      tmp = (CMyString)PWSUtil::Base64Encode(pmem, unkhfe.st_Length);
+#else
+      tmp.Empty();
+      unsigned char c;
+      for (int i = 0; i < (int)unkhfe.st_Length; i++) {
+        c = *pmem++;
+        cs_tmp.Format(_T("%02x"), c);
+        tmp += CMyString(cs_tmp);
+      }
+#endif
+      of << _T("\t\t<field ftype=\"") << buffer << _T("\">") <<  LPCTSTR(tmp) << _T("</field>") << endl;
+    }
+    of << _T("\t</unknownheaderfields>") << endl;  
+  }
 
   if (bsFields.count() != bsFields.size()) {
     // Some restrictions - put in a comment to that effect
@@ -342,34 +452,40 @@ PWScore::WriteXMLFile(const CMyString &filename,
 
     tmp = temp.GetGroup();
 		if (bsFields.test(CItemData::GROUP) && !tmp.IsEmpty())
-			of << _T("\t\t<group><![CDATA[") << tmp << _T("]]></group>") << endl;
+        of << _T("\t\t<group><![CDATA[") << LPCTSTR(tmp)
+           << _T("]]></group>") << endl;
 
 		// Title mandatory (see pwsafe.xsd)
 		tmp = temp.GetTitle();
-		of <<_T("\t\t<title><![CDATA[") << tmp << _T("]]></title>") << endl;
+		of <<_T("\t\t<title><![CDATA[") << LPCTSTR(tmp)
+       << _T("]]></title>") << endl;
 
     tmp = temp.GetUser();
 		if (bsFields.test(CItemData::USER) && !tmp.IsEmpty())
-			of << _T("\t\t<username><![CDATA[") << tmp << _T("]]></username>") << endl;
+        of << _T("\t\t<username><![CDATA[") << LPCTSTR(tmp)
+           << _T("]]></username>") << endl;
 
 		tmp = temp.GetPassword();
 		// Password mandatory (see pwsafe.xsd)
-		of << _T("\t\t<password><![CDATA[") << tmp << _T("]]></password>") << endl;
+		of << _T("\t\t<password><![CDATA[") << LPCTSTR(tmp)
+       << _T("]]></password>") << endl;
 
     tmp = temp.GetURL();
 		if (bsFields.test(CItemData::URL) && !tmp.IsEmpty())
-			of << _T("\t\t<url><![CDATA[") << tmp << _T("]]></url>") << endl;
+        of << _T("\t\t<url><![CDATA[") << LPCTSTR(tmp)
+           << _T("]]></url>") << endl;
 
 		tmp = temp.GetAutoType();
 		if (bsFields.test(CItemData::AUTOTYPE) && !tmp.IsEmpty())
-			of << _T("\t\t<autotype><![CDATA[") << tmp << _T("]]></autotype>") << endl;
+        of << _T("\t\t<autotype><![CDATA[") << LPCTSTR(tmp)
+           << _T("]]></autotype>") << endl;
 
     tmp = temp.GetNotes();
 		if (bsFields.test(CItemData::NOTES) && !tmp.IsEmpty())
-			of << _T("\t\t<notes><![CDATA[") << tmp << _T("]]></notes>") << endl;
+        of << _T("\t\t<notes><![CDATA[") << LPCTSTR(tmp)
+           << _T("]]></notes>") << endl;
 
 		temp.GetUUID(uuid_array);
-		TCHAR uuid_buffer[33];
 #if _MSC_VER >= 1400
 		_stprintf_s(uuid_buffer, 33,
                     _T("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"), 
@@ -391,49 +507,24 @@ PWScore::WriteXMLFile(const CMyString &filename,
         time_t t;
 
         temp.GetCTime(t);
-        if (bsFields.test(CItemData::CTIME) && (long)t != 0) {
-            tmp = PWSUtil::ConvertToDateTimeString(t, TMC_XML);
-            of << _T("\t\t<ctime>") << endl;
-            of << _T("\t\t\t<date>") << tmp.Left(10) << _T("</date>") << endl;
-            of << _T("\t\t\t<time>") << tmp.Right(8) << _T("</time>") << endl;
-            of << _T("\t\t</ctime>") << endl;
-        }
+        if (bsFields.test(CItemData::CTIME) && (long)t != 0)
+            WriteXMLTime(of, 2, _T("ctime"), t);
 
         temp.GetATime(t);
-        if (bsFields.test(CItemData::ATIME) && (long)t != 0) {
-            tmp = PWSUtil::ConvertToDateTimeString(t, TMC_XML);
-            of << _T("\t\t<atime>") << endl;
-            of << _T("\t\t\t<date>") << tmp.Left(10) << _T("</date>") << endl;
-            of << _T("\t\t\t<time>") << tmp.Right(8) << _T("</time>") << endl;
-            of << _T("\t\t</atime>") << endl;
-        }
+        if (bsFields.test(CItemData::ATIME) && (long)t != 0)
+            WriteXMLTime(of, 2, _T("atime"), t);
 
         temp.GetLTime(t);
-        if (bsFields.test(CItemData::LTIME) && (long)t != 0) {
-            tmp = PWSUtil::ConvertToDateTimeString(t, TMC_XML);
-            of << _T("\t\t<ltime>") << endl;
-            of << _T("\t\t\t<date>") << tmp.Left(10) << _T("</date>") << endl;
-            of << _T("\t\t\t<time>") << tmp.Right(8) << _T("</time>") << endl;
-            of << _T("\t\t</ltime>") << endl;
-        }
+        if (bsFields.test(CItemData::LTIME) && (long)t != 0)
+            WriteXMLTime(of, 2, _T("ltime"), t);
 
         temp.GetPMTime(t);
-        if (bsFields.test(CItemData::PMTIME) && (long)t != 0) {
-            tmp = PWSUtil::ConvertToDateTimeString(t, TMC_XML);
-            of << _T("\t\t<pmtime>") << endl;
-            of << _T("\t\t\t<date>") << tmp.Left(10) << _T("</date>") << endl;
-            of << _T("\t\t\t<time>") << tmp.Right(8) << _T("</time>") << endl;
-            of << _T("\t\t</pmtime>") << endl;
-        }
+        if (bsFields.test(CItemData::PMTIME) && (long)t != 0)
+            WriteXMLTime(of, 2, _T("pmtime"), t);
 
         temp.GetRMTime(t);
-        if (bsFields.test(CItemData::RMTIME) && (long)t != 0) {
-            tmp = PWSUtil::ConvertToDateTimeString(t, TMC_XML);
-            of << _T("\t\t<rmtime>") << endl;
-            of << _T("\t\t\t<date>") << tmp.Left(10) << _T("</date>") << endl;
-            of << _T("\t\t\t<time>") << tmp.Right(8) << _T("</time>") << endl;
-            of << _T("\t\t</rmtime>") << endl;
-        }
+        if (bsFields.test(CItemData::RMTIME) && (long)t != 0)
+            WriteXMLTime(of, 2, _T("rmtime"), t);
 
         if (bsFields.test(CItemData::PWHIST)) {
           BOOL pwh_status;
@@ -476,10 +567,16 @@ PWScore::WriteXMLFile(const CMyString &filename,
                 of << _T("\t\t\t\t<history_entry num=\"") << buffer << _T("\">") << endl;
                 const PWHistEntry pwshe = *iter;
                 of << _T("\t\t\t\t\t<changed>") << endl;
-                of << _T("\t\t\t\t\t\t<date>") << pwshe.changedate.Left(10) << _T("</date>") << endl;
-                of << _T("\t\t\t\t\t\t<time>") << pwshe.changedate.Right(8) << _T("</time>") << endl;
+                of << _T("\t\t\t\t\t\t<date>")
+                   << LPCTSTR(pwshe.changedate.Left(10))
+                   << _T("</date>") << endl;
+                of << _T("\t\t\t\t\t\t<time>")
+                   << LPCTSTR(pwshe.changedate.Right(8))
+                   << _T("</time>") << endl;
                 of << _T("\t\t\t\t\t</changed>") << endl;
-                of << _T("\t\t\t\t\t<oldpassword><![CDATA[") << pwshe.password << _T("]]></oldpassword>") << endl;
+                of << _T("\t\t\t\t\t<oldpassword><![CDATA[")
+                   << LPCTSTR(pwshe.password)
+                   << _T("]]></oldpassword>") << endl;
                 of << _T("\t\t\t\t</history_entry>") << endl;
 
                 num++;
@@ -488,6 +585,40 @@ PWScore::WriteXMLFile(const CMyString &filename,
             } // if !empty
             of << _T("\t\t</pwhistory>") << endl;
           }
+        }
+
+        if (temp.NumberUnknownFields() > 0) {
+          of << _T("\t\t<unknownrecordfields>") << endl;
+          unsigned int length;
+          unsigned char type;
+          unsigned char * pdata(NULL);
+          for (int i = 0; i < temp.NumberUnknownFields(); i++) {
+            temp.GetUnknownField(type, length, pdata, i);
+            if (length == 0)
+              continue;
+#if _MSC_VER >= 1400
+		        _itot_s( (int)type, buffer, 8, 10 );
+#else
+		        _itot( (int)type, buffer, 10 );
+#endif
+#ifdef BASE64
+            tmp = (CMyString)PWSUtil::Base64Encode(pdata, length);
+#else
+            tmp.Empty();
+            unsigned char * pdata2(pdata);
+            unsigned char c;
+            for (int j = 0; j < (int)length; j++) {
+              c = *pdata2++;
+              cs_tmp.Format(_T("%02x"), c);
+              tmp += CMyString(cs_tmp);
+            }
+#endif
+            of << _T("\t\t\t<field ftype=\"") << buffer << _T("\">") <<  LPCTSTR(tmp) << _T("</field>") << endl;
+            trashMemory(pdata, length);
+            delete[] pdata;
+            pdata = NULL;
+          }
+          of << _T("\t\t</unknownrecordfields>") << endl;  
         }
 
         of << _T("\t</entry>") << endl;
@@ -506,16 +637,22 @@ skip_entry:
 int
 PWScore::ImportXMLFile(const CString &ImportedPrefix, const CString &strXMLFileName,
                        const CString &strXSDFileName, CString &strErrors,
-                       int &numValidated, int &numImported)
+                       int &numValidated, int &numImported,
+                       bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields)
 {
     PWSXML *iXML;
     bool status, validation;
+    int nITER;
+    int nRecordsWithUnknownFields;
+    UnknownHeaderFieldList uhfl;
+    bool bEmptyDB = (GetNumEntries() == 0);
 
     iXML = new PWSXML;
     strErrors = _T("");
 
     validation = true;
-    status = iXML->XMLProcess(validation, ImportedPrefix, strXMLFileName, strXSDFileName);
+    status = iXML->XMLProcess(validation, ImportedPrefix, strXMLFileName, strXSDFileName,
+                              nITER, nRecordsWithUnknownFields, uhfl);
     strErrors = iXML->m_strResultText;
     if (!status) {
         delete iXML;
@@ -526,7 +663,8 @@ PWScore::ImportXMLFile(const CString &ImportedPrefix, const CString &strXMLFileN
 
     iXML->SetCore(this);
     validation = false;
-    status = iXML->XMLProcess(validation, ImportedPrefix, strXMLFileName, strXSDFileName);
+    status = iXML->XMLProcess(validation, ImportedPrefix, strXMLFileName, strXSDFileName,
+                              nITER, nRecordsWithUnknownFields, uhfl);
     strErrors = iXML->m_strResultText;
     if (!status) {
         delete iXML;
@@ -534,6 +672,20 @@ PWScore::ImportXMLFile(const CString &ImportedPrefix, const CString &strXMLFileN
     }
 
     numImported = iXML->m_numEntriesImported;
+    bBadUnknownFileFields = iXML->m_bDatabaseHeaderErrors;
+    bBadUnknownRecordFields = iXML->m_bRecordHeaderErrors;
+    m_nRecordsWithUnknownFields += nRecordsWithUnknownFields;
+    // Only add header unknown fields or change number of iterations
+    // if the database was empty to start with
+    if (bEmptyDB) {
+      m_nITER = nITER;
+      if (uhfl.empty())
+        m_UHFL.clear();
+      else {
+        m_UHFL = uhfl;
+      }
+    }
+    uhfl.clear();
 
     delete iXML;
     m_changed = true;
@@ -890,6 +1042,11 @@ PWScore::ReadFile(const CMyString &a_filename,
         return UNKNOWN_VERSION;
     }
 
+    // Get file's UUID and number of hash iterations - in case we
+    // rewrite file
+    in->GetFileUUID(m_file_uuid_array);
+    m_nITER = in->GetFileHashIterations();
+
     // Get pref string and tree display status & who saved when
     // all possibly empty!
     PWSprefs::GetInstance()->Load(in->GetPrefString());
@@ -925,6 +1082,7 @@ PWScore::ReadFile(const CMyString &a_filename,
         temp.Clear(); // Rather than creating a new one each time.
         status = in->ReadRecord(temp);
     }
+    m_nRecordsWithUnknownFields = in->GetNumRecordsWithUnknownFields();
     status = in->Close(); // in V3 this checks integrity
 #else // DEMO
     unsigned long numRead = 0;
@@ -940,6 +1098,7 @@ PWScore::ReadFile(const CMyString &a_filename,
     if (status == PWSfile::SUCCESS && numRead > MAXDEMO)
         status = LIMIT_REACHED;
 #endif // DEMO
+    in->GetUnknownHeaderFields(m_UHFL);
     delete in;
     return status;
 }
@@ -1458,4 +1617,19 @@ PWScore::GetIncBackupFileName(const CString &cs_filenamebase,
     }
 
     return brc;
+}
+
+void PWScore::ClearFileUUID()
+{
+  memset(m_file_uuid_array, 0x00, sizeof(m_file_uuid_array));
+}
+  
+void PWScore::SetFileUUID(uuid_array_t &file_uuid_array)
+{
+  memcpy(m_file_uuid_array, file_uuid_array, sizeof(m_file_uuid_array));
+}
+
+void PWScore::GetFileUUID(uuid_array_t &file_uuid_array)
+{
+  memcpy(file_uuid_array, m_file_uuid_array, sizeof(file_uuid_array));
 }

@@ -240,18 +240,18 @@ DboxMain::setupBars()
 
 void DboxMain::UpdateListItem(const int lindex, const int type, const CString &newText)
 {
-  HDITEM hdi;
-  hdi.mask = HDI_LPARAM;
+    int iSubItem = m_nColumnIndexByType[type];
 
-  int iSubItem = m_nColumnIndexByType[type];
+    // Ignore if this column is not being displayed
+    if (iSubItem < 0)
+      return;
 
-  if (iSubItem > 0) {
-    m_ctlItemList.SetItemText(lindex, iSubItem, newText);
-    if (m_iSortedColumn == type) {
-      m_ctlItemList.SortItems(CompareFunc, (LPARAM)this);
-      FixListIndexes();
+    BOOL brc = m_ctlItemList.SetItemText(lindex, iSubItem, newText);
+    ASSERT(brc == TRUE);
+    if (m_iSortedColumn == type) { // resort if necessary
+        m_ctlItemList.SortItems(CompareFunc, (LPARAM)this);
+        FixListIndexes();
     }
-  }
 }
 
  // Find in m_pwlist entry with same title and user name as the i'th entry in m_ctlItemList
@@ -474,21 +474,20 @@ DboxMain::RefreshList()
     DisplayInfo *di = (DisplayInfo *)ci.GetDisplayInfo();
     if (di != NULL)
       di->list_index = -1; // easier, but less efficient, to delete di
-    insertItem(ci);
+    insertItem(ci, -1, false);
     m_core.GetNextEntry(listPos);
   }
+
+  if (m_bExplorerTypeTree)
+    SortTree(TVI_ROOT);
+  else
+    m_ctlItemList.SortItems(CompareFunc, (LPARAM)this);
 
 #if defined(POCKET_PC)
   SetCursor( NULL );
 #endif
-
-  if (m_bExplorerTypeTree) {
-    SortTree(TVI_ROOT);
-  } else {
-    m_ctlItemList.SortItems(CompareFunc, (LPARAM)this);
-  }
-
   m_ctlItemTree.RestoreExpanded();
+
 
   // re-enable and force redraw!
   m_ctlItemList.SetRedraw( TRUE ); m_ctlItemList.Invalidate();
@@ -722,7 +721,7 @@ DboxMain::OnKillfocusItemlist(NMHDR* /* pNMHDR */, LRESULT* /* pResult */)
 // {kjp} We could use itemData.GetNotes(CString&) to reduce the number of
 // {kjp} temporary objects created and copied.
 //
-int DboxMain::insertItem(CItemData &itemData, int iIndex)
+int DboxMain::insertItem(CItemData &itemData, int iIndex, bool bSort)
 {
   if (itemData.GetDisplayInfo() != NULL &&
       ((DisplayInfo *)itemData.GetDisplayInfo())->list_index != -1) {
@@ -796,16 +795,18 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex)
   {
     HTREEITEM ti;
     CMyString treeDispString = title;
-    CMyString user = itemData.GetUser();
-    treeDispString += _T(" [");
-    treeDispString += user;
-    treeDispString += _T("]");
-    if (m_bShowPasswordInList) {
-		CMyString newPassword = itemData.GetPassword();
-		treeDispString += _T(" [");
-		treeDispString += newPassword;
-		treeDispString += _T("]");
-	}
+    if (m_bShowUsernameInTree) {
+      CMyString user = itemData.GetUser();
+      treeDispString += _T(" [");
+      treeDispString += user;
+      treeDispString += _T("]");
+      if (m_bShowPasswordInTree) {
+        CMyString newPassword = itemData.GetPassword();
+        treeDispString += _T(" {");
+        treeDispString += newPassword;
+        treeDispString += _T("}");
+      }
+    }
     // get path, create if necessary, add title as last node
     ti = m_ctlItemTree.AddGroup(itemData.GetGroup());
     if (!m_bExplorerTypeTree) {
@@ -814,7 +815,8 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex)
     } else {
       ti = m_ctlItemTree.InsertItem(treeDispString, ti, TVI_LAST);
       m_ctlItemTree.SetItemData(ti, (DWORD)&itemData);
-      SortTree(m_ctlItemTree.GetParentItem(ti));
+      if (bSort)
+        SortTree(m_ctlItemTree.GetParentItem(ti));
     }
     time_t now, warnexptime, tLTime;
     time(&now);
@@ -1375,7 +1377,7 @@ DboxMain::SetColumns()
   HDITEM hdi;
   hdi.mask = HDI_LPARAM;
 
-  int ipwd = m_bShowPasswordInList ? 1 : 0;
+  int ipwd = m_bShowPasswordInTree ? 1 : 0;
 
   CRect rect;
   m_ctlItemList.GetClientRect(&rect);
@@ -1405,7 +1407,7 @@ DboxMain::SetColumns()
   m_LVHdrCtrl.SetItem(2, &hdi);
   m_ctlItemList.SetColumnWidth(1, i3rdWidth);
     
-  if (m_bShowPasswordInList) {
+  if (m_bShowPasswordInTree) {
     cs_header = GetHeaderText(CItemData::PASSWORD);
     m_ctlItemList.InsertColumn(3, cs_header);
     hdi.lParam = CItemData::PASSWORD;
@@ -1604,12 +1606,11 @@ DboxMain::SetHeaderInfo()
   ASSERT(m_nColumns > 1);  // Title & User are mandatory!
 
   // re-initialise array
-  for (int i = 0; i < CItemData::LAST; i++) {
-    m_nColumnIndexByType[i] = -1;
-    m_nColumnIndexByOrder[i] = -1;
-    m_nColumnTypeByIndex[i] = -1;
-    m_nColumnWidthByIndex[i] = -1;
-  }
+  for (int i = 0; i < CItemData::LAST; i++)
+      m_nColumnIndexByType[i] = 
+          m_nColumnIndexByOrder[i] =
+          m_nColumnTypeByIndex[i] =
+          m_nColumnWidthByIndex[i] = -1;
 
   m_LVHdrCtrl.GetOrderArray(m_nColumnIndexByOrder, m_nColumns);
 

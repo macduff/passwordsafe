@@ -15,6 +15,8 @@
 #include "ItemData.h"
 #include "MyString.h"
 #include "PWSfile.h"
+#include "UUIDGen.h"
+#include "UnknownHeaderField.h"
 
 #define MAXDEMO 10
 
@@ -55,6 +57,19 @@ class PWScore {
   const CString &GetWhoLastSaved() const {return m_wholastsaved;}
   const CString &GetWhenLastSaved() const {return m_whenlastsaved;}
   const CString &GetWhatLastSaved() const {return m_whatlastsaved;}
+  void ClearFileUUID();
+  void SetFileUUID(uuid_array_t &file_uuid_array);
+  void GetFileUUID(uuid_array_t &file_uuid_array);
+  bool HasHeaderUnknownFields()
+    {return !m_UHFL.empty();}
+  int GetNumRecordsWithUnknownFields()
+    {return m_nRecordsWithUnknownFields;}
+  void SetNumRecordsWithUnknownFields(const int num)
+    {m_nRecordsWithUnknownFields = num;}
+  void DecrementNumRecordsWithUnknownFields()
+    {m_nRecordsWithUnknownFields--;}
+  void SetFileHashIterations(const int &nITER)
+    {m_nITER = nITER;}
 
   void ClearData();
   void ReInit();
@@ -79,7 +94,8 @@ class PWScore {
 			TCHAR fieldSeparator, TCHAR delimiter, int &numImported, int &numSkipped);
   int ImportKeePassTextFile(const CMyString &filename);
   int ImportXMLFile(const CString &ImportedPrefix, const CString &strXMLFileName, const CString &strXSDFileName,
-			CString &strErrors, int &numValidated, int &numImported);
+			CString &strErrors, int &numValidated, int &numImported,
+			bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields);
   bool FileExists(const CMyString &filename) const {return PWSfile::FileExists(filename);}
   bool FileExists(const CMyString &filename, bool &bReadOnly) const 
 	  {return PWSfile::FileExists(filename, bReadOnly);}
@@ -174,5 +190,9 @@ class PWScore {
 
   CString m_displaystatus;
   CString m_wholastsaved, m_whenlastsaved, m_whatlastsaved;
+  uuid_array_t m_file_uuid_array;
+  int m_nITER;
+  UnknownHeaderFieldList m_UHFL;
+  int m_nRecordsWithUnknownFields;
 };
 #endif /* __PWSCORE_H */

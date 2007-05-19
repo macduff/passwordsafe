@@ -1,4 +1,4 @@
-Password Safe 3.07.01 Release Notes - April 2007
+Password Safe 3.07.02 Release Notes - May 2007
 ================================================
 
 This note describe the new features, fixed bugs and known problems
@@ -8,8 +8,9 @@ information on the product and the project, please visit
 http://passwordsafe.sourceforge.net. Details about changes to previous
 releases may be found in the file ChangeLog.txt.
 
-Bugs fixed in 3.07.01
+Bugs fixed in 3.07.03
 =====================
+[] Non-English text in databases fully supported.
 [1691048] Import text file with blank lines or missing fields will no
 longer crash application.
 [1688994] Although rename is not possible in read-only mode, this change
@@ -21,14 +22,19 @@ prevents F2 giving the user the feel that they can.
 [1702623] Compare now shows correct filenames
 [] Fix problem with remembering Tree state on restore after minimize
 [1678527] Line delimiter now works during import of plain text
+[1708099] Default saved username, now shows in new entry
+[1709418] Cancel after Lock Safe from system tray now does Right Thing
+[] More stringent checking during tree "edit in-place" to prevent DB corruption
 
-New Features for 3.07.01
+New Features for 3.07.03
 ========================
 [1695446] Can't reproduce error "Browse to URL no longer opens new browser" but
 allow command line parameters for Alt. Browser; e.g. "-new-tab" for Firefox
 [] Implement "Advanced" option for Exporting in XML format (as per Export in Text
 format) and for when comparing databases
-[1695968] "Advanced" option now available to improve Merge operation  
+[1695968] "Advanced" option now available to improve Merge operation
+[1711524] "Show username in display tree" display option
+[] Maintain unknown fields in the database header andr records when DB saved
 
 Bugs fixed in 3.07
 =====================

@@ -48,7 +48,9 @@ class PWSprefs {
 
   void SaveApplicationPreferences();
 
-  enum  BoolPrefs {AlwaysOnTop, ShowPWDefault, ShowPWInList, SortAscending,
+  enum  BoolPrefs {AlwaysOnTop, ShowPWDefault,
+       ShowPasswordInTree,
+       SortAscending,
 		   UseDefUser, SaveImmediately, PWUseLowercase, PWUseUppercase,
 		   PWUseDigits, PWUseSymbols, PWUseHexDigits, PWEasyVision,
 		   DontAskQuestion, DeleteQuestion, DCShowsPassword,
@@ -61,6 +63,7 @@ class PWSprefs {
 		   SavePasswordHistory, FindWraps, ShowNotesDefault,
 		   BackupBeforeEverySave, PreExpiryWarn,
        ExplorerTypeTree, ListViewGridLines, MinimizeOnAutotype,
+       ShowUsernameInTree,
 		   NumBoolPrefs};
   enum  IntPrefs {Column1Width, Column2Width, Column3Width, Column4Width,
 		  SortedColumn, PWLenDefault, MaxMRUItems, IdleTimeout,

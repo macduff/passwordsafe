@@ -36,11 +36,7 @@ DROPEFFECT CDropSource::StartDragging(LPCTSTR szData, DWORD dwLength, CLIPFORMAT
   if ((dropEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
      CompleteMove();
 
-  LPARAM lparam;
-
-  lparam = ptMousePos->y;
-  lparam = lparam << 16;
-  lparam &= ptMousePos->x;
+  LPARAM lparam = (LPARAM(ptMousePos->y) << 16) | LPARAM(ptMousePos->x);
 
   SendMessage(GetActiveWindow(), WM_LBUTTONUP, 0, lparam);
 

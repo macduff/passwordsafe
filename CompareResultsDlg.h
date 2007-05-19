@@ -27,6 +27,9 @@ struct st_CompareData {
   CMyString user;
   int column;
   int listindex;
+  bool unknflds0;
+  bool unknflds1;
+  int id;
 };
 
 // Vector of entries passed from DboxMain::Compare to CompareResultsDlg
@@ -54,6 +57,8 @@ public:
                      CompareData &OnlyInCurrent,
                      CompareData &OnlyInComp,
                      CompareData &Conflicts,
+                     CompareData &Identical,
+                     CItemData::FieldBits &bsFields,
                      PWScore *pcore0, PWScore *pcore1);
 
   // st_CompareInfo Functions
@@ -71,6 +76,7 @@ public:
   int m_iSortedColumn;
   bool m_bSortAscending;
   CMyString m_cs_Filename1, m_cs_Filename2;
+  int m_ShowIdenticalEntries;
   //}}AFX_DATA
 
   bool m_bOriginalDBReadOnly, m_bComparisonDBReadOnly;
@@ -101,6 +107,7 @@ protected:
   virtual void OnOK();
   afx_msg void OnHelp();
   afx_msg void OnCopyToClipboard();
+  afx_msg void OnShowIdenticalEntries();
   afx_msg void OnSize(UINT nType, int cx, int cy);
   afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
   afx_msg void OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
@@ -117,16 +124,18 @@ private:
 	CompareData m_OnlyInCurrent;
 	CompareData m_OnlyInComp;
 	CompareData m_Conflicts;
+  CompareData m_Identical;
+  CItemData::FieldBits m_bsFields;
 
 	PWScore *m_pcore0, *m_pcore1;
 
-  int m_numOnlyInCurrent, m_numOnlyInComp, m_numConflicts;
+  int m_numOnlyInCurrent, m_numOnlyInComp, m_numConflicts, m_numIdentical;
   int m_cxBSpace, m_cyBSpace, m_cySBar;
   int m_DialogMinWidth, m_DialogMinHeight;
   int m_row, m_column;
+  int m_nCols;
 };
 //-----------------------------------------------------------------------------
 // Local variables:
 // mode: c++
 // End:
-
