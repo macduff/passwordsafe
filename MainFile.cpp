@@ -1175,7 +1175,6 @@ DboxMain::Merge(const CMyString &pszFilename) {
   CString cs_temp, cs_title;
   switch (rc) {
 	  case PWScore::SUCCESS:
-      app.AddToMRU(pszFilename);
       break; // Keep going...
 	  case PWScore::CANT_OPEN_FILE:
       cs_temp.Format(IDS_CANTOPEN, pothercore->GetCurFile());
@@ -1891,6 +1890,7 @@ DboxMain::CopyCompareResult(PWScore *pfromcore, PWScore *ptocore, POSITION fromP
   CMyString group, title, user, notes, password, url, autotype, pwhistory;
   uuid_array_t fromUUID;
   time_t ct, at, lt, pmt, rmt;
+  int nfromUnknownRecordFields;
 
   fromEntry = &pfromcore->GetEntryAt(fromPos);
 
@@ -1908,6 +1908,7 @@ DboxMain::CopyCompareResult(PWScore *pfromcore, PWScore *ptocore, POSITION fromP
   fromEntry->GetLTime(lt);
   fromEntry->GetPMTime(pmt);
   fromEntry->GetRMTime(rmt);
+  nfromUnknownRecordFields = fromEntry->NumberUnknownFields();
 
   touuidPos = ptocore->Find(fromUUID);
 
@@ -1932,6 +1933,29 @@ DboxMain::CopyCompareResult(PWScore *pfromcore, PWScore *ptocore, POSITION fromP
     if (!touuidPos)
       toEntry->SetUUID(fromUUID);
 
+    // Delete any old unknown records and copy these if present
+    int ntoUnknownRecordFields = toEntry->NumberUnknownFields();
+
+    if (ntoUnknownRecordFields == 0 && nfromUnknownRecordFields > 0)
+      ptocore->IncrementNumRecordsWithUnknownFields();
+    if (ntoUnknownRecordFields > 0 && nfromUnknownRecordFields == 0)
+      ptocore->DecrementNumRecordsWithUnknownFields();
+
+    toEntry->ClearUnknownFields();
+    if (nfromUnknownRecordFields != 0) {
+      unsigned int length;
+      unsigned char type;
+      unsigned char * pdata;
+
+      for (int i = 0; i < nfromUnknownRecordFields; i++) {
+        fromEntry->GetUnknownField(type, length, pdata, i);
+        if (length == 0)
+          continue;
+        toEntry->SetUnknownField(type, length, pdata);
+        trashMemory(pdata, length);
+        delete[] pdata;
+      }
+    }
   } else {
     CItemData temp;
 
@@ -1954,6 +1978,21 @@ DboxMain::CopyCompareResult(PWScore *pfromcore, PWScore *ptocore, POSITION fromP
     temp.SetLTime(lt);
     temp.SetPMTime(pmt);
     temp.SetRMTime(rmt);
+    if (nfromUnknownRecordFields != 0) {
+      ptocore->IncrementNumRecordsWithUnknownFields();
+      unsigned int length;
+      unsigned char type;
+      unsigned char * pdata;
+
+      for (int i = 0; i < nfromUnknownRecordFields; i++) {
+        fromEntry->GetUnknownField(type, length, pdata, i);
+        if (length == 0)
+          continue;
+        temp.SetUnknownField(type, length, pdata);
+        trashMemory(pdata, length);
+        delete[] pdata;
+      }
+    }
     ptocore->AddEntryToTail(temp);
   }
 

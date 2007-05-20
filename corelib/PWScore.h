@@ -68,6 +68,8 @@ class PWScore {
     {m_nRecordsWithUnknownFields = num;}
   void DecrementNumRecordsWithUnknownFields()
     {m_nRecordsWithUnknownFields--;}
+  void IncrementNumRecordsWithUnknownFields()
+    {m_nRecordsWithUnknownFields++;}
   void SetFileHashIterations(const int &nITER)
     {m_nITER = nITER;}
 

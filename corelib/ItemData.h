@@ -153,6 +153,8 @@ public:
                         const unsigned char * ufield);
    int NumberUnknownFields() const
      {return (int)m_URFL.size();}
+   void ClearUnknownFields()
+     {return m_URFL.clear();}
 
    void CreateUUID(); // V20 - generate UUID for new item
    void SetName(const CMyString &name,

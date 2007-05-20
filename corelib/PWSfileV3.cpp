@@ -256,7 +256,7 @@ int PWSfileV3::WriteRecord(const CItemData &item)
   unsigned char * pdata;
   for (int i = 0; i < item.NumberUnknownFields(); i++) {
     item.GetUnknownField(type, length, pdata, i);
-    if (length ==0)
+    if (length == 0)
       continue;
     WriteCBC(type, pdata, length);
     trashMemory(pdata, length);
