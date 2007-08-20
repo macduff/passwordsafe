@@ -11,29 +11,19 @@
 
 // Drag & Drop Object written to SMemFile
 
-// Note: If the class CDDObject or CDDObList is changed, increase the Version
-// and add code to CDDObject::Serialize and CDDObList::Serialize to handle the changes
-
-// NOTE: If these classes change, user CANNOT drag to a release with a lower version!!!
-
-#define CDDObject_Version 0x100
-
 class CDDObject : public CObject
 {
 // Construction
 public:
-  CDDObject()
-    : m_nVersion(CDDObject_Version) {};
+  CDDObject() {};
 
-  virtual void Serialize(CArchive& ar);
+  void DDSerialize(CSMemFile &outDDmemfile);
+  void DDUnSerialize(CSMemFile &inDDmemfile);
   void FromItem(const CItemData &item) {m_item = item;}
   void ToItem(CItemData &item) const {item = m_item;}
 
  private:
   CItemData m_item;
-  int m_nVersion;
-
-  DECLARE_SERIAL(CDDObject)
 };
 
 // A list of Drag & Drop Objects
@@ -46,7 +36,8 @@ public:
 
 // Implementation
 public:
-  virtual void Serialize(CArchive& ar);
+  void DDSerialize(CSMemFile &outDDmemfile);
+  void DDUnSerialize(CSMemFile &inDDmemfile);
 
 public:
   bool m_bDragNode;

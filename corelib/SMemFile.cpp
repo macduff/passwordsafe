@@ -8,6 +8,7 @@
 
 #include "SMemFile.h"
 #include "util.h"
+#include "UTF8Conv.h"
 
 /*
  * Override normal CMemFile to allow the contents to be trashed
@@ -72,4 +73,43 @@ void CSMemFile::Free(BYTE* lpMem)
     trashMemory(lpMem, mem_size);
 
   free(lpMem);
+}
+
+size_t
+CSMemFile::WriteField(unsigned char type, const CString &data)
+{
+  CUTF8Conv utf8conv;
+  bool status;
+  const unsigned char *utf8;
+  int utf8Len;
+  status = utf8conv.ToUTF8(data, utf8, utf8Len);
+  if (!status)
+    TRACE(_T("ToUTF8(%s) failed\n"), data);
+  return WriteField(type, utf8, (unsigned int)utf8Len);
+}
+
+size_t
+CSMemFile::WriteField(unsigned char type, const unsigned char *data,
+                      int length)
+{
+  Write((void *)&type, sizeof(type));
+  Write((void *)&length, sizeof(length));
+  Write(data, length);
+  return (sizeof(type) + sizeof(length) + length);
+}
+
+size_t
+CSMemFile::ReadField(unsigned char &type, unsigned char* &data,
+                     int &length)
+{
+  int numread;
+  numread = Read((void *)&type, sizeof(type));
+  ASSERT(numread == sizeof(type));
+  numread = Read((void *)&length, sizeof(length));
+  ASSERT(numread == sizeof(length));
+  data = new unsigned char[length + 1];
+  numread = Read(data, length);
+  ASSERT(numread == length);
+  data[length] = '\0';
+  return (sizeof(type) + sizeof(length) + length);
 }

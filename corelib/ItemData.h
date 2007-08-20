@@ -14,6 +14,7 @@
 #include "Util.h"
 #include "ItemField.h"
 #include "UUIDGen.h"
+#include "SMemFile.h"
 
 #include <time.h> // for time_t
 #include <bitset>
@@ -46,6 +47,15 @@ struct PWHistEntry {
 typedef std::vector<PWHistEntry> PWHistList;
 typedef std::vector<CItemField> UnknownFields;
 typedef UnknownFields::const_iterator UnknownFieldsConstIter;
+
+// Following used to keep track of information of the processing
+// record fields during input via ProcessInputRecordField.
+struct FieldProcessInfo {
+  signed long numread;
+  signed long fieldLen;
+  int status;
+  bool endFound;
+};
 
 //-----------------------------------------------------------------------------
 
@@ -87,6 +97,9 @@ public:
   // SubGroup Object
   enum SubGrpObj {SGO_GROUP, SGO_TITLE, SGO_USER,
                   SGO_GROUPTITLE, SGO_URL, SGO_NOTES};
+
+  // status returns from "ProcessInputRecordField"
+  enum {SUCCESS = 0, FAILURE, END_OF_FILE = 8};
 
   // a bitset for indicating a subset of an item's fields: 
   typedef std::bitset<LAST> FieldBits;
@@ -209,6 +222,10 @@ public:
   bool Matches(const CString &subgroup_name, int iObject, 
                int iFunction) const;
   BOOL IsURLEmpty() const {return m_URL.IsEmpty();}
+  void DDSerialize(CSMemFile &out_file);  // write out record fields
+  int  DDUnSerialize(CSMemFile &in_file); // read  in  record fields
+  void ProcessInputRecordField(FieldProcessInfo &fp_info,
+                               unsigned char &type, unsigned char *utf8, int &utf8Len);
 
 private:
   CItemField m_Name;
@@ -273,3 +290,4 @@ inline bool CItemData::IsTextField(unsigned char t)
 // Local variables:
 // mode: c++
 // End:
+

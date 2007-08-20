@@ -29,6 +29,12 @@ public:
   virtual BYTE* Realloc(BYTE* lpMem, SIZE_T nBytes);
   virtual void Free(BYTE * lpMem);
 
+  size_t WriteField(unsigned char type, const CString &data);
+  size_t WriteField(unsigned char type, const unsigned char *data,
+                    int length);
+  size_t ReadField(unsigned char &type, unsigned char* &data,
+                   int &length);
+
 private:
   size_t m_size;
 };

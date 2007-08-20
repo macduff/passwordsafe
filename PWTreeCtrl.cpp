@@ -1238,10 +1238,7 @@ bool CPWTreeCtrl::CollectData(BYTE * &out_buffer, long &outLen)
   }
 
   CSMemFile outDDmemfile;
-  CArchive ar_out(&outDDmemfile, CArchive::store);
-  out_oblist.Serialize(ar_out);
-  ar_out.Flush();
-  ar_out.Close();
+  out_oblist.DDSerialize(outDDmemfile);
 
   outLen = (long)outDDmemfile.GetLength();
   out_buffer = (BYTE *)outDDmemfile.Detach();
@@ -1272,9 +1269,7 @@ bool CPWTreeCtrl::ProcessData(BYTE *in_buffer, const long &inLen, const CMyStrin
 
   inDDmemfile.Attach((BYTE *)in_buffer, inLen);
 
-  CArchive ar_in (&inDDmemfile, CArchive::load);
-  in_oblist.Serialize(ar_in);
-  ar_in.Close();
+  in_oblist.DDUnSerialize(inDDmemfile);
 
   inDDmemfile.Detach();
 
