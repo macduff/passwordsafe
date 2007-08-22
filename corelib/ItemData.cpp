@@ -1220,188 +1220,204 @@ CItemData::Matches(const CString &subgroup_name, int iObject,
   return true; // should never get here!
 }
 
-int CItemData::DDUnSerialize(CSMemFile &in_file)  // read record fields
+static bool
+pull_string(CMyString &str, vector<char>::const_iterator &iter,
+            size_t len)
 {
-  FieldProcessInfo fp_info;
-
-  unsigned char type;
-  int emergencyExit = 255; // to avoid endless loop.
-
-  fp_info.fieldLen; // <= 0 means end of file reached
-  fp_info.numread = 0;
-  fp_info.status = SUCCESS;
-  fp_info.endFound = false;
-
-  do {
-    unsigned char *utf8 = NULL;
-    int utf8Len = 0;
-    fp_info.fieldLen = in_file.ReadField(type, utf8, utf8Len);
-
-    ProcessInputRecordField(fp_info, type, utf8, utf8Len);
-
-    if (utf8 != NULL) {
-      trashMemory(utf8, utf8Len);
-      delete[] utf8; utf8 = NULL; utf8Len = 0;
-    }
-  } while (!fp_info.endFound && fp_info.fieldLen > 0 && --emergencyExit > 0);
-
-  if (fp_info.numread > 0)
-    return fp_info.status;
-  else
-    return END_OF_FILE;
+  CUTF8Conv utf8conv;
+  vector<char> v(iter, (iter + len));
+  v.push_back(0); // null terminate for FromUTF8.
+  bool utf8status = utf8conv.FromUTF8((unsigned char *)&v[0],
+                                      len, str);
+  if (!utf8status) {
+    TRACE(_T("CItemData::DeserializePlainText(): FromUTF8 failed!\n"));
+  }
+  iter += len;
+  trashMemory(&v[0], len);
+  return utf8status;
 }
 
-void
-CItemData::ProcessInputRecordField(FieldProcessInfo &fp_info,
-                                   unsigned char &type, unsigned char *utf8, int &utf8Len)
+static bool
+pull_time(time_t &t, vector<char>::const_iterator &iter,
+          size_t len)
 {
-  CMyString tempdata;
-  CUTF8Conv utf8conv;
-  time_t t;
-
-  if (CItemData::IsTextField(type)) {
-    bool utf8status = utf8conv.FromUTF8(utf8, utf8Len, tempdata);
-    if (!utf8status) {
-      TRACE(_T("CItemData::ProcessInputRecordField(): FromUTF failed!\n"));
-      fp_info.status = FAILURE;
-    }
+  if (len != sizeof(t)) {
+    ASSERT(0);
+    return false;
   }
+  t = *((time_t *)&(*iter));
+  iter += len;
+  return true;
+}
 
-  if (fp_info.fieldLen > 0) {
-    fp_info.numread += fp_info.fieldLen;
+bool CItemData::DeserializePlainText(const std::vector<char> &v)
+{
+  vector<char>::const_iterator iter = v.begin();
+  bool retval = false; // true when title set
+  CMyString str;
+  time_t t;
+  int emergencyExit = 255;
+
+  while (iter != v.end()) {
+    int type = (*iter++ & 0xff); // required since enum is an int
+    if ((v.end() - iter) < sizeof(size_t)) {
+      ASSERT(0); // type must ALWAYS be followed by length
+      return false;
+    }
+    size_t len = *((size_t *)&(*iter));
+    ASSERT(len < v.size()); // sanity check
+    iter += sizeof(size_t);
+
+    if (--emergencyExit == 0) {
+      ASSERT(0);
+      return false;
+    }
+
     switch (type) {
-      case CItemData::TITLE:
-        SetTitle(tempdata);
-        break;
-      case CItemData::USER:
-        SetUser(tempdata);
-        break;
-      case CItemData::PASSWORD:
-        SetPassword(tempdata);
-        break;
-      case CItemData::NOTES:
-        SetNotes(tempdata);
-        break;
-      case CItemData::END:
-        fp_info.endFound = true;
-        break;
-      case CItemData::UUID:
+    case NAME:
+      ASSERT(0); // not serialized, so can't get here
+      return false;
+    case UUID:
       {
         uuid_array_t uuid_array;
-        ASSERT(utf8Len == sizeof(uuid_array));
+        ASSERT(len == sizeof(uuid_array));
         for (unsigned i = 0; i < sizeof(uuid_array); i++)
-          uuid_array[i] = utf8[i];
+          uuid_array[i] = *iter++;
         SetUUID(uuid_array);
-        break;
       }
-      case CItemData::GROUP:
-        SetGroup(tempdata);
-        break;
-      case CItemData::URL:
-        SetURL(tempdata);
-        break;
-      case CItemData::AUTOTYPE:
-        SetAutoType(tempdata);
-        break;
-      case CItemData::CTIME:
-        ASSERT(utf8Len == sizeof(t));
-        memcpy(&t, utf8, sizeof(t));
-        SetCTime(t);
-        break;
-      case CItemData::PMTIME:
-        ASSERT(utf8Len == sizeof(t));
-        memcpy(&t, utf8, sizeof(t));
-        SetPMTime(t);
-        break;
-      case CItemData::ATIME:
-        ASSERT(utf8Len == sizeof(t));
-        memcpy(&t, utf8, sizeof(t));
-        SetATime(t);
-        break;
-      case CItemData::LTIME:
-        ASSERT(utf8Len == sizeof(t));
-        memcpy(&t, utf8, sizeof(t));
-        SetLTime(t);
-        break;
-      case CItemData::RMTIME:
-        ASSERT(utf8Len == sizeof(t));
-        memcpy(&t, utf8, sizeof(t));
-        SetRMTime(t);
-        break;
-      case CItemData::PWHIST:
-        SetPWHistory(tempdata);
-        break;
-
-      case CItemData::POLICY:
-      default:
-        // just silently save fields we don't support.
-        SetUnknownField(type, utf8Len, utf8);
-#ifdef DEBUG
-        CString cs_timestamp;
-        cs_timestamp = PWSUtil::GetTimeStamp();
-        TRACE(_T("%s: Record %s, %s, %s has unknown field: %02x, length %d/0x%04x, value:\n"),
-              cs_timestamp, GetGroup(), GetTitle(), GetUser(),
-              type, utf8Len, utf8Len);
-        PWSUtil::HexDump(utf8, utf8Len, cs_timestamp);
-#endif /* DEBUG */
-        break;
-    } // switch
-  } // if (fieldLen > 0)
+      break;
+    case GROUP:
+      if (!pull_string(str, iter, len)) return false;
+      SetGroup(str);
+      break;
+    case TITLE:
+      if (!pull_string(str, iter, len)) return false;
+      retval = true;
+      SetTitle(str);
+      break;
+    case USER:
+      if (!pull_string(str, iter, len)) return false;
+      SetUser(str);
+      break;
+    case NOTES:
+      if (!pull_string(str, iter, len)) return false;
+      SetNotes(str);
+      break;
+    case PASSWORD:
+      if (!pull_string(str, iter, len)) return false;
+      SetPassword(str);
+      break;
+    case CTIME:
+      if (!pull_time(t, iter, len)) return false;
+      SetCTime(t);
+      break;
+    case  PMTIME:
+      if (!pull_time(t, iter, len)) return false;
+      SetPMTime(t);
+      break;
+    case ATIME:
+      if (!pull_time(t, iter, len)) return false;
+      SetATime(t);
+      break;
+    case LTIME:
+      if (!pull_time(t, iter, len)) return false;
+      SetLTime(t);
+      break;
+    case POLICY:
+      ASSERT(0); // not serialized, so can't get here
+      return false;
+    case RMTIME:
+      if (!pull_time(t, iter, len)) return false;
+      SetRMTime(t);
+      break;
+    case URL:
+      if (!pull_string(str, iter, len)) return false;
+      SetURL(str);
+      break;
+    case AUTOTYPE:
+      if (!pull_string(str, iter, len)) return false;
+      SetAutoType(str);
+      break;
+    case PWHIST:
+      if (!pull_string(str, iter, len)) return false;
+      SetPWHistory(str);
+      break;
+    case END:
+      goto done;
+    default:
+      // unknowns!
+      SetUnknownField(char(type), len, (unsigned char *)&(*iter));
+      iter += len;
+      break;
+    }
+  }
+ done:
+  return retval;
 }
 
-void CItemData::DDSerialize(CSMemFile &out_file)  // write record fields
+static void
+push_length(vector<char> &v, size_t s)
+{
+  v.insert(v.end(),
+           (char *)&s, (char *)&s + sizeof(size_t));
+}
+
+static void
+push_string(vector<char> &v, char type,
+            const CMyString &str)
+{
+  if (!str.IsEmpty()) {
+    CUTF8Conv utf8conv;
+    bool status;
+    const unsigned char *utf8;
+    int utf8Len;
+    status = utf8conv.ToUTF8(str, utf8, utf8Len);
+    if (status) {
+      v.push_back(type);
+      push_length(v, utf8Len);
+      v.insert(v.end(), (char *)utf8, (char *)utf8 + utf8Len);
+    } else
+      TRACE(_T("ItemData::SerializePlainText:ToUTF8(%s) failed\n"), str);
+  }
+}
+
+static void
+push_time(vector<char> &v, char type, time_t t)
+{
+  if (t != 0) {
+    v.push_back(type);
+    push_length(v, sizeof(t));
+    v.insert(v.end(),
+             (char *)&t, (char *)&t + sizeof(time_t));
+  }
+}
+
+void CItemData::SerializePlainText(vector<char> &v)  const
 {
   CMyString tmp;
   uuid_array_t uuid_array;
   time_t t = 0;
 
+  v.clear();
   GetUUID(uuid_array);
-  out_file.WriteField(CItemData::UUID, uuid_array, sizeof(uuid_array));
+  v.push_back(UUID);
+  push_length(v, sizeof(uuid_array));
+  v.insert(v.end(), uuid_array, (uuid_array + sizeof(uuid_array)));
+  push_string(v, GROUP, GetGroup());
+  push_string(v, TITLE, GetTitle());
+  push_string(v, USER, GetUser());
+  push_string(v, PASSWORD, GetPassword());
+  push_string(v, NOTES, GetNotes());
+  push_string(v, URL, GetURL());
+  push_string(v, AUTOTYPE, GetAutoType());
 
-  tmp = GetGroup();
-  if (!tmp.IsEmpty())
-    out_file.WriteField(CItemData::GROUP, tmp);
+  GetCTime(t);   push_time(v, CTIME, t);
+  GetPMTime(t);  push_time(v, PMTIME, t);
+  GetATime(t);   push_time(v, ATIME, t);
+  GetLTime(t);   push_time(v, LTIME, t);
+  GetRMTime(t);  push_time(v, RMTIME, t);
 
-  out_file.WriteField(CItemData::TITLE, GetTitle());
-  out_file.WriteField(CItemData::USER, GetUser());
-  out_file.WriteField(CItemData::PASSWORD, GetPassword());
-
-  tmp = GetNotes();
-  if (!tmp.IsEmpty())
-    out_file.WriteField(CItemData::NOTES, tmp);
-
-  tmp = GetURL();
-  if (!tmp.IsEmpty())
-    out_file.WriteField(CItemData::URL, tmp);
-
-  tmp = GetAutoType();
-  if (!tmp.IsEmpty())
-    out_file.WriteField(CItemData::AUTOTYPE, tmp);
-
-  GetCTime(t);
-  if (t != 0)
-    out_file.WriteField(CItemData::CTIME, (unsigned char *)&t, sizeof(t));
-
-  GetPMTime(t);
-  if (t != 0)
-    out_file.WriteField(CItemData::PMTIME, (unsigned char *)&t, sizeof(t));
-
-  GetATime(t);
-  if (t != 0)
-    out_file.WriteField(CItemData::ATIME, (unsigned char *)&t, sizeof(t));
-
-  GetLTime(t);
-  if (t != 0)
-    out_file.WriteField(CItemData::LTIME, (unsigned char *)&t, sizeof(t));
-
-  GetRMTime(t);
-  if (t != 0)
-    out_file.WriteField(CItemData::RMTIME, (unsigned char *)&t, sizeof(t));
-
-  tmp = GetPWHistory();
-  if (!tmp.IsEmpty())
-    out_file.WriteField(CItemData::PWHIST, tmp);
-
+  push_string(v, PWHIST, GetPWHistory());
   UnknownFieldsConstIter vi_IterURFE;
   for (vi_IterURFE = GetURFIterBegin();
        vi_IterURFE != GetURFIterEnd();
@@ -1410,10 +1426,18 @@ void CItemData::DDSerialize(CSMemFile &out_file)  // write record fields
     unsigned int length = 0;
     unsigned char *pdata = NULL;
     GetUnknownField(type, length, pdata, vi_IterURFE);
-    out_file.WriteField(type, pdata, length);
-    trashMemory(pdata, length);
+    if (length != 0) {
+      v.push_back((char)type);
+      push_length(v, length);
+      v.insert(v.end(), (char *)pdata, (char *)pdata + length);
+      trashMemory(pdata, length);
+    }
     delete[] pdata;
   }
 
-  out_file.WriteField(CItemData::END, _T(""));
+#pragma warning( push )
+#pragma warning( disable : 4310 ) // can't shut up compiler otherwise!
+  v.push_back((const char)END);
+#pragma warning( pop )
+  push_length(v, 0);
 }

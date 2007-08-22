@@ -14,7 +14,6 @@
 #include "Util.h"
 #include "ItemField.h"
 #include "UUIDGen.h"
-#include "SMemFile.h"
 
 #include <time.h> // for time_t
 #include <bitset>
@@ -47,15 +46,6 @@ struct PWHistEntry {
 typedef std::vector<PWHistEntry> PWHistList;
 typedef std::vector<CItemField> UnknownFields;
 typedef UnknownFields::const_iterator UnknownFieldsConstIter;
-
-// Following used to keep track of information of the processing
-// record fields during input via ProcessInputRecordField.
-struct FieldProcessInfo {
-  signed long numread;
-  signed long fieldLen;
-  int status;
-  bool endFound;
-};
 
 //-----------------------------------------------------------------------------
 
@@ -222,10 +212,8 @@ public:
   bool Matches(const CString &subgroup_name, int iObject, 
                int iFunction) const;
   BOOL IsURLEmpty() const {return m_URL.IsEmpty();}
-  void DDSerialize(CSMemFile &out_file);  // write out record fields
-  int  DDUnSerialize(CSMemFile &in_file); // read  in  record fields
-  void ProcessInputRecordField(FieldProcessInfo &fp_info,
-                               unsigned char &type, unsigned char *utf8, int &utf8Len);
+  void SerializePlainText(std::vector<char> &v) const;
+  bool DeserializePlainText(const std::vector<char> &v);
 
 private:
   CItemField m_Name;

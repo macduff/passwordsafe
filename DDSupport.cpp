@@ -11,14 +11,31 @@
 #include "corelib/util.h"
 #include "corelib/UUIDGen.h"
 
+#include <vector>
+
+using namespace std;
+
 void CDDObject::DDSerialize(CSMemFile &outDDmemfile)
 {
-  m_item.DDSerialize(outDDmemfile);
+  vector<char> v;
+  m_item.SerializePlainText(v);
+  size_t len = v.size();
+  outDDmemfile.Write(&len, sizeof(len));
+  outDDmemfile.Write(&(*v.begin()), v.size());
+  trashMemory(&(*v.begin()), v.size());
 }
 
 void CDDObject::DDUnSerialize(CSMemFile &inDDmemfile)
 {
-  m_item.DDUnSerialize(inDDmemfile);
+  size_t len = 0;
+  size_t lenlen = inDDmemfile.Read(&len, sizeof(len));
+  ASSERT(lenlen == sizeof(len) && len != 0);
+  vector<char> v(len);
+  size_t lenRead = inDDmemfile.Read(&(*v.begin()), len);
+  ASSERT(lenRead == len);
+  bool status = m_item.DeserializePlainText(v);
+  ASSERT(status);
+  trashMemory(&(*v.begin()), v.size());
 }
 
 void CDDObList::DDSerialize(CSMemFile &outDDmemfile)

@@ -8,6 +8,7 @@
 
 #pragma once
 #include "corelib/ItemData.h"
+#include "corelib/SMemFile.h"
 
 // Drag & Drop Object written to SMemFile
 
