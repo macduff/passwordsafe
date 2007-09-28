@@ -925,31 +925,31 @@ DboxMain::OnImportText()
     }
     if (rc == IDOK) {
         CString strError;
-        CMyString newfile = (CMyString)fd.GetPathName();
+        CMyString TxtFileName = (CMyString)fd.GetPathName();
         int numImported = 0, numSkipped = 0;
         TCHAR delimiter = dlg.m_defimpdelim[0];
 
         /* Create report as we go */
         CReport rpt;
         rpt.StartReport(_T("Import_Text"), m_core.GetCurFile());
-        cs_temp.Format(IDS_IMPORTFILE, newfile);
+        cs_temp.Format(IDS_IMPORTFILE, _T("Text"), TxtFileName);
         rpt.WriteLine(cs_temp);
         rpt.WriteLine();
 
-        rc = m_core.ImportPlaintextFile(ImportedPrefix, newfile, strError, fieldSeparator,
+        rc = m_core.ImportPlaintextFile(ImportedPrefix, TxtFileName, strError, fieldSeparator,
                                         delimiter, numImported, numSkipped, rpt);
 
         cs_title.LoadString(IDS_FILEREADERROR);
         switch (rc) {
             case PWScore::CANT_OPEN_FILE:
             {
-                cs_temp.Format(IDS_CANTOPENREADING, newfile);
+                cs_temp.Format(IDS_CANTOPENREADING, TxtFileName);
                 MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
             }
             break;
             case PWScore::INVALID_FORMAT:
             {
-                cs_temp.Format(IDS_INVALIDFORMAT, newfile);
+                cs_temp.Format(IDS_INVALIDFORMAT, TxtFileName);
                 MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
             }
             break;
@@ -1008,19 +1008,19 @@ DboxMain::OnImportKeePass()
         return;
     }
     if (rc == IDOK) {
-        CMyString newfile = (CMyString)fd.GetPathName();
-        rc = m_core.ImportKeePassTextFile(newfile);
+        CMyString KPsFileName = (CMyString)fd.GetPathName();
+        rc = m_core.ImportKeePassTextFile(KPsFileName);
         switch (rc) {
             case PWScore::CANT_OPEN_FILE:
             {
-                cs_temp.Format(IDS_CANTOPENREADING, newfile);
+                cs_temp.Format(IDS_CANTOPENREADING, KPsFileName);
                 cs_title.LoadString(IDS_FILEOPENERROR);
                 MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
             }
             break;
             case PWScore::INVALID_FORMAT:
             {
-                cs_temp.Format(IDS_INVALIDFORMAT, newfile);
+                cs_temp.Format(IDS_INVALIDFORMAT, KPsFileName);
                 cs_title.LoadString(IDS_FILEREADERROR);
                 MessageBox(cs_temp, cs_title, MB_OK|MB_ICONWARNING);
             }
@@ -1080,10 +1080,18 @@ DboxMain::OnImportXML()
         CString XMLFilename = (CMyString)fd.GetPathName();
         int numValidated, numImported;
         bool bBadUnknownFileFields, bBadUnknownRecordFields;
+
+        /* Create report as we go */
+        CReport rpt;
+        rpt.StartReport(_T("Import_XML"), m_core.GetCurFile());
+        cs_temp.Format(IDS_IMPORTFILE, _T("XML"), XMLFilename);
+        rpt.WriteLine(cs_temp);
+        rpt.WriteLine();
+
         CWaitCursor waitCursor;  // This may take a while!
         rc = m_core.ImportXMLFile(ImportedPrefix, XMLFilename, XSDFilename, strErrors,
                                   numValidated, numImported,
-                                  bBadUnknownFileFields, bBadUnknownRecordFields);
+                                  bBadUnknownFileFields, bBadUnknownRecordFields, rpt);
         waitCursor.Restore();  // Restore normal cursor
 
         switch (rc) {
@@ -1093,6 +1101,9 @@ DboxMain::OnImportXML()
                 dlg.m_strActionText.Format(IDS_FAILEDXMLVALIDATE, XMLFilename);
                 dlg.m_strResultText = strErrors;
                 dlg.DoModal();
+
+                rpt.WriteLine(dlg.m_strActionText);
+                rpt.WriteLine(dlg.m_strResultText);
             }
               break;
             case PWScore::XML_FAILED_IMPORT:
@@ -1101,6 +1112,9 @@ DboxMain::OnImportXML()
                 dlg.m_strActionText.Format(IDS_XMLERRORS, XMLFilename);
                 dlg.m_strResultText = strErrors;
                 dlg.DoModal();
+
+                rpt.WriteLine(dlg.m_strActionText);
+                rpt.WriteLine(dlg.m_strResultText);
             }
               break;
             case PWScore::SUCCESS:
@@ -1112,7 +1126,6 @@ DboxMain::OnImportXML()
                     CImportXMLErrDlg dlg;
 
                     dlg.m_strActionText = cs_temp;
-                    dlg.m_strActionText.Empty();
                     if (!strErrors.IsEmpty())
                       dlg.m_strResultText = strErrors + _T("\n");
                     if (bBadUnknownFileFields)
@@ -1120,6 +1133,9 @@ DboxMain::OnImportXML()
                     if (bBadUnknownRecordFields)
                       dlg.m_strResultText += CString(MAKEINTRESOURCE(IDS_XMLUNKNRECIGNORED));
                     dlg.DoModal();
+
+                    rpt.WriteLine(dlg.m_strActionText);
+                    rpt.WriteLine(dlg.m_strResultText);
                     ChangeOkUpdate();
                 } else {
                     cs_temp.Format(IDS_XMLIMPORTOK,
@@ -1127,6 +1143,8 @@ DboxMain::OnImportXML()
                                    numImported, (numImported != 1) ? _T("s") : _T(""));
                     cs_title.LoadString(IDS_STATUS);
                     MessageBox(cs_temp, cs_title, MB_ICONINFORMATION|MB_OK);
+
+                    rpt.WriteLine(cs_temp);
                     ChangeOkUpdate();
                 }
             }
@@ -1135,6 +1153,7 @@ DboxMain::OnImportXML()
             default:
               ASSERT(0);
         } // switch
+        rpt.EndReport();
     }
 }
 

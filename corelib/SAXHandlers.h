@@ -43,6 +43,7 @@ struct pw_entry {
 	CMyString notes;
 	CMyString uuid;
 	UnknownFieldList uhrxl;  // Note: use header format for record unknown fields!
+	bool alias;
 };
 
 //	-----------------------------------------------------------------------

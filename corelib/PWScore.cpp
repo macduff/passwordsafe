@@ -103,6 +103,8 @@ PWScore::ClearData(void)
   }
   //Composed of ciphertext, so doesn't need to be overwritten
   m_pwlist.clear();
+  m_base2aliases_mmap.clear();
+  m_alias2base_map.clear();
 }
 void
 PWScore::ReInit(void)
@@ -136,11 +138,40 @@ PWScore::NewFile(const CMyString &passkey)
 
 // functor object type for for_each:
 struct RecordWriter {
-  RecordWriter(PWSfile *out) : m_out(out) {}
+  RecordWriter(PWSfile *out, PWScore *core) : m_out(out), m_core(core) {}
   void operator()(pair<CUUIDGen, CItemData> p)
-  {m_out->WriteRecord(p.second);}
+  {
+    CMyString savePassword;
+    savePassword = p.second.GetPassword();
+    if (p.second.IsAlias()) {
+      uuid_array_t item_uuid, base_uuid;
+      p.second.GetUUID(item_uuid);
+      m_core->GetBaseUUID(item_uuid, base_uuid);
+      char uuid_buffer[33];
+#if _MSC_VER >= 1400
+      sprintf_s(uuid_buffer, 33,
+                "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", 
+                base_uuid[0],  base_uuid[1],  base_uuid[2],  base_uuid[3],
+                base_uuid[4],  base_uuid[5],  base_uuid[6],  base_uuid[7],
+                base_uuid[8],  base_uuid[9],  base_uuid[10], base_uuid[11],
+                base_uuid[12], base_uuid[13], base_uuid[14], base_uuid[15]);
+#else
+      sprintf(uuid_buffer,
+              "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", 
+              base_uuid[0],  base_uuid[1],  base_uuid[2],  base_uuid[3],
+              base_uuid[4],  base_uuid[5],  base_uuid[6],  base_uuid[7],
+              base_uuid[8],  base_uuid[9],  base_uuid[10], base_uuid[11],
+              base_uuid[12], base_uuid[13], base_uuid[14], base_uuid[15]);
+#endif
+      uuid_buffer[32] = '\0';
+      p.second.SetPassword(_T("[[") + CMyString(uuid_buffer) + _T("]]"));
+    }
+    m_out->WriteRecord(p.second);
+    p.second.SetPassword(savePassword);
+  }
 private:
   PWSfile *m_out;
+  PWScore *m_core;
 };
 
 int
@@ -170,7 +201,7 @@ PWScore::WriteFile(const CMyString &filename, PWSfile::VERSION version)
     return CANT_OPEN_FILE;
   }
 
-  RecordWriter write_record(out);
+  RecordWriter write_record(out, this);
   for_each(m_pwlist.begin(), m_pwlist.end(), write_record);
 
   m_hdr = out->GetHeader(); // update time saved, etc.
@@ -188,10 +219,10 @@ struct PutText {
   PutText(const CString &subgroup_name,
           const int subgroup_object, const int subgroup_function,
           const CItemData::FieldBits &bsFields,
-          TCHAR delimiter, ofstreamT &ofs) :
+          TCHAR delimiter, ofstreamT &ofs, PWScore *core) :
     m_subgroup_name(subgroup_name), m_subgroup_object(subgroup_object),
     m_subgroup_function(subgroup_function), m_bsFields(bsFields),
-    m_delimiter(delimiter), m_ofs(ofs)
+    m_delimiter(delimiter), m_ofs(ofs), m_core(core)
   {}
   // operator for ItemList
   void operator()(pair<CUUIDGen, CItemData> p)
@@ -202,8 +233,18 @@ struct PutText {
     if (m_subgroup_name.IsEmpty() || 
         item.Matches(m_subgroup_name, m_subgroup_object,
                      m_subgroup_function)) {
+      CItemData *cibase(NULL);
+      if (item.IsAlias()) {
+        uuid_array_t base_uuid, item_uuid;
+        item.GetUUID(item_uuid);
+        m_core->GetBaseUUID(item_uuid, base_uuid);
+        ItemListIter iter;
+        iter = m_core->Find(base_uuid);
+        if (iter !=  m_core->GetEntryEndIter())
+          cibase = &iter->second;
+      }
       const CMyString line = item.GetPlaintext(TCHAR('\t'),
-                                               m_bsFields, m_delimiter);
+                                               m_bsFields, m_delimiter, cibase);
       if (!line.IsEmpty())
         m_ofs << LPCTSTR(line) << endl;
     }
@@ -215,6 +256,7 @@ private:
   const CItemData::FieldBits &m_bsFields;
   TCHAR m_delimiter;
   ofstreamT &m_ofs;
+  PWScore *m_core;
 };
 
 int
@@ -305,7 +347,7 @@ PWScore::WritePlaintextFile(const CMyString &filename,
   }
 
   PutText put_text(subgroup_name, subgroup_object, subgroup_function,
-                   bsFields, delimiter, ofs);
+                   bsFields, delimiter, ofs, this);
 
   if (il != NULL) {
     for_each(il->begin(), il->end(), put_text);
@@ -323,10 +365,10 @@ struct XMLRecordWriter {
   XMLRecordWriter(const CString &subgroup_name,
                   const int subgroup_object, const int subgroup_function,
                   const CItemData::FieldBits &bsFields,
-                  TCHAR delimiter, ofstream &ofs) :
+                  TCHAR delimiter, ofstream &ofs, PWScore *core) :
     m_subgroup_name(subgroup_name), m_subgroup_object(subgroup_object),
     m_subgroup_function(subgroup_function), m_bsFields(bsFields),
-    m_delimiter(delimiter), m_of(ofs), m_id(0)
+    m_delimiter(delimiter), m_of(ofs), m_id(0), m_core(core)
   {}
   // operator for ItemList
   void operator()(pair<CUUIDGen, CItemData> p)
@@ -338,7 +380,17 @@ struct XMLRecordWriter {
     if (m_subgroup_name.IsEmpty() ||
         item.Matches(m_subgroup_name,
                      m_subgroup_object, m_subgroup_function)) {
-      string xml = item.GetXML(m_id, m_bsFields, m_delimiter);
+      CItemData *cibase(NULL);
+      if (item.IsAlias()) {
+        uuid_array_t base_uuid, item_uuid;
+        item.GetUUID(item_uuid);
+        m_core->GetBaseUUID(item_uuid, base_uuid);
+        ItemListIter iter;
+        iter = m_core->Find(base_uuid);
+        if (iter != m_core->GetEntryEndIter())
+          cibase = &iter->second;
+      }
+      string xml = item.GetXML(m_id, m_bsFields, m_delimiter, cibase);
       m_of.write(xml.c_str(), xml.length());
     }
   }
@@ -350,6 +402,7 @@ private:
   TCHAR m_delimiter;
   ofstream &m_of;
   unsigned m_id;
+  PWScore *m_core;
 };
 
 int
@@ -507,7 +560,7 @@ PWScore::WriteXMLFile(const CMyString &filename,
   }
 
   XMLRecordWriter put_xml(subgroup_name, subgroup_object, subgroup_function,
-                          bsFields, delimiter, of);
+                          bsFields, delimiter, of, this);
 
   if (il != NULL) {
     for_each(il->begin(), il->end(), put_xml);
@@ -525,7 +578,8 @@ int
 PWScore::ImportXMLFile(const CString &ImportedPrefix, const CString &strXMLFileName,
                        const CString &strXSDFileName, CString &strErrors,
                        int &numValidated, int &numImported,
-                       bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields)
+                       bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields,
+                       CReport &rpt)
 {
   PWSXML iXML(this);
   bool status, validation;
@@ -569,6 +623,8 @@ PWScore::ImportXMLFile(const CString &ImportedPrefix, const CString &strXMLFileN
     }
   }
   uhfl.clear();
+
+  AddAliasesViaPassword(rpt);
 
   m_changed = true;
   return SUCCESS;
@@ -831,8 +887,9 @@ PWScore::ImportPlaintextFile(const CMyString &ImportedPrefix,
     temp.CreateUUID();
     if (i_Offset[USER] >= 0)
       temp.SetUser(CMyString(tokens[i_Offset[USER]].c_str()));
+    CMyString csPassword = CMyString(tokens[i_Offset[PASSWORD]].c_str());
     if (i_Offset[PASSWORD] >= 0)
-      temp.SetPassword(CMyString(tokens[i_Offset[PASSWORD]].c_str()));
+      temp.SetPassword(csPassword);
 
     // The group and title field are concatenated.
     // If the title field has periods, then they have been changed to the delimiter
@@ -957,11 +1014,21 @@ PWScore::ImportPlaintextFile(const CMyString &ImportedPrefix,
       }
     }
 
+    const int n = CMyString(csPassword).Replace(_T(':'), _T(';'));
+		if (csPassword.Left(1) == _T("[") &&
+		    csPassword.Right(1) == _T("]") &&
+		    n <= 2) {
+      uuid_array_t temp_uuid;
+      temp.GetUUID(temp_uuid);
+		  m_possible_aliases.push_back(temp_uuid);
+		}
+
     AddEntry(temp);
     numImported++;
   } // file processing for (;;) loop
   ifs.close();
 
+  AddAliasesViaPassword(rpt);
   m_changed = true;
   return SUCCESS;
 }
@@ -1009,7 +1076,6 @@ PWScore::ReadFile(const CMyString &a_filename,
     int status;
     PWSfile *in = PWSfile::MakePWSfile(a_filename, m_ReadFileVersion,
                                        PWSfile::Read, status);
-
 
     if (status != PWSfile::SUCCESS) {
         delete in;
@@ -1062,12 +1128,15 @@ PWScore::ReadFile(const CMyString &a_filename,
     SetPassKey(a_passkey); // so user won't be prompted for saves
 
     CItemData temp;
+    uuid_array_t base_uuid, temp_uuid;
+    CMyString csMyPassword;
     bool go = true;
 #ifdef DEMO
     bool limited = false;
 #endif
 
     do {
+      temp.Clear(); // Rather than creating a new one each time.
       status = in->ReadRecord(temp);
       switch (status) {
       case PWSfile::FAILURE:
@@ -1102,6 +1171,32 @@ PWScore::ReadFile(const CMyString &a_filename,
           limited = true;
         }
 #else
+        csMyPassword = temp.GetPassword();
+        csMyPassword.MakeLower();
+        if (csMyPassword.Left(2) == _T("[[") || 
+            csMyPassword.Right(2) == _T("]]") ||
+            csMyPassword.GetLength() == 36 ||
+            csMyPassword.SpanIncluding(_T("[]0123456789abcdef")) == csMyPassword) {
+          // _stscanf_s always outputs to an "int" using %x even though
+          // target is only 1.  Read into larger buffer to prevent data being
+          // overwritten and then copy to where we want it!
+          unsigned char temp_uuid_array[sizeof(uuid_array_t) + sizeof(int)];
+          int nscanned = 0;
+          TCHAR *lpszuuid = csMyPassword.GetBuffer(sizeof(uuid_array_t) * 2 + 4) + 2;
+          for (unsigned i = 0; i < sizeof(uuid_array_t); i++) {
+#if _MSC_VER >= 1400
+            nscanned += _stscanf_s(lpszuuid, _T("%02x"), &temp_uuid_array[i]);
+#else
+            nscanned += _stscanf(lpszuuid, _T("%02x"), &temp_uuid_array[i]);
+#endif
+            lpszuuid += 2;
+          }
+          csMyPassword.ReleaseBuffer(sizeof(uuid_array_t) * 2 + 4);
+          memcpy(base_uuid, temp_uuid_array, sizeof(uuid_array_t));
+          temp.GetUUID(temp_uuid);
+          m_alias2base_map[temp_uuid] = base_uuid;
+          m_possible_aliases.push_back(temp_uuid);
+        }
         m_pwlist[uuid] = temp;
 #endif
         break;
@@ -1109,7 +1204,6 @@ PWScore::ReadFile(const CMyString &a_filename,
         go = false;
         break;
       } // switch
-      temp.Clear(); // Rather than creating a new one each time.
     } while (go);
 
     m_nRecordsWithUnknownFields = in->GetNumRecordsWithUnknownFields();
@@ -1120,6 +1214,9 @@ PWScore::ReadFile(const CMyString &a_filename,
       closeStatus = PWScore::LIMIT_REACHED; // if integrity OK but LIMIT_REACHED, return latter
 #endif
     delete in;
+
+    AddAliasesViaBaseUUID(NULL);
+
     return closeStatus;
 }
 
@@ -1517,15 +1614,17 @@ PWScore::Validate(CString &status)
 {
   // Check uuid is valid
   // Check PWH is valid
+  // Check alias password has corresponding base entry
   // Note that with m_pwlist implemented as a map keyed
   // on uuids, each entry is guaranteed to have
   // a unique uuid. The uniqueness invariant
   // should be enforced elsewhere (upon read/import).
 
-  uuid_array_t uuid_array;
+  uuid_array_t uuid_array, base_uuid, temp_uuid;
   int n = -1;
   unsigned num_PWH_fixed = 0;
   unsigned num_uuid_fixed = 0;
+  unsigned num_alias_warnings;
 
   CReport rpt;
   CString cs_Error;
@@ -1554,14 +1653,42 @@ PWScore::Validate(CString &status)
       rpt.WriteLine(cs_Error);
       num_PWH_fixed++;
     }
+    CMyString csMyPassword = ci.GetPassword();
+    csMyPassword.MakeLower();
+    if (csMyPassword.Left(2) == _T("[[") || 
+        csMyPassword.Right(2) == _T("]]") ||
+        csMyPassword.GetLength() == 36 ||
+        csMyPassword.SpanIncluding(_T("[]0123456789abcdef")) == csMyPassword) {
+      // _stscanf_s always outputs to an "int" using %x even though
+      // target is only 1.  Read into larger buffer to prevent data being
+      // overwritten and then copy to where we want it!
+      unsigned char temp_uuid_array[sizeof(uuid_array_t) + sizeof(int)];
+      int nscanned = 0;
+      TCHAR *lpszuuid = csMyPassword.GetBuffer(sizeof(uuid_array_t) * 2 + 4) + 2;
+      for (unsigned i = 0; i < sizeof(uuid_array_t); i++) {
+#if _MSC_VER >= 1400
+        nscanned += _stscanf_s(lpszuuid, _T("%02x"), &temp_uuid_array[i]);
+#else
+        nscanned += _stscanf(lpszuuid, _T("%02x"), &temp_uuid_array[i]);
+#endif
+        lpszuuid += 2;
+      }
+      csMyPassword.ReleaseBuffer(sizeof(uuid_array_t) * 2 + 4);
+      memcpy(base_uuid, temp_uuid_array, sizeof(uuid_array_t));
+      ci.GetUUID(temp_uuid);
+      m_alias2base_map[temp_uuid] = base_uuid;
+      m_possible_aliases.push_back(temp_uuid);
+    }
   } // iteration over m_pwlist
+
+  num_alias_warnings = AddAliasesViaBaseUUID(&rpt);
 
   TRACE(_T("%s : End validation. %d entries processed\n"), PWSUtil::GetTimeStamp(), n + 1);
   rpt.EndReport();
 
-  if ((num_uuid_fixed + num_PWH_fixed) > 0) {
+  if ((num_uuid_fixed + num_PWH_fixed + num_alias_warnings) > 0) {
     status.Format(IDSC_NUMPROCESSED,
-                  n + 1, num_uuid_fixed, 0, num_PWH_fixed);
+                  n + 1, num_uuid_fixed, num_PWH_fixed, num_alias_warnings);
     SetChanged(true);
     return true;
   } else {
@@ -1654,4 +1781,389 @@ CMyString PWScore::GetUniqueTitle(const CMyString &path, const CMyString &title,
     } while (listpos != m_pwlist.end());
   }
   return new_title;
+}
+
+void PWScore::AddAliasEntry(const uuid_array_t &base_uuid, const uuid_array_t &alias_uuid)
+{
+  ItemListIter iter = m_pwlist.find(base_uuid);
+  ASSERT(iter != m_pwlist.end());
+
+  // Mark base entry as a base entry - check not an alias first
+  ASSERT(!iter->second.IsAlias());
+  iter->second.SetBase();
+
+  // Add to both the base->alias multimap and the alias->base map
+  m_base2aliases_mmap.insert(ItemMMap_Pair(base_uuid, alias_uuid));
+  m_alias2base_map[alias_uuid] = base_uuid;
+}
+
+void PWScore::RemoveAliasEntry(const uuid_array_t &base_uuid, const uuid_array_t &alias_uuid)
+{
+  // Remove from alias -> base map
+  m_alias2base_map.erase(alias_uuid);
+
+  // Remove from base -> alias multimap
+  ItemMMapIter mmiter;
+  ItemMMapIter mmlastElement;
+
+  mmiter = m_base2aliases_mmap.find(base_uuid);
+  if (mmiter == m_base2aliases_mmap.end())
+    return;
+
+  mmlastElement = m_base2aliases_mmap.upper_bound(base_uuid);
+  uuid_array_t mmiter_uuid;
+
+  for ( ; mmiter != mmlastElement; mmiter++) {
+    mmiter->second.GetUUID(mmiter_uuid);
+    if (memcmp(alias_uuid, mmiter_uuid, sizeof(uuid_array_t)) == 0) {
+      m_base2aliases_mmap.erase(mmiter);
+      break;
+    }
+  }
+
+  // Reset base entry to normal if it has no more aliases
+  if (m_base2aliases_mmap.find(base_uuid) != m_base2aliases_mmap.end()) {
+    ItemListIter iter = m_pwlist.find(base_uuid);
+    if (iter != m_pwlist.end())
+      iter->second.SetNormal();
+  }
+}
+
+void PWScore::RemoveAllAliasEntries(const uuid_array_t &base_uuid)
+{
+  // Remove from alias -> base map for each alias
+  ItemMMapIter itr;
+  ItemMMapIter lastElement;
+
+  itr = m_base2aliases_mmap.find(base_uuid);
+  if (itr == m_base2aliases_mmap.end())
+    return;
+
+  lastElement = m_base2aliases_mmap.upper_bound(base_uuid);
+  uuid_array_t itr_uuid;
+
+  for ( ; itr != lastElement; itr++) {
+    itr->second.GetUUID(itr_uuid);
+    // Remove from alias -> base map
+    m_alias2base_map.erase(itr_uuid);
+  }
+
+  // Remove from base -> alias multimap
+  m_base2aliases_mmap.erase(base_uuid);
+
+  // Reset base entry to normal
+  ItemListIter iter = m_pwlist.find(base_uuid);
+  if (iter != m_pwlist.end())
+    iter->second.SetNormal();
+}
+
+void PWScore::MoveAliases(const uuid_array_t &from_base_uuid,
+                          const uuid_array_t &to_base_uuid)
+{
+  ItemMMapIter from_itr;
+  ItemMMapIter lastfromElement;
+
+  from_itr = m_base2aliases_mmap.find(from_base_uuid);
+  if (from_itr == m_base2aliases_mmap.end())
+    return;
+
+  lastfromElement = m_base2aliases_mmap.upper_bound(from_base_uuid);
+
+  for ( ; from_itr != lastfromElement; from_itr++) {
+    // Add to new base in base -> alias multimap
+    m_base2aliases_mmap.insert(ItemMMap_Pair(to_base_uuid, from_itr->second));
+    // Remove from alias -> base map
+    m_alias2base_map.erase(from_itr->second);
+    // Add to alias -> base map (new base)
+    m_alias2base_map[from_itr->second] = to_base_uuid;    
+  }
+
+  // Now delete all old base entries
+  m_base2aliases_mmap.erase(from_base_uuid);
+}
+
+int PWScore::AddAliasesViaBaseUUID(CReport *rpt)
+{
+  // When called during validation of a database  - *rpt is valid
+  // When called during the opening of a database - *rpt is NULL and no report generated
+  // In this case, the password was "[[uuidstr]]", giving the associated base entry
+  int num_warnings(0);
+  if (!m_possible_aliases.empty()) {
+    UUIDListIter paiter;
+    ItemListIter iter;
+    uuid_array_t base_uuid, alias_uuid;
+    bool bwarnings(false);
+    CString strError;
+
+    for (paiter = m_possible_aliases.begin();
+         paiter != m_possible_aliases.end(); paiter++) {
+      iter = m_pwlist.find(*paiter);
+      if (iter == m_pwlist.end())
+        return num_warnings;
+
+      CItemData *curitem = &iter->second;
+      curitem->GetUUID(alias_uuid);
+      GetBaseUUID(alias_uuid, base_uuid);
+
+      // Delete it - we will put it back if it is an alias
+      m_alias2base_map.erase(alias_uuid);
+
+      iter = m_pwlist.find(base_uuid);
+      if (iter != m_pwlist.end()) {
+        if (iter->second.IsAlias()) {
+          // This is an alias too!  Not allowed!  Make new one point to original base
+          // Note: this may be random as who knows the order of reading records?
+          uuid_array_t temp_uuid;
+          iter->second.GetUUID(temp_uuid);
+          GetBaseUUID(temp_uuid, base_uuid);
+          if (rpt != NULL) {
+            if (!bwarnings) {
+              bwarnings = true;
+              strError.LoadString(IDSC_ALIASWARNINGHDR);
+              rpt->WriteLine(strError);
+            }
+            strError.Format(IDSC_ALIASWARNING1, curitem->GetGroup(), curitem->GetTitle(), curitem->GetUser());
+            rpt->WriteLine(strError);
+            strError.LoadString(IDSC_ALIASWARNING1A);
+            rpt->WriteLine(strError);
+          }
+
+          num_warnings++;
+        } else {
+          iter->second.GetUUID(base_uuid);
+          iter->second.SetBase();
+        }
+        m_base2aliases_mmap.insert(ItemMMap_Pair(base_uuid, alias_uuid));
+        m_alias2base_map[alias_uuid] = base_uuid;
+        curitem->SetPassword(CMyString(_T("[Alias]")));
+        curitem->SetAlias();
+      } else {
+        // Specified base does not exist!
+        if (rpt != NULL) {
+          if (!bwarnings) {
+            bwarnings = true;
+            strError.LoadString(IDSC_ALIASWARNINGHDR);
+            rpt->WriteLine(strError);
+          }
+          strError.Format(IDSC_ALIASWARNING2, curitem->GetGroup(), curitem->GetTitle(), curitem->GetUser());
+          rpt->WriteLine(strError);
+          strError.LoadString(IDSC_ALIASWARNING2A);
+          rpt->WriteLine(strError);
+        }
+        curitem->SetNormal();
+        num_warnings++;
+      }
+    }
+    m_possible_aliases.clear();
+  }
+  return num_warnings;
+}
+
+int PWScore::AddAliasesViaPassword(CReport &rpt)
+{
+  // This is only called when importing entrys from Text or XML.
+  // In this case, the password is expected to be in the full format [g:t:u]
+  // where g and/or u may be empty.
+  int num_warnings(0);
+  if (!m_possible_aliases.empty()) {
+    UUIDListIter paiter;
+    ItemListIter iter;
+
+    CMyString csBaseGroup, csBaseTitle, csBaseUser, tmp;
+    uuid_array_t base_uuid, alias_uuid;
+    bool bwarnings(false);
+    CString strError;
+
+    for (paiter = m_possible_aliases.begin();
+         paiter != m_possible_aliases.end(); paiter++) {
+      iter = m_pwlist.find(*paiter);
+      if (iter == m_pwlist.end())
+        return num_warnings;
+
+      CItemData *curitem = &iter->second;
+      curitem->GetUUID(alias_uuid);
+
+      // Delete it - we will put it back if it is an alias
+      m_alias2base_map.erase(alias_uuid);
+
+      tmp = curitem->GetPassword();
+      // Remove leading '[' & trailing ']'
+      tmp = tmp.Mid(1, tmp.GetLength() - 2);
+      csBaseGroup = tmp.SpanExcluding(_T(":"));
+      tmp = tmp.Mid(csBaseGroup.GetLength() + 1);  // Skip over 'group:'
+      csBaseTitle = tmp.SpanExcluding(_T(":"));
+      // Skip over 'title:' and ignore ']'
+      csBaseUser = tmp.Mid(csBaseTitle.GetLength() + 1);
+      iter = Find(csBaseGroup, csBaseTitle, csBaseUser);
+      if (iter != m_pwlist.end()) {
+        if (iter->second.IsAlias()) {
+          // This is an alias too!  Not allowed!  Make new one point to original base
+          // Note: this may be random as who knows the order of reading records?
+          uuid_array_t temp_uuid;
+          iter->second.GetUUID(temp_uuid);
+          GetBaseUUID(temp_uuid, base_uuid);
+          if (!bwarnings) {
+            bwarnings = true;
+            strError.LoadString(IDSC_ALIASWARNINGHDR);
+            rpt.WriteLine(strError);
+          }
+          strError.Format(IDSC_ALIASWARNING1, curitem->GetGroup(), curitem->GetTitle(), curitem->GetUser());
+          rpt.WriteLine(strError);
+          strError.LoadString(IDSC_ALIASWARNING1A);
+          rpt.WriteLine(strError);
+          curitem->SetAlias();
+          num_warnings++;
+        } else {
+          iter->second.GetUUID(base_uuid);
+          iter->second.SetBase();
+        }
+        m_base2aliases_mmap.insert(ItemMMap_Pair(base_uuid, alias_uuid));
+        m_alias2base_map[alias_uuid] = base_uuid;
+        curitem->SetPassword(CMyString(_T("[Alias]")));
+        curitem->SetAlias();
+      } else {
+        // Specified base does not exist!
+        if (!bwarnings) {
+          bwarnings = true;
+          strError.LoadString(IDSC_ALIASWARNINGHDR);
+          rpt.WriteLine(strError);
+        }
+        strError.Format(IDSC_ALIASWARNING2, curitem->GetGroup(), curitem->GetTitle(), curitem->GetUser());
+        rpt.WriteLine(strError);
+        strError.LoadString(IDSC_ALIASWARNING2A);
+        rpt.WriteLine(strError);
+        curitem->SetNormal();
+        num_warnings++;
+      }
+    }
+    m_possible_aliases.clear();
+  }
+  return num_warnings;
+}
+
+void PWScore::ResetAllAliasPasswords(const uuid_array_t &base_uuid)
+{
+  ItemMMapIter itr;
+  ItemMMapIter lastElement;
+  ItemListIter base_itr, alias_itr;
+  uuid_array_t alias_uuid;
+  CMyString csBasePassword;
+
+  itr = m_base2aliases_mmap.find(base_uuid);
+  if (itr == m_base2aliases_mmap.end())
+    return;
+
+  base_itr = m_pwlist.find(base_uuid);
+  if (base_itr != m_pwlist.end()) {
+    csBasePassword = base_itr->second.GetPassword();
+  } else {
+    m_base2aliases_mmap.erase(base_uuid);
+    return;
+  }
+
+  lastElement = m_base2aliases_mmap.upper_bound(base_uuid);
+
+  for ( ; itr != lastElement; itr++) {
+    itr->second.GetUUID(alias_uuid);
+    alias_itr = m_pwlist.find(alias_uuid);
+    if (alias_itr != m_pwlist.end()) {
+      alias_itr->second.SetPassword(csBasePassword);
+    }
+  }
+  m_base2aliases_mmap.erase(base_uuid);
+}
+
+void PWScore::GetAllAliasEntries(const uuid_array_t &base_uuid, UUIDList &aliaslist)
+{
+  ItemMMapIter itr;
+  ItemMMapIter lastElement;
+  uuid_array_t alias_uuid;
+
+  itr = m_base2aliases_mmap.find(base_uuid);
+  if (itr == m_base2aliases_mmap.end())
+    return;
+
+  lastElement = m_base2aliases_mmap.upper_bound(base_uuid);
+
+  for ( ; itr != lastElement; itr++) {
+    itr->second.GetUUID(alias_uuid);
+    aliaslist.push_back(alias_uuid);
+  }
+}
+
+int PWScore::GetBaseEntry(CMyString &Password, uuid_array_t &base_uuid, bool &bBase_was_Alias,
+                           CMyString &csPwdGroup, CMyString &csPwdTitle, CMyString &csPwdUser)
+{
+  // Either returns:
+  //  +n: password contains (n-1) colons and base entry found (n = 1, 2 or 3)
+  //   0: password not in alias format
+  //  -n: password contains (n-1) colons but base entry NOT found (n = 1, 2 or 3)
+  int num_colonsP1 = CMyString(Password).Replace(_T(':'), _T(';')) + 1;
+  if (Password.Left(1) == CMyString(_T("[")) &&
+      Password.Right(1) == CMyString(_T("]")) &&
+      num_colonsP1 <= 3) {
+    CMyString tmp;
+    ItemListIter iter;
+    switch (num_colonsP1) {
+      case 1:
+        // [x]
+        csPwdGroup = csPwdUser = _T("");
+        csPwdTitle = Password.Mid(1, Password.GetLength() - 2);  // Skip over '[' & ']'
+        iter = Find(csPwdGroup, csPwdTitle, csPwdUser);
+        break;
+      case 2:
+        // [x:y]
+        csPwdUser = _T("");
+        tmp = Password.Mid(1, Password.GetLength() - 2);  // Skip over '[' & ']'
+        csPwdGroup = tmp.SpanExcluding(_T(":"));
+        csPwdTitle = tmp.Mid(csPwdGroup.GetLength() + 1);  // Skip over 'group:'
+        iter = Find(csPwdGroup, csPwdTitle, csPwdUser);
+        if (iter == m_pwlist.end()) {
+          csPwdUser = csPwdTitle;
+          csPwdTitle = csPwdGroup;
+          csPwdGroup = _T("");
+          iter = Find(csPwdGroup, csPwdTitle, csPwdUser);
+        }
+        break;
+      case 3:
+        // [x:y:z]
+        tmp = Password.Mid(1, Password.GetLength() - 2);  // Skip over '[' & ']'
+        csPwdGroup = tmp.SpanExcluding(_T(":"));
+        tmp = tmp.Mid(csPwdGroup.GetLength() + 1);  // Skip over 'group:'
+        csPwdTitle = tmp.SpanExcluding(_T(":"));
+        // Skip over 'title:'
+        csPwdUser = tmp.Mid(csPwdTitle.GetLength() + 1);
+        iter = Find(csPwdGroup, csPwdTitle, csPwdUser);
+        break;
+      default:
+        ASSERT(0);
+    }
+    if (iter != m_pwlist.end()) {
+      // Check if base is already an alias, if so, set this entry -> real base entry
+      if (iter->second.IsAlias()) {
+        bBase_was_Alias = true;
+        uuid_array_t temp_uuid;
+        iter->second.GetUUID(temp_uuid);
+        GetBaseUUID(temp_uuid, base_uuid);
+      } else {
+        bBase_was_Alias = false;
+        iter->second.GetUUID(base_uuid);
+      }
+      return num_colonsP1; // valid and found
+    }
+    return (-num_colonsP1); // valid but not found
+  }
+  return 0; // invalid
+}
+
+bool PWScore::GetBaseUUID(const uuid_array_t &alias_uuid, uuid_array_t &base_uuid)
+{
+  ItemMapIter iter = m_alias2base_map.find(alias_uuid);
+  if (iter != m_alias2base_map.end()) {
+    iter->second.GetUUID(base_uuid);
+    return true;
+  } else {
+    memset(base_uuid, 0x00, sizeof(uuid_array_t));
+    return false;
+  }
 }
