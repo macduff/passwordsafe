@@ -916,6 +916,7 @@ void
 DboxMain::AddEntries(CDDObList &in_oblist, const CMyString &DropGroup)
 {
   CItemData tempitem;
+  UUIDList possible_aliases;
   CMyString Group, Title, User;
   POSITION pos;
   TCHAR *dot;
@@ -964,20 +965,23 @@ DboxMain::AddEntries(CDDObList &in_oblist, const CMyString &DropGroup)
       m_core.AddAliasEntry(base_uuid, alias_uuid);
       tempitem.SetPassword(CMyString(_T("[Alias]")));
       tempitem.SetAlias();
-    } else {
-      // Password NOT in alias format OR base entry does not exist
+    } else 
+    if (ialias == 0) {
+      // Password NOT in alias format
       tempitem.SetNormal();
-    }
+    } else
     if (ialias < 0) {
       // Password in alias format AND base entry does not exist
-      CString cs_msg;
-      cs_msg.Format(IDS_DDNOBASEENTRY, Group, Title, User);
-      AfxMessageBox(cs_msg, MB_OK);      
+      tempitem.GetUUID(alias_uuid);
+      possible_aliases.push_back(alias_uuid);
     }
 
     AddEntry(tempitem);
 
   } // iteration over in_oblist
+
+  // Now try to add aliases we couldn't add in previous processing
+  m_core.AddAliasesViaPassword(possible_aliases, NULL);
 
   if (PWSprefs::GetInstance()->
       GetPref(PWSprefs::SaveImmediately)) {

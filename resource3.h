@@ -311,6 +311,5 @@
 #define IDS_ALIASNOTFOUND1              5483
 #define IDS_ALIASNOTFOUND2              5484
 #define IDS_ALIASNOTFOUNDZ              5485
-#define IDS_DDNOBASEENTRY               5486
-#define IDS_DDBASEISALIAS               5487
-#define IDS_BASEISALIAS                 5488
+#define IDS_DDBASEISALIAS               5486
+#define IDS_BASEISALIAS                 5487

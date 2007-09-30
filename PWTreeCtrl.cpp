@@ -5,11 +5,6 @@
  * distributed with this code, or available from
  * http://www.opensource.org/licenses/artistic-license.php
  */
-/*
- * Silly subclass of CTreeCtrl just to implement Drag&Drop.
- *
- */
-
 
 #include "stdafx.h"
 #include "PWTreeCtrl.h"

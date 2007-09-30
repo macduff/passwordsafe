@@ -161,13 +161,13 @@ class PWScore {
   // Find in m_pwlist by title and user name, exact match
   ItemListIter Find(const CMyString &a_group,
                     const CMyString &a_title, const CMyString &a_user);
+  // Find all users with same group & title
+  int Find_Users(const CMyString &a_group,const CMyString &a_title,
+                 std::vector<CMyString> &userlist);
   ItemListIter Find(const uuid_array_t &uuid)
   {return m_pwlist.find(uuid);}
   ItemListConstIter Find(const uuid_array_t &uuid) const
   {return m_pwlist.find(uuid);}
-
-  void AddAliasToVector(const uuid_array_t &uuid)
-  {m_possible_aliases.push_back(uuid);}
 
   // Actions relating to base/alias multimap
   void AddAliasEntry(const uuid_array_t &base_uuid, const uuid_array_t &alias_uuid);
@@ -177,8 +177,8 @@ class PWScore {
   void GetAllAliasEntries(const uuid_array_t &base_uuid, UUIDList &aliaslist);
   void MoveAliases(const uuid_array_t &from_baseuuid, 
                    const uuid_array_t &to_baseuuid);
-  int AddAliasesViaBaseUUID(CReport *rpt);
-  int AddAliasesViaPassword(CReport &rpt);
+  int AddAliasesViaBaseUUID(UUIDList &possible_aliases, CReport *rpt);
+  int AddAliasesViaPassword(UUIDList &possible_aliases, CReport *rpt);
   int GetBaseEntry(CMyString &Password, uuid_array_t &base_uuid, bool &bBase_was_Alias,
     CMyString &csPwdGroup, CMyString &csPwdTitle, CMyString &csPwdUser);
 
@@ -240,9 +240,10 @@ class PWScore {
   //  Key = alias uuid; Value = base uuid
   ItemMap m_alias2base_map;
 
-  // List of possible aliases created during reading a database, importing text or XML
-  // needs to be confirmed that base exists after operation complete - then cleared.
-  UUIDList m_possible_aliases;
+  // List of possible aliases created during reading a database, importing text or XML,
+  // or OnDrop during D&D - needs to be confirmed that base exists after operation 
+  // complete - then cleared.
+  // UUIDList possible_aliases; - NOW a local variable
 
   bool m_changed;
   bool m_IsReadOnly;

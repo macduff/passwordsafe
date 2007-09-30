@@ -174,12 +174,14 @@ PWSSAXContentHandler::~PWSSAXContentHandler()
 }
 
 void PWSSAXContentHandler::SetVariables(PWScore *core, const bool &bValidation,
-									  const CString &ImportedPrefix, const TCHAR &delimiter)
+									  const CString &ImportedPrefix, const TCHAR &delimiter,
+                    UUIDList *possible_aliases)
 {
 	m_bValidation = bValidation;
 	m_ImportedPrefix = ImportedPrefix;
 	m_delimiter = delimiter;
 	m_xmlcore = core;
+  m_possible_aliases = possible_aliases;
 }
 
 long __stdcall PWSSAXContentHandler::QueryInterface(const struct _GUID &riid,void ** ppvObject)
@@ -557,7 +559,7 @@ HRESULT STDMETHODCALLTYPE  PWSSAXContentHandler::endElement (
     // If a potential alias, add to the vector for later verification and processing
     if (cur_entry->alias) {
       tempitem.GetUUID(uuid_array);
-      m_xmlcore->AddAliasToVector(uuid_array);
+      m_possible_aliases->push_back(uuid_array);
     }
     
 		m_xmlcore->AddEntry(tempitem);

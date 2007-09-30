@@ -581,7 +581,8 @@ PWScore::ImportXMLFile(const CString &ImportedPrefix, const CString &strXMLFileN
                        bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields,
                        CReport &rpt)
 {
-  PWSXML iXML(this);
+  UUIDList possible_aliases;
+  PWSXML iXML(this, &possible_aliases);
   bool status, validation;
   int nITER;
   int nRecordsWithUnknownFields;
@@ -624,7 +625,7 @@ PWScore::ImportXMLFile(const CString &ImportedPrefix, const CString &strXMLFileN
   }
   uhfl.clear();
 
-  AddAliasesViaPassword(rpt);
+  AddAliasesViaPassword(possible_aliases, &rpt);
 
   m_changed = true;
   return SUCCESS;
@@ -771,6 +772,8 @@ PWScore::ImportPlaintextFile(const CMyString &ImportedPrefix,
     }
     rpt.WriteLine();
   }
+
+  UUIDList possible_aliases;
 
   // Finished parsing header, go get the data!
   for (;;) {
@@ -1020,7 +1023,7 @@ PWScore::ImportPlaintextFile(const CMyString &ImportedPrefix,
 		    n <= 2) {
       uuid_array_t temp_uuid;
       temp.GetUUID(temp_uuid);
-		  m_possible_aliases.push_back(temp_uuid);
+		  possible_aliases.push_back(temp_uuid);
 		}
 
     AddEntry(temp);
@@ -1028,7 +1031,7 @@ PWScore::ImportPlaintextFile(const CMyString &ImportedPrefix,
   } // file processing for (;;) loop
   ifs.close();
 
-  AddAliasesViaPassword(rpt);
+  AddAliasesViaPassword(possible_aliases, &rpt);
   m_changed = true;
   return SUCCESS;
 }
@@ -1135,6 +1138,7 @@ PWScore::ReadFile(const CMyString &a_filename,
     bool limited = false;
 #endif
 
+    UUIDList possible_aliases;
     do {
       temp.Clear(); // Rather than creating a new one each time.
       status = in->ReadRecord(temp);
@@ -1195,7 +1199,7 @@ PWScore::ReadFile(const CMyString &a_filename,
           memcpy(base_uuid, temp_uuid_array, sizeof(uuid_array_t));
           temp.GetUUID(temp_uuid);
           m_alias2base_map[temp_uuid] = base_uuid;
-          m_possible_aliases.push_back(temp_uuid);
+          possible_aliases.push_back(temp_uuid);
         }
         m_pwlist[uuid] = temp;
 #endif
@@ -1215,7 +1219,7 @@ PWScore::ReadFile(const CMyString &a_filename,
 #endif
     delete in;
 
-    AddAliasesViaBaseUUID(NULL);
+    AddAliasesViaBaseUUID(possible_aliases, NULL);
 
     return closeStatus;
 }
@@ -1357,6 +1361,47 @@ PWScore::Find(const CMyString &a_group,const CMyString &a_title,
   ItemListIter retval = find_if(m_pwlist.begin(), m_pwlist.end(),
                                 fields_match);
   return retval;
+}
+
+struct GroupAndTitleMatch {
+  bool operator()(pair<CUUIDGen, CItemData> p) {
+    const CItemData &item = p.second;
+    return (m_group == item.GetGroup() &&
+            m_title == item.GetTitle());
+  }
+  GroupAndTitleMatch(const CMyString &a_group,const CMyString &a_title) :
+    m_group(a_group), m_title(a_title) {}
+private:
+  const CMyString &m_group;
+  const CMyString &m_title;
+};
+
+// Finds stuff based on title, group & user fields only
+int
+PWScore::Find_Users(const CMyString &a_group,const CMyString &a_title,
+                    std::vector<CMyString> &userlist)
+{
+  int num(0);
+
+  userlist.clear();
+
+  GroupAndTitleMatch GroupAndTitleMatch(a_group, a_title);
+
+  ItemListIter start(m_pwlist.begin()), found;
+  do {
+    found = find_if(start, m_pwlist.end(), GroupAndTitleMatch);
+    if (found != m_pwlist.end()) {
+      num++;
+      userlist.push_back(found->second.GetUser());
+      start = found++;
+    } else
+      break;
+  } while(start != m_pwlist.end());
+
+  if (userlist.size() > 0)
+    sort(userlist.begin(), userlist.end());
+
+  return num;
 }
 
 void PWScore::EncryptPassword(const unsigned char *plaintext, int len,
@@ -1632,6 +1677,7 @@ PWScore::Validate(CString &status)
 
   TRACE(_T("%s : Start validation\n"), PWSUtil::GetTimeStamp());
 
+  UUIDList possible_aliases;
   ItemListIter iter;
   for (iter = m_pwlist.begin(); iter != m_pwlist.end(); iter++) {
     CItemData &ci = iter->second;
@@ -1677,11 +1723,11 @@ PWScore::Validate(CString &status)
       memcpy(base_uuid, temp_uuid_array, sizeof(uuid_array_t));
       ci.GetUUID(temp_uuid);
       m_alias2base_map[temp_uuid] = base_uuid;
-      m_possible_aliases.push_back(temp_uuid);
+      possible_aliases.push_back(temp_uuid);
     }
   } // iteration over m_pwlist
 
-  num_alias_warnings = AddAliasesViaBaseUUID(&rpt);
+  num_alias_warnings = AddAliasesViaBaseUUID(possible_aliases, &rpt);
 
   TRACE(_T("%s : End validation. %d entries processed\n"), PWSUtil::GetTimeStamp(), n + 1);
   rpt.EndReport();
@@ -1882,21 +1928,21 @@ void PWScore::MoveAliases(const uuid_array_t &from_base_uuid,
   m_base2aliases_mmap.erase(from_base_uuid);
 }
 
-int PWScore::AddAliasesViaBaseUUID(CReport *rpt)
+int PWScore::AddAliasesViaBaseUUID(UUIDList &possible_aliases, CReport *rpt)
 {
   // When called during validation of a database  - *rpt is valid
   // When called during the opening of a database - *rpt is NULL and no report generated
   // In this case, the password was "[[uuidstr]]", giving the associated base entry
   int num_warnings(0);
-  if (!m_possible_aliases.empty()) {
+  if (!possible_aliases.empty()) {
     UUIDListIter paiter;
     ItemListIter iter;
     uuid_array_t base_uuid, alias_uuid;
     bool bwarnings(false);
     CString strError;
 
-    for (paiter = m_possible_aliases.begin();
-         paiter != m_possible_aliases.end(); paiter++) {
+    for (paiter = possible_aliases.begin();
+         paiter != possible_aliases.end(); paiter++) {
       iter = m_pwlist.find(*paiter);
       if (iter == m_pwlist.end())
         return num_warnings;
@@ -1954,28 +2000,28 @@ int PWScore::AddAliasesViaBaseUUID(CReport *rpt)
         num_warnings++;
       }
     }
-    m_possible_aliases.clear();
+    possible_aliases.clear();
   }
   return num_warnings;
 }
 
-int PWScore::AddAliasesViaPassword(CReport &rpt)
+int PWScore::AddAliasesViaPassword(UUIDList &possible_aliases, CReport *rpt)
 {
   // This is only called when importing entrys from Text or XML.
   // In this case, the password is expected to be in the full format [g:t:u]
   // where g and/or u may be empty.
   int num_warnings(0);
-  if (!m_possible_aliases.empty()) {
+  if (!possible_aliases.empty()) {
     UUIDListIter paiter;
     ItemListIter iter;
 
-    CMyString csBaseGroup, csBaseTitle, csBaseUser, tmp;
+    CMyString csPwdGroup, csPwdTitle, csPwdUser, tmp;
     uuid_array_t base_uuid, alias_uuid;
     bool bwarnings(false);
     CString strError;
 
-    for (paiter = m_possible_aliases.begin();
-         paiter != m_possible_aliases.end(); paiter++) {
+    for (paiter = possible_aliases.begin();
+         paiter != possible_aliases.end(); paiter++) {
       iter = m_pwlist.find(*paiter);
       if (iter == m_pwlist.end())
         return num_warnings;
@@ -1989,12 +2035,13 @@ int PWScore::AddAliasesViaPassword(CReport &rpt)
       tmp = curitem->GetPassword();
       // Remove leading '[' & trailing ']'
       tmp = tmp.Mid(1, tmp.GetLength() - 2);
-      csBaseGroup = tmp.SpanExcluding(_T(":"));
-      tmp = tmp.Mid(csBaseGroup.GetLength() + 1);  // Skip over 'group:'
-      csBaseTitle = tmp.SpanExcluding(_T(":"));
-      // Skip over 'title:' and ignore ']'
-      csBaseUser = tmp.Mid(csBaseTitle.GetLength() + 1);
-      iter = Find(csBaseGroup, csBaseTitle, csBaseUser);
+      csPwdGroup = tmp.SpanExcluding(_T(":"));
+      // Skip over 'group:'
+      tmp = tmp.Mid(csPwdGroup.GetLength() + 1);
+      csPwdTitle = tmp.SpanExcluding(_T(":"));
+      // Skip over 'title:'
+      csPwdUser = tmp.Mid(csPwdTitle.GetLength() + 1);
+      iter = Find(csPwdGroup, csPwdTitle, csPwdUser);
       if (iter != m_pwlist.end()) {
         if (iter->second.IsAlias()) {
           // This is an alias too!  Not allowed!  Make new one point to original base
@@ -2002,15 +2049,17 @@ int PWScore::AddAliasesViaPassword(CReport &rpt)
           uuid_array_t temp_uuid;
           iter->second.GetUUID(temp_uuid);
           GetBaseUUID(temp_uuid, base_uuid);
-          if (!bwarnings) {
-            bwarnings = true;
-            strError.LoadString(IDSC_ALIASWARNINGHDR);
-            rpt.WriteLine(strError);
+          if (rpt != NULL) {
+            if (!bwarnings) {
+              bwarnings = true;
+              strError.LoadString(IDSC_ALIASWARNINGHDR);
+              rpt->WriteLine(strError);
+            }
+            strError.Format(IDSC_ALIASWARNING1, curitem->GetGroup(), curitem->GetTitle(), curitem->GetUser());
+            rpt->WriteLine(strError);
+            strError.LoadString(IDSC_ALIASWARNING1A);
+            rpt->WriteLine(strError);
           }
-          strError.Format(IDSC_ALIASWARNING1, curitem->GetGroup(), curitem->GetTitle(), curitem->GetUser());
-          rpt.WriteLine(strError);
-          strError.LoadString(IDSC_ALIASWARNING1A);
-          rpt.WriteLine(strError);
           curitem->SetAlias();
           num_warnings++;
         } else {
@@ -2023,20 +2072,22 @@ int PWScore::AddAliasesViaPassword(CReport &rpt)
         curitem->SetAlias();
       } else {
         // Specified base does not exist!
-        if (!bwarnings) {
-          bwarnings = true;
-          strError.LoadString(IDSC_ALIASWARNINGHDR);
-          rpt.WriteLine(strError);
+        if (rpt != NULL) {
+          if (!bwarnings) {
+            bwarnings = true;
+            strError.LoadString(IDSC_ALIASWARNINGHDR);
+            rpt->WriteLine(strError);
+          }
+          strError.Format(IDSC_ALIASWARNING2, curitem->GetGroup(), curitem->GetTitle(), curitem->GetUser());
+          rpt->WriteLine(strError);
+          strError.LoadString(IDSC_ALIASWARNING2A);
+          rpt->WriteLine(strError);
         }
-        strError.Format(IDSC_ALIASWARNING2, curitem->GetGroup(), curitem->GetTitle(), curitem->GetUser());
-        rpt.WriteLine(strError);
-        strError.LoadString(IDSC_ALIASWARNING2A);
-        rpt.WriteLine(strError);
         curitem->SetNormal();
         num_warnings++;
       }
     }
-    m_possible_aliases.clear();
+    possible_aliases.clear();
   }
   return num_warnings;
 }
