@@ -1312,18 +1312,18 @@ CPWTreeCtrl::GetEntryData(CDDObList &out_oblist, CItemData *ci)
     pDDObject->FromItem(*ci);
   }
 
-  CItemData *cibase(NULL);
-  uuid_array_t base_uuid, alias_uuid;
   if (ci->IsAlias()) {
     // I'm and alias; pass on ptr to my base item to retrieve its group/title/user
+    CItemData *cibase(NULL);
+    uuid_array_t base_uuid, alias_uuid;
     ci->GetUUID(alias_uuid);
     DboxMain *dbx = static_cast<DboxMain *>(GetParent());
     dbx->GetBaseUUID(alias_uuid, base_uuid);
     ItemListIter iter = dbx->Find(base_uuid);
     ASSERT(iter != dbx->End());
-    cibase = &(dbx->GetEntryAt(iter));
+    cibase = &(iter->second);
+    pDDObject->SetBaseItem(cibase);
   }
-  pDDObject->SetBaseItem(cibase);
 
   out_oblist.AddTail(pDDObject);
 }
