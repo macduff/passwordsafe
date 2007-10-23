@@ -325,4 +325,7 @@
 #define IDS_TEXTIMPORTFAILED            5499
 #define IDS_COMPARINGDATABASE           5500
 #define IDS_COPYENTRY                   5501
-
+#define IDS_EMAIL                       5502
+#define IDS_COMPEMAIL                   5503
+#define IDS_CANTEMAIL                   5504
+#define IDS_TRAYSENDEMAIL               5505

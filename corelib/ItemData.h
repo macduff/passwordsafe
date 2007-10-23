@@ -75,6 +75,7 @@ public:
     NAME = 0x00, UUID = 0x01, GROUP = 0x02, TITLE = 0x03, USER = 0x04, NOTES = 0x05,
     PASSWORD = 0x06, CTIME = 0x07, PMTIME = 0x08, ATIME = 0x09, LTIME = 0x0a,
     POLICY = 0x0b, RMTIME = 0x0c, URL = 0x0d, AUTOTYPE = 0x0e, PWHIST = 0x0f,
+    EMAIL = 0x10,
     LAST,        // Start of unknown fields!
     END = 0xff}; // field types, per formatV{2,3}.txt
 
@@ -118,6 +119,7 @@ public:
   CMyString GetGroup() const; // V20
   CMyString GetURL() const; // V30
   CMyString GetAutoType() const; // V30
+  CMyString GetEmail() const; // V30
   CMyString GetATime() const {return GetTime(ATIME, TMC_ASC_UNKNOWN);}  // V30
   CMyString GetCTime() const {return GetTime(CTIME, TMC_ASC_UNKNOWN);}  // V30
   CMyString GetLTime() const {return GetTime(LTIME, TMC_ASC_UNKNOWN);}  // V30
@@ -183,6 +185,7 @@ public:
   void SetGroup(const CMyString &group); // V20
   void SetURL(const CMyString &URL); // V30
   void SetAutoType(const CMyString &autotype); // V30
+  void SetEmail(const CMyString &email); // V30
   void SetATime() {SetTime(ATIME);}  // V30
   void SetATime(time_t t) {SetTime(ATIME, t);}  // V30
   bool SetATime(const CString &time_str) {return SetTime(ATIME, time_str);}  // V30
@@ -216,6 +219,7 @@ public:
   bool Matches(const CString &subgroup_name, int iObject, 
                int iFunction) const;
   BOOL IsURLEmpty() const {return m_URL.IsEmpty();}
+  BOOL IsEmailEmpty() const {return m_Email.IsEmpty();}
   void SerializePlainText(std::vector<char> &v, CItemData *cibase = NULL) const;
   bool DeserializePlainText(const std::vector<char> &v);
   bool SetField(int type, unsigned char *data, int len);
@@ -243,6 +247,7 @@ private:
   CItemField m_Group;
   CItemField m_URL;
   CItemField m_AutoType;
+  CItemField m_Email;
   CItemField m_tttATime;	// last 'A'ccess time
   CItemField m_tttCTime;	// 'C'reation time
   CItemField m_tttLTime;	// password 'L'ifetime

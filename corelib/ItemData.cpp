@@ -45,7 +45,7 @@ CItemData::CItemData()
     m_URL(URL), m_AutoType(AUTOTYPE),
     m_tttCTime(CTIME), m_tttPMTime(PMTIME), m_tttATime(ATIME),
     m_tttLTime(LTIME), m_tttRMTime(RMTIME), m_PWHistory(PWHIST),
-    m_display_info(NULL), m_entrytype(Normal)
+    m_display_info(NULL), m_entrytype(Normal), m_Email(EMAIL)
 {
   PWSrand::GetInstance()->GetRandomData( m_salt, SaltLength );
 }
@@ -56,7 +56,7 @@ CItemData::CItemData(const CItemData &that) :
   m_Group(that.m_Group), m_URL(that.m_URL), m_AutoType(that.m_AutoType),
   m_tttCTime(that.m_tttCTime), m_tttPMTime(that.m_tttPMTime), m_tttATime(that.m_tttATime),
   m_tttLTime(that.m_tttLTime), m_tttRMTime(that.m_tttRMTime), m_PWHistory(that.m_PWHistory),
-  m_display_info(that.m_display_info), m_entrytype(that.m_entrytype)
+  m_display_info(that.m_display_info), m_entrytype(that.m_entrytype), m_Email(that.m_Email)
 {
   memcpy((char*)m_salt, (char*)that.m_salt, SaltLength);
   if (!that.m_URFL.empty())
@@ -156,6 +156,14 @@ CItemData::GetAutoType() const
 {
    CMyString ret;
    GetField(m_AutoType, ret);
+   return ret;
+}
+
+CMyString
+CItemData::GetEmail() const
+{
+   CMyString ret;
+   GetField(m_Email, ret);
    return ret;
 }
 
@@ -366,6 +374,7 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
           csPassword + separator + 
           url + separator + 
           GetAutoType() + separator +
+          GetEmail() + separator +
           GetCTimeExp() + separator +
           GetPMTimeExp() + separator +
           GetATimeExp() + separator +
@@ -389,6 +398,8 @@ CMyString CItemData::GetPlaintext(const TCHAR &separator,
 			ret += url + separator;
 		if (bsFields.test(CItemData::AUTOTYPE))
 			ret += GetAutoType() + separator;
+		if (bsFields.test(CItemData::EMAIL))
+			ret += GetEmail() + separator;
 		if (bsFields.test(CItemData::CTIME))
 			ret += GetCTimeExp() + separator;
 		if (bsFields.test(CItemData::PMTIME))
@@ -527,6 +538,10 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
   tmp = GetAutoType();
   if (bsExport.test(CItemData::AUTOTYPE) && !tmp.IsEmpty())
     WriteXMLField(oss, "autotype", tmp, utf8conv);
+
+  tmp = GetEmail();
+  if (bsExport.test(CItemData::EMAIL) && !tmp.IsEmpty())
+    WriteXMLField(oss, "email", tmp, utf8conv);
 
   tmp = GetNotes();
   if (bsExport.test(CItemData::NOTES) && !tmp.IsEmpty()) {
@@ -845,6 +860,12 @@ CItemData::SetAutoType(const CMyString &autotype)
 }
 
 void
+CItemData::SetEmail(const CMyString &email)
+{
+    SetField(m_Email, email);
+}
+
+void
 CItemData::SetTime(int whichtime)
 {
     time_t t;
@@ -1005,6 +1026,7 @@ CItemData::operator=(const CItemData &that)
     m_Group = that.m_Group;
     m_URL = that.m_URL;
     m_AutoType = that.m_AutoType;
+    m_Email = that.m_Email;
     m_tttCTime = that.m_tttCTime;
     m_tttPMTime = that.m_tttPMTime;
     m_tttATime = that.m_tttATime;
@@ -1033,6 +1055,7 @@ CItemData::Clear()
   m_Notes.Empty();
   m_URL.Empty();
   m_AutoType.Empty();
+  m_Email.Empty();
   m_tttCTime.Empty();
   m_tttPMTime.Empty();
   m_tttATime.Empty();
@@ -1380,6 +1403,10 @@ bool CItemData::SetField(int type, unsigned char *data, int len)
     if (!pull_string(str, data, len)) return false;
     SetAutoType(str);
     break;
+  case EMAIL:
+    if (!pull_string(str, data, len)) return false;
+    SetEmail(str);
+    break;
   case PWHIST:
     if (!pull_string(str, data, len)) return false;
     SetPWHistory(str);
@@ -1459,6 +1486,7 @@ void CItemData::SerializePlainText(vector<char> &v, CItemData *cibase)  const
   push_string(v, NOTES, GetNotes());
   push_string(v, URL, GetURL());
   push_string(v, AUTOTYPE, GetAutoType());
+  push_string(v, EMAIL, GetEmail());
 
   GetCTime(t);   push_time(v, CTIME, t);
   GetPMTime(t);  push_time(v, PMTIME, t);

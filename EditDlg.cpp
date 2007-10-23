@@ -93,6 +93,7 @@ CEditDlg::CEditDlg(CItemData *ci, CWnd* pParent)
   m_realpassword = m_oldRealPassword = ci->GetPassword();
   m_URL = ci->GetURL();
   m_autotype = ci->GetAutoType();
+  m_email = ci->GetEmail();
   m_notes = HIDDEN_NOTES;
   m_realnotes = ci->GetNotes();
   m_PWHistory = ci->GetPWHistory();
@@ -132,6 +133,7 @@ void CEditDlg::DoDataExchange(CDataExchange* pDX)
   DDX_Text(pDX, IDC_TITLE, (CString&)m_title);
   DDX_Text(pDX, IDC_URL, (CString&)m_URL);
   DDX_Text(pDX, IDC_AUTOTYPE, (CString&)m_autotype);
+  DDX_Text(pDX, IDC_EMAIL, (CString&)m_email);
   DDX_Text(pDX, IDC_CTIME, (CString&)m_locCTime);
   DDX_Text(pDX, IDC_PMTIME, (CString&)m_locPMTime);
   DDX_Text(pDX, IDC_ATIME, (CString&)m_locATime);
@@ -150,6 +152,7 @@ void CEditDlg::DoDataExchange(CDataExchange* pDX)
   DDX_Control(pDX, IDC_TITLE, m_ex_title);
   DDX_Control(pDX, IDC_URL, m_ex_URL);
   DDX_Control(pDX, IDC_AUTOTYPE, m_ex_autotype);
+  DDX_Control(pDX, IDC_EMAIL, m_ex_email);
 }
 
 BEGIN_MESSAGE_MAP(CEditDlg, CPWDialog)
@@ -202,6 +205,7 @@ CEditDlg::OnOK()
   m_realnotes.EmptyIfOnlyWhiteSpace();
   m_URL.EmptyIfOnlyWhiteSpace();
   m_autotype.EmptyIfOnlyWhiteSpace();
+  m_email.EmptyIfOnlyWhiteSpace();
 
   UpdateData(FALSE);
 
@@ -217,6 +221,7 @@ CEditDlg::OnOK()
                     m_realnotes != m_ci->GetNotes() ||
                     m_URL != m_ci->GetURL() ||
                     m_autotype != m_ci->GetAutoType() ||
+                    m_email != m_ci->GetEmail() ||
                     m_PWHistory != m_ci->GetPWHistory() ||
                     m_locLTime != m_oldlocLTime
                     );
@@ -326,6 +331,7 @@ CEditDlg::OnOK()
   m_ci->SetNotes(m_realnotes);
   m_ci->SetURL(m_URL);
   m_ci->SetAutoType(m_autotype);
+  m_ci->SetEmail(m_email);
   m_ci->SetPWHistory(m_PWHistory);
 
   time_t t;
@@ -605,6 +611,8 @@ void CEditDlg::ResizeDialog()
     IDC_STATIC_URL,
     IDC_AUTOTYPE,
     IDC_STATIC_AUTO,
+    IDC_EMAIL,
+    IDC_STATIC_EMAIL,
     IDC_CTIME,
     IDC_STATIC_CTIME,
     IDC_PMTIME,

@@ -313,6 +313,10 @@ PWScore::WritePlaintextFile(const CMyString &filename,
 			cs_temp.LoadString(IDSC_EXPHDRAUTOTYPE);
 			hdr += cs_temp;
 		}
+		if (bsFields.test(CItemData::EMAIL)) {
+			cs_temp.LoadString(IDSC_EXPHDREMAIL);
+			hdr += cs_temp;
+		}
 		if (bsFields.test(CItemData::CTIME)) {
 			cs_temp.LoadString(IDSC_EXPHDRCTIME);
 			hdr += cs_temp;
@@ -663,7 +667,7 @@ PWScore::ImportPlaintextFile(const CMyString &ImportedPrefix,
   TCHAR *pTemp;
 
   // Order of fields determined in CItemData::GetPlaintext()
-  enum Fields {GROUPTITLE, USER, PASSWORD, URL, AUTOTYPE,
+  enum Fields {GROUPTITLE, USER, PASSWORD, URL, AUTOTYPE, EMAIL,
                CTIME, PMTIME, ATIME, LTIME, RMTIME,
                HISTORY, NOTES, NUMFIELDS};
   int i_Offset[NUMFIELDS];
@@ -942,6 +946,8 @@ PWScore::ImportPlaintextFile(const CMyString &ImportedPrefix,
       temp.SetURL(tokens[i_Offset[URL]].c_str());
     if (i_Offset[AUTOTYPE] >= 0)
       temp.SetAutoType(tokens[i_Offset[AUTOTYPE]].c_str());
+    if (i_Offset[EMAIL] >= 0)
+      temp.SetEmail(tokens[i_Offset[EMAIL]].c_str());
     if (i_Offset[CTIME] >= 0)
       if (!temp.SetCTime(tokens[i_Offset[CTIME]].c_str())) {
         const stringT &time_value = vs_Header.at(CTIME);

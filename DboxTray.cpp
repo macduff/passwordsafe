@@ -224,6 +224,39 @@ DboxMain::OnUpdateTrayBrowse(CCmdUI *pCmdUI)
   }
 }
 
+
+void
+DboxMain::OnTraySendEmail(UINT nID)
+{
+  ASSERT((nID >= ID_MENUITEM_TRAYSENDEMAIL1) && (nID <= ID_MENUITEM_TRAYSENDEMAILMAX));
+
+  CItemData ci;
+  if (!m_RUEList.GetPWEntry(nID - ID_MENUITEM_TRAYSENDEMAIL1, ci))
+	  return;
+
+  if (!ci.IsEmailEmpty()) {
+    DoEmail(ci.GetEmail());
+  }
+  UpdateAccessTime(&ci);
+}
+
+void
+DboxMain::OnUpdateTraySendEmail(CCmdUI *pCmdUI)
+{
+  int nID = pCmdUI->m_nID;
+
+  ASSERT((nID >= ID_MENUITEM_TRAYSENDEMAIL1) && (nID <= ID_MENUITEM_TRAYSENDEMAILMAX));
+
+  CItemData ci;
+  if (!m_RUEList.GetPWEntry(nID - ID_MENUITEM_TRAYSENDEMAIL1, ci))
+	  return;
+
+  // Has it an embedded Email
+  if (ci.IsEmailEmpty()) {
+    pCmdUI->Enable(FALSE);
+  }
+}
+
 void
 DboxMain::OnTrayDeleteEntry(UINT nID)
 {

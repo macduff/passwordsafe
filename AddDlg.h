@@ -29,6 +29,7 @@ public:
   CMyString	m_group;
   CMyString m_URL;
   CMyString m_autotype;
+  CMyString m_email;
   CMyString m_locLTime;
   time_t m_tttLTime;
   BOOL m_SavePWHistory;
@@ -46,6 +47,7 @@ public:
   CEditExtn m_ex_title;
   CEditExtn m_ex_URL;
   CEditExtn m_ex_autotype;
+  CEditExtn m_ex_email;
 
   //}}AFX_DATA
 

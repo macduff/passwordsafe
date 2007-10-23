@@ -1397,7 +1397,8 @@ DboxMain::Merge(const CMyString &pszFilename) {
       if (otherItem.GetPassword() != curItem.GetPassword() ||
           otherItem.GetNotes() != curItem.GetNotes() ||
           otherItem.GetURL() != curItem.GetURL() ||
-          otherItem.GetAutoType() != curItem.GetAutoType()) {
+          otherItem.GetAutoType() != curItem.GetAutoType() ||
+          otherItem.GetEmail() != curItem.GetEmail()) {
 
         /* have a match on title/user, but not on other fields
            add an entry suffixed with -merged-YYYYMMDD-HHMMSS */
@@ -1761,25 +1762,29 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
         // found a match, see if all other fields also match
         // Difference flags:
         /*
-                First word (values in square brackets taken from ItemData.h)
-                1... ....  NAME     [0x0] - n/a - depreciated
-                .1.. ....  UUID     [0x1] - n/a - unique
-                ..1. ....  GROUP    [0x2] - not checked - must be identical
-                ...1 ....  TITLE    [0x3] - not checked - must be identical
-                .... 1...  USER     [0x4] - not checked - must be identical
-                .... .1..  NOTES    [0x5]
-                .... ..1.  PASSWORD [0x6]
-                .... ...1  CTIME    [0x7] - not checked - immaterial
+                First byte (values in square brackets taken from ItemData.h)
+                1... ....  NAME     [0x00] - n/a - depreciated
+                .1.. ....  UUID     [0x01] - n/a - unique
+                ..1. ....  GROUP    [0x02] - not checked - must be identical
+                ...1 ....  TITLE    [0x03] - not checked - must be identical
+                .... 1...  USER     [0x04] - not checked - must be identical
+                .... .1..  NOTES    [0x05]
+                .... ..1.  PASSWORD [0x06]
+                .... ...1  CTIME    [0x07] - not checked - immaterial
 
-                Second word
-                1... ....  PMTIME   [0x8] - not checked - immaterial
-                .1.. ....  ATIME    [0x9] - not checked - immaterial
-                ..1. ....  LTIME    [0xa]
-                ...1 ....  POLICY   [0xb] - not yet implemented
-                .... 1...  RMTIME   [0xc] - not checked - immaterial
-                .... .1..  URL      [0xd]
-                .... ..1.  AUTOTYPE [0xe]
-                .... ...1  PWHIST   [0xf]
+                Second byte
+                1... ....  PMTIME   [0x08] - not checked - immaterial
+                .1.. ....  ATIME    [0x09] - not checked - immaterial
+                ..1. ....  LTIME    [0x0a]
+                ...1 ....  POLICY   [0x0b] - not yet implemented
+                .... 1...  RMTIME   [0x0c] - not checked - immaterial
+                .... .1..  URL      [0x0d]
+                .... ..1.  AUTOTYPE [0x0e]
+                .... ...1  PWHIST   [0x0f]
+
+                Third byte
+                1... ....  EMAIL    [0x10]
+                .xxx xxxx  Not used yet
         */
 
         bsConflicts.reset();
@@ -1812,6 +1817,9 @@ DboxMain::Compare(const CMyString &cs_Filename1, const CMyString &cs_Filename2)
         if (m_bsFields.test(CItemData::AUTOTYPE) &&
             currentItem.GetAutoType() != compItem.GetAutoType())
           bsConflicts.flip(CItemData::AUTOTYPE);
+        if (m_bsFields.test(CItemData::EMAIL) &&
+            currentItem.GetEmail() != compItem.GetEmail())
+          bsConflicts.flip(CItemData::EMAIL);
         if (m_bsFields.test(CItemData::PWHIST) &&
             currentItem.GetPWHistory() != compItem.GetPWHistory())
           bsConflicts.flip(CItemData::PWHIST);

@@ -111,6 +111,7 @@ void CAddDlg::DoDataExchange(CDataExchange* pDX)
   DDX_CBString(pDX, IDC_GROUP, (CString&)m_group);
   DDX_Text(pDX, IDC_URL, (CString&)m_URL);
   DDX_Text(pDX, IDC_AUTOTYPE, (CString&)m_autotype);
+  DDX_Text(pDX, IDC_EMAIL, (CString&)m_email);
   DDX_Control(pDX, IDC_MORE, m_moreLessBtn);
   DDX_Text(pDX, IDC_MAXPWHISTORY, m_MaxPWHistory);
   DDV_MinMaxInt(pDX, m_MaxPWHistory, 1, 255);
@@ -123,6 +124,7 @@ void CAddDlg::DoDataExchange(CDataExchange* pDX)
   DDX_Control(pDX, IDC_TITLE, m_ex_title);
   DDX_Control(pDX, IDC_URL, m_ex_URL);
   DDX_Control(pDX, IDC_AUTOTYPE, m_ex_autotype);
+  DDX_Control(pDX, IDC_EMAIL, m_ex_email);
 
   GetDlgItem(IDC_MAXPWHISTORY)->EnableWindow(m_SavePWHistory);
 }
@@ -203,6 +205,7 @@ CAddDlg::OnOK()
   m_notes.EmptyIfOnlyWhiteSpace();
   m_URL.EmptyIfOnlyWhiteSpace();
   m_autotype.EmptyIfOnlyWhiteSpace();
+  m_email.EmptyIfOnlyWhiteSpace();
 
   UpdateData(FALSE);
 
@@ -343,9 +346,11 @@ void CAddDlg::ResizeDialog()
   int controls[]={
     IDC_STATIC_URL,
     IDC_URL,
-    IDC_AUTOTYPE,
-    IDC_SAVE_PWHIST,
     IDC_STATIC_AUTO,
+    IDC_AUTOTYPE,
+    IDC_STATIC_EMAIL,
+    IDC_EMAIL,
+    IDC_SAVE_PWHIST,
     IDC_LTIME,
     IDC_STATIC_LTIME,
     IDC_LTIME_CLEAR,

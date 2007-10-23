@@ -47,6 +47,7 @@ private:
   CMyString m_notes, m_realnotes;
   CMyString m_URL;
   CMyString m_autotype;
+  CMyString m_email;
   CMyString m_locCTime;
   CMyString m_locPMTime, m_locATime, m_locLTime, m_locRMTime;
   time_t m_tttLTime;
@@ -74,6 +75,7 @@ private:
   CEditExtn m_ex_title;
   CEditExtn m_ex_URL;
   CEditExtn m_ex_autotype;
+  CEditExtn m_ex_email;
   CEditExtn *m_pex_notes;
 
   static CMyString HIDDEN_NOTES;

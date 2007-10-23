@@ -1,4 +1,4 @@
-PasswordSafe database format description version 3.02
+PasswordSafe database format description version 3.03
 -----------------------------------------------------
 
 Copyright (c) 2003-2007 Rony Shapiro <ronys@users.sourceforge.net>.
@@ -245,7 +245,8 @@ Last Modification Time      0x0c        time_t        Y              [4,8]
 URL                         0x0d        Text          Y              [9]
 Autotype                    0x0e        Text          Y              [10]
 Password History            0x0f        Text          Y              [11]
-End of Entry                0xff        [empty]       Y              [12]
+Email                       0x10        Text          Y              [12]
+End of Entry                0xff        [empty]       Y              [13]
 
 [1] Per-record UUID to assist in sync, merge, etc. Representation is
 as described in Section 3.1.1.
@@ -312,7 +313,10 @@ the PWH field (preferred), or by a header of _T("00000"):
 Note that 0aabb, where bb <= aa, is possible if password history was enabled
 in the past and has then been disabled but the history hasn't been cleared.
 
-[12] An explicit end of entry field is useful for supporting new fields
+[12] Text field corresponding to the [mailto:] standard RFC2368.  For example:
+"info@example.com?subject=PasswordSafe"
+
+[13] An explicit end of entry field is useful for supporting new fields
 without breaking backwards compatability.
 
 4. Extensibility

@@ -212,6 +212,9 @@ BOOL CAdvancedDlg::OnInitDialog()
   cs_text.LoadString(IDS_AUTOTYPE);
   iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
   m_pLC_Selected->SetItemData(iItem, CItemData::AUTOTYPE);
+  cs_text.LoadString(IDS_EMAIL);
+  iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+  m_pLC_Selected->SetItemData(iItem, CItemData::EMAIL);
   cs_text.LoadString(IDS_EXPIRYDATETIME);
   if (m_index != ADV_FIND) {
     iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);

@@ -194,6 +194,9 @@ int PWSfileV3::WriteRecord(const CItemData &item)
   tmp = item.GetAutoType();
   if (!tmp.IsEmpty())
     WriteCBC(CItemData::AUTOTYPE, tmp);
+  tmp = item.GetEmail();
+  if (!tmp.IsEmpty())
+    WriteCBC(CItemData::EMAIL, tmp);
   time_t t = 0;
   int t32;
   item.GetCTime(t);
@@ -330,7 +333,7 @@ void PWSfileV3::StretchKey(const unsigned char *salt, unsigned long saltLen,
   }
 }
 
-const short VersionNum = 0x0302;
+const short VersionNum = 0x0303;
 
 int PWSfileV3::WriteHeader()
 {

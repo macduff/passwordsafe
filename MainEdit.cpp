@@ -118,6 +118,7 @@ DboxMain::OnAdd()
     temp.SetNotes(dlg_add.m_notes);
     temp.SetURL(dlg_add.m_URL);
     temp.SetAutoType(dlg_add.m_autotype);
+    temp.SetEmail(dlg_add.m_email);
    	time(&t);
    	temp.SetCTime(t);
    	temp.SetLTime(dlg_add.m_tttLTime);
@@ -574,6 +575,7 @@ DboxMain::OnDuplicateEntry()
     ci2.SetPassword(ci->GetPassword());
     ci2.SetURL(ci->GetURL());
     ci2.SetAutoType(ci->GetAutoType());
+    ci2.SetEmail(ci->GetEmail());
     ci2.SetNotes(ci->GetNotes());
     time_t t;
     ci->GetCTime(t);

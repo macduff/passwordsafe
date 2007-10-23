@@ -91,6 +91,10 @@ BOOL CCompareResultsDlg::OnInitDialog()
     cs_header.LoadString(IDS_AUTOTYPE);
     m_LCResults.InsertColumn(AUTOTYPE, cs_header, LVCFMT_CENTER);
   }
+  if (m_bsFields.test(CItemData::EMAIL)) {
+    cs_header.LoadString(IDS_EMAIL);
+    m_LCResults.InsertColumn(EMAIL, cs_header, LVCFMT_CENTER);
+  }
   if (m_bsFields.test(CItemData::PWHIST)) {
     cs_header.LoadString(IDS_PWHIST);
     m_LCResults.InsertColumn(PWHIST, cs_header, LVCFMT_CENTER);
@@ -206,6 +210,8 @@ BOOL CCompareResultsDlg::OnInitDialog()
         m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::URL) ? _T("X") : _T("-"));
       if (m_bsFields.test(CItemData::AUTOTYPE))
         m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::AUTOTYPE) ? _T("X") : _T("-"));
+      if (m_bsFields.test(CItemData::EMAIL))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::EMAIL) ? _T("X") : _T("-"));
       if (m_bsFields.test(CItemData::PWHIST))
         m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PWHIST) ? _T("X") : _T("-"));
       if (m_bsFields.test(CItemData::CTIME))
@@ -844,6 +850,7 @@ CCompareResultsDlg::GetReportData(CString &data)
     const CString csx_notes(MAKEINTRESOURCE(IDS_COMPNOTES));
     const CString csx_url(MAKEINTRESOURCE(IDS_COMPURL));
     const CString csx_autotype(MAKEINTRESOURCE(IDS_COMPAUTOTYPE));
+    const CString csx_email(MAKEINTRESOURCE(IDS_COMPEMAIL));
     const CString csx_ctime(MAKEINTRESOURCE(IDS_COMPCTIME));
     const CString csx_pmtime(MAKEINTRESOURCE(IDS_COMPPMTIME));
     const CString csx_atime(MAKEINTRESOURCE(IDS_COMPATIME));
@@ -862,6 +869,7 @@ CCompareResultsDlg::GetReportData(CString &data)
       if (st_data.bsDiffs.test(CItemData::NOTES)) resultStr += csx_notes;
       if (st_data.bsDiffs.test(CItemData::URL)) resultStr += csx_url;
       if (st_data.bsDiffs.test(CItemData::AUTOTYPE)) resultStr += csx_autotype;
+      if (st_data.bsDiffs.test(CItemData::EMAIL)) resultStr += csx_email;
       if (st_data.bsDiffs.test(CItemData::CTIME)) resultStr += csx_ctime;
       if (st_data.bsDiffs.test(CItemData::PMTIME)) resultStr += csx_pmtime;
       if (st_data.bsDiffs.test(CItemData::ATIME)) resultStr += csx_atime;

@@ -340,6 +340,7 @@ HRESULT STDMETHODCALLTYPE PWSSAXContentHandler::startElement(
 		cur_entry->password = _T("");
 		cur_entry->url = _T("");
 		cur_entry->autotype = _T("");
+    cur_entry->email = _T("");
 		cur_entry->ctime = _T("");
 		cur_entry->atime = _T("");
 		cur_entry->ltime = _T("");
@@ -500,7 +501,9 @@ HRESULT STDMETHODCALLTYPE  PWSSAXContentHandler::endElement (
 			tempitem.SetURL(cur_entry->url);
 		if (cur_entry->autotype.GetLength() != 0)
 			tempitem.SetAutoType(cur_entry->autotype);
-		if (cur_entry->ctime.GetLength() != 0)
+		if (cur_entry->email.GetLength() != 0)
+			tempitem.SetEmail(cur_entry->email);
+    if (cur_entry->ctime.GetLength() != 0)
 			tempitem.SetCTime(cur_entry->ctime);
 		if (cur_entry->pmtime.GetLength() != 0)
 			tempitem.SetPMTime(cur_entry->pmtime);
@@ -598,6 +601,10 @@ HRESULT STDMETHODCALLTYPE  PWSSAXContentHandler::endElement (
 
 	if (_tcscmp(szCurElement, _T("autotype")) == 0) {
 		cur_entry->autotype = m_strElemContent;
+	}
+
+	if (_tcscmp(szCurElement, _T("email")) == 0) {
+		cur_entry->email = m_strElemContent;
 	}
 
 	if (_tcscmp(szCurElement, _T("notes")) == 0) {

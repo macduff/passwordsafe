@@ -224,7 +224,7 @@ public:
   // IDENTICAL means CURRENT + COMPARE but identical
   // BOTH means CURRENT + COMPARE but with differences
   enum {IDENTICAL = -2, BOTH = -1 , CURRENT = 0, COMPARE, 
-        GROUP, TITLE, USER, PASSWORD, NOTES, URL, AUTOTYPE, PWHIST, 
+        GROUP, TITLE, USER, PASSWORD, NOTES, URL, AUTOTYPE, EMAIL, PWHIST, 
         CTIME, ATIME, LTIME, PMTIME, RMTIME,
         LAST};
 

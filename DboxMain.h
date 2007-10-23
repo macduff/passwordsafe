@@ -159,6 +159,7 @@ public:
   void SetValidate(bool state) { m_bValidate = state;}
   bool MakeRandomPassword(CDialog * const pDialog, CMyString& password);
   BOOL LaunchBrowser(const CString &csURL);
+  BOOL DoEmail(const CString &csEmail);
   void SetFindActive() {m_bFindActive = true;}
   void SetFindInActive() {m_bFindActive = false;}
   bool GetCurrentView() {return m_IsListView;}
@@ -334,7 +335,9 @@ protected:
 	afx_msg void OnUpdateTrayCopyNotes(CCmdUI *pCmdUI);
 	afx_msg void OnTrayBrowse(UINT nID);
 	afx_msg void OnUpdateTrayBrowse(CCmdUI *pCmdUI);
-	afx_msg void OnTrayDeleteEntry(UINT nID);
+	afx_msg void OnTraySendEmail(UINT nID);
+	afx_msg void OnUpdateTraySendEmail(CCmdUI *pCmdUI);
+  afx_msg void OnTrayDeleteEntry(UINT nID);
 	afx_msg void OnUpdateTrayDeleteEntry(CCmdUI *pCmdUI);
 	afx_msg void OnTrayAutoType(UINT nID);
 	afx_msg void OnUpdateTrayAutoType(CCmdUI *pCmdUI);
@@ -354,6 +357,7 @@ protected:
   afx_msg void OnU3ShopWebsite();
   afx_msg void OnPasswordSafeWebsite();
   afx_msg void OnBrowse();
+  afx_msg void OnSendEmail();
   afx_msg void OnCopyUsername();
   afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
   afx_msg void OnListItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult);

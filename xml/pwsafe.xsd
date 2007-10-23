@@ -145,6 +145,7 @@
               <xs:element name="password" type="stringType" />
               <xs:element name="url" type="stringType" minOccurs="0" maxOccurs="1" />
               <xs:element name="autotype" type="stringType" minOccurs="0" maxOccurs="1" />
+              <xs:element name="email" type="stringType" minOccurs="0" maxOccurs="1" />
               <xs:element name="notes" type="stringType" minOccurs="0" maxOccurs="1" />
               <xs:element name="uuid" type="uuidType" minOccurs="0" maxOccurs="1" />
               <xs:element name="ctime" type="datetimestampType" minOccurs="0" maxOccurs="1" />

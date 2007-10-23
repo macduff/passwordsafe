@@ -177,7 +177,8 @@ DboxMain::UpdateToolBarForSelectedItem(CItemData *ci)
   if (m_core.GetNumEntries() != 0) {
     BOOL State = (ci == NULL) ? FALSE : TRUE;
     int IDs[] = {ID_TOOLBUTTON_COPYPASSWORD, ID_TOOLBUTTON_COPYUSERNAME,
-                 ID_TOOLBUTTON_COPYNOTESFLD, ID_TOOLBUTTON_AUTOTYPE, ID_TOOLBUTTON_EDIT};
+                 ID_TOOLBUTTON_COPYNOTESFLD, ID_TOOLBUTTON_AUTOTYPE, ID_TOOLBUTTON_SENDEMAIL,
+                 ID_TOOLBUTTON_EDIT};
 
     for (int i = 0; i < sizeof(IDs)/sizeof(IDs[0]); i++)
       m_wndToolBar.GetToolBarCtrl().EnableButton(IDs[i], State);
@@ -186,6 +187,11 @@ DboxMain::UpdateToolBarForSelectedItem(CItemData *ci)
       m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_BROWSEURL, FALSE);
     else
       m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_BROWSEURL, TRUE);
+
+    if (ci == NULL || ci->IsEmailEmpty())
+      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SENDEMAIL, FALSE);
+    else
+      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SENDEMAIL, TRUE);
   }
 }
 
@@ -292,7 +298,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
   ASSERT(!str.IsEmpty());
   ASSERT(indices.empty());
 
-  CMyString curtitle, curuser, curnotes, curgroup, curURL, curAT;
+  CMyString curtitle, curuser, curnotes, curgroup, curURL, curAT, curEmail;
   CMyString listTitle, savetitle;
   CString searchstr(str); // Since str is const, and we might need to MakeLower
   size_t retval = 0;
@@ -320,6 +326,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
       curgroup = curitem.GetGroup();
       curURL = curitem.GetURL();
       curAT = curitem.GetAutoType();
+      curEmail = curitem.GetEmail();
 
       if (!CaseSensitive) {
         curtitle.MakeLower();
@@ -328,13 +335,15 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
         curgroup.MakeLower();
         curURL.MakeLower();
         curAT.MakeLower();
+        curEmail.MakeLower();
       }
       if (::_tcsstr(curtitle, searchstr) ||
           ::_tcsstr(curuser, searchstr) ||
           ::_tcsstr(curnotes, searchstr) ||
           ::_tcsstr(curgroup, searchstr) ||
           ::_tcsstr(curURL, searchstr) ||
-          ::_tcsstr(curAT, searchstr)) {
+          ::_tcsstr(curAT, searchstr) ||
+          ::_tcsstr(curEmail, searchstr)) {
         // Find index in displayed list
         DisplayInfo *di = (DisplayInfo *)curitem.GetDisplayInfo();
         ASSERT(di != NULL);
@@ -362,6 +371,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
       curgroup = curitem.GetGroup();
       curURL = curitem.GetURL();
       curAT = curitem.GetAutoType();
+      curEmail = curitem.GetEmail();
 
       if (!CaseSensitive) {
         curtitle.MakeLower();
@@ -370,13 +380,15 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
         curgroup.MakeLower();
         curURL.MakeLower();
         curAT.MakeLower();
+        curEmail.MakeLower();
       }
       if (::_tcsstr(curtitle, searchstr) ||
           ::_tcsstr(curuser, searchstr) ||
           ::_tcsstr(curnotes, searchstr) ||
           ::_tcsstr(curgroup, searchstr) ||
           ::_tcsstr(curURL, searchstr) ||
-          ::_tcsstr(curAT, searchstr)) {
+          ::_tcsstr(curAT, searchstr) ||
+          ::_tcsstr(curEmail, searchstr)) {
         // Find index in displayed list
         DisplayInfo *di = (DisplayInfo *)curitem.GetDisplayInfo();
         ASSERT(di != NULL);
@@ -402,7 +414,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
   ASSERT(!str.IsEmpty());
   ASSERT(indices.empty());
 
-  CMyString curGroup, curTitle, curUser, curNotes, curPassword, curURL, curAT;
+  CMyString curGroup, curTitle, curUser, curNotes, curPassword, curURL, curAT, curEmail;
   CMyString listTitle, saveTitle;
   bool bFoundit;
   CString searchstr(str); // Since str is const, and we might need to MakeLower
@@ -446,6 +458,8 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
     curNotes = curitem.GetNotes();
     curURL = curitem.GetURL();
     curAT = curitem.GetAutoType();
+    curEmail = curitem.GetEmail();
+
 
     if (!CaseSensitive) {
       curGroup.MakeLower();
@@ -455,6 +469,7 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
       curNotes.MakeLower();
       curURL.MakeLower();
       curAT.MakeLower();
+      curEmail.MakeLower();
     }
 
     // do loop to easily break out as soon as a match is found
@@ -492,6 +507,11 @@ DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
       }
       if (bsFields.test(CItemData::AUTOTYPE) &&
           ::_tcsstr(curAT, searchstr)) {
+        bFoundit = true;
+        break;
+      }
+      if (bsFields.test(CItemData::EMAIL) &&
+          ::_tcsstr(curEmail, searchstr)) {
         bFoundit = true;
         break;
       }
@@ -940,6 +960,9 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex, bool bSort)
   case CItemData::URL:
     cs_fielddata = itemData.GetURL();
     break;
+  case CItemData::EMAIL:
+    cs_fielddata = itemData.GetEmail();
+    break;
   case CItemData::CTIME:
     cs_fielddata = itemData.GetCTimeL();
     break;
@@ -1039,6 +1062,9 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex, bool bSort)
       break;
     case CItemData::URL:
       cs_fielddata = itemData.GetURL();
+      break;
+    case CItemData::EMAIL:
+      cs_fielddata = itemData.GetEmail();
       break;
     case CItemData::CTIME:
       cs_fielddata = itemData.GetCTimeL();
@@ -1558,6 +1584,18 @@ DboxMain::LaunchBrowser(const CString &csURL)
   return TRUE;
 }
 
+BOOL
+DboxMain::DoEmail(const CString &csEmail)
+{
+  HINSTANCE hinst = ::ShellExecute(NULL, NULL, _T("mailto:") + csEmail, NULL,
+                           NULL, SW_SHOWNORMAL);
+  if(hinst < HINSTANCE(32)) {
+    AfxMessageBox(IDS_CANTEMAIL, MB_ICONSTOP);
+    return FALSE;
+  }
+  return TRUE;
+}
+
 void
 DboxMain::SetColumns()
 {
@@ -1612,6 +1650,12 @@ DboxMain::SetColumns()
   cs_header = GetHeaderText(CItemData::URL);
   m_ctlItemList.InsertColumn(ipwd + ioff, cs_header);
   hdi.lParam = CItemData::URL;
+  m_LVHdrCtrl.SetItem(ipwd + ioff, &hdi);
+  ioff++;
+
+  cs_header = GetHeaderText(CItemData::EMAIL);
+  m_ctlItemList.InsertColumn(ipwd + ioff, cs_header);
+  hdi.lParam = CItemData::EMAIL;
   m_LVHdrCtrl.SetItem(ipwd + ioff, &hdi);
   ioff++;
 
@@ -1978,6 +2022,9 @@ CString DboxMain::GetHeaderText(const int iType)
     case CItemData::URL:
       cs_header.LoadString(IDS_URL);
       break;
+    case CItemData::EMAIL:
+      cs_header.LoadString(IDS_EMAIL);
+      break;
     case CItemData::NOTES:
       cs_header.LoadString(IDS_NOTES);
       break;
@@ -2013,6 +2060,7 @@ int DboxMain::GetHeaderWidth(const int iType)
     case CItemData::PASSWORD:
     case CItemData::NOTES:
     case CItemData::URL:
+    case CItemData::EMAIL:
       nWidth = m_nColumnHeaderWidthByType[iType];
       break;
     case CItemData::CTIME:        
@@ -2076,6 +2124,9 @@ void DboxMain::CalcHeaderWidths()
         break;
       case CItemData::URL:
         cs_header.LoadString(IDS_URL);
+        break;
+      case CItemData::EMAIL:
+        cs_header.LoadString(IDS_EMAIL);
         break;
       case CItemData::NOTES:
         cs_header.LoadString(IDS_NOTES);
