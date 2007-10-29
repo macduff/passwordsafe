@@ -137,10 +137,10 @@ DboxMain::OpenOnInit(void)
       break;
 #ifdef DEMO
     case PWScore::LIMIT_REACHED: {
-      CString cs_msg, cs_msga(MAKEINTRESOURCE(IDS_LIMIT_MSGA)), cs_msgb(MAKEINTRESOURCE(IDS_LIMIT_MSGB));
+      CString cs_msg;
       cs_msg.Format(IDS_LIMIT_MSG, MAXDEMO);
       CString cs_title(MAKEINTRESOURCE(IDS_LIMIT_TITLE));
-      if (MessageBox(cs_msg + cs_msga + cs_msgb, cs_title,
+      if (MessageBox(cs_msg, cs_title,
                      MB_YESNO | MB_ICONWARNING) == IDNO) {
         CDialog::OnCancel();
       }
