@@ -22,8 +22,13 @@ class CFindDlg : public CPWDialog
 {
   // Construction
  public:
- // implement Singleton pattern
-  static void Doit(CWnd* pParent, BOOL *isCS, CMyString *lastFind);
+  // implement Singleton pattern
+  static void Doit(CWnd* pParent, BOOL *isCS, CMyString *lastFind,
+                   int iShow = SW_SHOW);
+  
+  static int Doit2(CWnd* pParent, BOOL *isCS, CMyString *lastFind,
+                    CString *newFind);
+  
   ~CFindDlg();
   static void EndIt();
   // Dialog Data
@@ -78,5 +83,13 @@ class CFindDlg : public CPWDialog
   CMyString *m_lastTextPtr;
   BOOL *m_lastCSPtr;
   bool m_bLastView;
+  bool m_bFromToolBar;
+
+  void SetFromToolBar() {m_bFromToolBar = true;}
+  void SetFromMenu() {m_bFromToolBar = false;}
+  bool IsFromMenu() {return !m_bFromToolBar;}
+
+  void SetFindString(CMyString csFindString)
+  {m_search_text = csFindString;}
 };
 

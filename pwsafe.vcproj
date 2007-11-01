@@ -724,6 +724,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\PWFindToolBar.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\PwFont.cpp"
 				>
 			</File>
@@ -733,6 +737,10 @@
 			</File>
 			<File
 				RelativePath=".\PWSRecentFileList.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\PWToolBar.cpp"
 				>
 			</File>
 			<File
@@ -965,6 +973,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\PWFindToolBar.h"
+				>
+			</File>
+			<File
 				RelativePath=".\PwFont.h"
 				>
 			</File>
@@ -978,6 +990,10 @@
 			</File>
 			<File
 				RelativePath=".\PWSRecentFileList.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PWToolBar.h"
 				>
 			</File>
 			<File

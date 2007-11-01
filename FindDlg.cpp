@@ -35,7 +35,30 @@ static char THIS_FILE[] = __FILE__;
 
 CFindDlg *CFindDlg::self = NULL; // for Singleton pattern
 
-void CFindDlg::Doit(CWnd *pParent, BOOL *isCS, CMyString *lastFind)
+// Note: CS == "case sensitive"
+
+int CFindDlg::Doit2(CWnd *pParent, BOOL *isCS, CMyString *lastFind,
+                    CString *csFindString)
+{
+  // Called from ToolBar Find function - i.e. no dialog shown.
+  // Note: all parameters (advanced, wrap etc.) taken from the last time
+  // the user used the Find Dialog.
+  Doit(pParent, isCS, lastFind, SW_HIDE);
+  self->SetFromToolBar();
+  self->SetFindString(*csFindString);
+
+  // Pretend the user presed the Find button
+  self->SendMessage(WM_COMMAND, MAKEWPARAM(IDOK, BN_CLICKED),
+                    (LPARAM)(self->GetDlgItem(IDOK)->m_hWnd));
+
+  // Now pretend user pressed Close button
+  self->SendMessage(WM_COMMAND, MAKEWPARAM(IDCANCEL, BN_CLICKED),
+                    (LPARAM)(self->GetDlgItem(IDCANCEL)->m_hWnd));
+
+  return self->m_numFound;
+}
+
+void CFindDlg::Doit(CWnd *pParent, BOOL *isCS, CMyString *lastFind, int iShow)
 {
   if (self == NULL) {
     self = new CFindDlg(pParent, isCS, lastFind);
@@ -49,9 +72,9 @@ void CFindDlg::Doit(CWnd *pParent, BOOL *isCS, CMyString *lastFind)
         // of screen,and vice versa,
         // UNLESS parent is close to screen's width!
         const int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-        const int screenCenter = screenWidth/2;
+        const int screenCenter = screenWidth / 2;
         const int parentWidth = (parentRect.right - parentRect.left);
-        const int parentCenter = (parentRect.right + parentRect.left)/2;
+        const int parentCenter = (parentRect.right + parentRect.left) / 2;
 
         if (parentWidth < (screenWidth * 9) / 10) {
           if (parentCenter < screenCenter) {
@@ -66,14 +89,17 @@ void CFindDlg::Doit(CWnd *pParent, BOOL *isCS, CMyString *lastFind)
         } // parent not too wide
       }
   } else {
-    self->BringWindowToTop();
+    if (iShow == SW_SHOW)
+      self->BringWindowToTop();
   }
-  self->ShowWindow(SW_SHOW);
+  self->ShowWindow(iShow);
   // Following is bugfix #1620423 by zcecil
   self->GotoDlgCtrl(self->GetDlgItem(IDC_FIND_TEXT));
-  
-  ((DboxMain*)pParent)->SetFindActive();  //  Prevent switch tree/list display modes
+
+  DboxMain* dbx = static_cast<DboxMain *>(self->GetParent());
+  dbx->SetFindActive();  //  Prevent switch tree/list display modes
   app.DisableAccelerator(); // don't accel Del when this dlg is shown
+  self->SetFromMenu();
 }
 
 CFindDlg::CFindDlg(CWnd* pParent, BOOL *isCS, CMyString *lastFind)
@@ -129,18 +155,17 @@ void CFindDlg::DoDataExchange(CDataExchange* pDX)
   //}}AFX_DATA_MAP
 }
 
-
 BEGIN_MESSAGE_MAP(CFindDlg, CPWDialog)
-//{{AFX_MSG_MAP(CFindDlg)
-ON_BN_CLICKED(IDOK, OnFind)
-ON_BN_CLICKED(IDC_FIND_WRAP, OnWrap)
-ON_BN_CLICKED(IDC_ADVANCED, OnAdvanced)
+  //{{AFX_MSG_MAP(CFindDlg)
+  ON_BN_CLICKED(IDOK, OnFind)
+  ON_BN_CLICKED(IDC_FIND_WRAP, OnWrap)
+  ON_BN_CLICKED(IDC_ADVANCED, OnAdvanced)
 #if defined(POCKET_PC)
-ON_BN_CLICKED(IDCANCEL, OnCancel)
+  ON_BN_CLICKED(IDCANCEL, OnCancel)
 #else
-ON_BN_CLICKED(IDCANCEL, OnClose)
+  ON_BN_CLICKED(IDCANCEL, OnClose)
 #endif
-//}}AFX_MSG_MAP
+  //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -148,19 +173,11 @@ END_MESSAGE_MAP()
 
 void CFindDlg::OnFind() 
 {
-  DboxMain* pParent = (DboxMain*) GetParent();
-  ASSERT(pParent != NULL);
+  DboxMain* dbx = static_cast<DboxMain *>(GetParent());
+  ASSERT(dbx != NULL);
 
-  const size_t numEntries = pParent->GetNumEntries();
-
-  if (numEntries == 0) {
-    // Right Thing would be to disable find menu item if list is empty
-    m_status.LoadString(IDS_PASSWORDLISTEMPTY);
-    UpdateData(FALSE);
-    return;
-  }
-
-  UpdateData(TRUE);
+  if (self->IsFromMenu())
+    UpdateData(TRUE);
 
   if (m_search_text.IsEmpty()) {
     m_status.LoadString(IDS_ENTERSEARCHSTRING);
@@ -186,8 +203,8 @@ void CFindDlg::OnFind()
     m_lastshown = size_t(-1);
   }
 
-  if (m_bLastView != pParent->GetCurrentView()) {
-	  m_bLastView = pParent->GetCurrentView();
+  if (m_bLastView != dbx->GetCurrentView()) {
+	  m_bLastView = dbx->GetCurrentView();
 	  m_lastshown = size_t(-1);  // Indices will be in different order even if search the same
   }
 
@@ -195,31 +212,31 @@ void CFindDlg::OnFind()
     m_indices.clear();
 
     if (m_bAdvanced)
-      m_numFound = pParent->FindAll(m_search_text, m_cs_search, m_indices,
-                                    m_bsFields, m_subgroup_set, 
-                                    m_subgroup_name, m_subgroup_object, m_subgroup_function);
+      m_numFound = dbx->FindAll(m_search_text, m_cs_search, m_indices,
+                                m_bsFields, m_subgroup_set, 
+                                m_subgroup_name, m_subgroup_object, m_subgroup_function);
     else
-      m_numFound = pParent->FindAll(m_search_text, m_cs_search, m_indices);
+      m_numFound = dbx->FindAll(m_search_text, m_cs_search, m_indices);
 
     switch (m_numFound) {
-    case 0:
-      m_status.LoadString(IDS_NOMATCHFOUND);
-      break;
-    case 1:
-      m_status.LoadString(IDS_FOUNDAMATCH);
-      break;
-    default:
-      m_status.Format(IDS_FOUNDMATCHES, m_numFound);
-      break;
+      case 0:
+        m_status.LoadString(IDS_NOMATCHFOUND);
+        break;
+      case 1:
+        m_status.LoadString(IDS_FOUNDAMATCH);
+        break;
+      default:
+        m_status.Format(IDS_FOUNDMATCHES, m_numFound);
+        break;
     }
-    UpdateData(FALSE);
+    if (self->IsFromMenu())
+      UpdateData(FALSE);
   } // m_lastshown == -1
 
   // OK, so now we have a (possibly empty) list of items to select.
-
   if (m_numFound > 0) {
     if (m_numFound == 1) {
-    	pParent->SelectFindEntry(m_indices[0], TRUE);
+    	dbx->SelectFindEntry(m_indices[0], TRUE);
     } else {
     	m_lastshown++;
     	if(m_lastshown >= m_numFound) {
@@ -231,25 +248,25 @@ void CFindDlg::OnFind()
     			rc = MessageBox(cs_text, cs_title, 
                           MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON2);
     		}
-    		switch (rc) {
-        case IDYES:
-          m_lastshown = 0;
-          pParent->SelectFindEntry(m_indices[m_lastshown], TRUE);
-          break;
-				case IDNO:
+        switch (rc) {
+          case IDYES:
+            m_lastshown = 0;
+            dbx->SelectFindEntry(m_indices[m_lastshown], TRUE);
+            break;
+          case IDNO:
 #if defined(POCKET_PC)
-					OnCancel();
+            OnCancel();
 #else
-					OnClose();
+            OnClose();
 #endif
-					break;
-        case IDCANCEL:
-          break;
-        default:
-          ASSERT(FALSE);
-    		}
+            break;
+          case IDCANCEL:
+            break;
+          default:
+            ASSERT(FALSE);
+        }
     	} else {
-    		pParent->SelectFindEntry(m_indices[m_lastshown], TRUE);
+    		dbx->SelectFindEntry(m_indices[m_lastshown], TRUE);
     	}
     	CString cs_text(MAKEINTRESOURCE(IDS_FINDNEXT));
     	SetDlgItemText(IDOK, cs_text);
@@ -282,9 +299,9 @@ void CFindDlg::OnClose()
   *m_lastTextPtr = m_search_text;
   *m_lastCSPtr = m_cs_search; 
 
-  DboxMain* pParent = (DboxMain*)GetParent();
-  pParent->SetFindInActive();  //  Allow switch tree/list display modes again
-  m_bLastView = pParent->GetCurrentView();
+  DboxMain* dbx = static_cast<DboxMain *>(GetParent());
+  dbx->SetFindInActive();  //  Allow switch tree/list display modes again
+  m_bLastView = dbx->GetCurrentView();
 
   app.EnableAccelerator(); // restore accel table
   CPWDialog::OnCancel();

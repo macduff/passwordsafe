@@ -75,6 +75,7 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
   {_T("ListViewGridLines"), false, false},                        // application
   {_T("MinimizeOnAutotype"), true, false},                        // application
   {_T("ShowUsernameInTree"), true, true},								// database
+  {_T("ShowFindToolBar"), true, false},                  // application
 };
 
 // Default value = -1 means set at runtime
@@ -114,6 +115,7 @@ const PWSprefs::stringPref PWSprefs::m_string_prefs[NumStringPrefs] = {
   {_T("ColumnWidths"), _T(""), false},							// application
   {_T("DefaultAutotypeString"), _T(""), true},					// database
 	{_T("AltBrowserCmdLineParms"), _T(""), false},				// application
+	{_T("MainToolBarButtons"), _T(""), false},                  // application
 };
 
 

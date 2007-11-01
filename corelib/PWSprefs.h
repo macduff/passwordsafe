@@ -63,7 +63,7 @@ class PWSprefs {
 		   SavePasswordHistory, FindWraps, ShowNotesDefault,
 		   BackupBeforeEverySave, PreExpiryWarn,
        ExplorerTypeTree, ListViewGridLines, MinimizeOnAutotype,
-       ShowUsernameInTree,
+       ShowUsernameInTree, ShowFindToolBar,
 		   NumBoolPrefs};
   enum  IntPrefs {Column1Width, Column2Width, Column3Width, Column4Width,
 		  SortedColumn, PWDefaultLength, MaxMRUItems, IdleTimeout,
@@ -74,6 +74,7 @@ class PWSprefs {
   enum  StringPrefs {CurrentBackup, CurrentFile, LastView, DefaultUsername,
 		  TreeFont, BackupPrefixValue, BackupDir, AltBrowser, ListColumns,
       ColumnWidths, DefaultAutotypeString, AltBrowserCmdLineParms,
+      MainToolBarButtons,
 		  NumStringPrefs};
 
   // for DoubleClickAction

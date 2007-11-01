@@ -163,9 +163,10 @@ DboxMain::UpdateToolBar(bool state)
 {
 	if (m_toolbarsSetup == TRUE) {
     BOOL State = (state) ? FALSE : TRUE;
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD, State);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, State);
-		m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SAVE, State);
+    CToolBarCtrl& mainTBCtrl = m_MainToolBar.GetToolBarCtrl();
+		mainTBCtrl.EnableButton(ID_TOOLBUTTON_ADD, State);
+		mainTBCtrl.EnableButton(ID_TOOLBUTTON_DELETE, State);
+		mainTBCtrl.EnableButton(ID_TOOLBUTTON_SAVE, State);
 	}
 }
 
@@ -180,18 +181,19 @@ DboxMain::UpdateToolBarForSelectedItem(CItemData *ci)
                  ID_TOOLBUTTON_COPYNOTESFLD, ID_TOOLBUTTON_AUTOTYPE, ID_TOOLBUTTON_SENDEMAIL,
                  ID_TOOLBUTTON_EDIT};
 
+    CToolBarCtrl& mainTBCtrl = m_MainToolBar.GetToolBarCtrl();
     for (int i = 0; i < sizeof(IDs)/sizeof(IDs[0]); i++)
-      m_wndToolBar.GetToolBarCtrl().EnableButton(IDs[i], State);
+      mainTBCtrl.EnableButton(IDs[i], State);
 
     if (ci == NULL || ci->IsURLEmpty())
-      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_BROWSEURL, FALSE);
+      mainTBCtrl.EnableButton(ID_TOOLBUTTON_BROWSEURL, FALSE);
     else
-      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_BROWSEURL, TRUE);
+      mainTBCtrl.EnableButton(ID_TOOLBUTTON_BROWSEURL, TRUE);
 
     if (ci == NULL || ci->IsEmailEmpty())
-      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SENDEMAIL, FALSE);
+      mainTBCtrl.EnableButton(ID_TOOLBUTTON_SENDEMAIL, FALSE);
     else
-      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SENDEMAIL, TRUE);
+      mainTBCtrl.EnableButton(ID_TOOLBUTTON_SENDEMAIL, TRUE);
   }
 }
 
@@ -200,7 +202,7 @@ DboxMain::setupBars()
 {
 #if !defined(POCKET_PC)
   // This code is copied from the DLGCBR32 example that comes with MFC
-  
+
   // Add the status bar
   if (m_statusBar.Create(this)) {
 	  // Set up DoubleClickAction text
@@ -229,29 +231,59 @@ DboxMain::setupBars()
 	  // And show
 	  m_statusBar.SetIndicators(statustext, SB_TOTAL);
 
-      // Make a sunken or recessed border around the first pane
-      m_statusBar.SetPaneInfo(SB_DBLCLICK, m_statusBar.GetItemID(SB_DBLCLICK), SBPS_STRETCH, NULL);
-  }             
-
-  // Add the ToolBar.
-  if (!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
-                             WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
-      !m_wndToolBar.LoadToolBar(IDB_TOOLBAR1))
-    {
-      TRACE0("Failed to create toolbar\n");
-      return;      // fail to create
-    }
-
-  // Set toolbar according to graphic capabilities, overridable by user choice.
-  CDC* pDC = this->GetDC();
-  int NumBits = ( pDC ? pDC->GetDeviceCaps(12 /*BITSPIXEL*/) : 32 );
-  if (NumBits < 16 || !PWSprefs::GetInstance()->GetPref(PWSprefs::UseNewToolbar))  {
-    SetToolbar(ID_MENUITEM_OLD_TOOLBAR);
-  } else {
-    SetToolbar(ID_MENUITEM_NEW_TOOLBAR);
+    // Make a sunken or recessed border around the first pane
+    m_statusBar.SetPaneInfo(SB_DBLCLICK, m_statusBar.GetItemID(SB_DBLCLICK), SBPS_STRETCH, NULL);
   }
 
-  // Set flag
+  // Depending what you read, creation order IS/IS NOT important!
+  // This way the Status Bar *should* below the Find Toolbar!
+  CDC* pDC = this->GetDC();
+  int NumBits = (pDC ? pDC->GetDeviceCaps(12 /*BITSPIXEL*/) : 32);
+  m_MainToolBar.Init(NumBits);
+  m_FindToolBar.Init(NumBits, this, WM_TOOLBAR_FIND);
+
+  // Add the Main ToolBar.
+  if (!m_MainToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
+                              WS_CHILD | WS_VISIBLE | CCS_ADJUSTABLE |
+                              CBRS_TOP | CBRS_SIZE_DYNAMIC,
+                              CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + 1)) {
+    TRACE("Failed to create Main toolbar\n");
+    return;      // fail to create
+  }
+  DWORD dwStyle = m_MainToolBar.GetBarStyle();
+  dwStyle = dwStyle | CBRS_BORDER_BOTTOM | CBRS_BORDER_TOP |
+                      CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
+                      CBRS_TOOLTIPS | CBRS_FLYBY;
+  m_MainToolBar.SetBarStyle(dwStyle);
+  m_MainToolBar.SetWindowText(_T("Standard"));
+
+  // Add the Find ToolBar.
+  if (!m_FindToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
+                              WS_CHILD | WS_VISIBLE |
+                              CBRS_BOTTOM | CBRS_SIZE_DYNAMIC,
+                              CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + 2)) {
+    TRACE("Failed to create Find toolbar\n");
+    return;      // fail to create
+  }
+  dwStyle = m_FindToolBar.GetBarStyle();
+  dwStyle = dwStyle | CBRS_BORDER_BOTTOM | CBRS_BORDER_TOP |
+                      CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
+                      CBRS_TOOLTIPS | CBRS_FLYBY;
+  m_FindToolBar.SetBarStyle(dwStyle);
+  m_FindToolBar.SetWindowText(_T("Find"));
+
+  // Set toolbar according to graphic capabilities, overridable by user choice.
+  if (NumBits < 16 || !PWSprefs::GetInstance()->GetPref(PWSprefs::UseNewToolbar))  {
+    SetToolbar(ID_MENUITEM_OLD_TOOLBAR, true);
+  } else {
+    SetToolbar(ID_MENUITEM_NEW_TOOLBAR, true);
+  }
+
+  bool bShowFind = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowFindToolBar);
+  if (bShowFind != m_FindToolBar.IsVisible())
+    m_FindToolBar.ShowFindToolBar(bShowFind);
+
+  // Set flag - we're done
   m_toolbarsSetup = TRUE;
   UpdateToolBar(m_core.IsReadOnly());
 #endif
@@ -682,10 +714,10 @@ DboxMain::RefreshList()
         di->list_index = -1; // easier, but less efficient, to delete di
       insertItem(ci, -1, false);
     }
-    
+
     m_ctlItemTree.SortTree(TVI_ROOT);
     SortListView();
-    
+
 #if defined(POCKET_PC)
     SetCursor( NULL );
 #endif
@@ -789,8 +821,36 @@ DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint point)
   CItemData *itemData = NULL;
   CMenu menu;
 
+  // Get client window position
+  CPoint mp;
+  CRect rect, appl_rect;
+  mp = ::GetMessagePos();
+  GetWindowRect(&appl_rect);
+  m_MainToolBar.GetWindowRect(&rect);
+
+  // RClick over Main Toolbar - allow show/hide of Find Toolbar + Customize Main toolbar
+  if (mp.x > appl_rect.left && mp.x < appl_rect.right &&
+      mp.y > rect.top && mp.y < rect.bottom) {
+    if (menu.LoadMenu(IDR_POPCUSTOMIZETOOLBAR)) {
+      CMenu* pPopup = menu.GetSubMenu(0);
+      ASSERT(pPopup != NULL);
+      pPopup->CheckMenuItem(ID_MENUITEM_SHOWFINDTOOLBAR, MF_BYCOMMAND |
+        (m_FindToolBar.IsVisible()) ? MF_CHECKED : MF_UNCHECKED);
+      pPopup->TrackPopupMenu(dwTrackPopupFlags, point.x, point.y, this); // use this window for commands
+    }
+    return;
+  }
+
+  // RClick over ListView
   if (m_ctlItemList.IsWindowVisible()) {
     // currently in flattened list view.
+    m_ctlItemList.GetWindowRect(&rect);
+    if (mp.x < rect.left || mp.x > appl_rect.right ||
+        mp.y < rect.top || mp.y > rect.bottom) {
+      // But not in the window
+      return;
+    }
+
     m_ctlItemList.ScreenToClient(&local);
     item = m_ctlItemList.HitTest(local);
     if (item < 0)
@@ -801,8 +861,17 @@ DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint point)
       return; // ? is this possible ?
     }
     m_ctlItemList.SetFocus();
-  } else {
+  }
+
+  // RClick over TreeView
+  if (m_ctlItemTree.IsWindowVisible()) {
     // currently in tree view
+    m_ctlItemTree.GetWindowRect(&rect);
+    if (mp.x < rect.left || mp.x > appl_rect.right ||
+        mp.y < rect.top || mp.y > rect.bottom) {
+      // But not in the window
+      return;
+    }
     ASSERT(m_ctlItemTree.IsWindowVisible());
     m_ctlItemTree.ScreenToClient(&local);
     HTREEITEM ti = m_ctlItemTree.HitTest(local);
@@ -827,7 +896,7 @@ DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint point)
       }
     } else {
       // not over anything
-      if (menu.LoadMenu(IDR_POPTREE)) {
+      if (menu.LoadMenu(IDR_POPTREE)) {  // "Add Group"
         CMenu* pPopup = menu.GetSubMenu(0);
         ASSERT(pPopup != NULL);
         pPopup->TrackPopupMenu(dwTrackPopupFlags, point.x, point.y, this); // use this window for commands
@@ -836,6 +905,7 @@ DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint point)
     m_ctlItemTree.SetFocus();
   } // tree view handling
 
+  // RClick over an entry
   if (item >= 0) {
     menu.LoadMenu(IDR_POPMENU);
     CMenu* pPopup = menu.GetSubMenu(0);
@@ -1324,54 +1394,32 @@ DboxMain::OnNewToolbar()
 }
 
 void
-DboxMain::SetToolbar(int menuItem)
+DboxMain::SetToolbar(const int menuItem, bool bInit)
 {
-  UINT Flags = 0;
-  CBitmap bmTemp; 
-  COLORREF Background = RGB(192, 192, 192);
-
-  switch (menuItem) {
-  case ID_MENUITEM_NEW_TOOLBAR: {
-    int NumBits = 32;
-    CDC* pDC = this->GetDC();
-    if ( pDC )  {
-      NumBits = pDC->GetDeviceCaps(12 /*BITSPIXEL*/);
-    }
-    if (NumBits >= 32) {
-      bmTemp.LoadBitmap(IDB_TOOLBAR1);
-      Flags = ILC_MASK | ILC_COLOR32;
-    } else {
-      bmTemp.LoadBitmap(IDB_TOOLBAR2);
-      Flags = ILC_MASK | ILC_COLOR8;
-      Background = RGB( 196,198,196 );
-    }
-    break;
-  }
-  case ID_MENUITEM_OLD_TOOLBAR:
-    bmTemp.LoadBitmap(IDB_TOOLBAR3);
-    Flags = ILC_MASK | ILC_COLOR8;
-    break;
-  default:
-    ASSERT(false);
-    return;
-  }
+  // Toolbar
   m_toolbarMode = menuItem;
 
-  CToolBarCtrl& tbcTemp = m_wndToolBar.GetToolBarCtrl();
-  CImageList ilTemp; 
-  ilTemp.Create(16, 16, Flags, 10, 10);
-  ilTemp.Add(&bmTemp, Background);
-  tbcTemp.SetImageList(&ilTemp);
-  ilTemp.Detach();
-  bmTemp.Detach();
+  if (bInit) {
+    m_MainToolBar.LoadDefaultToolBar(m_toolbarMode);
+    m_FindToolBar.LoadDefaultToolBar(m_toolbarMode);
+    CString csButtonNames = PWSprefs::GetInstance()->
+                                    GetPref(PWSprefs::MainToolBarButtons);
+    m_MainToolBar.CustomizeButtons(csButtonNames);
+  } else {
+    m_MainToolBar.ChangeImages(m_toolbarMode);
+    m_FindToolBar.ChangeImages(m_toolbarMode);
+  }
 
-  m_wndToolBar.Invalidate();
+  m_MainToolBar.Invalidate();
+  m_FindToolBar.Invalidate();
 
   CRect rect;
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
   m_ctlItemList.MoveWindow(&rect, TRUE);
   m_ctlItemTree.MoveWindow(&rect, TRUE); // Fix Bug 940585
+
+  SetToolBarPositions();
 }
 
 void
@@ -2349,4 +2397,58 @@ DboxMain::OnUpdateViewReports(CCmdUI *pCmdUI)
   int status = ::_tstat(cs_filename, &statbuf);
   if (status != 0)
     pCmdUI->Enable(FALSE);
+}
+
+void
+DboxMain::OnCustomizeToolbar()
+{
+  CToolBarCtrl& mainTBCtrl = m_MainToolBar.GetToolBarCtrl();
+  mainTBCtrl.Customize();
+
+  CString cs_temp = m_MainToolBar.GetButtonString();
+  PWSprefs::GetInstance()->SetPref(PWSprefs::MainToolBarButtons, cs_temp);
+}
+
+void
+DboxMain::OnToggleFindToolBar()
+{
+  m_FindToolBar.ShowFindToolBar(!m_FindToolBar.IsVisible());
+
+  PWSprefs::GetInstance()->SetPref(PWSprefs::ShowFindToolBar,
+                                   m_FindToolBar.IsVisible() ? TRUE : FALSE);
+
+  CRect rect;
+  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
+  m_ctlItemList.MoveWindow(&rect, TRUE);
+  m_ctlItemTree.MoveWindow(&rect, TRUE);
+
+  SetToolBarPositions();
+}
+
+void
+DboxMain::SetToolBarPositions()
+{
+  if (m_FindToolBar.IsVisible()) {
+    // Is visible.  Try to get FindToolBar "above" the StatusBar!
+    ASSERT(m_FindToolBar.GetParent() == m_statusBar.GetParent());
+
+    CRect ftb_rect, stb_rect;
+    m_FindToolBar.GetWindowRect(&ftb_rect);
+    m_statusBar.GetWindowRect(&stb_rect);
+
+    if (ftb_rect.top > stb_rect.top) {
+      // FindToolBar is "below" the StatusBar
+      ScreenToClient(&ftb_rect);
+      ScreenToClient(&stb_rect);
+      // Move FindToolBar up by the height of the Statusbar
+      m_FindToolBar.MoveWindow(ftb_rect.left, ftb_rect.top - stb_rect.Height(),
+                               ftb_rect.Width(), ftb_rect.Height());
+      // Move Statusbar down by the height of the FindToolBar
+      m_statusBar.MoveWindow(stb_rect.left, stb_rect.top + ftb_rect.Height(),
+                             stb_rect.Width(), stb_rect.Height());
+      m_FindToolBar.Invalidate();
+      m_statusBar.Invalidate();
+    }
+  }
 }

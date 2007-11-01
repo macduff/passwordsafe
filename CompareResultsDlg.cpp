@@ -152,7 +152,6 @@ BOOL CCompareResultsDlg::OnInitDialog()
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, MAKELONG(CURRENT, st_data.id));
-      st_data.Dump();
       iItem++;
     }
   }
@@ -176,7 +175,6 @@ BOOL CCompareResultsDlg::OnInitDialog()
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, MAKELONG(COMPARE, st_data.id));
-      st_data.Dump();
       iItem++;
     }
   }
@@ -227,7 +225,6 @@ BOOL CCompareResultsDlg::OnInitDialog()
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, MAKELONG(BOTH, st_data.id));
-      st_data.Dump();
       iItem++;
     }
   }
@@ -367,7 +364,6 @@ CCompareResultsDlg::OnShowIdenticalEntries()
 
         st_data.listindex = iItem;
         m_LCResults.SetItemData(iItem, MAKELONG(IDENTICAL, st_data.id));
-        st_data.Dump();
         iItem++;
       }
     }

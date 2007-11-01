@@ -1051,3 +1051,28 @@ void DboxMain::SortAliasEntries(UUIDList &aliaslist, CMyString &csAliases)
     csAliases += _T("\t[") +  *sa_iter + _T("]\r\n");
   }
 }
+
+LRESULT
+DboxMain::OnToolBarFindMessage(WPARAM /* wParam */, LPARAM /* lParam */)
+{
+  OnToolBarFind();
+  return 0L;
+}
+
+void DboxMain::OnToolBarFind()
+{ 
+  CString csFindString;
+  m_FindToolBar.GetSearchText(csFindString);
+
+  int num_found(0);
+  if (!csFindString.IsEmpty()) {
+    num_found = CFindDlg::Doit2(this, &m_lastFindCS, &m_lastFindStr, &csFindString);
+    m_FindToolBar.UpdateResults(num_found);
+  }
+}
+
+void
+DboxMain::OnToolBarClearFind()
+{
+  m_FindToolBar.ClearFind();
+}

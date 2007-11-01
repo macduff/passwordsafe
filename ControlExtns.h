@@ -21,13 +21,16 @@ public:
 	CEditExtn();
 	CEditExtn(int message_number, LPCTSTR szmenustring);
 	void ChangeColour() {m_bIsFocused = TRUE;}
+  void SetColour(COLORREF crefUserColor);
 
 // Attributes
 private:
-	BOOL m_bIsFocused;
+	BOOL m_bIsFocused, m_bUserColourSet;
+  COLORREF m_crefUserColor;
 
-	CBrush brInFocus;
-	CBrush brNoFocus;
+	CBrush m_brInFocus;
+	CBrush m_brNoFocus;
+  CBrush m_brUser;
 
  	int m_lastposition, m_nStartChar, m_nEndChar;
   int m_message_number;
@@ -67,8 +70,8 @@ public:
 private:
 	BOOL m_bIsFocused;
 
-	CBrush brInFocus;
-	CBrush brNoFocus;
+	CBrush m_brInFocus;
+	CBrush m_brNoFocus;
 
 // Operations
 public:

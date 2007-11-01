@@ -165,6 +165,7 @@ ON_UPDATE_COMMAND_UI(ID_MENUITEM_DELETE, OnUpdateROCommand)
 ON_COMMAND(ID_MENUITEM_RENAME, OnRename)
 ON_UPDATE_COMMAND_UI(ID_MENUITEM_RENAME, OnUpdateROCommand)
 ON_COMMAND(ID_MENUITEM_FIND, OnFind)
+ON_UPDATE_COMMAND_UI(ID_MENUITEM_FIND, OnUpdateEmptyDB)
 ON_COMMAND(ID_MENUITEM_DUPLICATEENTRY, OnDuplicateEntry)
 ON_UPDATE_COMMAND_UI(ID_MENUITEM_DUPLICATEENTRY, OnUpdateROCommand)
 ON_COMMAND(ID_MENUITEM_AUTOTYPE, OnAutoType)
@@ -251,6 +252,7 @@ ON_COMMAND(ID_TRAYRECENT_ENTRY_CLEAR, OnTrayClearRecentEntries)
 ON_UPDATE_COMMAND_UI(ID_TRAYRECENT_ENTRY_CLEAR, OnUpdateTrayClearRecentEntries)
 ON_COMMAND(ID_TOOLBUTTON_NEW, OnNew)
 ON_COMMAND(ID_TOOLBUTTON_OPEN, OnOpen)
+ON_COMMAND(ID_TOOLBUTTON_CLOSE, OnClose)
 ON_COMMAND(ID_TOOLBUTTON_SAVE, OnSave)
 ON_COMMAND(ID_TOOLBUTTON_COPYPASSWORD, OnCopyPassword)
 ON_COMMAND(ID_TOOLBUTTON_COPYUSERNAME, OnCopyUsername)
@@ -266,6 +268,9 @@ ON_COMMAND(ID_TOOLBUTTON_EXPANDALL, OnExpandAll)
 ON_UPDATE_COMMAND_UI(ID_TOOLBUTTON_EXPANDALL, OnUpdateTVCommand)
 ON_COMMAND(ID_TOOLBUTTON_COLLAPSEALL, OnCollapseAll)
 ON_UPDATE_COMMAND_UI(ID_TOOLBUTTON_COLLAPSEALL, OnUpdateTVCommand)
+
+ON_COMMAND(ID_TOOLBUTTON_FIND, OnToolBarFind)
+ON_COMMAND(ID_TOOLBUTTON_CLEARFIND, OnToolBarClearFind)
 #endif
 
 #ifndef POCKET_PC
@@ -278,7 +283,11 @@ ON_MESSAGE(WM_CCTOHDR_DD_COMPLETE, OnCCToHdrDragComplete)
 ON_MESSAGE(WM_HDRTOCC_DD_COMPLETE, OnHdrToCCDragComplete)
 ON_MESSAGE(WM_HDR_DRAG_COMPLETE, OnHeaderDragComplete)
 ON_MESSAGE(WM_COMPARE_RESULT_FUNCTION, OnProcessCompareResultFunction)
-   
+ON_MESSAGE(WM_TOOLBAR_FIND, OnToolBarFindMessage)
+
+ON_COMMAND(ID_MENUITEM_CUSTOMIZETOOLBAR, OnCustomizeToolbar)
+ON_COMMAND(ID_MENUITEM_SHOWFINDTOOLBAR, OnToggleFindToolBar)
+
 //}}AFX_MSG_MAP
 ON_COMMAND_EX_RANGE(ID_FILE_MRU_ENTRY1, ID_FILE_MRU_ENTRYMAX, OnOpenMRU)
 ON_UPDATE_COMMAND_UI(ID_FILE_MRU_ENTRY1, OnUpdateMRU)
@@ -626,6 +635,7 @@ DboxMain::OnInitDialog()
   }
 
   SetInitialDatabaseDisplay();
+  SetToolBarPositions();
   return TRUE;  // return TRUE unless you set the focus to a control
 }
 
@@ -800,6 +810,14 @@ void DboxMain::OnSizing(UINT fwSide, LPRECT pRect)
 }
 
 void
+DboxMain::OnUpdateEmptyDB(CCmdUI *pCmdUI)
+{
+  // Note: Disable if database is empty
+  if (m_core.GetNumEntries() == 0)
+  	pCmdUI->Enable(FALSE);
+}
+
+void
 DboxMain::OnUpdateROCommand(CCmdUI *pCmdUI)
 {
   // Note: This first checks if a DB is Open before checking R-O status
@@ -925,13 +943,13 @@ DboxMain::ChangeOkUpdate()
   menu->EnableMenuItem(ID_MENUITEM_SAVE,
                        m_core.IsChanged() ? MF_ENABLED : MF_GRAYED);
   if (m_toolbarsSetup == TRUE) {
-	m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SAVE,
+	m_MainToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_SAVE,
 	                   m_core.IsChanged() ? TRUE : FALSE);
   }
 #ifdef DEMO
   bool isLimited = (m_core.GetNumEntries() >= MAXDEMO);
   if (isLimited)
-      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD, FALSE);
+      m_MainToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD, FALSE);
 #endif
   UpdateStatusBar();
 }
@@ -2114,20 +2132,25 @@ DboxMain::UpdateMenuAndToolBar(const bool bOpen)
 	xfilesubmenu->EnableMenuItem(ID_MENUITEM_RESTORE, MF_BYCOMMAND | imenuflags);
 
 	if (m_toolbarsSetup == TRUE) {
-    const BOOL enableIfOpen = bOpen ? TRUE : FALSE;
+    const BOOL enableIfOpen = (bOpen && m_core.GetNumEntries() > 0) ? TRUE : FALSE;
     const BOOL enableIfOpenAndRW = m_core.IsReadOnly() ? FALSE : enableIfOpen;
     int condOpen[] = {ID_TOOLBUTTON_COPYPASSWORD, ID_TOOLBUTTON_COPYUSERNAME,
                       ID_TOOLBUTTON_COPYNOTESFLD, ID_TOOLBUTTON_CLEARCLIPBOARD,
                       ID_TOOLBUTTON_AUTOTYPE, ID_TOOLBUTTON_BROWSEURL, 
                       ID_TOOLBUTTON_SENDEMAIL, ID_TOOLBUTTON_EXPANDALL,
-                      ID_TOOLBUTTON_COLLAPSEALL, ID_TOOLBUTTON_EDIT};
+                      ID_TOOLBUTTON_COLLAPSEALL, ID_TOOLBUTTON_EDIT,
+                      ID_TOOLBUTTON_CLOSE, ID_TOOLBUTTON_FIND};
     int condOpenRW[] = {ID_TOOLBUTTON_SAVE, ID_TOOLBUTTON_ADD, ID_TOOLBUTTON_DELETE};
     int i;
 
     for (i = 0; i < sizeof(condOpen)/sizeof(condOpen[0]); i++)
-      m_wndToolBar.GetToolBarCtrl().EnableButton(condOpen[i], enableIfOpen);
+      m_MainToolBar.GetToolBarCtrl().EnableButton(condOpen[i], enableIfOpen);
     for (i = 0; i < sizeof(condOpenRW)/sizeof(condOpenRW[0]); i++)
-      m_wndToolBar.GetToolBarCtrl().EnableButton(condOpenRW[i], enableIfOpenAndRW);
+      m_MainToolBar.GetToolBarCtrl().EnableButton(condOpenRW[i], enableIfOpenAndRW);
+
+    if (m_FindToolBar.IsVisible()) {
+      m_FindToolBar.Enable(enableIfOpen == TRUE);
+    }
 	}
 }
 

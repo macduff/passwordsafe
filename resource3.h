@@ -119,7 +119,6 @@
 #define IDS_NOFIELDSFOREXPORT           5285
 #define IDS_NOOBJECT                    5286
 #define IDS_NOFUNCTION                  5287
-#define IDS_PASSWORDLISTEMPTY           5288
 #define IDS_ENTERSEARCHSTRING           5289
 #define IDS_NOMATCHFOUND                5290
 #define IDS_FOUNDAMATCH                 5291

@@ -27,6 +27,9 @@
 #include "MenuTipper.h"
 #include "LVHdrCtrl.h"
 #include "ColumnChooserDlg.h"
+#include "PWToolBar.h"
+#include "PWFindToolBar.h"
+#include "ControlExtns.h"
 #include <vector>
 
 #if (WINVER < 0x0501)  // These are already defined for WinXP and later
@@ -54,6 +57,9 @@ DECLARE_HANDLE(HDROP);
 // External Editor
 #define WM_CALL_EXTERNAL_EDITOR  (WM_APP + 40)
 #define WM_EXTERNAL_EDITOR_ENDED (WM_APP + 41)
+
+// External Editor
+#define WM_TOOLBAR_FIND (WM_APP + 50)
 
 // timer event number used to check if the workstation is locked
 #define TIMER_CHECKLOCK 0x04
@@ -153,6 +159,7 @@ public:
 
   void UpdateToolBar(bool state);
   void UpdateToolBarForSelectedItem(CItemData *ci);
+  void SetToolBarPositions();
   bool IsMcoreReadOnly() const {return m_core.IsReadOnly();};
   void SetStartSilent(bool state);
   void SetStartClosed(bool state) {m_IsStartClosed = state;}
@@ -226,7 +233,8 @@ protected:
   CCeCommandBar	*m_wndCommandBar;
   CMenu			*m_wndMenu;
 #else
-  CToolBar m_wndToolBar;
+  CPWToolBar m_MainToolBar;   // main toolbar
+  CPWFindToolBar m_FindToolBar;  // Find toolbar
   CStatusBar m_statusBar;
   BOOL m_toolbarsSetup;
   UINT m_toolbarMode;
@@ -287,6 +295,7 @@ protected:
   LRESULT EditCompareResult(PWScore *pcore, uuid_array_t &uuid);
   LRESULT CopyCompareResult(PWScore *pfromcore, PWScore *ptocore,
                             uuid_array_t &fromuuid, uuid_array_t &touuid);
+  LRESULT OnToolBarFindMessage(WPARAM wParam, LPARAM lParam);
 
   BOOL PreTranslateMessage(MSG* pMsg);
 
@@ -296,7 +305,7 @@ protected:
 
   void SetListView();
   void SetTreeView();
-  void SetToolbar(int menuItem);
+  void SetToolbar(const int menuItem, bool bInit = false);
   void UpdateStatusBar();
   void UpdateMenuAndToolBar(const bool bOpen);
   void SetDCAText();
@@ -419,6 +428,7 @@ protected:
   afx_msg void OnUpdateClosedCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateTVCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateViewCommand(CCmdUI *pCmdUI);
+  afx_msg void OnUpdateEmptyDB(CCmdUI *pCmdUI);
   afx_msg void OnUpdateNSCommand(CCmdUI *pCmdUI);  // Make entry unsupported (grayed out)
   afx_msg void OnInitMenu(CMenu* pMenu);
   afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
@@ -432,6 +442,11 @@ protected:
   afx_msg void OnImportText();
   afx_msg void OnImportKeePass();
   afx_msg void OnImportXML();
+
+  afx_msg void OnToolBarFind();
+  afx_msg void OnToolBarClearFind();
+  afx_msg void OnCustomizeToolbar();
+  afx_msg void OnToggleFindToolBar();
 
 #if _MFC_VER > 1200
   afx_msg BOOL OnOpenMRU(UINT nID);

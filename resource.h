@@ -16,9 +16,6 @@
 #define IDB_LEAF_EXPIRED                111
 #define IDB_NODE                        112
 #define IDB_PSLOGO                      113
-#define IDB_TOOLBAR1                    114
-#define IDB_TOOLBAR2                    115
-#define IDB_TOOLBAR3                    116
 #define IDI_TRAY                        117
 #define IDI_CORNERICON                  118
 #define IDI_LOCKEDICON                  119
@@ -68,6 +65,65 @@
 #define IDD_COLUMNCHOOSER               236
 #define IDD_ADVANCEDMERGE               237
 #define IDD_COMPARE_RESULTS             238
+#define IDB_ADD_CLASSIC                 239
+#define IDB_ADD_NEW8                    240
+#define IDB_ADD_NEW32                   241
+#define IDB_AUTOTYPE_CLASSIC            242
+#define IDB_AUTOTYPE_NEW8               243
+#define IDB_AUTOTYPE_NEW32              244
+#define IDB_BROWSEURL_CLASSIC           245
+#define IDB_BROWSEURL_NEW8              246
+#define IDB_BROWSEURL_NEW32             247
+#define IDB_CLEARCLIPBOARD_CLASSIC      248
+#define IDB_CLEARCLIPBOARD_NEW8         249
+#define IDB_CLEARCLIPBOARD_NEW32        250
+#define IDB_CLOSE_CLASSIC               251
+#define IDB_CLOSE_NEW8                  252
+#define IDB_CLOSE_NEW32                 253
+#define IDB_COLLAPSEALL_CLASSIC         254
+#define IDB_COLLAPSEALL_NEW8            255
+#define IDB_COLLAPSEALL_NEW32           256
+#define IDB_COPYNOTES_CLASSIC           257
+#define IDB_COPYNOTES_NEW8              258
+#define IDB_COPYNOTES_NEW32             259
+#define IDB_COPYPASSWORD_CLASSIC        260
+#define IDB_COPYPASSWORD_NEW8           261
+#define IDB_COPYPASSWORD_NEW32          262
+#define IDB_COPYUSER_CLASSIC            263
+#define IDB_COPYUSER_NEW8               264
+#define IDB_COPYUSER_NEW32              265
+#define IDB_DELETE_CLASSIC              266
+#define IDB_DELETE_NEW8                 267
+#define IDB_DELETE_NEW32                268
+#define IDB_EXPANDALL_CLASSIC           269
+#define IDB_EXPANDALL_NEW8              270
+#define IDB_EXPANDALL_NEW32             271
+#define IDB_HELP_CLASSIC                272
+#define IDB_HELP_NEW8                   273
+#define IDB_HELP_NEW32                  274
+#define IDB_NEW_CLASSIC                 275
+#define IDB_NEW_NEW8                    276
+#define IDB_NEW_NEW32                   277
+#define IDB_OPEN_CLASSIC                278
+#define IDB_OPEN_NEW8                   279
+#define IDB_OPEN_NEW32                  280
+#define IDB_SAVE_CLASSIC                281
+#define IDB_SAVE_NEW8                   282
+#define IDB_SAVE_NEW32                  283
+#define IDB_SENDEMAIL_CLASSIC           284
+#define IDB_SENDEMAIL_NEW8              285
+#define IDB_SENDEMAIL_NEW32             286
+#define IDB_VIEWEDIT_CLASSIC            287
+#define IDB_VIEWEDIT_NEW8               288
+#define IDB_VIEWEDIT_NEW32              289
+#define IDB_EDITCTRLPLACEHOLDER         290
+#define IDB_FIND_CLASSIC                291
+#define IDB_FIND_NEW8                   292
+#define IDB_FIND_NEW32                  293
+#define IDB_CLEARFIND_CLASSIC           294
+#define IDB_CLEARFIND_NEW8              295
+#define IDB_CLEARFIND_NEW32             296
+#define IDR_POPCUSTOMIZETOOLBAR         297
 #define IDC_APPVERSION                  1000
 #define IDC_VERSION                     1001
 #define IDC_BROWSE                      1002
@@ -310,14 +366,15 @@
 #define IDC_NEWVER_STATUS               1272
 #define IDC_EMAIL                       1273
 #define IDC_STATIC_EMAIL                1274
+#define IDC_TOOLBAR_FINDEDITCTRL        1275
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        239
+#define _APS_NEXT_RESOURCE_VALUE        298
 #define _APS_NEXT_COMMAND_VALUE         30000
-#define _APS_NEXT_CONTROL_VALUE         1275
+#define _APS_NEXT_CONTROL_VALUE         1276
 #define _APS_NEXT_SYMED_VALUE           129
 #endif
 #endif

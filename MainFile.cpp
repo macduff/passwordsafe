@@ -144,7 +144,7 @@ DboxMain::OpenOnInit(void)
                      MB_YESNO | MB_ICONWARNING) == IDNO) {
         CDialog::OnCancel();
       }
-      m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD,
+      m_MainToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD,
                                                  FALSE);
       
       retval = TRUE;
@@ -538,7 +538,7 @@ DboxMain::Open( const CMyString &pszFilename )
               return PWScore::USER_CANCEL;
             }
             rc = PWScore::SUCCESS;
-            m_wndToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD,
+            m_MainToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_ADD,
                                                        FALSE);
             break;
         }
@@ -1999,7 +1999,6 @@ DboxMain::OnProcessCompareResultFunction(WPARAM wParam, LPARAM lFunction)
     memcpy(entryUUID, st_info->uuid1, sizeof(uuid_array_t));
   }
 
-  st_info->Dump();
   switch ((int)lFunction) {
     case CCompareResultsDlg::EDIT:
       lres = EditCompareResult(pcore, entryUUID);
