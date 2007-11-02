@@ -22,9 +22,14 @@ as current open database), since more information is being written there.
 standard RFC2368.  For example: "info@example.com?subject=PasswordSafe"
 [] Main toolbar can be customized via MS's standard dialog via right
 click on this toolbar.
-[] New Find toolbar added at bottom of application above the status bar.
-Can be toggled on/off via right click on main toolbar. Equivalent to the
-Find dialog.
+[1815192] New Find toolbar added at bottom of application above the status
+bar.  Can be toggled on/off via right click on main toolbar. Equivalent to
+the Find dialog.
+
+Changes to Existing Features in 3.10.02
+=======================================
+[1756385] Change Idle Icon in task tray from black to light blue so that 
+it is visible in the standard black MS Vista taskbar.
 
 Changes to Existing Features in 3.10.01
 =======================================
