@@ -115,7 +115,7 @@ public:
   ItemListIter End()
   {return m_core.GetEntryEndIter();}
 
-  // FindAll is used by CFindDlg, returns # of finds.
+  // FindAll is used by CPWFindToolBar, returns # of finds.
   size_t FindAll(const CString &str, BOOL CaseSensitive,
               std::vector<int> &indices);
   size_t FindAll(const CString &str, BOOL CaseSensitive,
@@ -167,8 +167,6 @@ public:
   bool MakeRandomPassword(CDialog * const pDialog, CMyString& password);
   BOOL LaunchBrowser(const CString &csURL);
   BOOL DoEmail(const CString &csEmail);
-  void SetFindActive() {m_bFindActive = true;}
-  void SetFindInActive() {m_bFindActive = false;}
   bool GetCurrentView() {return m_IsListView;}
   void UpdatePasswordHistory(int iAction, int num_default);
   void SetInitialDatabaseDisplay();
@@ -252,7 +250,6 @@ protected:
 
   bool m_bTSUpdated;
   int m_iSessionEndingStatus;
-  bool m_bFindActive;
 
   // Used for Advanced functions
   CItemData::FieldBits m_bsFields;
@@ -427,7 +424,6 @@ protected:
   afx_msg void OnUpdateROCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateClosedCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateTVCommand(CCmdUI *pCmdUI);
-  afx_msg void OnUpdateViewCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateEmptyDB(CCmdUI *pCmdUI);
   afx_msg void OnUpdateNSCommand(CCmdUI *pCmdUI);  // Make entry unsupported (grayed out)
   afx_msg void OnInitMenu(CMenu* pMenu);
@@ -444,9 +440,12 @@ protected:
   afx_msg void OnImportXML();
 
   afx_msg void OnToolBarFind();
-  afx_msg void OnToolBarClearFind();
   afx_msg void OnCustomizeToolbar();
   afx_msg void OnToggleFindToolBar();
+  afx_msg void OnToolBarFindCase();
+  afx_msg void OnUpdateToolBarFindCase(CCmdUI *pCmdUI);
+  afx_msg void OnToolBarFindAdvanced();
+  afx_msg void OnToolBarClearFind();
 
 #if _MFC_VER > 1200
   afx_msg BOOL OnOpenMRU(UINT nID);
@@ -463,8 +462,6 @@ protected:
 private:
   CMyString m_BrowseURL; // set by OnContextMenu(), used by OnBrowse()
   PWScore &m_core;
-  CMyString m_lastFindStr;
-  BOOL m_lastFindCS;
   bool m_IsStartSilent;
   bool m_IsStartClosed;
   bool m_bStartHiddenAndMinimized;

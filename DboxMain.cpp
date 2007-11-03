@@ -36,7 +36,6 @@
 #include "TryAgainDlg.h"
 #include "PasskeyEntry.h"
 #include "ExpPWListDlg.h"
-#include "FindDlg.h"
 #include "GeneralMsgBox.h"
 
 // widget override?
@@ -76,11 +75,10 @@ DboxMain::DboxMain(CWnd* pParent)
      m_bSizing(false), m_needsreading(true), m_windowok(false),
      m_toolbarsSetup(FALSE),
      m_bSortAscending(true), m_iTypeSortColumn(CItemData::TITLE),
-     m_lastFindCS(FALSE), m_lastFindStr(_T("")),
      m_core(app.m_core), m_pFontTree(NULL),
      m_selectedAtMinimize(NULL), m_bTSUpdated(false),
      m_iSessionEndingStatus(IDIGNORE),
-     m_bFindActive(false), m_pchTip(NULL), m_pwchTip(NULL),
+     m_pchTip(NULL), m_pwchTip(NULL),
      m_bValidate(false), m_bOpen(false), 
      m_IsStartClosed(false), m_IsStartSilent(false),
      m_bStartHiddenAndMinimized(false),
@@ -114,8 +112,6 @@ DboxMain::~DboxMain()
   delete m_pchTip;
   delete m_pwchTip;
   delete m_pFontTree;
-
-  CFindDlg::EndIt();
 }
 
 BEGIN_MESSAGE_MAP(DboxMain, CDialog)
@@ -172,9 +168,7 @@ ON_COMMAND(ID_MENUITEM_AUTOTYPE, OnAutoType)
 
 // View Menu
 ON_COMMAND(ID_MENUITEM_LIST_VIEW, OnListView)
-ON_UPDATE_COMMAND_UI(ID_MENUITEM_LIST_VIEW, OnUpdateViewCommand)
 ON_COMMAND(ID_MENUITEM_TREE_VIEW, OnTreeView)
-ON_UPDATE_COMMAND_UI(ID_MENUITEM_TREE_VIEW, OnUpdateViewCommand)
 ON_COMMAND(ID_MENUITEM_OLD_TOOLBAR, OnOldToolbar)
 ON_COMMAND(ID_MENUITEM_NEW_TOOLBAR, OnNewToolbar)
 ON_COMMAND(ID_MENUITEM_EXPANDALL, OnExpandAll)
@@ -269,7 +263,11 @@ ON_UPDATE_COMMAND_UI(ID_TOOLBUTTON_EXPANDALL, OnUpdateTVCommand)
 ON_COMMAND(ID_TOOLBUTTON_COLLAPSEALL, OnCollapseAll)
 ON_UPDATE_COMMAND_UI(ID_TOOLBUTTON_COLLAPSEALL, OnUpdateTVCommand)
 
+ON_COMMAND(ID_TOOLBUTTON_CLOSEFIND, OnToggleFindToolBar)
 ON_COMMAND(ID_TOOLBUTTON_FIND, OnToolBarFind)
+ON_COMMAND(ID_TOOLBUTTON_FINDCASE, OnToolBarFindCase)
+ON_UPDATE_COMMAND_UI(ID_TOOLBUTTON_FINDCASE, OnUpdateToolBarFindCase)
+ON_COMMAND(ID_TOOLBUTTON_FINDADVANCED, OnToolBarFindAdvanced)
 ON_COMMAND(ID_TOOLBUTTON_CLEARFIND, OnToolBarClearFind)
 #endif
 
@@ -635,7 +633,9 @@ DboxMain::OnInitDialog()
   }
 
   SetInitialDatabaseDisplay();
-  SetToolBarPositions();
+  if (m_FindToolBar.IsVisible())
+    OnToggleFindToolBar();
+
   return TRUE;  // return TRUE unless you set the focus to a control
 }
 
@@ -854,14 +854,6 @@ DboxMain::OnUpdateROCommand(CCmdUI *pCmdUI)
       }
   }
 #endif
-}
-
-void
-DboxMain::OnUpdateViewCommand(CCmdUI *pCmdUI)
-{
-  // Use this callback to disable swap between Tree and List modes
-  // during a Find operation
-  pCmdUI->Enable(m_bFindActive ? FALSE : TRUE);
 }
 
 void

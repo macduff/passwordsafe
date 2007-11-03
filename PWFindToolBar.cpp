@@ -10,8 +10,11 @@
 //
 
 #include "stdafx.h"
+#include "DboxMain.h"
 #include "PWFindToolBar.h"
 #include "ControlExtns.h"
+#include "AdvancedDlg.h"
+#include "ThisMfcApp.h" // for disable/enable accel.
 #include "resource.h"
 #include "resource2.h"
 #include "resource3.h"
@@ -26,43 +29,78 @@
 
 // See comments in PWToolBar.cpp for details of these arrays
 
+/*
+ * Note: Bad coding but if you change the position of the Case Sensitive button
+ * in the Find Toolbar, you must update the "m_iCase_Insensitive_BM_offset" variable
+ * with its new offest in the bitmap arrays.
+ * Also, the Case Sensitive bitmap must be the last bitmap in the arrays.
+
+ */
+
 #define EDITCTRL_WIDTH 100    // width of Edit control for Search Text
 #define FINDRESULTS_WIDTH 400 // width of Edit control for Search Results
 
 const UINT CPWFindToolBar::m_FindToolBarIDs[] = {
+  ID_TOOLBUTTON_CLOSEFIND,
   ID_TOOLBUTTON_FINDEDITCTRL,
   ID_TOOLBUTTON_FIND,
+  ID_TOOLBUTTON_FINDCASE,
+  ID_TOOLBUTTON_FINDADVANCED,
   ID_TOOLBUTTON_CLEARFIND,
   ID_SEPARATOR,
   ID_TOOLBUTTON_FINDRESULTS
 };
 
 const UINT CPWFindToolBar::m_FindToolBarClassicBMs[] = {
+  IDB_CLOSEFIND_CLASSIC,
   IDB_EDITCTRLPLACEHOLDER,
   IDB_FIND_CLASSIC,
+  IDB_FINDCASE_I_CLASSIC,       // m_iCase_Insensitive_BM_offset contains this offset
+  IDB_FINDADVANCED_CLASSIC,
   IDB_CLEARFIND_CLASSIC,
-  IDB_EDITCTRLPLACEHOLDER
+  IDB_EDITCTRLPLACEHOLDER,
+  IDB_FINDCASE_S_CLASSIC        // Must be last!
 };
 
 const UINT CPWFindToolBar::m_FindToolBarNew8BMs[] = {
+  IDB_CLOSEFIND_NEW8,
   IDB_EDITCTRLPLACEHOLDER,
   IDB_FIND_NEW8,
+  IDB_FINDCASE_I_NEW8,          // m_iCase_Insensitive_BM_offset contains this offset
+  IDB_FINDADVANCED_NEW8,
   IDB_CLEARFIND_NEW8,
-  IDB_EDITCTRLPLACEHOLDER
+  IDB_EDITCTRLPLACEHOLDER,
+  IDB_FINDCASE_S_NEW8           // Must be last!
 };
 
 const UINT CPWFindToolBar::m_FindToolBarNew32BMs[] = {
+  IDB_CLOSEFIND_NEW32,
   IDB_EDITCTRLPLACEHOLDER,
   IDB_FIND_NEW32,
+  IDB_FINDCASE_I_NEW32,         // m_iCase_Insensitive_BM_offset contains this offset
+  IDB_FINDADVANCED_NEW32,
   IDB_CLEARFIND_NEW32,
-  IDB_EDITCTRLPLACEHOLDER
+  IDB_EDITCTRLPLACEHOLDER,
+  IDB_FINDCASE_S_NEW32          // Must be last!
 };
 
 IMPLEMENT_DYNAMIC(CPWFindToolBar, CToolBar)
 
 CPWFindToolBar::CPWFindToolBar()
-  :  m_ClassicFlags(0), m_NewFlags(0), m_bitmode(1), m_bVisible(true)
+  : m_ClassicFlags(0), m_NewFlags(0), m_bitmode(1), m_bVisible(true),
+    m_bCaseSensitive(false),
+    m_lastshown(size_t(-1)), m_numFound(0),
+    m_last_search_text(_T("")), m_last_cs_search(FALSE),
+    m_bAdvanced(false),
+    m_subgroup_name(_T("")), m_subgroup_set(BST_UNCHECKED),
+    m_subgroup_object(0), m_subgroup_function(0),
+    m_last_subgroup_name(_T("")), m_last_subgroup_set(BST_UNCHECKED),
+    m_last_subgroup_object(0), m_last_subgroup_function(0),
+    m_iCase_Insensitive_BM_offset(3)
 {
+  m_bsFields.reset();
+  m_last_bsFields.reset();
+
   m_iMaxNumButtons = sizeof(m_FindToolBarIDs) / sizeof(UINT);
   m_pOriginalTBinfo = new TBBUTTON[m_iMaxNumButtons];
 
@@ -73,15 +111,15 @@ CPWFindToolBar::CPWFindToolBar()
 
   m_iNum_Bitmaps = sizeof(m_FindToolBarClassicBMs) / sizeof(UINT);
 
-  LOGFONT lf; 
-  memset(&lf, 0, sizeof(lf)); 
+  LOGFONT lf;
+  memset(&lf, 0, sizeof(lf));
 
-  // Since design guide says toolbars are fixed height so is the font. 
-  lf.lfHeight = -11; 
-  lf.lfWeight = FW_LIGHT; 
-  lf.lfPitchAndFamily = VARIABLE_PITCH | FF_SWISS; 
-  CString strDefaultFont = _T("Arial"); 
-  lstrcpy(lf.lfFaceName, strDefaultFont); 
+  // Since design guide says toolbars are fixed height so is the font.
+  lf.lfHeight = -11;
+  lf.lfWeight = FW_LIGHT;
+  lf.lfPitchAndFamily = VARIABLE_PITCH | FF_SWISS;
+  CString strDefaultFont = _T("MS Sans Serif");
+  lstrcpy(lf.lfFaceName, strDefaultFont);
   VERIFY(m_FindTextFont.CreateFontIndirect(&lf));
 }
 
@@ -104,7 +142,7 @@ BOOL CPWFindToolBar::PreTranslateMessage(MSG *pMsg)
     CWnd *pWnd = FromHandle(pMsg->hwnd);
     int nID = pWnd->GetDlgCtrlID();
     if (nID == ID_TOOLBUTTON_FINDEDITCTRL) {
-      m_pMessageWindow->SendMessage(m_iWMSGID);
+      m_pDbx->SendMessage(m_iWMSGID);
       return TRUE;
     }
   }
@@ -115,7 +153,7 @@ BOOL CPWFindToolBar::PreTranslateMessage(MSG *pMsg)
 //  Other routines
 
 void
-CPWFindToolBar::Init(const int NumBits, CWnd *pMessageWindow, int iWMSGID)
+CPWFindToolBar::Init(const int NumBits, CWnd *pDbx, int iWMSGID)
 {
   int i, j;
   m_ClassicBackground = RGB(192, 192, 192);
@@ -151,7 +189,7 @@ CPWFindToolBar::Init(const int NumBits, CWnd *pMessageWindow, int iWMSGID)
     m_ImageList.Add(&bmTemp, m_NewBackground);
     bmTemp.Detach();
   }
- 
+
   j = 0;
   for (i = 0; i < m_iMaxNumButtons; i++) {
     const bool bIsSeparator = m_FindToolBarIDs[i] == ID_SEPARATOR;
@@ -170,7 +208,7 @@ CPWFindToolBar::Init(const int NumBits, CWnd *pMessageWindow, int iWMSGID)
       j++;
   }
 
-  m_pMessageWindow = pMessageWindow;
+  m_pDbx = pDbx;
   m_iWMSGID = iWMSGID;
 }
 
@@ -186,7 +224,7 @@ CPWFindToolBar::LoadDefaultToolBar(const int toolbarMode)
   m_ImageList.Detach();
 
   j = 0;
-  const int iOffset = (m_toolbarMode == ID_MENUITEM_OLD_TOOLBAR) ? 0 : m_bitmode *m_iNum_Bitmaps;
+  const int iOffset = (m_toolbarMode == ID_MENUITEM_OLD_TOOLBAR) ? 0 : m_bitmode * m_iNum_Bitmaps;
   for (i = 0; i < m_iMaxNumButtons; i++) {
     if (m_FindToolBarIDs[i] != ID_SEPARATOR) {
       m_pOriginalTBinfo[i].iBitmap = j + iOffset;
@@ -195,6 +233,15 @@ CPWFindToolBar::LoadDefaultToolBar(const int toolbarMode)
   }
 
   tbCtrl.AddButtons(m_iMaxNumButtons, &m_pOriginalTBinfo[0]);
+
+  TBBUTTONINFO tbinfo;
+  memset(&tbinfo, 0x00, sizeof(tbinfo));
+  tbinfo.cbSize = sizeof(tbinfo);
+  tbinfo.dwMask = TBIF_STYLE;
+
+  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDCASE, &tbinfo);
+  tbinfo.fsStyle = TBSTYLE_CHECK;
+  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDCASE, &tbinfo);
 
   AddExtraControls();
 
@@ -223,18 +270,18 @@ CPWFindToolBar::AddExtraControls()
   // Convert that button to a separator
   SetButtonInfo(index, ID_TOOLBUTTON_FINDEDITCTRL, TBBS_SEPARATOR, EDITCTRL_WIDTH);
 
-  // Note: "ES_WANTRETURN | ES_MULTILINE".  This is to allow the return key to be 
+  // Note: "ES_WANTRETURN | ES_MULTILINE".  This is to allow the return key to be
   // trapped by PreTranslateMessage and treated as if the Find button had been
   // pressed
   rect = CRect(0, 0, EDITCTRL_WIDTH, iBtnHeight);
-  VERIFY(m_findedit.Create(WS_CHILD | WS_VISIBLE | 
+  VERIFY(m_findedit.Create(WS_CHILD | WS_VISIBLE |
                            ES_AUTOHSCROLL | ES_LEFT | ES_WANTRETURN | ES_MULTILINE,
                            CRect(rect.left + 2, rect.top + 2, rect.right - 2, rect.bottom - 2),
                            this, ID_TOOLBUTTON_FINDEDITCTRL));
 
   GetItemRect(index, &rect);
   rect.top += max((rect.top - rt.top) / 2, 0);
-  m_findedit.SetWindowPos(NULL, rect.left, rect.top + 2, 0, 0,
+  m_findedit.SetWindowPos(NULL, rect.left + 2, rect.top + 2, 0, 0,
                           SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOCOPYBITS );
 
   m_findedit.SetFont(&m_FindTextFont);
@@ -253,17 +300,17 @@ CPWFindToolBar::AddExtraControls()
   SetButtonInfo(index, ID_TOOLBUTTON_FINDRESULTS, TBBS_SEPARATOR, FINDRESULTS_WIDTH);
 
   rect = CRect(0, 0, FINDRESULTS_WIDTH, iBtnHeight);
-  VERIFY(m_findresults.Create(_T(""), WS_CHILD | WS_VISIBLE | 
-                           SS_LEFTNOWORDWRAP,
+  VERIFY(m_findresults.Create(_T(""), WS_CHILD | WS_VISIBLE |
+                           SS_LEFTNOWORDWRAP | SS_CENTERIMAGE,
                            CRect(rect.left + 2, rect.top + 2, rect.right - 2, rect.bottom - 2),
                            this, ID_TOOLBUTTON_FINDEDITCTRL));
 
   GetItemRect(index, &rect);
   rect.top += max((rect.top - rt.top) / 2, 0);
-  m_findresults.SetWindowPos(NULL, rect.left, rect.top + 2, 0, 0,
+  m_findresults.SetWindowPos(NULL, rect.left + 2, rect.top + 2, 0, 0,
                           SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOCOPYBITS );
 
-  m_findresults.SetFont(&m_FindTextFont); 
+  m_findresults.SetFont(&m_FindTextFont);
 
   ModifyStyle(0, WS_CLIPCHILDREN);
 }
@@ -271,12 +318,18 @@ CPWFindToolBar::AddExtraControls()
 void
 CPWFindToolBar::ShowFindToolBar(bool bShow)
 {
-  if (bShow == m_bVisible)
+  if (bShow == m_bVisible) {
+    if (bShow)
+      m_findedit.ChangeColour();
     return;
+  }
 
   ::ShowWindow(this->GetSafeHwnd(), bShow ? SW_SHOW : SW_HIDE);
   ::EnableWindow(this->GetSafeHwnd(), bShow ? TRUE : FALSE);
-  m_bVisible = !m_bVisible;
+  m_bVisible = bShow;
+
+  if (bShow)
+    m_findedit.SetFocus();
 }
 
 void
@@ -287,6 +340,25 @@ CPWFindToolBar::Enable(bool bEnable)
 
   ::EnableWindow(this->GetSafeHwnd(), bEnable ? TRUE : FALSE);
   m_bEnabled = !m_bEnabled;
+}
+
+void CPWFindToolBar::ToggleToolBarFindCase()
+{
+  CToolBarCtrl& tbCtrl = GetToolBarCtrl();
+
+  m_bCaseSensitive = !m_bCaseSensitive;
+  tbCtrl.CheckButton(ID_TOOLBUTTON_FINDCASE, m_bCaseSensitive ? TRUE : FALSE);
+
+  TBBUTTONINFO tbinfo;
+  memset(&tbinfo, 0x00, sizeof(tbinfo));
+  tbinfo.cbSize = sizeof(tbinfo);
+  tbinfo.dwMask = TBIF_IMAGE;
+  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDCASE, &tbinfo);
+
+  const int iOffset = (m_toolbarMode == ID_MENUITEM_OLD_TOOLBAR) ? 0 : m_bitmode * m_iNum_Bitmaps;
+  int j = m_bCaseSensitive ? m_iNum_Bitmaps - 1 : m_iCase_Insensitive_BM_offset;
+  tbinfo.iImage = j + iOffset;
+  tbCtrl.SetButtonInfo(ID_TOOLBUTTON_FINDCASE, &tbinfo);
 }
 
 void
@@ -325,35 +397,6 @@ CPWFindToolBar::ChangeImages(const int toolbarMode)
 }
 
 void
-CPWFindToolBar::UpdateResults(const int num_found)
-{
-  CString cs_status;
-  
-  if (num_found < 0) {
-    cs_status.LoadString(IDS_ENTERSEARCHSTRING);
-    m_findresults.SetWindowText(cs_status);
-    return;
-  }
-
-  switch (num_found) {
-    case 0:
-      cs_status.LoadString(IDS_NOMATCHFOUND);
-      // Need m_findedit to lose focus
-      SetFocus();
-      m_findedit.SetColour(RGB(250, 215, 230));  // Set it to pink!
-      break;
-    case 1:
-      cs_status.LoadString(IDS_FOUNDAMATCH);
-      break;
-    default:
-      cs_status.Format(IDS_FOUNDMATCHES, num_found);
-      break;
-  }
-  m_findresults.SetWindowText(cs_status);
-  Invalidate();
-}
-
-void
 CPWFindToolBar::ClearFind()
 {
   m_findedit.SetWindowText(_T(""));
@@ -362,4 +405,114 @@ CPWFindToolBar::ClearFind()
   SetFocus();
 
   m_findedit.SetColour(RGB(255, 255, 255));  // Set it to white
+}
+
+void
+CPWFindToolBar::Find()
+{
+  DboxMain* dbx = static_cast<DboxMain *>(m_pDbx);
+  ASSERT(dbx != NULL);
+
+  m_findedit.SetColour();
+  m_findedit.Invalidate();
+
+  CString cs_status;
+  m_findedit.GetWindowText(m_search_text);
+  if (m_search_text.IsEmpty()) {
+    cs_status.LoadString(IDS_ENTERSEARCHSTRING);
+    m_findresults.SetWindowText(cs_status);
+    return;
+  }
+
+  m_cs_search = m_bCaseSensitive;
+
+  // If the user changes the search text or cs, then this is a new search:
+  if (m_search_text != m_last_search_text ||
+      m_cs_search != m_last_cs_search ||
+      m_bsFields != m_last_bsFields ||
+      m_subgroup_name != m_last_subgroup_name ||
+      m_subgroup_set != m_last_subgroup_set ||
+      m_subgroup_object != m_last_subgroup_object ||
+      m_subgroup_function != m_last_subgroup_function) {
+    m_last_search_text = m_search_text;
+    m_last_cs_search = m_cs_search;
+    m_last_bsFields = m_bsFields;
+    m_last_subgroup_name = m_subgroup_name;
+    m_last_subgroup_set = m_subgroup_set;
+    m_last_subgroup_object = m_subgroup_object;
+    m_last_subgroup_function = m_subgroup_function;
+    m_lastshown = size_t(-1);
+  }
+
+  if (m_bLastView != dbx->GetCurrentView()) {
+	  m_bLastView = dbx->GetCurrentView();
+	  m_lastshown = size_t(-1);  // Indices will be in different order even if search the same
+  }
+
+  if (m_lastshown == -1) {
+    m_indices.clear();
+
+    if (m_bAdvanced)
+      m_numFound = dbx->FindAll(m_search_text, m_cs_search, m_indices,
+                                m_bsFields, m_subgroup_set,
+                                m_subgroup_name, m_subgroup_object, m_subgroup_function);
+    else
+      m_numFound = dbx->FindAll(m_search_text, m_cs_search, m_indices);
+
+    switch (m_numFound) {
+      case 0:
+        cs_status.LoadString(IDS_NOMATCHFOUND);
+        // Need m_findedit to lose focus
+        SetFocus();
+        m_findedit.SetColour(RGB(250, 215, 230));  // Set it to pink!
+        break;
+      case 1:
+        cs_status.LoadString(IDS_FOUNDAMATCH);
+        break;
+      default:
+        cs_status.Format(IDS_FOUNDMATCHES, 1, m_numFound);
+        break;
+    }
+  } // m_lastshown == -1
+
+  // OK, so now we have a (possibly empty) list of items to select.
+  if (m_numFound > 0) {
+    if (m_numFound == 1) {
+    	dbx->SelectFindEntry(m_indices[0], TRUE);
+    } else {
+    	m_lastshown++;
+    	if (m_lastshown >= m_numFound) {
+        cs_status.LoadString(IDS_SEARCHWRAPPED);
+        m_lastshown = 0;
+    	} else
+        cs_status.Format(IDS_FOUNDMATCHES, m_lastshown + 1, m_numFound);
+      dbx->SelectFindEntry(m_indices[m_lastshown], TRUE);
+    }
+  }
+  m_findresults.SetWindowText(cs_status);
+  Invalidate();
+}
+
+void
+CPWFindToolBar::ShowFindAdvanced()
+{
+  CAdvancedDlg Adv(this, ADV_FIND, m_bsFields, m_subgroup_name, m_subgroup_set,
+                   m_subgroup_object, m_subgroup_function);
+
+  app.DisableAccelerator();
+  INT_PTR rc = Adv.DoModal();
+  app.EnableAccelerator();
+
+  if (rc == IDOK) {
+    m_bAdvanced = true;
+    m_bsFields = Adv.m_bsFields;
+    m_subgroup_set = Adv.m_subgroup_set;
+    if (m_subgroup_set == BST_CHECKED) {
+      m_subgroup_name = Adv.m_subgroup_name;
+      m_subgroup_object = Adv.m_subgroup_object;
+      m_subgroup_function = Adv.m_subgroup_function;
+    }
+  } else {
+    m_bAdvanced = false;
+  }
 }

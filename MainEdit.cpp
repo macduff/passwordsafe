@@ -23,7 +23,6 @@
 #include "EditDlg.h"
 #include "KeySend.h"
 #include "ClearQuestionDlg.h"
-#include "FindDlg.h"
 
 #include <vector>
 #include <algorithm>
@@ -744,7 +743,10 @@ void
 DboxMain::OnFind()
 {
   // create modeless or popup existing
-  CFindDlg::Doit(this, &m_lastFindCS, &m_lastFindStr);
+  if (!m_FindToolBar.IsVisible())
+    OnToggleFindToolBar();
+  else
+    m_FindToolBar.ShowFindToolBar(true);
 }
 
 void
@@ -1061,18 +1063,6 @@ DboxMain::OnToolBarFindMessage(WPARAM /* wParam */, LPARAM /* lParam */)
 
 void DboxMain::OnToolBarFind()
 { 
-  CString csFindString;
-  m_FindToolBar.GetSearchText(csFindString);
-
-  int num_found(0);
-  if (!csFindString.IsEmpty()) {
-    num_found = CFindDlg::Doit2(this, &m_lastFindCS, &m_lastFindStr, &csFindString);
-    m_FindToolBar.UpdateResults(num_found);
-  }
+  m_FindToolBar.Find();
 }
 
-void
-DboxMain::OnToolBarClearFind()
-{
-  m_FindToolBar.ClearFind();
-}

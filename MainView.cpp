@@ -279,9 +279,7 @@ DboxMain::setupBars()
     SetToolbar(ID_MENUITEM_NEW_TOOLBAR, true);
   }
 
-  bool bShowFind = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowFindToolBar);
-  if (bShowFind != m_FindToolBar.IsVisible())
-    m_FindToolBar.ShowFindToolBar(bShowFind);
+  m_FindToolBar.ShowFindToolBar(false);
 
   // Set flag - we're done
   m_toolbarsSetup = TRUE;
@@ -2414,9 +2412,6 @@ DboxMain::OnToggleFindToolBar()
 {
   m_FindToolBar.ShowFindToolBar(!m_FindToolBar.IsVisible());
 
-  PWSprefs::GetInstance()->SetPref(PWSprefs::ShowFindToolBar,
-                                   m_FindToolBar.IsVisible() ? TRUE : FALSE);
-
   CRect rect;
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
@@ -2451,4 +2446,29 @@ DboxMain::SetToolBarPositions()
       m_statusBar.Invalidate();
     }
   }
+}
+
+void
+DboxMain::OnToolBarClearFind()
+{
+  m_FindToolBar.ClearFind();
+}
+
+void
+DboxMain::OnToolBarFindCase()
+{
+  m_FindToolBar.ToggleToolBarFindCase();
+}
+
+void 
+DboxMain::OnToolBarFindAdvanced()
+{
+  m_FindToolBar.ShowFindAdvanced();
+}
+
+void 
+DboxMain::OnUpdateToolBarFindCase(CCmdUI * /*pCmdUI */)
+{
+  m_FindToolBar.GetToolBarCtrl().CheckButton(ID_TOOLBUTTON_FINDCASE, 
+                                             m_FindToolBar.IsFindCaseSet());
 }

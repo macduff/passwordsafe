@@ -620,10 +620,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\FindDlg.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\GeneralMsgBox.cpp"
 				>
 			</File>
@@ -874,10 +870,6 @@
 			</File>
 			<File
 				RelativePath=".\ExtThread.h"
-				>
-			</File>
-			<File
-				RelativePath=".\FindDlg.h"
 				>
 			</File>
 			<File

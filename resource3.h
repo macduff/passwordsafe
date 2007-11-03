@@ -123,8 +123,7 @@
 #define IDS_NOMATCHFOUND                5290
 #define IDS_FOUNDAMATCH                 5291
 #define IDS_FOUNDMATCHES                5292
-#define IDS_CONTINUESEARCH              5293
-#define IDS_SEARCHNOTFOUND              5294
+#define IDS_SEARCHWRAPPED               5293
 #define IDS_FINDNEXT                    5295
 #define IDS_IMPORTED                    5296
 #define IDS_NOCURRENTSAFE               5297

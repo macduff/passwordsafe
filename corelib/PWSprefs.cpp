@@ -54,7 +54,7 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
 	{_T("DCShowsPassword"), false, false},							// application
 	{_T("DontAskMinimizeClearYesNo"), true, false},					// application
 	{_T("DatabaseClear"), false, false},							// application
-	{_T("DontAskSaveMinimize"), false, false},						// application
+	{_T("DontAskSaveMinimize"), false, false},						// application - obsoleted in 3.02
 	{_T("QuerySetDef"), true, false},								// application
 	{_T("UseNewToolbar"), true, false},								// application
 	{_T("UseSystemTray"), true, false},								// application
@@ -67,7 +67,7 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
 	{_T("DisplayExpandedAddEditDlg"), true, true},					// database
 	{_T("MaintainDateTimeStamps"), false, true},					// database
 	{_T("SavePasswordHistory"), false, true},						// database
-	{_T("FindWraps"), false, false},								// application
+	{_T("FindWraps"), false, false},								// application - obsoleted in 3.11
 	{_T("ShowNotesDefault"), false, true},							// database
 	{_T("BackupBeforeEverySave"), true, false},					    // application
 	{_T("PreExpiryWarn"), false, false},                            // application
@@ -75,7 +75,6 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
   {_T("ListViewGridLines"), false, false},                        // application
   {_T("MinimizeOnAutotype"), true, false},                        // application
   {_T("ShowUsernameInTree"), true, true},								// database
-  {_T("ShowFindToolBar"), true, false},                  // application
 };
 
 // Default value = -1 means set at runtime

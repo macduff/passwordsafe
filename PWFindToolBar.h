@@ -11,6 +11,7 @@
 // CPWFindToolBar
 
 #include "ControlExtns.h"
+#include <vector>
 
 class CPWFindToolBar : public CToolBar
 {
@@ -31,8 +32,12 @@ public:
   bool IsEnabled() {return m_bEnabled;}
   void GetSearchText(CString &csFindString)
     {m_findedit.GetWindowText(csFindString);}
-  void UpdateResults(const int num_found);
+  void Find();
   void ClearFind();
+  void ShowFindAdvanced();
+  void ToggleToolBarFindCase();
+  BOOL CPWFindToolBar::IsFindCaseSet()
+  {return m_bCaseSensitive ? TRUE : FALSE;}
 
   CEditExtn m_findedit;
   CStatic m_findresults;
@@ -53,12 +58,28 @@ private:
 
   CImageList m_ImageList;
   TBBUTTON *m_pOriginalTBinfo;
-  CWnd *m_pMessageWindow;
+  CWnd *m_pDbx;
   CFont m_FindTextFont;
   int m_iMaxNumButtons, m_iNum_Bitmaps;
   int m_iWMSGID;
   int m_toolbarMode, m_bitmode;
   UINT m_ClassicFlags, m_NewFlags;
   COLORREF m_ClassicBackground, m_NewBackground;
-  bool m_bVisible, m_bEnabled;
+  bool m_bVisible, m_bEnabled, m_bCaseSensitive, m_bAdvanced;
+
+  std::vector<int> m_indices; // array of found items
+
+  bool m_cs_search, m_last_cs_search;
+  CMyString	m_search_text, m_last_search_text;
+  CItemData::FieldBits m_bsFields, m_last_bsFields;
+  CString m_subgroup_name, m_last_subgroup_name;
+  int m_subgroup_set, m_last_subgroup_set;
+  int m_subgroup_object, m_last_subgroup_object;
+  int m_subgroup_function, m_last_subgroup_function;
+
+  size_t m_lastshown; // last index selected, -1 indicates no search done yet
+  size_t m_numFound; // number of matched items, as returned by DboxMain::FindAll
+
+  int m_iCase_Insensitive_BM_offset;
+  bool m_bLastView;
 };

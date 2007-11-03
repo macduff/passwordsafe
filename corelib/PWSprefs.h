@@ -60,10 +60,12 @@ class PWSprefs {
 		   LockOnWindowLock, LockOnIdleTimeout,
 		   EscExits, IsUTF8, HotKeyEnabled, MRUOnFileMenu,
 		   DisplayExpandedAddEditDlg, MaintainDateTimeStamps,
-		   SavePasswordHistory, FindWraps, ShowNotesDefault,
+		   SavePasswordHistory, 
+       FindWraps, // Obsoleted in 3.11
+       ShowNotesDefault,
 		   BackupBeforeEverySave, PreExpiryWarn,
        ExplorerTypeTree, ListViewGridLines, MinimizeOnAutotype,
-       ShowUsernameInTree, ShowFindToolBar,
+       ShowUsernameInTree,
 		   NumBoolPrefs};
   enum  IntPrefs {Column1Width, Column2Width, Column3Width, Column4Width,
 		  SortedColumn, PWDefaultLength, MaxMRUItems, IdleTimeout,

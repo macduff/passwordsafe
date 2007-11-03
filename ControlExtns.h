@@ -21,7 +21,7 @@ public:
 	CEditExtn();
 	CEditExtn(int message_number, LPCTSTR szmenustring);
 	void ChangeColour() {m_bIsFocused = TRUE;}
-  void SetColour(COLORREF crefUserColor);
+  void SetColour(COLORREF crefUserColor = RGB(222, 255, 222));
 
 // Attributes
 private:
