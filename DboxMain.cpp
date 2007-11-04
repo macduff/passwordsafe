@@ -78,7 +78,7 @@ DboxMain::DboxMain(CWnd* pParent)
      m_core(app.m_core), m_pFontTree(NULL),
      m_selectedAtMinimize(NULL), m_bTSUpdated(false),
      m_iSessionEndingStatus(IDIGNORE),
-     m_pchTip(NULL), m_pwchTip(NULL),
+     m_bFindActive(false), m_pchTip(NULL), m_pwchTip(NULL),
      m_bValidate(false), m_bOpen(false), 
      m_IsStartClosed(false), m_IsStartSilent(false),
      m_bStartHiddenAndMinimized(false),
@@ -157,7 +157,7 @@ ON_COMMAND(ID_MENUITEM_COPYUSERNAME, OnCopyUsername)
 ON_COMMAND(ID_MENUITEM_COPYURL, OnCopyURL)
 ON_COMMAND(ID_MENUITEM_CLEARCLIPBOARD, OnClearClipboard)
 ON_COMMAND(ID_MENUITEM_DELETE, OnDelete)
-ON_UPDATE_COMMAND_UI(ID_MENUITEM_DELETE, OnUpdateROCommand)
+ON_UPDATE_COMMAND_UI(ID_MENUITEM_DELETE, OnUpdateFindCommand)
 ON_COMMAND(ID_MENUITEM_RENAME, OnRename)
 ON_UPDATE_COMMAND_UI(ID_MENUITEM_RENAME, OnUpdateROCommand)
 ON_COMMAND(ID_MENUITEM_FIND, OnFind)
@@ -857,6 +857,17 @@ DboxMain::OnUpdateROCommand(CCmdUI *pCmdUI)
 }
 
 void
+DboxMain::OnUpdateFindCommand(CCmdUI *pCmdUI)
+{
+  // First see what R/O would have done
+  OnUpdateROCommand(pCmdUI);
+
+  // Now if Find is active - say FALSE anyway!
+  if (m_bFindActive)
+    pCmdUI->Enable(FALSE);
+}
+
+void
 DboxMain::OnUpdateClosedCommand(CCmdUI *pCmdUI)
 {
   // Use this callback  for commands that need to
@@ -883,6 +894,20 @@ DboxMain::OnUpdateTVCommand(CCmdUI *pCmdUI)
   	// Should be TRUE in TreeView but only if there are entries
     pCmdUI->Enable(m_ctlItemTree.GetCount() > 0 ? TRUE : FALSE);
   }
+}
+
+void
+DboxMain::SetFindActive()
+{
+  m_bFindActive = true;
+  m_MainToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, FALSE);
+}
+
+void
+DboxMain::SetFindInActive()
+{
+  m_bFindActive = false;
+  m_MainToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, TRUE);
 }
 
 void 
@@ -2134,11 +2159,12 @@ DboxMain::UpdateMenuAndToolBar(const bool bOpen)
                       ID_TOOLBUTTON_CLOSE, ID_TOOLBUTTON_FIND};
     int condOpenRW[] = {ID_TOOLBUTTON_SAVE, ID_TOOLBUTTON_ADD, ID_TOOLBUTTON_DELETE};
     int i;
+    CToolBarCtrl &tbCtrl = m_MainToolBar.GetToolBarCtrl();
 
     for (i = 0; i < sizeof(condOpen)/sizeof(condOpen[0]); i++)
-      m_MainToolBar.GetToolBarCtrl().EnableButton(condOpen[i], enableIfOpen);
+      tbCtrl.EnableButton(condOpen[i], enableIfOpen);
     for (i = 0; i < sizeof(condOpenRW)/sizeof(condOpenRW[0]); i++)
-      m_MainToolBar.GetToolBarCtrl().EnableButton(condOpenRW[i], enableIfOpenAndRW);
+      tbCtrl.EnableButton(condOpenRW[i], enableIfOpenAndRW);
 
     if (m_FindToolBar.IsVisible()) {
       m_FindToolBar.Enable(enableIfOpen == TRUE);

@@ -88,7 +88,7 @@ IMPLEMENT_DYNAMIC(CPWFindToolBar, CToolBar)
 
 CPWFindToolBar::CPWFindToolBar()
   : m_ClassicFlags(0), m_NewFlags(0), m_bitmode(1), m_bVisible(true),
-    m_bCaseSensitive(false), m_bAdvanced(false),
+    m_bCaseSensitive(false), m_bAdvanced(false), m_bIsReady(false),
     m_lastshown(size_t(-1)), m_numFound(0),
     m_last_search_text(_T("")), m_last_cs_search(false),
     m_subgroup_name(_T("")), m_subgroup_set(BST_UNCHECKED),
@@ -245,6 +245,7 @@ CPWFindToolBar::LoadDefaultToolBar(const int toolbarMode)
   AddExtraControls();
 
   tbCtrl.AutoSize();
+  m_bIsReady = true;
 }
 
 void
@@ -317,18 +318,21 @@ CPWFindToolBar::AddExtraControls()
 void
 CPWFindToolBar::ShowFindToolBar(bool bShow)
 {
-  if (bShow == m_bVisible) {
-    if (bShow)
-      m_findedit.ChangeColour();
-    return;
-  }
-
   ::ShowWindow(this->GetSafeHwnd(), bShow ? SW_SHOW : SW_HIDE);
   ::EnableWindow(this->GetSafeHwnd(), bShow ? TRUE : FALSE);
   m_bVisible = bShow;
 
-  if (bShow)
+  DboxMain* pDbx = static_cast<DboxMain *>(m_pDbx);
+  if (bShow) {
+    m_findedit.ChangeColour();
     m_findedit.SetFocus();
+    m_findedit.Invalidate();
+    app.DisableAccelerator(); // don't accel Del when this dlg is shown
+    pDbx->SetFindActive(); // Stop Delete menu item
+  } else {
+    app.EnableAccelerator(); // don't accel Del when this dlg is shown
+    pDbx->SetFindInActive();
+  }
 }
 
 void
@@ -398,6 +402,9 @@ CPWFindToolBar::ChangeImages(const int toolbarMode)
 void
 CPWFindToolBar::ClearFind()
 {
+  if (!m_bIsReady)
+    return;
+
   m_findedit.SetWindowText(_T(""));
   m_findresults.SetWindowText(_T(""));
 
@@ -419,8 +426,8 @@ CPWFindToolBar::ClearFind()
 void
 CPWFindToolBar::Find()
 {
-  DboxMain* dbx = static_cast<DboxMain *>(m_pDbx);
-  ASSERT(dbx != NULL);
+  DboxMain* pDbx = static_cast<DboxMain *>(m_pDbx);
+  ASSERT(pDbx != NULL);
 
   m_findedit.SetColour();
   m_findedit.Invalidate();
@@ -453,20 +460,15 @@ CPWFindToolBar::Find()
     m_lastshown = size_t(-1);
   }
 
-  if (m_bLastView != dbx->GetCurrentView()) {
-	  m_bLastView = dbx->GetCurrentView();
-	  m_lastshown = size_t(-1);  // Indices will be in different order even if search the same
-  }
-
   if (m_lastshown == -1) {
     m_indices.clear();
 
     if (m_bAdvanced)
-      m_numFound = dbx->FindAll(m_search_text, m_cs_search, m_indices,
-                                m_bsFields, m_subgroup_set,
+      m_numFound = pDbx->FindAll(m_search_text, m_cs_search, m_indices,
+                                  m_bsFields, m_subgroup_set,
                                 m_subgroup_name, m_subgroup_object, m_subgroup_function);
     else
-      m_numFound = dbx->FindAll(m_search_text, m_cs_search, m_indices);
+      m_numFound = pDbx->FindAll(m_search_text, m_cs_search, m_indices);
 
     switch (m_numFound) {
       case 0:
@@ -487,7 +489,7 @@ CPWFindToolBar::Find()
   // OK, so now we have a (possibly empty) list of items to select.
   if (m_numFound > 0) {
     if (m_numFound == 1) {
-    	dbx->SelectFindEntry(m_indices[0], TRUE);
+    	pDbx->SelectFindEntry(m_indices[0], TRUE);
     } else {
     	m_lastshown++;
     	if (m_lastshown >= m_numFound) {
@@ -495,7 +497,7 @@ CPWFindToolBar::Find()
         m_lastshown = 0;
     	} else
         cs_status.Format(IDS_FOUNDMATCHES, m_lastshown + 1, m_numFound);
-      dbx->SelectFindEntry(m_indices[m_lastshown], TRUE);
+      pDbx->SelectFindEntry(m_indices[m_lastshown], TRUE);
     }
   }
   m_findresults.SetWindowText(cs_status);
@@ -508,9 +510,8 @@ CPWFindToolBar::ShowFindAdvanced()
   CAdvancedDlg Adv(this, ADV_FIND, m_bsFields, m_subgroup_name, m_subgroup_set,
                    m_subgroup_object, m_subgroup_function);
 
-  app.DisableAccelerator();
+  // Note: Accelerator keys are already disabled!
   INT_PTR rc = Adv.DoModal();
-  app.EnableAccelerator();
 
   if (rc == IDOK) {
     m_bAdvanced = true;

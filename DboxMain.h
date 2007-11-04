@@ -157,6 +157,8 @@ public:
   void CalcHeaderWidths();
   void UnFindItem();
 
+  void SetFindActive();
+  void SetFindInActive();
   void UpdateToolBar(bool state);
   void UpdateToolBarForSelectedItem(CItemData *ci);
   void SetToolBarPositions();
@@ -167,7 +169,6 @@ public:
   bool MakeRandomPassword(CDialog * const pDialog, CMyString& password);
   BOOL LaunchBrowser(const CString &csURL);
   BOOL DoEmail(const CString &csEmail);
-  bool GetCurrentView() {return m_IsListView;}
   void UpdatePasswordHistory(int iAction, int num_default);
   void SetInitialDatabaseDisplay();
   void U3ExitNow(); // called when U3AppStop sends message to Pwsafe Listener
@@ -250,6 +251,7 @@ protected:
 
   bool m_bTSUpdated;
   int m_iSessionEndingStatus;
+  bool m_bFindActive;
 
   // Used for Advanced functions
   CItemData::FieldBits m_bsFields;
@@ -425,6 +427,7 @@ protected:
   afx_msg void OnUpdateClosedCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateTVCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateEmptyDB(CCmdUI *pCmdUI);
+  afx_msg void OnUpdateFindCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateNSCommand(CCmdUI *pCmdUI);  // Make entry unsupported (grayed out)
   afx_msg void OnInitMenu(CMenu* pMenu);
   afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);

@@ -10,8 +10,8 @@ releases may be found in the file ChangeLog.txt.
 
 Changes to Existing Features in 3.10.03
 =======================================
-[1756385] Change Idle Icon in task tray from black to light blue so that 
-it is visible in the standard black MS Vista taskbar.
+[1756385] Black Idle Icon in task tray is not visible in Vista. Allow 
+user to choose one of Black, Blue, White or Yellow.
 
 Bugs fixed in 3.10.03
 =====================

@@ -19,6 +19,7 @@
 #endif
 #include "OptionsDisplay.h"
 #include "corelib\pwsprefs.h"
+#include "ThisMfcApp.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -46,7 +47,7 @@ void COptionsDisplay::DoDataExchange(CDataExchange* pDX)
 	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(COptionsDisplay)
 	DDX_Check(pDX, IDC_ALWAYSONTOP, m_alwaysontop);
-    DDX_Check(pDX, IDC_DEFUNSHOWINTREE, m_showusernameintree);
+  DDX_Check(pDX, IDC_DEFUNSHOWINTREE, m_showusernameintree);
 	DDX_Check(pDX, IDC_DEFPWSHOWINLIST, m_showpasswordintree);
 	DDX_Check(pDX, IDC_DEFEXPLORERTREE, m_explorertree);
 	DDX_Check(pDX, IDC_DEFPWSHOWINEDIT, m_pwshowinedit);
@@ -58,13 +59,16 @@ void COptionsDisplay::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_DCSHOWSPASSWORD, m_dcshowspassword);
 #endif
 	DDX_Radio(pDX, IDC_TREE_DISPLAY_COLLAPSED, m_treedisplaystatusatopen); // only first!
+  DDX_Control(pDX, IDC_TRAYICONCOLOUR, m_cbx_trayiconcolour);
+  DDX_Control(pDX, IDC_TRAYICON, m_ic_trayiconcolour);
 	//}}AFX_DATA_MAP
 }
 
 BEGIN_MESSAGE_MAP(COptionsDisplay, CPropertyPage)
 	//{{AFX_MSG_MAP(COptionsDisplay)
 	ON_BN_CLICKED(IDC_PREWARNEXPIRY, OnPreWarn)
-    ON_BN_CLICKED(IDC_DEFUNSHOWINTREE, OnDisplayUserInTree)
+  ON_BN_CLICKED(IDC_DEFUNSHOWINTREE, OnDisplayUserInTree)
+  ON_CBN_SELCHANGE(IDC_TRAYICONCOLOUR, OnComboChanged)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -95,6 +99,44 @@ BOOL COptionsDisplay::OnInitDialog()
     GetDlgItem(IDC_DEFPWSHOWINLIST)->EnableWindow(FALSE);
   }
 
+  // For some reason, MFC calls us twice when initializing.
+  // Populate the combo box only once.
+  if(m_cbx_trayiconcolour.GetCount() == 0) {
+  	// add the strings in alphabetical order
+    int nIndex;
+    nIndex =m_cbx_trayiconcolour.AddString(_T("Black"));
+    m_cbx_trayiconcolour.SetItemData(nIndex, 0);
+    nIndex = m_cbx_trayiconcolour.AddString(_T("Blue"));
+    m_cbx_trayiconcolour.SetItemData(nIndex, 1);
+    nIndex = m_cbx_trayiconcolour.AddString(_T("White"));
+    m_cbx_trayiconcolour.SetItemData(nIndex, 2);
+    nIndex = m_cbx_trayiconcolour.AddString(_T("Yellow"));
+    m_cbx_trayiconcolour.SetItemData(nIndex, 3);
+  }
+
+  int icon;
+  m_cbx_trayiconcolour.SetCurSel(m_trayiconcolour);
+  switch (m_trayiconcolour) {
+    case 0:
+      icon = IDI_TRAY;  // This is black.
+      break;
+    case 1:
+      icon = IDI_TRAY_BLUE;
+      break;
+    case 2:
+      icon = IDI_TRAY_WHITE;
+      break;
+    case 3:
+      icon = IDI_TRAY_YELLOW;
+      break;
+    default:
+      icon = IDI_TRAY;
+      break;
+  }
+  HICON closedIcon;
+  closedIcon = app.LoadIcon(icon);
+  m_ic_trayiconcolour.SetIcon(closedIcon);
+
   return TRUE;  // return TRUE unless you set the focus to a control
   // EXCEPTION: OCX Property Pages should return FALSE
 }
@@ -121,4 +163,34 @@ void COptionsDisplay::OnDisplayUserInTree()
     ((CButton*)GetDlgItem(IDC_DEFPWSHOWINLIST))->SetCheck(BST_UNCHECKED);
   } else
     GetDlgItem(IDC_DEFPWSHOWINLIST)->EnableWindow(TRUE);
+}
+
+void COptionsDisplay::OnComboChanged()
+{
+  HICON closedIcon;
+  int icon, nIndex, iData;
+
+  nIndex  = m_cbx_trayiconcolour.GetCurSel();
+  iData = m_cbx_trayiconcolour.GetItemData(nIndex);
+  switch (iData) {
+    case 0:
+      icon = IDI_TRAY;  // This is black.
+      break;
+    case 1:
+      icon = IDI_TRAY_BLUE;
+      break;
+    case 2:
+      icon = IDI_TRAY_WHITE;
+      break;
+    case 3:
+      icon = IDI_TRAY_YELLOW;
+      break;
+    default:
+      iData = 0;
+      icon = IDI_TRAY;
+      break;
+  }
+  closedIcon = app.LoadIcon(icon);
+  m_ic_trayiconcolour.SetIcon(closedIcon);
+  m_trayiconcolour = iData;
 }

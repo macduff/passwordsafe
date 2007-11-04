@@ -670,7 +670,6 @@ BOOL DboxMain::SelectFindEntry(int i, BOOL MakeVisible)
 
     retval = m_ctlItemTree.SelectItem(di->tree_item);
     if (MakeVisible) {
-      // Following needed to show selection when Find dbox has focus. Ugh.
       m_ctlItemTree.SetItemState(di->tree_item, TVIS_BOLD, TVIS_BOLD);
       m_LastFoundItem = di->tree_item;
       m_bBoldItem = true;
@@ -1275,6 +1274,8 @@ void DboxMain::SortListView()
   // Turn on the correct arrow
   hdi.fmt |= ((m_bSortAscending == TRUE) ? HDF_SORTUP : HDF_SORTDOWN);
   m_LVHdrCtrl.SetItem(iIndex, &hdi);
+
+  m_FindToolBar.ClearFind();
 }
 
 void

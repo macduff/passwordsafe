@@ -65,7 +65,7 @@ private:
   int m_toolbarMode, m_bitmode;
   UINT m_ClassicFlags, m_NewFlags;
   COLORREF m_ClassicBackground, m_NewBackground;
-  bool m_bVisible, m_bEnabled, m_bCaseSensitive, m_bAdvanced;
+  bool m_bVisible, m_bEnabled, m_bCaseSensitive, m_bAdvanced, m_bIsReady;
 
   std::vector<int> m_indices; // array of found items
 
@@ -81,5 +81,4 @@ private:
   size_t m_numFound; // number of matched items, as returned by DboxMain::FindAll
 
   int m_iCase_Insensitive_BM_offset;
-  bool m_bLastView;
 };
