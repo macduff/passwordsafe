@@ -1,4 +1,4 @@
-Password Safe 3.10.02 Release Notes - ?????? 2007
+Password Safe 3.10.03 Release Notes - ?????? 2007
 =================================================
 
 This note describe the new features, fixed bugs and known problems
@@ -7,6 +7,23 @@ Safe, please see the accompanying README.txt file. For more
 information on the product and the project, please visit
 http://passwordsafe.sourceforge.net. Details about changes to previous
 releases may be found in the file ChangeLog.txt.
+
+Changes to Existing Features in 3.10.03
+=======================================
+[1756385] Change Idle Icon in task tray from black to light blue so that 
+it is visible in the standard black MS Vista taskbar.
+
+Bugs fixed in 3.10.03
+=====================
+
+
+New Features for 3.10.03
+========================
+[] Main toolbar can be customized via MS's standard dialog via right
+click on this toolbar.
+[1815192] New Find toolbar added at bottom of application above the status
+bar.  Can be toggled on/off via right click on main toolbar. Equivalent to
+the Find dialog.
 
 Bugs fixed in 3.10.02
 =====================
@@ -20,16 +37,6 @@ New Features for 3.10.02
 as current open database), since more information is being written there.
 [] New email field per entry.  This field corresponds to the [mailto:] 
 standard RFC2368.  For example: "info@example.com?subject=PasswordSafe"
-[] Main toolbar can be customized via MS's standard dialog via right
-click on this toolbar.
-[1815192] New Find toolbar added at bottom of application above the status
-bar.  Can be toggled on/off via right click on main toolbar. Equivalent to
-the Find dialog.
-
-Changes to Existing Features in 3.10.02
-=======================================
-[1756385] Change Idle Icon in task tray from black to light blue so that 
-it is visible in the standard black MS Vista taskbar.
 
 Changes to Existing Features in 3.10.01
 =======================================
