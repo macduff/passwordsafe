@@ -88,10 +88,9 @@ IMPLEMENT_DYNAMIC(CPWFindToolBar, CToolBar)
 
 CPWFindToolBar::CPWFindToolBar()
   : m_ClassicFlags(0), m_NewFlags(0), m_bitmode(1), m_bVisible(true),
-    m_bCaseSensitive(false),
+    m_bCaseSensitive(false), m_bAdvanced(false),
     m_lastshown(size_t(-1)), m_numFound(0),
-    m_last_search_text(_T("")), m_last_cs_search(FALSE),
-    m_bAdvanced(false),
+    m_last_search_text(_T("")), m_last_cs_search(false),
     m_subgroup_name(_T("")), m_subgroup_set(BST_UNCHECKED),
     m_subgroup_object(0), m_subgroup_function(0),
     m_last_subgroup_name(_T("")), m_last_subgroup_set(BST_UNCHECKED),
@@ -401,6 +400,16 @@ CPWFindToolBar::ClearFind()
 {
   m_findedit.SetWindowText(_T(""));
   m_findresults.SetWindowText(_T(""));
+
+  m_bCaseSensitive = m_bAdvanced = m_last_cs_search = false;
+  m_numFound = 0;
+  m_last_search_text = _T("");
+  m_subgroup_name = m_last_subgroup_name = _T("");
+  m_subgroup_set = m_last_subgroup_set = BST_UNCHECKED;
+  m_subgroup_object = m_subgroup_function = 0;
+  m_last_subgroup_object = m_last_subgroup_function = 0;
+  m_lastshown = size_t(-1);
+
   // Need m_findedit to lose focus
   SetFocus();
 

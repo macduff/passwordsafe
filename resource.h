@@ -29,7 +29,6 @@
 #define IDR_POPCOPYTOCOMPARISON         127
 #define IDR_POPCOPYTOORIGINAL           128
 #define IDD_ABOUTBOX                    200
-#define IDD_FIND                        201
 #define IDD_PASSWORDSAFE_DIALOG         202
 #define IDD_KEYCHANGE_DIALOG            203
 #define IDD_PASSKEYSETUP                204
@@ -186,9 +185,6 @@
 #define IDC_MINUPPERCASE                1047
 #define IDC_STATIC_LOGO                 1048
 #define IDC_MINSYMBOLS                  1049
-#define IDC_FIND_TEXT                   1050
-#define IDC_FIND_CS                     1051
-#define IDC_STATUS                      1052
 #define IDC_ALWAYSONTOP                 1053
 #define IDC_STATIC_LOGOTEXT             1054
 #define IDC_SAVEIMMEDIATELY             1055
@@ -282,7 +278,6 @@
 #define IDC_XML_IMPORT_RESULTS          1147
 #define IDC_PASSWORD2                   1149
 #define IDC_CLEAR_HISTORY               1150
-#define IDC_ADVANCED                    1151
 #define IDC_ADVANCED_LIST               1152
 #define IDC_ADVANCED_SELECTED           1153
 #define IDC_ADVANCED_SELECTSOME         1154
@@ -302,7 +297,6 @@
 #define IDC_PWHSTATUS                   1179
 #define IDC_PWHMAX                      1180
 #define IDC_DOUBLE_CLICK_ACTION         1181
-#define IDC_FIND_WRAP                   1182
 #define IDC_PWHISTORYNOACTION           1183
 #define IDC_RESETPWHISTORYOFF           1184
 #define IDC_RESETPWHISTORYON            1185
