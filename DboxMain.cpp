@@ -78,7 +78,7 @@ DboxMain::DboxMain(CWnd* pParent)
      m_core(app.m_core), m_pFontTree(NULL),
      m_selectedAtMinimize(NULL), m_bTSUpdated(false),
      m_iSessionEndingStatus(IDIGNORE),
-     m_bFindActive(false), m_pchTip(NULL), m_pwchTip(NULL),
+     m_pchTip(NULL), m_pwchTip(NULL),
      m_bValidate(false), m_bOpen(false), 
      m_IsStartClosed(false), m_IsStartSilent(false),
      m_bStartHiddenAndMinimized(false),
@@ -157,9 +157,9 @@ ON_COMMAND(ID_MENUITEM_COPYUSERNAME, OnCopyUsername)
 ON_COMMAND(ID_MENUITEM_COPYURL, OnCopyURL)
 ON_COMMAND(ID_MENUITEM_CLEARCLIPBOARD, OnClearClipboard)
 ON_COMMAND(ID_MENUITEM_DELETE, OnDelete)
-ON_UPDATE_COMMAND_UI(ID_MENUITEM_DELETE, OnUpdateFindCommand)
+ON_UPDATE_COMMAND_UI(ID_MENUITEM_DELETE, OnUpdateROCommand)
 ON_COMMAND(ID_MENUITEM_RENAME, OnRename)
-ON_UPDATE_COMMAND_UI(ID_MENUITEM_RENAME, OnUpdateROCommand)
+ON_UPDATE_COMMAND_UI(ID_MENUITEM_RENAME, OnUpdateRenameCommand)
 ON_COMMAND(ID_MENUITEM_FIND, OnFind)
 ON_UPDATE_COMMAND_UI(ID_MENUITEM_FIND, OnUpdateEmptyDB)
 ON_COMMAND(ID_MENUITEM_DUPLICATEENTRY, OnDuplicateEntry)
@@ -284,7 +284,6 @@ ON_MESSAGE(WM_COMPARE_RESULT_FUNCTION, OnProcessCompareResultFunction)
 ON_MESSAGE(WM_TOOLBAR_FIND, OnToolBarFindMessage)
 
 ON_COMMAND(ID_MENUITEM_CUSTOMIZETOOLBAR, OnCustomizeToolbar)
-ON_COMMAND(ID_MENUITEM_SHOWFINDTOOLBAR, OnToggleFindToolBar)
 
 //}}AFX_MSG_MAP
 ON_COMMAND_EX_RANGE(ID_FILE_MRU_ENTRY1, ID_FILE_MRU_ENTRYMAX, OnOpenMRU)
@@ -857,20 +856,9 @@ DboxMain::OnUpdateROCommand(CCmdUI *pCmdUI)
 }
 
 void
-DboxMain::OnUpdateFindCommand(CCmdUI *pCmdUI)
-{
-  // First see what R/O would have done
-  OnUpdateROCommand(pCmdUI);
-
-  // Now if Find is active - say FALSE anyway!
-  if (m_bFindActive)
-    pCmdUI->Enable(FALSE);
-}
-
-void
 DboxMain::OnUpdateClosedCommand(CCmdUI *pCmdUI)
 {
-  // Use this callback  for commands that need to
+  // Use this callback for commands that need to
   // be disabled if no DB is open
   pCmdUI->Enable(m_bOpen ? TRUE : FALSE);
 }
@@ -878,9 +866,22 @@ DboxMain::OnUpdateClosedCommand(CCmdUI *pCmdUI)
 void
 DboxMain::OnUpdateNSCommand(CCmdUI *pCmdUI)
 {
-  // Use this callback  for commands that need to
+  // Use this callback for commands that need to
   // be disabled if not supported (yet)
   pCmdUI->Enable(FALSE);
+}
+
+void
+DboxMain::OnUpdateRenameCommand(CCmdUI *pCmdUI)
+{
+  // Rename command
+  // First check R/O
+  OnUpdateROCommand(pCmdUI);
+  
+  // The disable in ListView mode
+  if (m_IsListView)
+    pCmdUI->Enable(FALSE);
+
 }
 
 void
@@ -894,20 +895,6 @@ DboxMain::OnUpdateTVCommand(CCmdUI *pCmdUI)
   	// Should be TRUE in TreeView but only if there are entries
     pCmdUI->Enable(m_ctlItemTree.GetCount() > 0 ? TRUE : FALSE);
   }
-}
-
-void
-DboxMain::SetFindActive()
-{
-  m_bFindActive = true;
-  m_MainToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, FALSE);
-}
-
-void
-DboxMain::SetFindInActive()
-{
-  m_bFindActive = false;
-  m_MainToolBar.GetToolBarCtrl().EnableButton(ID_TOOLBUTTON_DELETE, TRUE);
 }
 
 void 
@@ -2166,8 +2153,8 @@ DboxMain::UpdateMenuAndToolBar(const bool bOpen)
     for (i = 0; i < sizeof(condOpenRW)/sizeof(condOpenRW[0]); i++)
       tbCtrl.EnableButton(condOpenRW[i], enableIfOpenAndRW);
 
-    if (m_FindToolBar.IsVisible()) {
-      m_FindToolBar.Enable(enableIfOpen == TRUE);
+    if (m_FindToolBar.IsVisible() && enableIfOpen == FALSE) {
+      OnToggleFindToolBar();
     }
 	}
 }

@@ -27,17 +27,16 @@ public:
   void ChangeImages(const int toolbarMode);
   void Reset();
   void ShowFindToolBar(bool bShow);
-  void Enable(bool bEnable);
   bool IsVisible() {return m_bVisible;}
-  bool IsEnabled() {return m_bEnabled;}
+  bool IsReady() {return m_bIsReady;}
   void GetSearchText(CString &csFindString)
     {m_findedit.GetWindowText(csFindString);}
   void Find();
   void ClearFind();
   void ShowFindAdvanced();
   void ToggleToolBarFindCase();
-  BOOL CPWFindToolBar::IsFindCaseSet()
-  {return m_bCaseSensitive ? TRUE : FALSE;}
+  BOOL IsFindCaseSet()
+    {return m_bCaseSensitive ? TRUE : FALSE;}
 
   CEditExtn m_findedit;
   CStatic m_findresults;
@@ -65,7 +64,7 @@ private:
   int m_toolbarMode, m_bitmode;
   UINT m_ClassicFlags, m_NewFlags;
   COLORREF m_ClassicBackground, m_NewBackground;
-  bool m_bVisible, m_bEnabled, m_bCaseSensitive, m_bAdvanced, m_bIsReady;
+  bool m_bVisible, m_bCaseSensitive, m_bAdvanced, m_bIsReady;
 
   std::vector<int> m_indices; // array of found items
 

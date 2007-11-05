@@ -133,7 +133,7 @@
 #define IDB_FINDCLOSE_CLASSIC           302
 #define IDB_FINDCLOSE_NEW32             303
 #define IDB_FINDCLOSE_NEW8              304
-#define IDB_FINDEDITCTRLPLACEHOLDER     305
+#define IDB_FINDCTRLPLACEHOLDER         305
 #define IDB_FIND_CLASSIC                306
 #define IDB_FIND_NEW32                  307
 #define IDB_FIND_NEW8                   308

@@ -53,34 +53,34 @@ const UINT CPWFindToolBar::m_FindToolBarIDs[] = {
 
 const UINT CPWFindToolBar::m_FindToolBarClassicBMs[] = {
   IDB_FINDCLOSE_CLASSIC,
-  IDB_FINDEDITCTRLPLACEHOLDER,
+  IDB_FINDCTRLPLACEHOLDER,
   IDB_FIND_CLASSIC,
   IDB_FINDCASE_I_CLASSIC,       // m_iCase_Insensitive_BM_offset contains this offset
   IDB_FINDADVANCED_CLASSIC,
   IDB_FINDCLEAR_CLASSIC,
-  IDB_FINDEDITCTRLPLACEHOLDER,
+  IDB_FINDCTRLPLACEHOLDER,
   IDB_FINDCASE_S_CLASSIC        // Must be last!
 };
 
 const UINT CPWFindToolBar::m_FindToolBarNew8BMs[] = {
   IDB_FINDCLOSE_NEW8,
-  IDB_FINDEDITCTRLPLACEHOLDER,
+  IDB_FINDCTRLPLACEHOLDER,
   IDB_FIND_NEW8,
   IDB_FINDCASE_I_NEW8,          // m_iCase_Insensitive_BM_offset contains this offset
   IDB_FINDADVANCED_NEW8,
   IDB_FINDCLEAR_NEW8,
-  IDB_FINDEDITCTRLPLACEHOLDER,
+  IDB_FINDCTRLPLACEHOLDER,
   IDB_FINDCASE_S_NEW8           // Must be last!
 };
 
 const UINT CPWFindToolBar::m_FindToolBarNew32BMs[] = {
   IDB_FINDCLOSE_NEW32,
-  IDB_FINDEDITCTRLPLACEHOLDER,
+  IDB_FINDCTRLPLACEHOLDER,
   IDB_FIND_NEW32,
   IDB_FINDCASE_I_NEW32,         // m_iCase_Insensitive_BM_offset contains this offset
   IDB_FINDADVANCED_NEW32,
   IDB_FINDCLEAR_NEW32,
-  IDB_FINDEDITCTRLPLACEHOLDER,
+  IDB_FINDCTRLPLACEHOLDER,
   IDB_FINDCASE_S_NEW32          // Must be last!
 };
 
@@ -318,31 +318,21 @@ CPWFindToolBar::AddExtraControls()
 void
 CPWFindToolBar::ShowFindToolBar(bool bShow)
 {
+  if (!m_bIsReady)
+    return;
+
   ::ShowWindow(this->GetSafeHwnd(), bShow ? SW_SHOW : SW_HIDE);
   ::EnableWindow(this->GetSafeHwnd(), bShow ? TRUE : FALSE);
-  m_bVisible = bShow;
 
-  DboxMain* pDbx = static_cast<DboxMain *>(m_pDbx);
   if (bShow) {
     m_findedit.ChangeColour();
     m_findedit.SetFocus();
     m_findedit.Invalidate();
-    app.DisableAccelerator(); // don't accel Del when this dlg is shown
-    pDbx->SetFindActive(); // Stop Delete menu item
   } else {
-    app.EnableAccelerator(); // don't accel Del when this dlg is shown
-    pDbx->SetFindInActive();
+    m_lastshown = size_t(-1);
+    m_findresults.SetWindowText(_T(""));
   }
-}
-
-void
-CPWFindToolBar::Enable(bool bEnable)
-{
-  if (bEnable == m_bEnabled)
-    return;
-
-  ::EnableWindow(this->GetSafeHwnd(), bEnable ? TRUE : FALSE);
-  m_bEnabled = !m_bEnabled;
+  m_bVisible = bShow;
 }
 
 void CPWFindToolBar::ToggleToolBarFindCase()
@@ -465,8 +455,8 @@ CPWFindToolBar::Find()
 
     if (m_bAdvanced)
       m_numFound = pDbx->FindAll(m_search_text, m_cs_search, m_indices,
-                                  m_bsFields, m_subgroup_set,
-                                m_subgroup_name, m_subgroup_object, m_subgroup_function);
+                                 m_bsFields, m_subgroup_set,
+                                 m_subgroup_name, m_subgroup_object, m_subgroup_function);
     else
       m_numFound = pDbx->FindAll(m_search_text, m_cs_search, m_indices);
 
@@ -510,8 +500,9 @@ CPWFindToolBar::ShowFindAdvanced()
   CAdvancedDlg Adv(this, ADV_FIND, m_bsFields, m_subgroup_name, m_subgroup_set,
                    m_subgroup_object, m_subgroup_function);
 
-  // Note: Accelerator keys are already disabled!
+  app.DisableAccelerator(); // don't allow accelerator keys
   INT_PTR rc = Adv.DoModal();
+  app.EnableAccelerator();  // allow accelerator keys again
 
   if (rc == IDOK) {
     m_bAdvanced = true;

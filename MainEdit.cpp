@@ -742,10 +742,10 @@ DboxMain::OnCopyURL()
 void
 DboxMain::OnFind()
 {
-  // create modeless or popup existing
-  if (!m_FindToolBar.IsVisible())
+  if (!m_FindToolBar.IsVisible()) {
+    VERIFY(RegisterOnListModified(StopFind, (LPARAM)this));
     OnToggleFindToolBar();
-  else
+  } else
     m_FindToolBar.ShowFindToolBar(true);
 }
 

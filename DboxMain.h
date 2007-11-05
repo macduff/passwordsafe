@@ -86,6 +86,7 @@ class DboxMain
 
   // static methods and variables
 private:
+  static void StopFind(LPARAM instance);
   static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
   static CString CS_EDITENTRY, CS_VIEWENTRY, CS_EXPCOLGROUP;
   static CString CS_DELETEENTRY, CS_DELETEGROUP, CS_RENAMEENTRY, CS_RENAMEGROUP;
@@ -141,6 +142,11 @@ public:
   enum ChangeType {Clear, Data, TimeStamp};
   void SetChanged(ChangeType changed);
 
+  bool RegisterOnListModified(void (*pfcn) (LPARAM), LPARAM instance)
+    {return m_core.RegisterOnListModified(pfcn, instance);}
+  void UnRegisterOnListModified()
+    {m_core.UnRegisterOnListModified();}
+
   // when Group, Title or User edited in tree
   void UpdateListItem(const int lindex, const int type, const CString &newText);
   void UpdateListItemGroup(const int lindex, const CString &newGroup)
@@ -157,8 +163,6 @@ public:
   void CalcHeaderWidths();
   void UnFindItem();
 
-  void SetFindActive();
-  void SetFindInActive();
   void UpdateToolBar(bool state);
   void UpdateToolBarForSelectedItem(CItemData *ci);
   void SetToolBarPositions();
@@ -251,7 +255,6 @@ protected:
 
   bool m_bTSUpdated;
   int m_iSessionEndingStatus;
-  bool m_bFindActive;
 
   // Used for Advanced functions
   CItemData::FieldBits m_bsFields;
@@ -426,8 +429,8 @@ protected:
   afx_msg void OnUpdateROCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateClosedCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateTVCommand(CCmdUI *pCmdUI);
+  afx_msg void OnUpdateRenameCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateEmptyDB(CCmdUI *pCmdUI);
-  afx_msg void OnUpdateFindCommand(CCmdUI *pCmdUI);
   afx_msg void OnUpdateNSCommand(CCmdUI *pCmdUI);  // Make entry unsupported (grayed out)
   afx_msg void OnInitMenu(CMenu* pMenu);
   afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
