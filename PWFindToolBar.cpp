@@ -88,7 +88,7 @@ IMPLEMENT_DYNAMIC(CPWFindToolBar, CToolBar)
 
 CPWFindToolBar::CPWFindToolBar()
   : m_ClassicFlags(0), m_NewFlags(0), m_bitmode(1), m_bVisible(true),
-    m_bCaseSensitive(false), m_bAdvanced(false), m_bIsReady(false),
+    m_bCaseSensitive(false), m_bAdvanced(false),
     m_lastshown(size_t(-1)), m_numFound(0),
     m_last_search_text(_T("")), m_last_cs_search(false),
     m_subgroup_name(_T("")), m_subgroup_set(BST_UNCHECKED),
@@ -245,7 +245,6 @@ CPWFindToolBar::LoadDefaultToolBar(const int toolbarMode)
   AddExtraControls();
 
   tbCtrl.AutoSize();
-  m_bIsReady = true;
 }
 
 void
@@ -318,7 +317,7 @@ CPWFindToolBar::AddExtraControls()
 void
 CPWFindToolBar::ShowFindToolBar(bool bShow)
 {
-  if (!m_bIsReady)
+  if (this->GetSafeHwnd() == NULL)
     return;
 
   ::ShowWindow(this->GetSafeHwnd(), bShow ? SW_SHOW : SW_HIDE);
@@ -392,7 +391,7 @@ CPWFindToolBar::ChangeImages(const int toolbarMode)
 void
 CPWFindToolBar::ClearFind()
 {
-  if (!m_bIsReady)
+  if (this->GetSafeHwnd() == NULL)
     return;
 
   m_findedit.SetWindowText(_T(""));
@@ -416,6 +415,9 @@ CPWFindToolBar::ClearFind()
 void
 CPWFindToolBar::Find()
 {
+  if (this->GetSafeHwnd() == NULL)
+    return;
+
   DboxMain* pDbx = static_cast<DboxMain *>(m_pDbx);
   ASSERT(pDbx != NULL);
 

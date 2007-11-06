@@ -103,6 +103,7 @@ BOOL COptionsDisplay::OnInitDialog()
   // Populate the combo box only once.
   if(m_cbx_trayiconcolour.GetCount() == 0) {
   	// add the strings in alphabetical order
+    // These must agree with app.SetClosedTrayIcon
     int nIndex;
     nIndex =m_cbx_trayiconcolour.AddString(_T("Black"));
     m_cbx_trayiconcolour.SetItemData(nIndex, 0);
@@ -114,25 +115,8 @@ BOOL COptionsDisplay::OnInitDialog()
     m_cbx_trayiconcolour.SetItemData(nIndex, 3);
   }
 
-  int icon;
   m_cbx_trayiconcolour.SetCurSel(m_trayiconcolour);
-  switch (m_trayiconcolour) {
-    case 0:
-      icon = IDI_TRAY;  // This is black.
-      break;
-    case 1:
-      icon = IDI_TRAY_BLUE;
-      break;
-    case 2:
-      icon = IDI_TRAY_WHITE;
-      break;
-    case 3:
-      icon = IDI_TRAY_YELLOW;
-      break;
-    default:
-      icon = IDI_TRAY;
-      break;
-  }
+  int icon = app.SetClosedTrayIcon(m_trayiconcolour, false);
   HICON closedIcon;
   closedIcon = app.LoadIcon(icon);
   m_ic_trayiconcolour.SetIcon(closedIcon);
@@ -172,24 +156,7 @@ void COptionsDisplay::OnComboChanged()
 
   nIndex  = m_cbx_trayiconcolour.GetCurSel();
   iData = m_cbx_trayiconcolour.GetItemData(nIndex);
-  switch (iData) {
-    case 0:
-      icon = IDI_TRAY;  // This is black.
-      break;
-    case 1:
-      icon = IDI_TRAY_BLUE;
-      break;
-    case 2:
-      icon = IDI_TRAY_WHITE;
-      break;
-    case 3:
-      icon = IDI_TRAY_YELLOW;
-      break;
-    default:
-      iData = 0;
-      icon = IDI_TRAY;
-      break;
-  }
+  icon = app.SetClosedTrayIcon(iData, false);
   closedIcon = app.LoadIcon(icon);
   m_ic_trayiconcolour.SetIcon(closedIcon);
   m_trayiconcolour = iData;

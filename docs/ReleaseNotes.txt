@@ -8,35 +8,38 @@ information on the product and the project, please visit
 http://passwordsafe.sourceforge.net. Details about changes to previous
 releases may be found in the file ChangeLog.txt.
 
-Changes to Existing Features in 3.10.03
-=======================================
-[1756385] Black Idle Icon in task tray is not visible in Vista. Allow 
-user to choose one of Black, Blue, White or Yellow.
-
 Bugs fixed in 3.10.03
 =====================
 
 
 New Features for 3.10.03
 ========================
+[] New email field per entry.  This field corresponds to the [mailto:] 
+standard RFC2368.  For example: "info@example.com?subject=PasswordSafe".
 [] Main toolbar can be customized via MS's standard dialog via right
 click on this toolbar.
 [1815192] New Find toolbar added at bottom of application above the status
-bar.  Can be toggled on/off via right click on main toolbar. Equivalent to
-the Find dialog.
+bar activated by the user doing a "Find".  Replaces the previous Find dialog.
+
+Changes to Existing Features in 3.10.02
+=======================================
+[1756385] Black Idle Icon in task tray is not visible in Vista. Allow 
+user to choose one of Black, Blue, White or Yellow.
 
 Bugs fixed in 3.10.02
 =====================
 [1806201] Non-unique uuids in database now handled correctly.
 [] Prevent mixed Unicode/ASCII report files and ensure Unicode reports
 have BOM as some text editors insist!
+[] Disable Rename menu item in List View (only appropriate in Tree View)
+[] Disable Tray Minimize/Restore menu items if already Minimized/Visible
+[] Ignore mouse right click not in Tree/List view area.
 
 New Features for 3.10.02
 ========================
 [] Give user access to Reports from View menu (only in the same directory
 as current open database), since more information is being written there.
-[] New email field per entry.  This field corresponds to the [mailto:] 
-standard RFC2368.  For example: "info@example.com?subject=PasswordSafe"
+[] Give user access to the Compare report from the Compare results dialog
 
 Changes to Existing Features in 3.10.01
 =======================================

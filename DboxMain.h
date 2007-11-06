@@ -58,7 +58,7 @@ DECLARE_HANDLE(HDROP);
 #define WM_CALL_EXTERNAL_EDITOR  (WM_APP + 40)
 #define WM_EXTERNAL_EDITOR_ENDED (WM_APP + 41)
 
-// External Editor
+// Simulate Ctrl+F from Find Toolbar "enter"
 #define WM_TOOLBAR_FIND (WM_APP + 50)
 
 // timer event number used to check if the workstation is locked
@@ -225,6 +225,7 @@ protected:
 
   // used to speed up the resizable dialog so OnSize/SIZE_RESTORED isn't called
   bool	m_bSizing;
+  bool m_bIsRestoring;
   bool  m_bOpen;
   bool m_bValidate; // do validation after reading db
 
@@ -332,6 +333,7 @@ protected:
   bool EditItem(CItemData *ci, PWScore *pcore = NULL);
   void SortAliasEntries(UUIDList &aliaslist, CMyString &csAliases);
   void ViewReport(const CString cs_ReportFileName);
+  void OnShowFindToolBar();
 
 #if !defined(POCKET_PC)
 	afx_msg void OnTrayLockUnLock();
@@ -413,7 +415,9 @@ protected:
   afx_msg void OnViewReports(UINT nID);
   afx_msg void OnUpdateViewReports(CCmdUI *pCmdUI);
   afx_msg void OnMinimize();
+  afx_msg void OnUpdateTrayMinimizeCommand(CCmdUI* pCmdUI);
   afx_msg void OnUnMinimize();
+  afx_msg void OnUpdateTrayUnMinimizeCommand(CCmdUI* pCmdUI);
   afx_msg void OnTimer(UINT_PTR nIDEvent);
   afx_msg void OnAutoType();
   afx_msg void OnColumnPicker();
@@ -447,7 +451,7 @@ protected:
 
   afx_msg void OnToolBarFind();
   afx_msg void OnCustomizeToolbar();
-  afx_msg void OnToggleFindToolBar();
+  afx_msg void OnHideFindToolBar();
   afx_msg void OnToolBarFindCase();
   afx_msg void OnUpdateToolBarFindCase(CCmdUI *pCmdUI);
   afx_msg void OnToolBarFindAdvanced();

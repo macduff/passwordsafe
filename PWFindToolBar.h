@@ -28,7 +28,6 @@ public:
   void Reset();
   void ShowFindToolBar(bool bShow);
   bool IsVisible() {return m_bVisible;}
-  bool IsReady() {return m_bIsReady;}
   void GetSearchText(CString &csFindString)
     {m_findedit.GetWindowText(csFindString);}
   void Find();
@@ -64,7 +63,7 @@ private:
   int m_toolbarMode, m_bitmode;
   UINT m_ClassicFlags, m_NewFlags;
   COLORREF m_ClassicBackground, m_NewBackground;
-  bool m_bVisible, m_bCaseSensitive, m_bAdvanced, m_bIsReady;
+  bool m_bVisible, m_bCaseSensitive, m_bAdvanced;
 
   std::vector<int> m_indices; // array of found items
 

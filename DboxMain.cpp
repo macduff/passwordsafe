@@ -83,7 +83,7 @@ DboxMain::DboxMain(CWnd* pParent)
      m_IsStartClosed(false), m_IsStartSilent(false),
      m_bStartHiddenAndMinimized(false),
      m_bAlreadyToldUserNoSave(false), m_inExit(false),
-     m_pCC(NULL), m_bBoldItem(false)
+     m_pCC(NULL), m_bBoldItem(false), m_bIsRestoring(false)
 {
   CS_EXPCOLGROUP.LoadString(IDS_MENUEXPCOLGROUP);
   CS_EDITENTRY.LoadString(IDS_MENUEDITENTRY);
@@ -229,7 +229,9 @@ ON_NOTIFY(HDN_ITEMCHANGED, IDC_LIST_HEADER, OnHeaderNotify)
 
 ON_COMMAND(ID_MENUITEM_EXIT, OnOK)
 ON_COMMAND(ID_MENUITEM_MINIMIZE, OnMinimize)
+ON_UPDATE_COMMAND_UI(ID_MENUITEM_MINIMIZE, OnUpdateTrayMinimizeCommand)
 ON_COMMAND(ID_MENUITEM_UNMINIMIZE, OnUnMinimize)
+ON_UPDATE_COMMAND_UI(ID_MENUITEM_UNMINIMIZE, OnUpdateTrayUnMinimizeCommand)
 
 #if defined(POCKET_PC)
 ON_COMMAND(ID_MENUITEM_SHOWPASSWORD, OnShowPassword)
@@ -263,7 +265,7 @@ ON_UPDATE_COMMAND_UI(ID_TOOLBUTTON_EXPANDALL, OnUpdateTVCommand)
 ON_COMMAND(ID_TOOLBUTTON_COLLAPSEALL, OnCollapseAll)
 ON_UPDATE_COMMAND_UI(ID_TOOLBUTTON_COLLAPSEALL, OnUpdateTVCommand)
 
-ON_COMMAND(ID_TOOLBUTTON_CLOSEFIND, OnToggleFindToolBar)
+ON_COMMAND(ID_TOOLBUTTON_CLOSEFIND, OnHideFindToolBar)
 ON_COMMAND(ID_TOOLBUTTON_FIND, OnToolBarFind)
 ON_COMMAND(ID_TOOLBUTTON_FINDCASE, OnToolBarFindCase)
 ON_UPDATE_COMMAND_UI(ID_TOOLBUTTON_FINDCASE, OnUpdateToolBarFindCase)
@@ -632,8 +634,7 @@ DboxMain::OnInitDialog()
   }
 
   SetInitialDatabaseDisplay();
-  if (m_FindToolBar.IsVisible())
-    OnToggleFindToolBar();
+  OnHideFindToolBar();
 
   return TRUE;  // return TRUE unless you set the focus to a control
 }
@@ -2154,7 +2155,7 @@ DboxMain::UpdateMenuAndToolBar(const bool bOpen)
       tbCtrl.EnableButton(condOpenRW[i], enableIfOpenAndRW);
 
     if (m_FindToolBar.IsVisible() && enableIfOpen == FALSE) {
-      OnToggleFindToolBar();
+      OnHideFindToolBar();
     }
 	}
 }

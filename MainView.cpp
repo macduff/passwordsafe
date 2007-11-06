@@ -49,7 +49,7 @@ void DboxMain::StopFind(LPARAM instance)
   // Callback from PWScore if the password list has been changed invalidating the 
   // indices vector
   DboxMain *self = (DboxMain*)instance;
-  self->OnToggleFindToolBar();
+  self->OnHideFindToolBar();
 }
 
 //-----------------------------------------------------------------------------
@@ -760,6 +760,9 @@ DboxMain::OnSize(UINT nType,
     // or by right clicking in the Taskbar (not using System Tray)
     PWSprefs *prefs = PWSprefs::GetInstance();
 
+    // Suspend notification of changes
+    m_core.SuspendOnListNotification();
+
     m_selectedAtMinimize = getSelectedItem();
     m_ctlItemList.DeleteAllItems();
     m_ctlItemTree.DeleteAllItems();
@@ -793,10 +796,18 @@ DboxMain::OnSize(UINT nType,
       UnMinimize(false);
       RestoreDisplayStatus();
       m_ctlItemTree.SetRestoreMode(true);
+      m_bIsRestoring = true;
       RefreshList();
       if (m_selectedAtMinimize != NULL)
         SelectEntry(((DisplayInfo *)m_selectedAtMinimize->GetDisplayInfo())->list_index, false);
       m_ctlItemTree.SetRestoreMode(false);
+      m_bIsRestoring = false;
+      
+      // Resume notification of changes
+      m_core.ResumeOnListNotification();
+      if (m_FindToolBar.IsVisible()) {
+        OnShowFindToolBar();
+      }
 #if !defined(POCKET_PC)
     } else { // m_bSizing == true: here if size changed
       CRect rect;
@@ -831,7 +842,7 @@ DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint point)
   GetWindowRect(&appl_rect);
   m_MainToolBar.GetWindowRect(&rect);
 
-  // RClick over Main Toolbar - allow show/hide of Find Toolbar + Customize Main toolbar
+  // RClick over Main Toolbar - allow Customize Main toolbar
   if (mp.x > appl_rect.left && mp.x < appl_rect.right &&
       mp.y > rect.top && mp.y < rect.bottom) {
     if (menu.LoadMenu(IDR_POPCUSTOMIZETOOLBAR)) {
@@ -1258,15 +1269,13 @@ void DboxMain::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
     m_bSortAscending = true;
   }
   SortListView();
-  if (m_FindToolBar.IsVisible())
-    OnToggleFindToolBar();
+  OnHideFindToolBar();
 
   *pResult = TRUE;
 }
 
 void DboxMain::SortListView()
 {
-
   HDITEM hdi;
   hdi.mask = HDI_FORMAT;
 
@@ -1281,8 +1290,8 @@ void DboxMain::SortListView()
   hdi.fmt |= ((m_bSortAscending == TRUE) ? HDF_SORTUP : HDF_SORTDOWN);
   m_LVHdrCtrl.SetItem(iIndex, &hdi);
 
- if (m_FindToolBar.IsVisible())
-   OnToggleFindToolBar();
+ if (!m_bIsRestoring && m_FindToolBar.IsVisible())
+   OnHideFindToolBar();
 }
 
 void
@@ -1355,7 +1364,7 @@ DboxMain::OnListView()
   SetListView();
   m_IsListView = true;
   if (m_FindToolBar.IsVisible())
-    OnToggleFindToolBar();
+    OnHideFindToolBar();
 }
 
 void
@@ -1364,7 +1373,7 @@ DboxMain::OnTreeView()
   SetTreeView();
   m_IsListView = false;
   if (m_FindToolBar.IsVisible())
-    OnToggleFindToolBar();
+    OnHideFindToolBar();
 }
 
 void
@@ -1577,13 +1586,11 @@ DboxMain::UpdateSystemTray(const STATE s)
     app.SetSystemTrayState(ThisMfcApp::LOCKED);
     if (!m_core.GetCurFile().IsEmpty())
       app.SetTooltipText(_T("[") + m_core.GetCurFile() + _T("]"));
-    m_core.SuspendOnListNotification();
     break;
   case UNLOCKED:
     app.SetSystemTrayState(ThisMfcApp::UNLOCKED);
     if (!m_core.GetCurFile().IsEmpty())
       app.SetTooltipText(m_core.GetCurFile());
-    m_core.ResumeOnListNotification();
     break;
   case CLOSED:
     app.SetSystemTrayState(ThisMfcApp::CLOSED);
@@ -2422,12 +2429,28 @@ DboxMain::OnCustomizeToolbar()
 }
 
 void
-DboxMain::OnToggleFindToolBar()
+DboxMain::OnHideFindToolBar()
 {
-  if (m_FindToolBar.IsVisible())
-    UnRegisterOnListModified();
+  UnRegisterOnListModified();
 
-  m_FindToolBar.ShowFindToolBar(!m_FindToolBar.IsVisible());
+  m_FindToolBar.ShowFindToolBar(false);
+
+  CRect rect;
+  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
+  m_ctlItemList.MoveWindow(&rect, TRUE);
+  m_ctlItemTree.MoveWindow(&rect, TRUE);
+
+  SetToolBarPositions();
+}
+
+void
+DboxMain::OnShowFindToolBar()
+{
+  if (m_FindToolBar.GetSafeHwnd() == NULL)
+    return;
+
+  m_FindToolBar.ShowFindToolBar(true);
 
   CRect rect;
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
@@ -2441,7 +2464,10 @@ DboxMain::OnToggleFindToolBar()
 void
 DboxMain::SetToolBarPositions()
 {
-  if (m_FindToolBar.IsVisible() && m_FindToolBar.IsReady()) {
+  if (m_FindToolBar.GetSafeHwnd() == NULL)
+    return;
+
+  if (m_FindToolBar.IsVisible()) {
     // Is visible.  Try to get FindToolBar "above" the StatusBar!
     ASSERT(m_FindToolBar.GetParent() == m_statusBar.GetParent());
 

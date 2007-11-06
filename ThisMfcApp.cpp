@@ -642,25 +642,8 @@ ThisMfcApp::InitInstance()
   //ASSERT(stIcon != NULL);
   m_LockedIcon = app.LoadIcon(IDI_LOCKEDICON);
   m_UnLockedIcon = app.LoadIcon(IDI_UNLOCKEDICON);
-  int icon;
-  switch (prefs->GetPref(PWSprefs::ClosedTrayIconColour)) {
-    case 0:
-      icon = IDI_TRAY;  // This is black.
-      break;
-    case 1:
-      icon = IDI_TRAY_BLUE;
-      break;
-    case 2:
-      icon = IDI_TRAY_WHITE;
-      break;
-    case 3:
-      icon = IDI_TRAY_YELLOW;
-      break;
-    default:
-      icon = IDI_TRAY;
-      break;
-  }
-  m_ClosedIcon = app.LoadIcon(icon);
+  int iData = prefs->GetPref(PWSprefs::ClosedTrayIconColour);
+  SetClosedTrayIcon(iData);
   m_TrayIcon = new CSystemTray(NULL, WM_ICON_NOTIFY, _T("PasswordSafe"),
                                m_LockedIcon, dbox.m_RUEList,
                                WM_ICON_NOTIFY, IDR_POPTRAY);
@@ -762,8 +745,8 @@ ThisMfcApp::ClearMRU()
 	}
 }
 
-void
-ThisMfcApp::SetClosedTrayIcon(int iData)
+int
+ThisMfcApp::SetClosedTrayIcon(int &iData, bool bSet)
 {
   int icon;
   switch (iData) {
@@ -780,10 +763,14 @@ ThisMfcApp::SetClosedTrayIcon(int iData)
       icon = IDI_TRAY_YELLOW;
       break;
     default:
+      iData = 0;
       icon = IDI_TRAY;
       break;
   }
+  if (bSet)
   m_ClosedIcon = app.LoadIcon(icon);
+
+  return icon;
 }
 
 void
@@ -908,64 +895,63 @@ int ThisMfcApp::FindMenuItem(CMenu* Menu, int MenuID)
 void
 ThisMfcApp::GetApplicationVersionData()
 {
-    TCHAR szFullPath[MAX_PATH];
-    DWORD dwVerHnd, dwVerInfoSize;
+  TCHAR szFullPath[MAX_PATH];
+  DWORD dwVerHnd, dwVerInfoSize;
 
-    // Get version information from the application
-    ::GetModuleFileName(NULL, szFullPath, sizeof(szFullPath));
-    dwVerInfoSize = ::GetFileVersionInfoSize(szFullPath, &dwVerHnd);
-    if (dwVerInfoSize > 0) {
-        char* pVersionInfo = new char[dwVerInfoSize];
-        if(pVersionInfo != NULL) {
-            BOOL bRet = ::GetFileVersionInfo((LPTSTR)szFullPath,
-                                             (DWORD)dwVerHnd,
-                                             (DWORD)dwVerInfoSize,
-                                             (LPVOID)pVersionInfo);
-            VS_FIXEDFILEINFO *szVer = NULL;
-            UINT uVerLength; 
-            if (bRet) {
-                // get binary file version information
-                bRet = ::VerQueryValue(pVersionInfo, TEXT("\\"),
-                                      (LPVOID*)&szVer, &uVerLength);
-                if (bRet) {
-                    m_dwMajorMinor = szVer->dwProductVersionMS;
-                    m_dwBuildRevision = szVer->dwProductVersionLS;
-                } else {
-                    m_dwMajorMinor = m_dwBuildRevision = (DWORD)-1;
-                }
-
-                struct TRANSARRAY {
-                    WORD wLangID;
-                    WORD wCharSet;
-                };
-
-                CString cs_text;
-                TCHAR *buffer, *lpsztext;
-                UINT buflen;
-                TRANSARRAY* lpTransArray;
-
-                VerQueryValue(pVersionInfo, _T("\\VarFileInfo\\Translation"),
-                             (LPVOID*)&buffer, &buflen);
-                lpTransArray = (TRANSARRAY*) buffer;
-
-                // Get string File Version information 
-                cs_text.Format(_T("\\StringFileInfo\\%04x%04x\\FileVersion"),
-                               lpTransArray[0].wLangID, lpTransArray[0].wCharSet);
-				lpsztext = cs_text.GetBuffer(cs_text.GetLength() + sizeof(TCHAR));
-                bRet = ::VerQueryValue(pVersionInfo, lpsztext, (LPVOID*)&buffer, &buflen); 
-                m_csFileVersionString = bRet ? buffer : _T("");
-				cs_text.ReleaseBuffer();
-
-                // Get string Legal Copyright information 
-                cs_text.Format(_T("\\StringFileInfo\\%04x%04x\\LegalCopyright"),
-                               lpTransArray[0].wLangID, lpTransArray[0].wCharSet);
-				lpsztext = cs_text.GetBuffer(cs_text.GetLength() + sizeof(TCHAR));
-                bRet = ::VerQueryValue(pVersionInfo, lpsztext, (LPVOID*)&buffer, &buflen); 
-                m_csCopyrightString = bRet ? buffer : _T("All rights reserved.");
-				cs_text.ReleaseBuffer();
-            }
+  // Get version information from the application
+  ::GetModuleFileName(NULL, szFullPath, sizeof(szFullPath));
+  dwVerInfoSize = ::GetFileVersionInfoSize(szFullPath, &dwVerHnd);
+  if (dwVerInfoSize > 0) {
+    char* pVersionInfo = new char[dwVerInfoSize];
+    if(pVersionInfo != NULL) {
+      BOOL bRet = ::GetFileVersionInfo((LPTSTR)szFullPath,
+                                       (DWORD)dwVerHnd,
+                                       (DWORD)dwVerInfoSize,
+                                       (LPVOID)pVersionInfo);
+      VS_FIXEDFILEINFO *szVer = NULL;
+      UINT uVerLength; 
+      if (bRet) {
+        // get binary file version information
+        bRet = ::VerQueryValue(pVersionInfo, TEXT("\\"),
+                               (LPVOID*)&szVer, &uVerLength);
+        if (bRet) {
+          m_dwMajorMinor = szVer->dwProductVersionMS;
+          m_dwBuildRevision = szVer->dwProductVersionLS;
+        } else {
+          m_dwMajorMinor = m_dwBuildRevision = (DWORD)-1;
         }
-        delete[] pVersionInfo;
-    }
-}
 
+        struct TRANSARRAY {
+          WORD wLangID;
+          WORD wCharSet;
+        };
+
+        CString cs_text;
+        TCHAR *buffer, *lpsztext;
+        UINT buflen;
+        TRANSARRAY* lpTransArray;
+
+        VerQueryValue(pVersionInfo, _T("\\VarFileInfo\\Translation"),
+                      (LPVOID*)&buffer, &buflen);
+        lpTransArray = (TRANSARRAY*) buffer;
+
+        // Get string File Version information 
+        cs_text.Format(_T("\\StringFileInfo\\%04x%04x\\FileVersion"),
+                       lpTransArray[0].wLangID, lpTransArray[0].wCharSet);
+				lpsztext = cs_text.GetBuffer(cs_text.GetLength() + sizeof(TCHAR));
+        bRet = ::VerQueryValue(pVersionInfo, lpsztext, (LPVOID*)&buffer, &buflen); 
+        m_csFileVersionString = bRet ? buffer : _T("");
+				cs_text.ReleaseBuffer();
+
+        // Get string Legal Copyright information 
+        cs_text.Format(_T("\\StringFileInfo\\%04x%04x\\LegalCopyright"),
+                       lpTransArray[0].wLangID, lpTransArray[0].wCharSet);
+				lpsztext = cs_text.GetBuffer(cs_text.GetLength() + sizeof(TCHAR));
+        bRet = ::VerQueryValue(pVersionInfo, lpsztext, (LPVOID*)&buffer, &buflen); 
+        m_csCopyrightString = bRet ? buffer : _T("All rights reserved.");
+				cs_text.ReleaseBuffer();
+      }
+    }
+    delete[] pVersionInfo;
+  }
+}

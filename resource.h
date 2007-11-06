@@ -360,6 +360,7 @@
 #define IDC_UNKNOWNFIELDS               1256
 #define IDC_RESULTLIST                  1257
 #define IDC_RESULTLISTHDR               1258
+#define IDC_VIEWCOMPAREREPORT           1259
 #define IDC_COMPAREORIGINALDB           1260
 #define IDC_COMPARECOMPARISONDB         1261
 #define IDC_SHOW_IDENTICAL_ENTRIES      1262
@@ -373,11 +374,10 @@
 #define IDC_STATIC_ALIASGRP             1270
 #define IDC_CHECKNEWVER                 1271
 #define IDC_NEWVER_STATUS               1272
-#define IDC_EMAIL                       1273
-#define IDC_STATIC_EMAIL                1274
-#define IDC_TOOLBAR_FINDEDITCTRL        1275
-#define IDC_TRAYICONCOLOUR              1276
-#define IDC_TRAYICON                    1277
+#define IDC_TRAYICONCOLOUR              1273
+#define IDC_TRAYICON                    1274
+#define IDC_EMAIL                       1275
+#define IDC_STATIC_EMAIL                1276
 
 // Next default values for new objects
 // 
@@ -385,7 +385,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
 #define _APS_NEXT_COMMAND_VALUE         30000
-#define _APS_NEXT_CONTROL_VALUE         1279
+#define _APS_NEXT_CONTROL_VALUE         1277
 #define _APS_NEXT_SYMED_VALUE           132
 #endif
 #endif

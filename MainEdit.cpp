@@ -744,7 +744,7 @@ DboxMain::OnFind()
 {
   if (!m_FindToolBar.IsVisible()) {
     VERIFY(RegisterOnListModified(StopFind, (LPARAM)this));
-    OnToggleFindToolBar();
+    OnShowFindToolBar();
   } else
     m_FindToolBar.ShowFindToolBar(true);
 }

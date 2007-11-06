@@ -100,7 +100,6 @@ struct st_CompareInfo {
   uuid_array_t uuid0;  // original DB
   uuid_array_t uuid1;  // comparison DB
   int  clicked_column;
-
 };
 
 class CCompareResultsDlg : public CPWDialog
@@ -168,6 +167,7 @@ protected:
   virtual void OnCancel();
   virtual void OnOK();
   afx_msg void OnHelp();
+  afx_msg void OnViewCompareReport();
   afx_msg void OnShowIdenticalEntries();
   afx_msg void OnSize(UINT nType, int cx, int cy);
   afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
