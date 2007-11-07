@@ -742,17 +742,15 @@ DboxMain::OnCopyURL()
 void
 DboxMain::OnFind()
 {
-  if (!m_FindToolBar.IsVisible()) {
-    VERIFY(RegisterOnListModified(StopFind, (LPARAM)this));
-    OnShowFindToolBar();
-  } else
-    m_FindToolBar.ShowFindToolBar(true);
+  // Note that this "toggles" the Find Tool Bar so that the user can use Ctrl+F 
+  // to show it and then hide it.
+  SetFindToolBar(!m_FindToolBar.IsVisible());
 }
 
 void
 DboxMain::OnClearClipboard()
 {
-   ClearClipboardData();
+  ClearClipboardData();
 }
 
 void
@@ -1057,12 +1055,15 @@ void DboxMain::SortAliasEntries(UUIDList &aliaslist, CMyString &csAliases)
 LRESULT
 DboxMain::OnToolBarFindMessage(WPARAM /* wParam */, LPARAM /* lParam */)
 {
+  // Called when user types into the Find search edit control on the Find Toolbar
+  // and presses enter.
   OnToolBarFind();
   return 0L;
 }
 
 void DboxMain::OnToolBarFind()
-{ 
+{
+  // Called when the user presses the Find button on the Find Toolbar
   m_FindToolBar.Find();
 }
 

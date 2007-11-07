@@ -327,3 +327,5 @@
 #define IDS_COMPEMAIL                   5503
 #define IDS_CANTEMAIL                   5504
 #define IDS_TRAYSENDEMAIL               5505
+#define IDS_CASE_INSENSITIVE            5506
+#define IDS_CASE_SENSITIVE              5507

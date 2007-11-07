@@ -806,7 +806,7 @@ DboxMain::OnSize(UINT nType,
       // Resume notification of changes
       m_core.ResumeOnListNotification();
       if (m_FindToolBar.IsVisible()) {
-        OnShowFindToolBar();
+        SetFindToolBar(true);
       }
 #if !defined(POCKET_PC)
     } else { // m_bSizing == true: here if size changed
@@ -2431,26 +2431,22 @@ DboxMain::OnCustomizeToolbar()
 void
 DboxMain::OnHideFindToolBar()
 {
-  UnRegisterOnListModified();
-
-  m_FindToolBar.ShowFindToolBar(false);
-
-  CRect rect;
-  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
-  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
-  m_ctlItemList.MoveWindow(&rect, TRUE);
-  m_ctlItemTree.MoveWindow(&rect, TRUE);
-
-  SetToolBarPositions();
+  SetFindToolBar(false);
 }
 
+
 void
-DboxMain::OnShowFindToolBar()
+DboxMain::SetFindToolBar(bool bShow)
 {
   if (m_FindToolBar.GetSafeHwnd() == NULL)
     return;
 
-  m_FindToolBar.ShowFindToolBar(true);
+  if (bShow)
+    VERIFY(RegisterOnListModified(StopFind, (LPARAM)this));
+  else
+    UnRegisterOnListModified();
+
+  m_FindToolBar.ShowFindToolBar(bShow);
 
   CRect rect;
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
@@ -2512,6 +2508,7 @@ DboxMain::OnToolBarFindAdvanced()
 void 
 DboxMain::OnUpdateToolBarFindCase(CCmdUI * /*pCmdUI */)
 {
-  m_FindToolBar.GetToolBarCtrl().CheckButton(ID_TOOLBUTTON_FINDCASE, 
-                                             m_FindToolBar.IsFindCaseSet());
+  m_FindToolBar.GetToolBarCtrl().CheckButton(m_FindToolBar.IsFindCaseSet() ?
+                                  ID_TOOLBUTTON_FINDCASE_S : ID_TOOLBUTTON_FINDCASE_I, 
+                                  m_FindToolBar.IsFindCaseSet());
 }

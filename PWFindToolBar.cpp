@@ -44,7 +44,7 @@ const UINT CPWFindToolBar::m_FindToolBarIDs[] = {
   ID_TOOLBUTTON_CLOSEFIND,
   ID_TOOLBUTTON_FINDEDITCTRL,
   ID_TOOLBUTTON_FIND,
-  ID_TOOLBUTTON_FINDCASE,
+  ID_TOOLBUTTON_FINDCASE_I,
   ID_TOOLBUTTON_FINDADVANCED,
   ID_TOOLBUTTON_CLEARFIND,
   ID_SEPARATOR,
@@ -137,12 +137,34 @@ END_MESSAGE_MAP()
 
 BOOL CPWFindToolBar::PreTranslateMessage(MSG *pMsg)
 {
-  if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN) {
-    CWnd *pWnd = FromHandle(pMsg->hwnd);
-    int nID = pWnd->GetDlgCtrlID();
-    if (nID == ID_TOOLBUTTON_FINDEDITCTRL) {
-      m_pDbx->SendMessage(m_iWMSGID);
-      return TRUE;
+  CWnd *pWnd = FromHandle(pMsg->hwnd);
+  if (pWnd->GetDlgCtrlID() == ID_TOOLBUTTON_FINDEDITCTRL) {
+    if (pMsg->message == WM_KEYDOWN) {
+      if (pMsg->wParam == VK_RETURN) {
+        m_pDbx->SendMessage(m_iWMSGID);
+        return TRUE;
+      }
+      if (pMsg->wParam == VK_DELETE) {
+        int iTextLen, iStartChar, iEndChar;
+        iTextLen = m_findedit.GetWindowTextLength();
+        m_findedit.GetSel(iStartChar, iEndChar);
+        if (iTextLen > (iEndChar - iStartChar))
+          m_findedit.ReplaceSel(_T(""));
+        else
+          m_findedit.SetWindowText(_T(""));
+        m_findedit.Invalidate();
+        return TRUE;
+      }
+      if (pMsg->wParam ==  VK_BACK) {
+        CPoint pt_cursor;
+        pt_cursor = m_findedit.GetCaretPos();
+        int n = m_findedit.CharFromPos(pt_cursor);
+        int nCharIndex = LOWORD(n);
+        m_findedit.SetSel(nCharIndex - 1, nCharIndex);
+        m_findedit.ReplaceSel(_T(""));
+        m_findedit.Invalidate();
+        return TRUE;
+      }
     }
   }
 
@@ -238,13 +260,14 @@ CPWFindToolBar::LoadDefaultToolBar(const int toolbarMode)
   tbinfo.cbSize = sizeof(tbinfo);
   tbinfo.dwMask = TBIF_STYLE;
 
-  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDCASE, &tbinfo);
+  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDCASE_I, &tbinfo);
   tbinfo.fsStyle = TBSTYLE_CHECK;
-  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDCASE, &tbinfo);
+  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDCASE_I, &tbinfo);
 
   AddExtraControls();
 
   tbCtrl.AutoSize();
+  tbCtrl.SetMaxTextRows(0);
 }
 
 void
@@ -338,19 +361,31 @@ void CPWFindToolBar::ToggleToolBarFindCase()
 {
   CToolBarCtrl& tbCtrl = GetToolBarCtrl();
 
+  int ID, index;
+  if (m_bCaseSensitive)
+    ID = ID_TOOLBUTTON_FINDCASE_S;
+  else
+    ID = ID_TOOLBUTTON_FINDCASE_I;
+  index = CommandToIndex(ID);
+
   m_bCaseSensitive = !m_bCaseSensitive;
-  tbCtrl.CheckButton(ID_TOOLBUTTON_FINDCASE, m_bCaseSensitive ? TRUE : FALSE);
+  tbCtrl.CheckButton(ID, m_bCaseSensitive ? TRUE : FALSE);
 
   TBBUTTONINFO tbinfo;
   memset(&tbinfo, 0x00, sizeof(tbinfo));
   tbinfo.cbSize = sizeof(tbinfo);
   tbinfo.dwMask = TBIF_IMAGE;
-  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDCASE, &tbinfo);
+  tbCtrl.GetButtonInfo(ID, &tbinfo);
 
   const int iOffset = (m_toolbarMode == ID_MENUITEM_OLD_TOOLBAR) ? 0 : m_bitmode * m_iNum_Bitmaps;
+  // Note: The case_sensitive bitmap MUST be the LAST in the array of bitmaps
+  // Note: "m_iCase_Insensitive_BM_offset" points to the case_insensitive bitmap in the array
   int j = m_bCaseSensitive ? m_iNum_Bitmaps - 1 : m_iCase_Insensitive_BM_offset;
   tbinfo.iImage = j + iOffset;
-  tbCtrl.SetButtonInfo(ID_TOOLBUTTON_FINDCASE, &tbinfo);
+  tbinfo.dwMask = TBIF_IMAGE;
+  tbCtrl.SetButtonInfo(ID, &tbinfo);
+
+  tbCtrl.SetCmdID(index, m_bCaseSensitive ? ID_TOOLBUTTON_FINDCASE_S : ID_TOOLBUTTON_FINDCASE_I);
 }
 
 void

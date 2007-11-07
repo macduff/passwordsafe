@@ -333,7 +333,7 @@ protected:
   bool EditItem(CItemData *ci, PWScore *pcore = NULL);
   void SortAliasEntries(UUIDList &aliaslist, CMyString &csAliases);
   void ViewReport(const CString cs_ReportFileName);
-  void OnShowFindToolBar();
+  void SetFindToolBar(bool bShow);
 
 #if !defined(POCKET_PC)
 	afx_msg void OnTrayLockUnLock();
@@ -451,11 +451,11 @@ protected:
 
   afx_msg void OnToolBarFind();
   afx_msg void OnCustomizeToolbar();
-  afx_msg void OnHideFindToolBar();
   afx_msg void OnToolBarFindCase();
   afx_msg void OnUpdateToolBarFindCase(CCmdUI *pCmdUI);
   afx_msg void OnToolBarFindAdvanced();
   afx_msg void OnToolBarClearFind();
+  afx_msg void OnHideFindToolBar();
 
 #if _MFC_VER > 1200
   afx_msg BOOL OnOpenMRU(UINT nID);
