@@ -1654,9 +1654,9 @@ BOOL
 DboxMain::DoEmail(const CString &csEmail)
 {
   CString cs_command = _T("mailto:") + csEmail;
-  cs_command.Replace(_T('\r'), _T(''));
-  cs_command.Replace(_T('\n'), _T(''));
-  cs_command.Replace(_T('\t'), _T(''));
+  cs_command.Remove(_T('\r'));
+  cs_command.Remove(_T('\n'));
+  cs_command.Remove(_T('\t'));
   HINSTANCE hinst = ::ShellExecute(NULL, NULL, cs_command, NULL,
                            NULL, SW_SHOWNORMAL);
   if(hinst < HINSTANCE(32)) {
