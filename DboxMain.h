@@ -142,11 +142,6 @@ public:
   enum ChangeType {Clear, Data, TimeStamp};
   void SetChanged(ChangeType changed);
 
-  bool RegisterOnListModified(void (*pfcn) (LPARAM), LPARAM instance)
-    {return m_core.RegisterOnListModified(pfcn, instance);}
-  void UnRegisterOnListModified()
-    {m_core.UnRegisterOnListModified();}
-
   // when Group, Title or User edited in tree
   void UpdateListItem(const int lindex, const int type, const CString &newText);
   void UpdateListItemGroup(const int lindex, const CString &newGroup)

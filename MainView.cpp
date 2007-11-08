@@ -814,6 +814,11 @@ DboxMain::OnSize(UINT nType,
       GetWindowRect(&rect);
       PWSprefs::GetInstance()->SetPrefRect(rect.top, rect.bottom,
                                            rect.left, rect.right);
+
+      // Make sure Find toolbar is above Status bar
+      if (m_FindToolBar.IsVisible()) {
+        SetToolBarPositions();
+      }
     }
   } // nType == SIZE_RESTORED
 #endif
@@ -1432,12 +1437,6 @@ DboxMain::SetToolbar(const int menuItem, bool bInit)
   m_MainToolBar.Invalidate();
   m_FindToolBar.Invalidate();
 
-  CRect rect;
-  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
-  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
-  m_ctlItemList.MoveWindow(&rect, TRUE);
-  m_ctlItemTree.MoveWindow(&rect, TRUE); // Fix Bug 940585
-
   SetToolBarPositions();
 }
 
@@ -1654,7 +1653,11 @@ DboxMain::LaunchBrowser(const CString &csURL)
 BOOL
 DboxMain::DoEmail(const CString &csEmail)
 {
-  HINSTANCE hinst = ::ShellExecute(NULL, NULL, _T("mailto:") + csEmail, NULL,
+  CString cs_command = _T("mailto:") + csEmail;
+  cs_command.Replace(_T('\r'), _T(''));
+  cs_command.Replace(_T('\n'), _T(''));
+  cs_command.Replace(_T('\t'), _T(''));
+  HINSTANCE hinst = ::ShellExecute(NULL, NULL, cs_command, NULL,
                            NULL, SW_SHOWNORMAL);
   if(hinst < HINSTANCE(32)) {
     AfxMessageBox(IDS_CANTEMAIL, MB_ICONSTOP);
@@ -2442,17 +2445,11 @@ DboxMain::SetFindToolBar(bool bShow)
     return;
 
   if (bShow)
-    VERIFY(RegisterOnListModified(StopFind, (LPARAM)this));
+    m_core.RegisterOnListModified(StopFind, (LPARAM)this);
   else
-    UnRegisterOnListModified();
+    m_core.UnRegisterOnListModified();
 
   m_FindToolBar.ShowFindToolBar(bShow);
-
-  CRect rect;
-  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
-  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
-  m_ctlItemList.MoveWindow(&rect, TRUE);
-  m_ctlItemTree.MoveWindow(&rect, TRUE);
 
   SetToolBarPositions();
 }
@@ -2462,6 +2459,12 @@ DboxMain::SetToolBarPositions()
 {
   if (m_FindToolBar.GetSafeHwnd() == NULL)
     return;
+
+  CRect rect;
+  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+  RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
+  m_ctlItemList.MoveWindow(&rect, TRUE);
+  m_ctlItemTree.MoveWindow(&rect, TRUE);
 
   if (m_FindToolBar.IsVisible()) {
     // Is visible.  Try to get FindToolBar "above" the StatusBar!

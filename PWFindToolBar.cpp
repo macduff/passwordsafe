@@ -89,7 +89,7 @@ IMPLEMENT_DYNAMIC(CPWFindToolBar, CToolBar)
 CPWFindToolBar::CPWFindToolBar()
   : m_ClassicFlags(0), m_NewFlags(0), m_bitmode(1), m_bVisible(true),
     m_bCaseSensitive(false), m_bAdvanced(false),
-    m_lastshown(size_t(-1)), m_numFound(0),
+    m_lastshown(size_t(-1)), m_numFound(size_t(-1)),
     m_last_search_text(_T("")), m_last_cs_search(false),
     m_subgroup_name(_T("")), m_subgroup_set(BST_UNCHECKED),
     m_subgroup_object(0), m_subgroup_function(0),
@@ -124,10 +124,10 @@ CPWFindToolBar::CPWFindToolBar()
 
 CPWFindToolBar::~CPWFindToolBar()
 {
-  m_findedit.DestroyWindow();
-  m_ImageList.DeleteImageList();
   delete [] m_pOriginalTBinfo;
+  m_ImageList.DeleteImageList();
   m_FindTextFont.DeleteObject();
+  m_findedit.DestroyWindow();
 }
 
 BEGIN_MESSAGE_MAP(CPWFindToolBar, CToolBar)
@@ -145,30 +145,29 @@ BOOL CPWFindToolBar::PreTranslateMessage(MSG *pMsg)
         return TRUE;
       }
       if (pMsg->wParam == VK_DELETE) {
-        int iTextLen, iStartChar, iEndChar;
-        iTextLen = m_findedit.GetWindowTextLength();
-        m_findedit.GetSel(iStartChar, iEndChar);
-        if (iTextLen > (iEndChar - iStartChar))
-          m_findedit.ReplaceSel(_T(""));
-        else
-          m_findedit.SetWindowText(_T(""));
-        m_findedit.Invalidate();
-        return TRUE;
-      }
-      if (pMsg->wParam ==  VK_BACK) {
+        int iTextLen, iStartChar, iEndChar, iCaret, iCharIndex;
         CPoint pt_cursor;
         pt_cursor = m_findedit.GetCaretPos();
-        int n = m_findedit.CharFromPos(pt_cursor);
-        int nCharIndex = LOWORD(n);
-        m_findedit.SetSel(nCharIndex - 1, nCharIndex);
-        m_findedit.ReplaceSel(_T(""));
+        iCaret = m_findedit.CharFromPos(pt_cursor);
+        iCharIndex = LOWORD(iCaret);
+        iTextLen = m_findedit.GetWindowTextLength();
+        m_findedit.GetSel(iStartChar, iEndChar);
+        if (iCharIndex == iStartChar && iCharIndex == iEndChar) {
+          // Nothing selected - forward backspace
+          m_findedit.SetSel(iCharIndex, iCharIndex + 1);
+          m_findedit.ReplaceSel(_T(""));
+        } else if (iTextLen > (iEndChar - iStartChar)) {
+          m_findedit.ReplaceSel(_T(""));
+        } else {
+          m_findedit.SetWindowText(_T(""));
+        }
         m_findedit.Invalidate();
         return TRUE;
       }
     }
   }
 
-  return CToolBar::PreTranslateMessage(pMsg);
+  return FALSE;
 }
 
 //  Other routines
@@ -433,7 +432,7 @@ CPWFindToolBar::ClearFind()
   m_findresults.SetWindowText(_T(""));
 
   m_bCaseSensitive = m_bAdvanced = m_last_cs_search = false;
-  m_numFound = 0;
+  m_numFound = size_t(-1);
   m_last_search_text = _T("");
   m_subgroup_name = m_last_subgroup_name = _T("");
   m_subgroup_set = m_last_subgroup_set = BST_UNCHECKED;
@@ -443,8 +442,6 @@ CPWFindToolBar::ClearFind()
 
   // Need m_findedit to lose focus
   SetFocus();
-
-  m_findedit.SetColour(RGB(255, 255, 255));  // Set it to white
 }
 
 void
@@ -455,9 +452,6 @@ CPWFindToolBar::Find()
 
   DboxMain* pDbx = static_cast<DboxMain *>(m_pDbx);
   ASSERT(pDbx != NULL);
-
-  m_findedit.SetColour();
-  m_findedit.Invalidate();
 
   CString cs_status;
   m_findedit.GetWindowText(m_search_text);
@@ -500,9 +494,6 @@ CPWFindToolBar::Find()
     switch (m_numFound) {
       case 0:
         cs_status.LoadString(IDS_NOMATCHFOUND);
-        // Need m_findedit to lose focus
-        SetFocus();
-        m_findedit.SetColour(RGB(250, 215, 230));  // Set it to pink!
         break;
       case 1:
         cs_status.LoadString(IDS_FOUNDAMATCH);
