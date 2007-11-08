@@ -429,6 +429,7 @@ CPWFindToolBar::ClearFind()
     return;
 
   m_findedit.SetWindowText(_T(""));
+  m_findresults.ResetColour();
   m_findresults.SetWindowText(_T(""));
 
   m_bCaseSensitive = m_bAdvanced = m_last_cs_search = false;
@@ -439,9 +440,6 @@ CPWFindToolBar::ClearFind()
   m_subgroup_object = m_subgroup_function = 0;
   m_last_subgroup_object = m_last_subgroup_function = 0;
   m_lastshown = size_t(-1);
-
-  // Need m_findedit to lose focus
-  SetFocus();
 }
 
 void
@@ -457,6 +455,7 @@ CPWFindToolBar::Find()
   m_findedit.GetWindowText(m_search_text);
   if (m_search_text.IsEmpty()) {
     cs_status.LoadString(IDS_ENTERSEARCHSTRING);
+    m_findresults.SetColour(RGB(255, 0, 0));
     m_findresults.SetWindowText(cs_status);
     return;
   }
@@ -518,6 +517,11 @@ CPWFindToolBar::Find()
       pDbx->SelectFindEntry(m_indices[m_lastshown], TRUE);
     }
   }
+  if (m_numFound == 0)
+    m_findresults.SetColour(RGB(255, 0, 0));
+  else
+    m_findresults.ResetColour();
+
   m_findresults.SetWindowText(cs_status);
   Invalidate();
 }

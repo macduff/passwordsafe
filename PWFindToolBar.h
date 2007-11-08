@@ -38,7 +38,7 @@ public:
     {return m_bCaseSensitive ? TRUE : FALSE;}
 
   CEditExtn m_findedit;
-  CStatic m_findresults;
+  CStaticExtn m_findresults;
 
 protected:
   //{{AFX_MSG(CPWFindToolBar)
