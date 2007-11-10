@@ -167,7 +167,7 @@ BOOL CPWFindToolBar::PreTranslateMessage(MSG *pMsg)
     }
   }
 
-  return FALSE;
+  return CToolBar::PreTranslateMessage(pMsg);
 }
 
 //  Other routines

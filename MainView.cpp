@@ -241,8 +241,6 @@ DboxMain::setupBars()
     m_statusBar.SetPaneInfo(SB_DBLCLICK, m_statusBar.GetItemID(SB_DBLCLICK), SBPS_STRETCH, NULL);
   }
 
-  // Depending what you read, creation order IS/IS NOT important!
-  // This way the Status Bar *should* below the Find Toolbar!
   CDC* pDC = this->GetDC();
   int NumBits = (pDC ? pDC->GetDeviceCaps(12 /*BITSPIXEL*/) : 32);
   m_MainToolBar.Init(NumBits);

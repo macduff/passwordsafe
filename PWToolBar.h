@@ -53,5 +53,3 @@ private:
   COLORREF m_ClassicBackground, m_NewBackground;
   bool m_bIsDefault;
 };
-
-
