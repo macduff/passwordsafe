@@ -82,7 +82,7 @@ CUUIDGen::CUUIDGen(const StringX &s) // s is a hex string as returned by GetHexS
 
   int x;
   for (int i = 0; i < 16; i++) {
-    iStringXStream is(s.substr(i*2, 2));
+    wiStringXStream is(s.substr(i*2, 2));
     is >> hex >> x;
     uu[i] = (unsigned char)x;
   }
@@ -123,7 +123,7 @@ wostream &operator<<(wostream &os, const CUUIDGen &uuid)
  uuid_array_t uuid_a;
   uuid.GetUUID(uuid_a);
   for (size_t i = 0; i < sizeof(uuid_a); i++) {
-    os << setw(2) << setfill(wchar_t('0')) << hex << int(uuid_a[i]);
+    os << setw(2) << setfill(L'0') << hex << int(uuid_a[i]);
     if (uuid.m_canonic && (i == 3 || i == 5 || i == 7 || i == 9))
       os << L"-";
   }
@@ -132,7 +132,7 @@ wostream &operator<<(wostream &os, const CUUIDGen &uuid)
 
 StringX CUUIDGen::GetHexStr() const
 {
-  oStringXStream os;
+  woStringXStream os;
   bool sc = m_canonic;
   m_canonic = false;
   os << *this;
@@ -152,7 +152,7 @@ int main()
     CUUIDGen uuid;
     printf("%s\n",str);
     uuid.GetUUID(uuid_array);
-    printf(_T("%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n"),
+    printf(L"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
               uuid_array[0], uuid_array[1], uuid_array[2], uuid_array[3], 
               uuid_array[4], uuid_array[5], uuid_array[6], uuid_array[7], 
               uuid_array[8], uuid_array[9], uuid_array[10], uuid_array[11], 

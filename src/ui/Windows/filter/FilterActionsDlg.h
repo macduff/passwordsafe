@@ -14,6 +14,8 @@
 
 #include <vector>
 
+using namespace std;
+
 enum {FA_DELETE = 0, FA_SELECT};
 
 class CFilterActionsDlg : public CPWDialog
@@ -25,7 +27,7 @@ public:
   virtual ~CFilterActionsDlg();
 
   void SetFunction(int function) {m_function = function;}
-  void SetList(const std::vector<CString> &vcs_db)
+  void SetList(const vector<CString> &vcs_db)
   {m_vcs_db = vcs_db;}
   const CString &GetSelected() const
   {return m_selected;}
@@ -42,7 +44,7 @@ protected:
   DECLARE_MESSAGE_MAP()
 
 private:
-  std::vector<CString> m_vcs_db;
+  vector<CString> m_vcs_db;
   CComboBox m_combo;
   CString m_selected;
   int m_function;

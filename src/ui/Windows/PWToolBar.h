@@ -12,7 +12,9 @@
 
 #include <map>
 
-typedef std::map<UINT, UINT> ID2ImageMap;
+using namespace std;
+
+typedef map<UINT, UINT> ID2ImageMap;
 typedef ID2ImageMap::iterator ID2ImageMapIter;
 
 class CPWToolBar : public CToolBar

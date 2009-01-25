@@ -8,88 +8,63 @@
 #ifndef _TYPEDEFS_H
 /**
 * Silly wrapper to abstract away the difference between a Unicode
-* (wchar_t) and non-Unicode (char) std::string, as well as
+* (wchar_t) and non-Unicode (char) string, as well as
 * Linux/Windows portability.
 *
 */
 
 #include <string>
 
-/*
- * _S is defined same as m'soft's _T, just to avoid collisions or
- * lousy include order dependencies.
- */
-
-// Sometimes we need specific ones irrespective of in Unicode mode or not.
-// In particular, the underlying format of most XML is Unicode.
-typedef std::wstring wstringT;
-typedef std::string  cstringT;
-
-#ifdef UNICODE
-typedef std::wstring stringT;
-typedef wchar_t charT;
-#define _S(x) L ## x
-#else
-typedef std::string stringT;
-typedef char charT;
-#define _S(x) x
-#endif
+using namespace std;
 
 #ifdef _WIN32
-#include "TCHAR.h"
-typedef char    int8;
-typedef short   int16;
-typedef int     int32;
-typedef __int64 int64;
+#include <wchar.h>
 
+typedef char             int8;
+typedef short            int16;
+typedef int              int32;
+typedef __int64          int64;
+
+typedef unsigned int     uint;
 typedef unsigned char    uint8;
 typedef unsigned short   uint16;
 typedef unsigned int     uint32;
 typedef unsigned __int64 uint64;
+typedef unsigned __int64 ulong64;
+typedef unsigned long    ulong32;
 
-typedef unsigned __int64   ulong64;
-typedef unsigned long      ulong32;
-
-typedef unsigned int uint;
-
-typedef void *HANDLE;
+typedef void             *HANDLE;
 
 #else /* !defined(_WIN32) */
 #include <sys/types.h>
 #include "linux/pws_time.h"
-typedef int8_t  int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
 
-typedef u_int8_t  uint8;
-typedef u_int16_t uint16;
-typedef u_int32_t uint32;
-typedef u_int64_t uint64;
+typedef int8_t           int8;
+typedef int16_t          int16;
+typedef int32_t          int32;
+typedef int64_t          int64;
 
-typedef int errno_t;
+typedef u_int8_t         uint8;
+typedef u_int16_t        uint16;
+typedef u_int32_t        uint32;
+typedef u_int64_t        uint64;
 
-#ifdef UNICODE
-#define _T(x) L ## x
-typedef wchar_t TCHAR;
-#else
-#define _T(x) x
-typedef char TCHAR;
-typedef wchar_t WCHAR;
-#endif /* UNICODE */
+typedef int              errno_t;
+
 // mimic Microsoft conventional typdefs:
-typedef TCHAR *LPTSTR;
-typedef const TCHAR *LPCTSTR;
-typedef bool BOOL;
-typedef unsigned char BYTE;
-typedef unsigned short WORD;
-typedef unsigned long DWORD;
+typedef wchar_t         *LPWSTR;
+typedef const wchar_t   *LPWTSTR;
+typedef bool             BOOL;
+typedef unsigned char    BYTE;
+typedef unsigned short   WORD;
+typedef unsigned long    WORD;
+typedef long             LPARAM;
+typedef unsigned int     UINT;
+typedef int              HANDLE;
+
 #define LOWORD(ul) (WORD(DWORD(ul) & 0xffff))
 #define HIWORD(ul) (WORD(DWORD(ul) >> 16))
-typedef long LPARAM;
-typedef unsigned int UINT;
-typedef int HANDLE;
-#define INVALID_HANDLE_VALUE HANDLE(-1)
+#define INVALID_HANDLE_VALUE HANDLE (-1)
 
 // assorted conveniences:
 #define ASSERT(p) assert(p)
@@ -97,10 +72,10 @@ typedef int HANDLE;
 #define TRACE(...) // nothing, for now...
 #define TRACE0(...) // nothing, for now...
 #ifndef TRUE
-#define TRUE true
+  #define TRUE true
 #endif
 #ifndef FALSE
-#define FALSE false
+  #define FALSE false
 #endif
 #endif /* _WIN32 */
           

@@ -15,22 +15,17 @@
 #define XERCES 3
 
 #if USE_XML_LIBRARY == EXPAT
-#ifndef XML_STATIC
-#define XML_STATIC
-#endif
-#ifdef UNICODE
-#define XML_UNICODE_WCHAR_T
-#define XML_UNICODE
-#else
-#undef XML_UNICODE_WCHAR_T
-#undef XML_UNICODE
-#endif
+  #ifndef XML_STATIC
+    #define XML_STATIC
+  #endif
+  #define XML_UNICODE_WCHAR_T
+  #define XML_UNICODE
 #endif
 
 #if USE_XML_LIBRARY == XERCES
-#ifndef XERCES_STATIC_LIBRARY
-#define XERCES_STATIC_LIBRARY
-#endif
+  #ifndef XERCES_STATIC_LIBRARY
+    #define XERCES_STATIC_LIBRARY
+  #endif
 #endif
 
 #define PWS_XML_FILTER_VERSION 1

@@ -16,7 +16,7 @@
 // and getting a yes/no reply
 class Asker {
  public:
-  virtual bool operator()(const stringT &question) = 0;
+  virtual bool operator()(const wstring &question) = 0;
   virtual ~Asker() {} // keep compiler happy
 };
 
@@ -24,7 +24,7 @@ class Asker {
 // interest to the user
 class Reporter {
  public:
-  virtual void operator()(const stringT &message) = 0;
+  virtual void operator()(const wstring &message) = 0;
   virtual ~Reporter() {} // keep compiler happy
 };
 

@@ -16,6 +16,9 @@
 #include "corelib/StringX.h"
 #include "corelib/PWScore.h"
 #include "corelib/UUIDGen.h"
+
+using namespace std;
+
 //-----------------------------------------------------------------------------
 
 /*
@@ -23,7 +26,7 @@
 */
 
 // Following is Most Recent Entry field separator for dynamic menu:
-#define MRE_FS _T("\xbb")
+#define MRE_FS L"\xbb"
 
 // Recent Entry structure for m_RUEList
 struct RUEntry {
@@ -49,7 +52,7 @@ struct CRUEItemData {
   BOOL     IsRUEID()      { return magicNum == RUEMENUITEMID; }
 };
 
-typedef std::deque<RUEntry> RUEList;
+typedef deque<RUEntry> RUEList;
 typedef RUEList::iterator RUEListIter;
 typedef RUEList::const_iterator RUEListConstIter;
 
@@ -67,7 +70,7 @@ public:
   // Data retrieval
   size_t GetCount() const {return m_RUEList.size();}
   size_t GetMax() const {return m_maxentries;}
-  bool GetAllMenuItemStrings(std::vector<RUEntryStringImage> &) const;
+  bool GetAllMenuItemStrings(vector<RUEntryStringImage> &) const;
   bool GetPWEntry(size_t, CItemData &); // NOT const!
 
   // Data setting

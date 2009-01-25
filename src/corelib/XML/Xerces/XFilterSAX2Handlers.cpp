@@ -79,29 +79,15 @@ void XFilterSAX2Handlers::startElement(const XMLCh* const /* uri */,
   if (m_bValidation && XMLString::equals(qname, L"filters")) {
     if (m_pSchema_Version == NULL) {
       LoadAString(m_strImportErrors, IDSC_MISSING_SCHEMA_VER);
-#ifdef UNICODE
       const XMLCh *message = m_strImportErrors.c_str();
-#else
-      const XMLCh *message = XMLString::transcode(m_strImportErrors.c_str());
-#endif
       SAXParseException(message, *m_pLocator);
-#ifndef UNICODE
-      XMLString::release((XMLCh **)&message);
-#endif
       return;
     }
 
     if (m_iSchemaVersion <= 0) {
       LoadAString(m_strImportErrors, IDSC_INVALID_SCHEMA_VER);
-#ifdef UNICODE
       const XMLCh *message = m_strImportErrors.c_str();
-#else
-      const XMLCh *message = XMLString::transcode(m_strImportErrors.c_str());
-#endif
       SAXParseException(message, *m_pLocator);
-#ifndef UNICODE
-      XMLString::release((XMLCh **)&message);
-#endif
       return;
     }
 
@@ -134,13 +120,7 @@ void XFilterSAX2Handlers::startElement(const XMLCh* const /* uri */,
     if (bfilter) {
       XMLCh * xmlchValue = (XMLCh *)attrs.getValue(L"filtername"); 
       if (xmlchValue != NULL) {
-#ifdef UNICODE
-        cur_filter->fname = stringT(xmlchValue);
-#else
-        char *szValue = XMLString::transcode(xmlchValue);
-        cur_filter->fname = stringT(szValue);
-        XMLString::release(&szValue);
-#endif
+        cur_filter->fname = wstring(xmlchValue);
       }
     }
 
@@ -151,7 +131,7 @@ void XFilterSAX2Handlers::startElement(const XMLCh* const /* uri */,
     }
   }
 
-  m_strElemContent = _T("");
+  m_strElemContent = L"";
 }
 
 void XFilterSAX2Handlers::characters(const XMLCh* const chars,
@@ -163,13 +143,7 @@ void XFilterSAX2Handlers::characters(const XMLCh* const chars,
   XMLCh *xmlchData = new XMLCh[length + 1];
   XMLString::copyNString(xmlchData, chars, length);
   xmlchData[length] = L'\0';
-#ifdef UNICODE
   m_strElemContent += StringX(xmlchData);
-#else
-  char *szData = XMLString::transcode(xmlchData);
-  m_strElemContent += StringX(szData);
-  XMLString::release(&szData);
-#endif
   delete [] xmlchData;
 }
 
@@ -182,13 +156,7 @@ void XFilterSAX2Handlers::ignorableWhitespace(const XMLCh* const chars,
   XMLCh *xmlchData = new XMLCh[length + 1];
   XMLString::copyNString(xmlchData, chars, length);
   xmlchData[length] = L'\0';
-#ifdef UNICODE
   m_strElemContent += StringX(xmlchData);
-#else
-  char *szData = XMLString::transcode(xmlchData);
-  m_strElemContent += StringX(szData);
-  XMLString::release(&szData);
-#endif
   delete [] xmlchData;
 }
 
@@ -202,43 +170,22 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
     // b. it is less than or equal to the version supported by this PWS
     if (m_iXMLVersion < 0) {
       LoadAString(m_strImportErrors, IDSC_MISSING_XML_VER);
-#ifdef UNICODE
       const XMLCh *message = m_strImportErrors.c_str();
-#else
-      const XMLCh *message = XMLString::transcode(m_strImportErrors.c_str());
-#endif
       SAXParseException(message, *m_pLocator);
-#ifndef UNICODE
-      XMLString::release((XMLCh **)&message);
-#endif
       return ;
     }
     if (m_iXMLVersion > m_iSchemaVersion) {
       Format(m_strImportErrors,
              IDSC_INVALID_XML_VER1, m_iXMLVersion, m_iSchemaVersion);
-#ifdef UNICODE
       const XMLCh *message = m_strImportErrors.c_str();
-#else
-      const XMLCh *message = XMLString::transcode(m_strImportErrors.c_str());
-#endif
       SAXParseException(message, *m_pLocator);
-#ifndef UNICODE
-      XMLString::release((XMLCh **)&message);
-#endif
       return ;
     }
     if (m_iXMLVersion > PWS_XML_FILTER_VERSION) {
       Format(m_strImportErrors, 
              IDSC_INVALID_XML_VER2, m_iXMLVersion, PWS_XML_FILTER_VERSION);
-#ifdef UNICODE
       const XMLCh *message = m_strImportErrors.c_str();
-#else
-      const XMLCh *message = XMLString::transcode(m_strImportErrors.c_str());
-#endif
       SAXParseException(message, *m_pLocator);
-#ifndef UNICODE
-      XMLString::release((XMLCh **)&message);
-#endif
       return;
     }
   }
@@ -253,7 +200,7 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
     fk.fpool = m_FPool;
     fk.cs_filtername = cur_filter->fname;
     if (m_MapFilters->find(fk) != m_MapFilters->end()) {
-      stringT question;
+      wstring question;
       Format(question, IDSC_FILTEREXISTS, cur_filter->fname);
       if (m_pAsker == NULL || !(*m_pAsker)(question)) {
         m_MapFilters->erase(fk);
@@ -479,60 +426,60 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
 
   else if (XMLString::equals(qname, L"rule")) {
     ToUpper(m_strElemContent);
-    if (m_strElemContent == _T("EQ"))
+    if (m_strElemContent == L"EQ")
       cur_filterentry->rule = PWSMatch::MR_EQUALS;
-    else if (m_strElemContent == _T("NE"))
+    else if (m_strElemContent == L"NE")
       cur_filterentry->rule = PWSMatch::MR_NOTEQUAL;
-    else if (m_strElemContent == _T("AC"))
+    else if (m_strElemContent == L"AC")
       cur_filterentry->rule = PWSMatch::MR_ACTIVE;
-    else if (m_strElemContent == _T("IA"))
+    else if (m_strElemContent == L"IA")
       cur_filterentry->rule = PWSMatch::MR_INACTIVE;
-    else if (m_strElemContent == _T("PR"))
+    else if (m_strElemContent == L"PR")
       cur_filterentry->rule = PWSMatch::MR_PRESENT;
-    else if (m_strElemContent == _T("NP"))
+    else if (m_strElemContent == L"NP")
       cur_filterentry->rule = PWSMatch::MR_NOTPRESENT;
-    else if (m_strElemContent == _T("SE"))
+    else if (m_strElemContent == L"SE")
       cur_filterentry->rule = PWSMatch::MR_SET;
-    else if (m_strElemContent == _T("NS"))
+    else if (m_strElemContent == L"NS")
       cur_filterentry->rule = PWSMatch::MR_NOTSET;
-    else if (m_strElemContent == _T("IS"))
+    else if (m_strElemContent == L"IS")
       cur_filterentry->rule = PWSMatch::MR_IS;
-    else if (m_strElemContent == _T("NI"))
+    else if (m_strElemContent == L"NI")
       cur_filterentry->rule = PWSMatch::MR_ISNOT;
-    else if (m_strElemContent == _T("BE"))
+    else if (m_strElemContent == L"BE")
       cur_filterentry->rule = PWSMatch::MR_BEGINS;
-    else if (m_strElemContent == _T("NB"))
+    else if (m_strElemContent == L"NB")
       cur_filterentry->rule = PWSMatch::MR_NOTBEGIN;
-    else if (m_strElemContent == _T("EN"))
+    else if (m_strElemContent == L"EN")
       cur_filterentry->rule = PWSMatch::MR_ENDS;
-    else if (m_strElemContent == _T("ND"))
+    else if (m_strElemContent == L"ND")
       cur_filterentry->rule = PWSMatch::MR_NOTEND;
-    else if (m_strElemContent == _T("CO"))
+    else if (m_strElemContent == L"CO")
       cur_filterentry->rule = PWSMatch::MR_CONTAINS;
-    else if (m_strElemContent == _T("NC"))
+    else if (m_strElemContent == L"NC")
       cur_filterentry->rule = PWSMatch::MR_NOTCONTAIN;
-    else if (m_strElemContent == _T("BT"))
+    else if (m_strElemContent == L"BT")
       cur_filterentry->rule = PWSMatch::MR_BETWEEN;
-    else if (m_strElemContent == _T("LT"))
+    else if (m_strElemContent == L"LT")
       cur_filterentry->rule = PWSMatch::MR_LT;
-    else if (m_strElemContent == _T("LE"))
+    else if (m_strElemContent == L"LE")
       cur_filterentry->rule = PWSMatch::MR_LE;
-    else if (m_strElemContent == _T("GT"))
+    else if (m_strElemContent == L"GT")
       cur_filterentry->rule = PWSMatch::MR_GT;
-    else if (m_strElemContent == _T("GE"))
+    else if (m_strElemContent == L"GE")
       cur_filterentry->rule = PWSMatch::MR_GE;
-    else if (m_strElemContent == _T("BF"))
+    else if (m_strElemContent == L"BF")
       cur_filterentry->rule = PWSMatch::MR_BEFORE;
-    else if (m_strElemContent == _T("AF"))
+    else if (m_strElemContent == L"AF")
       cur_filterentry->rule = PWSMatch::MR_AFTER;
-    else if (m_strElemContent == _T("EX"))
+    else if (m_strElemContent == L"EX")
       cur_filterentry->rule = PWSMatch::MR_EXPIRED;
-    else if (m_strElemContent == _T("WX"))
+    else if (m_strElemContent == L"WX")
       cur_filterentry->rule = PWSMatch::MR_WILLEXPIRE;
   }
 
   else if (XMLString::equals(qname, L"logic")) {
-    if (m_strElemContent == _T("or"))
+    if (m_strElemContent == L"or")
       cur_filterentry->ltype = LC_OR;
     else
       cur_filterentry->ltype = LC_AND;
@@ -543,19 +490,19 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
   }
 
   else if (XMLString::equals(qname, L"case")) {
-    cur_filterentry->fcase = _ttoi(m_strElemContent.c_str()) != 0;
+    cur_filterentry->fcase = _wtoi(m_strElemContent.c_str()) != 0;
   }
 
   else if (XMLString::equals(qname, L"warn")) {
-    cur_filterentry->fnum1 = _ttoi(m_strElemContent.c_str());
+    cur_filterentry->fnum1 = _wtoi(m_strElemContent.c_str());
   }
 
   else if (XMLString::equals(qname, L"num1")) {
-    cur_filterentry->fnum1 = _ttoi(m_strElemContent.c_str());
+    cur_filterentry->fnum1 = _wtoi(m_strElemContent.c_str());
   }
 
   else if (XMLString::equals(qname, L"num2")) {
-    cur_filterentry->fnum1 = _ttoi(m_strElemContent.c_str());
+    cur_filterentry->fnum1 = _wtoi(m_strElemContent.c_str());
   }
 
   else if (XMLString::equals(qname, L"date1")) {
@@ -577,15 +524,15 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
   }
 
   else if (XMLString::equals(qname, L"type")) {
-    if (m_strElemContent == _T("normal"))
+    if (m_strElemContent == L"normal")
       cur_filterentry->etype = CItemData::ET_NORMAL;
-    else if (m_strElemContent == _T("alias"))
+    else if (m_strElemContent == L"alias")
       cur_filterentry->etype = CItemData::ET_ALIAS;
-    else if (m_strElemContent == _T("shortcut"))
+    else if (m_strElemContent == L"shortcut")
       cur_filterentry->etype = CItemData::ET_SHORTCUT;
-    else if (m_strElemContent == _T("aliasbase"))
+    else if (m_strElemContent == L"aliasbase")
       cur_filterentry->etype = CItemData::ET_ALIASBASE;
-    else if (m_strElemContent == _T("shortcutbase"))
+    else if (m_strElemContent == L"shortcutbase")
       cur_filterentry->etype = CItemData::ET_SHORTCUTBASE;
   } else if (!(XMLString::equals(qname, L"test") ||
                XMLString::equals(qname, L"filters"))) {
@@ -597,18 +544,14 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
 
 void XFilterSAX2Handlers::FormatError(const SAXParseException& e, const int type)
 {
-  TCHAR szFormatString[MAX_PATH * 2] = {0};
+  wchar_t szFormatString[MAX_PATH * 2] = {0};
   int iLineNumber, iCharacter;
 
-#ifdef UNICODE
   XMLCh *szErrorMessage = (XMLCh *)e.getMessage();
-#else
-  char *szErrorMessage = XMLString::transcode(e.getMessage());
-#endif
   iLineNumber = (int)e.getLineNumber();
   iCharacter = (int)e.getColumnNumber();
 
-  stringT cs_format, cs_errortype;
+  wstring cs_format, cs_errortype;
   LoadAString(cs_format, IDSC_XERCESSAXGENERROR);
   switch (type) {
     case SAX2_WARNING:
@@ -632,9 +575,6 @@ void XFilterSAX2Handlers::FormatError(const SAXParseException& e, const int type
 #endif
 
   m_strValidationResult += szFormatString;
-#ifndef UNICODE
-  XMLString::release(&szErrorMessage);
-#endif
 }
 
 void XFilterSAX2Handlers::error(const SAXParseException& e)

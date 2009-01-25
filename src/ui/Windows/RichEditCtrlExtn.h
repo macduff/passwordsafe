@@ -16,12 +16,14 @@
 #include <string>
 #include <bitset>
 
+using namespace std;
+
 class CRichEditCtrlExtn : public CRichEditCtrl
 {
   // Construction
 public:
   CRichEditCtrlExtn();
-  void SetWindowText(LPCTSTR lpszString);
+  void SetWindowText(LPCWSTR lpszString);
 
   // (Un)Register to be notified if the link clicked
   bool RegisterOnLink(bool (*pfcn) (const CString &, const CString &, LPARAM), LPARAM);
@@ -32,7 +34,7 @@ public:
   struct ALink {
     int iStart;
     int iEnd;
-    TCHAR tcszURL[_MAX_PATH];
+    wchar_t tcszURL[_MAX_PATH];
   };
 
 private:
@@ -53,12 +55,12 @@ private:
     enum EntryType entrytype;
     COLORREF cr;                       // Only valid if entrytype = Colour
     int iSize;                         // Only valid if entrytype = Size
-    TCHAR tcszFACENAME[LF_FACESIZE];   // Only valid if entrytype = Name
+    wchar_t tcszFACENAME[LF_FACESIZE];   // Only valid if entrytype = Name
   };
 
   // Vectors of format changes to be applied to the text string
-  std::vector<st_format> m_vFormat;
-  std::vector<ALink> m_vALink;
+  vector<st_format> m_vFormat;
+  vector<ALink> m_vALink;
 
   static bool iStartCompare(st_format elem1, st_format elem2);
 

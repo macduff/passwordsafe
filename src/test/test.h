@@ -13,8 +13,7 @@
 #include <string>
 #include <iosfwd>
 
-using std::string;
-using std::ostream;
+using namespace std;
 
 // The following have underscores because they are macros
 // (and it's impolite to usurp other users' functions!).

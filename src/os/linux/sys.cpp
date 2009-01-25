@@ -9,6 +9,7 @@
 /**
  * \file Linux-specific implementation of sys.h
  */
+ 
 #include <unistd.h>
 #include "../sys.h"
 
@@ -16,4 +17,3 @@ void pws_os::sleep(unsigned long mSec)
 {
   usleep(mSec * 1000);
 }
-

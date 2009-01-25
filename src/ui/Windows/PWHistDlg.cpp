@@ -89,7 +89,7 @@ BOOL CPWHistDlg::OnInitDialog()
        iter != m_PWHistList.end(); iter++, nIdx++) {
     int nPos = 0;
     const PWHistEntry pwhentry = *iter;
-    if (pwhentry.changedate != _T("1970-01-01 00:00:00"))
+    if (pwhentry.changedate != L"1970-01-01 00:00:00")
       nPos = m_PWHistListCtrl.InsertItem(nPos, pwhentry.changedate.c_str());
     else {
       cs_text.LoadString(IDS_UNKNOWN);
@@ -110,11 +110,11 @@ BOOL CPWHistDlg::OnInitDialog()
   }
   m_PWHistListCtrl.SetRedraw(TRUE);
 
-  TCHAR buffer[10];
+  wchar_t buffer[10];
 #if _MSC_VER >= 1400
-  _stprintf_s(buffer, 10, _T("%d"), m_NumPWHistory);
+  _stprintf_s(buffer, 10, L"%d", m_NumPWHistory);
 #else
-  _stprintf(buffer, _T("%d"), m_NumPWHistory);
+  _stprintf(buffer, L"%d", m_NumPWHistory);
 #endif
 
   CSpinButtonCtrl* pspin = (CSpinButtonCtrl *)GetDlgItem(IDC_PWHSPIN);
@@ -158,7 +158,7 @@ void CPWHistDlg::OnOK()
   }
 
   if (!(m_HistStr.IsEmpty() && m_SavePWHistory == FALSE)) {
-    TCHAR buffer[6];
+    wchar_t buffer[6];
 #if _MSC_VER >= 1400
     _stprintf_s
 #else
@@ -168,7 +168,7 @@ void CPWHistDlg::OnOK()
 #if _MSC_VER >= 1400
       6,
 #endif
-      _T("%1x%02x%02x"),
+      L"%1x%02x%02x",
       (m_SavePWHistory == FALSE) ? 0 : 1,
       m_MaxPWHistory,
       m_PWHistList.size()
@@ -284,9 +284,9 @@ void CPWHistDlg::OnBnClickedPwhCopyAll()
   for (iter = m_PWHistList.begin(); iter != m_PWHistList.end(); iter++) {
     const PWHistEntry &ent = *iter;
     HistStr += ent.changedate;
-    HistStr += _T("\t");
+    HistStr += L"\t";
     HistStr += ent.password;
-    HistStr += _T("\r\n");
+    HistStr += L"\r\n";
   }
 
   DboxMain *pDbx = static_cast<DboxMain *>(GetParent()->GetParent());

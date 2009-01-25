@@ -34,7 +34,7 @@ static char THIS_FILE[] = __FILE__;
 MFileXMLProcessor::MFileXMLProcessor(PWScore *core,
                                      UUIDList *possible_aliases,
                                      UUIDList *possible_shortcuts)
-  : m_xmlcore(core), m_MSXML_Version(60), m_delimiter(TCHAR('^')),
+  : m_xmlcore(core), m_MSXML_Version(60), m_delimiter(L'^'),
   m_possible_aliases(possible_aliases), m_possible_shortcuts(possible_shortcuts)
 {
 }
@@ -44,19 +44,19 @@ MFileXMLProcessor::~MFileXMLProcessor()
 }
 
 // ---------------------------------------------------------------------------
-bool MFileXMLProcessor::Process(const bool &bvalidation, const stringT &ImportedPrefix,
-                                const stringT &strXMLFileName, const stringT &strXSDFileName,
+bool MFileXMLProcessor::Process(const bool &bvalidation, const wstring &ImportedPrefix,
+                                const wstring &strXMLFileName, const wstring &strXSDFileName,
                                 int &nITER, int &nRecordsWithUnknownFields, UnknownFieldList &uhfl)
 {
   HRESULT hr, hr0, hr60, hr40, hr30;
   bool b_ok = false;
   bool b_into_empty;
-  stringT cs_validation;
+  wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  stringT cs_import;
+  wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
 
-  m_strResultText = _T("");
+  m_strResultText = L"";
   m_bValidation = bvalidation;  // Validate or Import
 
   //  Create SAXReader object
@@ -184,11 +184,7 @@ bool MFileXMLProcessor::Process(const bool &bvalidation, const stringT &Imported
 
     //  Let's begin the parsing now
     wchar_t wcURL[MAX_PATH]={0};
-#ifdef _UNICODE
-    _tcscpy(wcURL, strXMLFileName.c_str());
-#else
-    mbstowcs(wcURL, strXMLFileName.c_str(), strXMLFileName.length());
-#endif
+    wcscpy(wcURL, strXMLFileName.c_str());
     hr = pSAX2Reader->parseURL(wcURL);
 
     if(!FAILED(hr)) {  // Check for parsing errors

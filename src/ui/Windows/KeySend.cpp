@@ -5,6 +5,7 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
 #include "KeySend.h"
 
 /*
@@ -24,7 +25,6 @@ CKeySend::CKeySend(void) : m_delay(10)
   // We want to use keybd_event (OldSendChar) for Win2K & older,
   // SendInput (NewSendChar) for newer versions.
   // For non-Unicode builds, only OldSendChar.
-#ifdef UNICODE
   OSVERSIONINFO os;
   os.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
   if (GetVersionEx(&os) == FALSE) {
@@ -32,9 +32,6 @@ CKeySend::CKeySend(void) : m_delay(10)
   }
   m_isOldOS = ((os.dwMajorVersion == 4) ||
                (os.dwMajorVersion == 5 && os.dwMinorVersion == 0));
-#else
-  m_isOldOS = true;
-#endif /* UNICODE */
   // get the locale of the current thread.
   // we are assuming that all window and threading in the 
   // current users desktop have the same locale.
@@ -52,7 +49,7 @@ void CKeySend::SendString(const StringX &data)
     SendChar(*iter);
 }
 
-void CKeySend::SendChar(TCHAR c)
+void CKeySend::SendChar(wchar_t c)
 {
   if (m_isOldOS)
     OldSendChar(c);
@@ -60,15 +57,15 @@ void CKeySend::SendChar(TCHAR c)
     NewSendChar(c);
 }
 
-void CKeySend::NewSendChar(TCHAR c)
+void CKeySend::NewSendChar(wchar_t c)
 {
   UINT status;
   INPUT input[2];
   input[0].type = INPUT_KEYBOARD;
   switch (c) {
-    case TCHAR('\t'):
-    case TCHAR('\r'):
-      input[0].ki.wVk = c == TCHAR('\t') ? VK_TAB : VK_RETURN;
+    case L'\t':
+    case L'\r':
+      input[0].ki.wVk = c == L'\t' ? VK_TAB : VK_RETURN;
       input[0].ki.wScan = 0;
       input[0].ki.dwFlags = 0;
       break;
@@ -84,11 +81,11 @@ void CKeySend::NewSendChar(TCHAR c)
 
   status = ::SendInput(2, input, sizeof(INPUT));
   if (status != 1)
-    TRACE(_T("CKeySend::SendChar: SendInput failed\n"));
+    TRACE(L"CKeySend::SendChar: SendInput failed\n");
   ::Sleep(m_delay);
 }
 
-void CKeySend::OldSendChar(TCHAR c)
+void CKeySend::OldSendChar(wchar_t c)
 {
   BOOL shiftDown = false; //assume shift key is up at start.
   BOOL ctrlDown = false;

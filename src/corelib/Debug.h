@@ -16,7 +16,7 @@
 namespace PWSDebug {
   // Opens a messagebox with text of last system error, titlebar
   // is csFunction
-  void IssueError(const stringT &csFunction);
+  void IssueError(const wstring &csFunction);
 /*
   Produce a printable version of memory dump (hex + ascii)
 
@@ -27,10 +27,10 @@ namespace PWSDebug {
     maxnum  - maximum characters dumped per line
 
   return:
-    stringT containing output buffer
+    wstring containing output buffer
 */
   void HexDump(unsigned char *pmemory, const int length,
-               const stringT &cs_prefix = _S(""), const int maxnum = 16);
+               const wstring &cs_prefix = L"", const int maxnum = 16);
 };
 #endif /* __DEBUG_H */
 //-----------------------------------------------------------------------------

@@ -28,14 +28,14 @@ bool CreatePWHistoryList(const StringX &pwh_str,
     num_err = len != 0 ? 1 : 0;
     return false;
   }
-  bool retval = pwh_s[0] != charT('0');
+  bool retval = pwh_s[0] != L'0';
 
   int n;
-  iStringXStream ism(StringX(pwh_s, 1, 2)); // max history 1 byte hex
+  wiStringXStream ism(StringX(pwh_s, 1, 2)); // max history 1 byte hex
   ism >> hex >> pwh_max;
   if (!ism)
     return false;
-  iStringXStream isn(StringX(pwh_s, 3, 2)); // cur # entries 1 byte hex
+  wiStringXStream isn(StringX(pwh_s, 3, 2)); // cur # entries 1 byte hex
   isn >> hex >> n;
   if (!isn)
     return false;
@@ -59,7 +59,7 @@ bool CreatePWHistoryList(const StringX &pwh_str,
   for (int i = 0; i < n; i++) {
     PWHistEntry pwh_ent;
     long t;
-    iStringXStream ist(StringX(pwh_s, offset, 8)); // time in 4 byte hex
+    wiStringXStream ist(StringX(pwh_s, offset, 8)); // time in 4 byte hex
     ist >> hex >> t;
     if (!ist) {num_err++; continue;}
     offset += 8;
@@ -70,9 +70,9 @@ bool CreatePWHistoryList(const StringX &pwh_str,
       PWSUtil::ConvertToDateTimeString((time_t) t, time_format);
     if (pwh_ent.changedate.empty()) {
       //                       1234567890123456789
-      pwh_ent.changedate = _T("1970-01-01 00:00:00");
+      pwh_ent.changedate = L"1970-01-01 00:00:00";
     }
-    iStringXStream ispwlen(StringX(pwh_s, offset, 4)); // pw length 2 byte hex
+    wiStringXStream ispwlen(StringX(pwh_s, offset, 4)); // pw length 2 byte hex
     int ipwlen;
     ispwlen >> hex >> ipwlen;
     if (offset + 4 + ipwlen > pwh_s.length())
@@ -94,11 +94,11 @@ StringX MakePWHistoryHeader(BOOL status, size_t pwh_max, size_t pwh_num)
 {
   const size_t MAX_PWHISTORY = 255;
   if (pwh_max > MAX_PWHISTORY)
-    throw _T("Internal error: max history exceeded");
+    throw L"Internal error: max history exceeded";
   if (pwh_num > MAX_PWHISTORY)
-    throw _T("Internal error: history list too large");
-  ostringstreamT os;
-  os.fill(charT('0'));
+    throw L"Internal error: history list too large";
+  wostringstream os;
+  os.fill(L'0');
   os << hex << setw(1) << status
      << setw(2) << pwh_max << setw(2) << pwh_num << ends;
   return os.str().c_str();

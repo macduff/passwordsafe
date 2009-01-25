@@ -57,7 +57,7 @@ XFileSAX2Handlers::~XFileSAX2Handlers()
 
 void XFileSAX2Handlers::startDocument( )
 {
-  m_strImportErrors = _T("");
+  m_strImportErrors = L"";
   m_bentrybeingprocessed = false;
 }
 
@@ -71,18 +71,12 @@ void XFileSAX2Handlers::startElement(const XMLCh* const /* uri */,
       // Only interested in the delimiter attribute
       XMLCh *szValue = (XMLCh *)attrs.getValue(L"delimiter");
       if (szValue != NULL) {
-#ifdef UNICODE
         m_delimiter = szValue[0];
-#else
-        char *szDelim = XMLString::transcode(szValue);
-        m_delimiter = szDelim[0];
-        XMLString::release(&szDelim);
-#endif
       }
     }
   }
 
-  m_strElemContent = _T("");
+  m_strElemContent = L"";
 
   st_file_element_data edata;
   m_pValidator->GetElementInfo(qname, edata);
@@ -125,13 +119,7 @@ void XFileSAX2Handlers::characters(const XMLCh* const chars, const XMLSize_t len
   XMLCh *xmlchData = new XMLCh[length + 1];
   XMLString::copyNString(xmlchData, chars, length);
   xmlchData[length] = L'\0';
-#ifdef UNICODE
   m_strElemContent += StringX(xmlchData);
-#else
-  char *szData = XMLString::transcode(xmlchData);
-  m_strElemContent += StringX(szData);
-  XMLString::release(&szData);
-#endif
   delete [] xmlchData;
 }
 
@@ -144,13 +132,7 @@ void XFileSAX2Handlers::ignorableWhitespace(const XMLCh* const chars,
   XMLCh *xmlchData = new XMLCh[length + 1];
   XMLString::copyNString(xmlchData, chars, length);
   xmlchData[length] = L'\0';
-#ifdef UNICODE
   m_strElemContent += StringX(xmlchData);
-#else
-  char *szData = XMLString::transcode(xmlchData);
-  m_strElemContent += StringX(szData);
-  XMLString::release(&szData);
-#endif
   delete [] xmlchData;
 }
 
@@ -164,7 +146,7 @@ void XFileSAX2Handlers::endElement(const XMLCh* const /* uri */,
     return;
   }
 
-  StringX buffer(_T(""));
+  StringX buffer(L"");
 
   st_file_element_data edata;
   m_pValidator->GetElementInfo(qname, edata);
@@ -176,18 +158,14 @@ void XFileSAX2Handlers::endElement(const XMLCh* const /* uri */,
 
 void XFileSAX2Handlers::FormatError(const SAXParseException& e, const int type)
 {
-  TCHAR szFormatString[MAX_PATH * 2] = {0};
+  wchar_t szFormatString[MAX_PATH * 2] = {0};
   int iLineNumber, iCharacter;
 
-#ifdef UNICODE
   XMLCh *szErrorMessage = (XMLCh *)e.getMessage();
-#else
-  char *szErrorMessage = XMLString::transcode(e.getMessage());
-#endif
   iLineNumber = (int)e.getLineNumber();
   iCharacter = (int)e.getColumnNumber();
 
-  stringT cs_format, cs_errortype;
+  wstring cs_format, cs_errortype;
   LoadAString(cs_format, IDSC_XERCESSAXGENERROR);
   switch (type) {
     case SAX2_WARNING:
@@ -211,9 +189,6 @@ void XFileSAX2Handlers::FormatError(const SAXParseException& e, const int type)
 #endif
 
   m_strValidationResult += szFormatString;
-#ifndef UNICODE
-  XMLString::release(&szErrorMessage);
-#endif
 }
 
 void XFileSAX2Handlers::error(const SAXParseException& e)

@@ -9,6 +9,7 @@
 /**
  * \file Linux-specific implementation of rand.h
  */
+ 
 #include "../rand.h"
 #include <fstream>
 #include <cassert>
@@ -49,7 +50,6 @@ static void get_failsafe_rnd(char * &p, unsigned &slen)
   gettimeofday(&tv, NULL);
   memcpy(p, &tv.tv_usec, slen);
 }
-
 
 void pws_os::GetRandomSeed(void *p, unsigned &slen)
 {

@@ -200,14 +200,14 @@ bool DboxMain::PassesFiltering(CItemData &ci, const st_filters &filters)
 
   const CItemData::EntryType entrytype = ci.GetEntryType();
 
-  std::vector<std::vector<int> >::const_iterator Fltgroup_citer;
+  vector<vector<int> >::const_iterator Fltgroup_citer;
   for (Fltgroup_citer = m_vMflgroups.begin();
        Fltgroup_citer != m_vMflgroups.end(); Fltgroup_citer++) {
-    const std::vector<int> &group = *Fltgroup_citer;
+    const vector<int> &group = *Fltgroup_citer;
 
     int tests(0);
     thisgroup_rc = false;
-    std::vector<int>::const_iterator Fltnum_citer;
+    vector<int>::const_iterator Fltnum_citer;
     for (Fltnum_citer = group.begin();
          Fltnum_citer != group.end(); Fltnum_citer++) {
       const int &num = *Fltnum_citer;
@@ -380,14 +380,14 @@ bool DboxMain::PassesPWHFiltering(CItemData *pci, const st_filters &filters)
   bPresent = pwh_max > 0 || !PWHistList.empty();
 
   vFilterRows::const_iterator Flt_citer;
-  std::vector<std::vector<int> >::const_iterator Fltgroup_citer;
+  vector<vector<int> >::const_iterator Fltgroup_citer;
   for (Fltgroup_citer = m_vHflgroups.begin();
        Fltgroup_citer != m_vHflgroups.end(); Fltgroup_citer++) {
-    const std::vector<int> &group = *Fltgroup_citer;
+    const vector<int> &group = *Fltgroup_citer;
 
     int tests(0);
     thisgroup_rc = false;
-    std::vector<int>::const_iterator Fltnum_citer;
+    vector<int>::const_iterator Fltnum_citer;
     for (Fltnum_citer = group.begin();
          Fltnum_citer != group.end(); Fltnum_citer++) {
       const int &num = *Fltnum_citer;
@@ -496,14 +496,14 @@ bool DboxMain::PassesPWPFiltering(CItemData *pci, const st_filters &filters)
   bPresent = pwp.flags != 0;
 
   vFilterRows::const_iterator Flt_citer;
-  std::vector<std::vector<int> >::const_iterator Fltgroup_citer;
+  vector<vector<int> >::const_iterator Fltgroup_citer;
   for (Fltgroup_citer = m_vPflgroups.begin();
        Fltgroup_citer != m_vPflgroups.end(); Fltgroup_citer++) {
-    const std::vector<int> &group = *Fltgroup_citer;
+    const vector<int> &group = *Fltgroup_citer;
 
     int tests(0);
     thisgroup_rc = false;
-    std::vector<int>::const_iterator Fltnum_citer;
+    vector<int>::const_iterator Fltnum_citer;
     for (Fltnum_citer = group.begin();
          Fltnum_citer != group.end(); Fltnum_citer++) {
       const int &num = *Fltnum_citer;
@@ -612,7 +612,7 @@ void DboxMain::OnManageFilters()
 
   st_Filterkey fkl, fku;
   fkl.fpool = FPOOL_DATABASE;
-  fkl.cs_filtername = _T("");
+  fkl.cs_filtername = L"";
 
   if (m_MapFilters.size() != 0) {
     mf_lower_iter = m_MapFilters.lower_bound(fkl);
@@ -621,7 +621,7 @@ void DboxMain::OnManageFilters()
     if (mf_lower_iter->first.fpool == FPOOL_DATABASE) {
       // Now find upper bound of database filters
       fku.fpool = (FilterPool)((int)FPOOL_DATABASE + 1);
-      fku.cs_filtername = _T("");
+      fku.cs_filtername = L"";
       mf_upper_iter = m_MapFilters.upper_bound(fku);
 
       // Delete existing database filters (if any)
@@ -652,7 +652,7 @@ void DboxMain::OnManageFilters()
     if (mf_lower_iter->first.fpool == FPOOL_DATABASE) {
       // Now find upper bound of database filters
       fku.fpool = (FilterPool)((int)FPOOL_DATABASE + 1);
-      fku.cs_filtername = _T("");
+      fku.cs_filtername = L"";
       mf_upper_iter = m_MapFilters.upper_bound(fku);
 
       // Copy database filters (if any) to the core
@@ -669,18 +669,18 @@ void DboxMain::ExportFilters(PWSFilters &Filters)
 
   // do the export
   //SaveAs-type dialog box
-  stringT XMLFileName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(),
-                                                  _T("filters.xml"));
+  wstring XMLFileName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(),
+                                                  L"filters.xml");
   cs_text.LoadString(IDS_NAMEXMLFILE);
   while (1) {
     CFileDialog fd(FALSE,
-                   _T("xml"),
+                   L"xml",
                    XMLFileName.c_str(),
                    OFN_PATHMUSTEXIST | OFN_HIDEREADONLY |
                    OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
-                   _T("XML files (*.xml)|*.xml|")
-                   _T("All files (*.*)|*.*|")
-                   _T("|"),
+                   L"XML files (*.xml)|*.xml|"
+                   L"All files (*.*)|*.*|"
+                   L"|",
                    this);
     fd.m_ofn.lpstrTitle = cs_text;
     rc = fd.DoModal();
@@ -700,7 +700,7 @@ void DboxMain::ExportFilters(PWSFilters &Filters)
 
   PWSfile::HeaderRecord hdr = m_core.GetHeader();
   StringX currentfile = m_core.GetCurFile();
-  rc = Filters.WriteFilterXMLFile(LPCTSTR(cs_newfile), hdr, currentfile);
+  rc = Filters.WriteFilterXMLFile(LPCWSTR(cs_newfile), hdr, currentfile);
 
   if (rc == PWScore::CANT_OPEN_FILE) {
     cs_temp.Format(IDS_CANTOPENWRITING, cs_newfile);
@@ -714,8 +714,8 @@ void DboxMain::ExportFilters(PWSFilters &Filters)
 void DboxMain::ImportFilters()
 {
   CString cs_title, cs_temp, cs_text;
-  const stringT XSDfn(_T("pwsafe_filter.xsd"));
-  stringT XSDFilename = PWSdirs::GetXMLDir() + XSDfn;
+  const wstring XSDfn(L"pwsafe_filter.xsd");
+  wstring XSDFilename = PWSdirs::GetXMLDir() + XSDfn;
 
 #if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
   // Expat is a non-validating parser - no use for Schema!
@@ -728,10 +728,10 @@ void DboxMain::ImportFilters()
 #endif
 
   CFileDialog fd(TRUE,
-                 _T("xml"),
+                 L"xml",
                  NULL,
                  OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
-                 _T("XML files (*.xml)|*.xml||"),
+                 L"XML files (*.xml)|*.xml||",
                  this);
   cs_text.LoadString(IDS_PICKXMLFILE);
   fd.m_ofn.lpstrTitle = cs_text;
@@ -748,13 +748,13 @@ void DboxMain::ImportFilters()
     return;
 
   if (rc == IDOK) {
-    stringT strErrors;
+    wstring strErrors;
     CString XMLFilename = fd.GetPathName();
     CWaitCursor waitCursor;  // This may take a while!
 
     MFCAsker q;
-    rc = m_MapFilters.ImportFilterXMLFile(FPOOL_IMPORTED, _T(""),
-                                          stringT(XMLFilename),
+    rc = m_MapFilters.ImportFilterXMLFile(FPOOL_IMPORTED, L"",
+                                          wstring(XMLFilename),
                                           XSDFilename.c_str(), strErrors, &q);
     waitCursor.Restore();  // Restore normal cursor
 
@@ -768,7 +768,7 @@ void DboxMain::ImportFilters()
         break;
       case PWScore::SUCCESS:
         if (!strErrors.empty()) {
-          stringT csErrors = strErrors + _T("\n");
+          wstring csErrors = strErrors + L"\n";
           cs_temp.Format(IDS_XMLIMPORTWITHERRORS, fd.GetFileName(),
                          csErrors.c_str());
         } else {
@@ -784,7 +784,7 @@ void DboxMain::ImportFilters()
   }
 }
 
-bool group_pred (const std::vector<int>& v1, const std::vector<int>& v2)
+bool group_pred (const vector<int>& v1, const vector<int>& v2)
 {
   return v1.size() < v2.size();
 }
@@ -833,7 +833,7 @@ void DboxMain::CreateGroups()
 
   if (groups.size() > 0) {
     // Sort them so the smallest group is first
-    std::sort(groups.begin(), groups.end(), group_pred);
+    sort(groups.begin(), groups.end(), group_pred);
 
     // And save
     m_vMflgroups = groups;
@@ -863,7 +863,7 @@ void DboxMain::CreateGroups()
 
   if (groups.size() > 0) {
     // Sort them so the smallest group is first
-    std::sort(groups.begin(), groups.end(), group_pred);
+    sort(groups.begin(), groups.end(), group_pred);
 
     // And save
     m_vHflgroups = groups;
@@ -893,7 +893,7 @@ void DboxMain::CreateGroups()
 
   if (groups.size() > 0) {
     // Sort them so the smallest group is first
-    std::sort(groups.begin(), groups.end(), group_pred);
+    sort(groups.begin(), groups.end(), group_pred);
 
     // And save
     m_vPflgroups = groups;

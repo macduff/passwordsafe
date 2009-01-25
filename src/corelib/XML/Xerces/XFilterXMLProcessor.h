@@ -50,6 +50,8 @@
 #include <iostream.h>
 #endif
 
+using namespace std;
+
 class XFilterXMLProcessor
 {
 public:
@@ -58,16 +60,16 @@ public:
 
   bool Process(const bool &bvalidation,
                const StringX &strXMLData,
-               const stringT &strXMLFileName, 
-               const stringT &strXSDFileName);
+               const wstring &strXMLFileName, 
+               const wstring &strXSDFileName);
 
-  stringT getResultText() {return m_strResultText;}
+  wstring getResultText() {return m_strResultText;}
 
 private:
   Asker *m_pAsker;
   PWSFilters &m_MapFilters;
   FilterPool m_FPool;
-  stringT m_strResultText;
+  wstring m_strResultText;
   bool m_bValidation;
 };
 

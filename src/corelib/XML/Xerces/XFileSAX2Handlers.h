@@ -74,7 +74,7 @@ public:
   void error(const SAXParseException& exc);
   void fatalError(const SAXParseException& exc);
 
-  stringT getValidationResult() {return m_strValidationResult;}
+  wstring getValidationResult() {return m_strValidationResult;}
 
 private:
   void FormatError(const SAXParseException& e, const int type);
@@ -84,7 +84,7 @@ private:
 
   const Locator *m_pLocator;
 
-  stringT m_strValidationResult;
+  wstring m_strValidationResult;
   bool m_bErrorsFound;
 };
 

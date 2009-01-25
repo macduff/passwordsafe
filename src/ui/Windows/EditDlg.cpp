@@ -43,16 +43,7 @@ using namespace std;
 static char THIS_FILE[] = __FILE__;
 #endif
 
-// hide w_char/char differences where possible:
-#ifdef UNICODE
-typedef std::wifstream ifstreamT;
-typedef std::wofstream ofstreamT;
-#else
-typedef std::ifstream ifstreamT;
-typedef std::ofstream ofstreamT;
-#endif
-
-static TCHAR PSSWDCHAR = TCHAR('*');
+static wchar_t PSSWDCHAR = L'*';
 CSecString CEditDlg::HIDDEN_NOTES;
 CString CEditDlg::CS_ON;
 CString CEditDlg::CS_OFF;
@@ -67,7 +58,7 @@ CEditDlg::CEditDlg(CItemData *ci, CWnd* pParent)
   : CPWDialog(CEditDlg::IDD, pParent),
   m_ci(ci), m_Edit_IsReadOnly(false),
   m_tttXTime(time_t(0)), m_tttCPMTime(time_t(0)),
-  m_locXTime(_T("")), m_oldlocXTime(_T("")), m_XTimeInt(0),
+  m_locXTime(L""), m_oldlocXTime(L""), m_XTimeInt(0),
   m_original_entrytype(CItemData::ET_NORMAL), m_ToolTipCtrl(NULL)
 {
   ASSERT(ci != NULL);
@@ -127,10 +118,10 @@ CEditDlg::CEditDlg(CItemData *ci, CWnd* pParent)
   m_oldXTimeInt = m_XTimeInt;
 
   m_pex_notes = new CEditExtn(WM_CALL_EXTERNAL_EDITOR, 
-                              _T("! &Edit externally"));
+                              L"! &Edit externally");
   m_num_dependents = 0;
-  m_dependents = _T("");
-  m_base = _T("");
+  m_dependents = L"";
+  m_base = L"";
 }
 
 CEditDlg::~CEditDlg()
@@ -377,7 +368,7 @@ void CEditDlg::UpdateHistory()
 {
   size_t num = m_PWHistList.size();
   PWHistEntry pwh_ent;
-  pwh_ent.password = LPCTSTR(m_oldRealPassword);
+  pwh_ent.password = LPCWSTR(m_oldRealPassword);
   time_t t;
   m_ci->GetPMTime(t);
   if ((long)t == 0L) // if never set - try creation date
@@ -388,7 +379,7 @@ void CEditDlg::UpdateHistory()
   if (pwh_ent.changedate.empty()) {
     CString unk;
     unk.LoadString(IDS_UNKNOWN);
-    pwh_ent.changedate = LPCTSTR(unk);
+    pwh_ent.changedate = LPCWSTR(unk);
   }
 
   // Now add the latest
@@ -410,14 +401,14 @@ void CEditDlg::UpdateHistory()
   CSecString new_PWHistory;
   CString buffer;
 
-  buffer.Format(_T("1%02x%02x"), m_MaxPWHistory, num);
+  buffer.Format(L"1%02x%02x", m_MaxPWHistory, num);
   new_PWHistory = CSecString(buffer);
 
   PWHistList::iterator iter;
   for (iter = m_PWHistList.begin(); iter != m_PWHistList.end(); iter++) {
     const PWHistEntry pwshe = *iter;
 
-    buffer.Format(_T("%08x%04x%s"),
+    buffer.Format(L"%08x%04x%s",
                   (long) pwshe.changetttdate, pwshe.password.length(),
                   pwshe.password.c_str());
     new_PWHistory += CSecString(buffer);
@@ -496,7 +487,7 @@ BOOL CEditDlg::OnInitDialog()
   if (!m_Edit_IsReadOnly) {
     // Populate the groups combo box
     if (m_ex_group.GetCount() == 0) {
-      std::vector<stringT> aryGroups;
+      vector<wstring> aryGroups;
       app.m_core.GetUniqueGroups(aryGroups);
       for (size_t igrp = 0; igrp < aryGroups.size(); igrp++) {
         m_ex_group.AddString(aryGroups[igrp].c_str());
@@ -508,16 +499,16 @@ BOOL CEditDlg::OnInitDialog()
     SetWindowText(m_SavePWHistory == TRUE ? CS_ON : CS_OFF);
   CString buffer;
   if (m_SavePWHistory == TRUE)
-    buffer.Format(_T("%d"), m_MaxPWHistory);
+    buffer.Format(L"%d", m_MaxPWHistory);
   else
-    buffer = _T("n/a");
+    buffer = L"n/a";
 
   GetDlgItem(IDC_PWHMAX)->SetWindowText(buffer);
 
   if (m_XTimeInt != 0) // recurring expiration
     cs_text.Format(IDS_IN_N_DAYS, m_XTimeInt);
   else
-    cs_text = _T("");
+    cs_text = L"";
   GetDlgItem(IDC_XTIME_RECUR2)->SetWindowText(cs_text);
 
 
@@ -577,7 +568,7 @@ void CEditDlg::ShowPassword()
 
   // Don't need verification as the user can see the password entered
   // use m_password2 to show something useful...
-  ostringstreamT os;
+  wostringstream os;
   for (int i = 1; i <= m_realpassword.GetLength(); i++)
     os << (i % 10);
   m_password2 = os.str().c_str();
@@ -656,12 +647,12 @@ void CEditDlg::OnRandom()
 void CEditDlg::OnHelp() 
 {
 #if defined(POCKET_PC)
-  CreateProcess( _T("PegHelp.exe"), _T("pws_ce_help.html#editview"), 
+  CreateProcess( L"PegHelp.exe", L"pws_ce_help.html#editview", 
                 NULL, NULL, FALSE, 0, NULL, NULL, NULL, NULL );
 #else
   CString cs_HelpTopic;
-  cs_HelpTopic = app.GetHelpFileName() + _T("::/html/entering_pwd.html");
-  HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+  cs_HelpTopic = app.GetHelpFileName() + L"::/html/entering_pwd.html";
+  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 #endif
 }
 
@@ -771,7 +762,7 @@ void CEditDlg::OnBnClickedClearXTime()
 {
   m_locXTime.LoadString(IDS_NEVER);
   GetDlgItem(IDC_XTIME)->SetWindowText((CString)m_locXTime);
-  GetDlgItem(IDC_XTIME_RECUR2)->SetWindowText(_T(""));
+  GetDlgItem(IDC_XTIME_RECUR2)->SetWindowText(L"");
   m_tttXTime = (time_t)0;
   m_XTimeInt = 0;
 }
@@ -812,9 +803,9 @@ void CEditDlg::OnBnClickedPwhist()
              SetWindowText(m_SavePWHistory == TRUE ? CS_ON : CS_OFF);
   CString buffer;
   if (m_SavePWHistory == TRUE)
-    buffer.Format(_T("%d"), m_MaxPWHistory);
+    buffer.Format(L"%d", m_MaxPWHistory);
   else
-    buffer = _T("n/a");
+    buffer = L"n/a";
 
   GetDlgItem(IDC_PWHMAX)->SetWindowText(buffer);
 }
@@ -862,8 +853,8 @@ UINT CEditDlg::ExternalEditorThread(LPVOID me) // static method!
 {
   CEditDlg *self = (CEditDlg *)me;
 
-  TCHAR szExecName[MAX_PATH + 1];
-  TCHAR lpPathBuffer[4096];
+  wchar_t szExecName[MAX_PATH + 1];
+  wchar_t lpPathBuffer[4096];
   DWORD dwBufSize(4096);
 
   // Get the temp path
@@ -872,26 +863,26 @@ UINT CEditDlg::ExternalEditorThread(LPVOID me) // static method!
 
   // Create a temporary file.
   GetTempFileName(lpPathBuffer,          // directory for temp files
-                  _T("NTE"),             // temp file name prefix
+                  L"NTE",             // temp file name prefix
                   0,                     // create unique name
                   self->m_szTempName);   // buffer for name
 
   // Open it and put the Notes field in it
-  ofstreamT ofs(self->m_szTempName);
+  wofstream ofs(self->m_szTempName);
   if (ofs.bad())
     return 16;
 
-  ofs << LPCTSTR(self->m_realnotes) << std::endl;
+  ofs << LPCWSTR(self->m_realnotes) << endl;
   ofs.flush();
   ofs.close();
 
   // Find out the users default editor for "txt" files
   DWORD dwSize(MAX_PATH);
-  HRESULT stat = ::AssocQueryString(0, ASSOCSTR_EXECUTABLE, _T(".txt"), _T("Open"),
+  HRESULT stat = ::AssocQueryString(0, ASSOCSTR_EXECUTABLE, L".txt", L"Open",
                                     szExecName, &dwSize);
   if (int(stat) != S_OK) {  
 #ifdef _DEBUG
-    AfxMessageBox(_T("oops"));
+    AfxMessageBox(L"oops");
 #endif
     return 16;
   }
@@ -905,16 +896,14 @@ UINT CEditDlg::ExternalEditorThread(LPVOID me) // static method!
   ZeroMemory( &pi, sizeof(pi) );
 
   DWORD dwCreationFlags(0);
-#ifdef _UNICODE
   dwCreationFlags = CREATE_UNICODE_ENVIRONMENT;
-#endif
 
   CString cs_CommandLine;
 
   // Make the command line = "<program>" "file" 
-  cs_CommandLine.Format(_T("\"%s\" \"%s\""), szExecName, self->m_szTempName);
+  cs_CommandLine.Format(L"\"%s\" \"%s\"", szExecName, self->m_szTempName);
   int ilen = cs_CommandLine.GetLength();
-  LPTSTR pszCommandLine = cs_CommandLine.GetBuffer(ilen);
+  LPWSTR pszCommandLine = cs_CommandLine.GetBuffer(ilen);
 
   if (!CreateProcess(NULL, pszCommandLine, NULL, NULL, FALSE, dwCreationFlags, 
                      NULL, lpPathBuffer, &si, &pi)) {
@@ -942,20 +931,20 @@ LRESULT CEditDlg::OnExternalEditorEnded(WPARAM, LPARAM)
   GetDlgItem(IDC_NOTES)->EnableWindow(TRUE);
 
   // Now get what the user saved in this file and put it back into Notes field
-  ifstreamT ifs(m_szTempName);
+  wifstream ifs(m_szTempName);
   if (ifs.bad())
     return 16;
 
   m_realnotes.Empty();
-  stringT linebuf, note;
+  wstring linebuf, note;
 
   // Get first line
-  getline(ifs, note, TCHAR('\n'));
+  getline(ifs, note, L'\n');
 
   // Now get the rest (if any)
   while (!ifs.eof()) {
-    getline(ifs, linebuf, TCHAR('\n'));
-    note += _T("\r\n");
+    getline(ifs, linebuf, L'\n');
+    note += L"\r\n";
     note += linebuf;
   }
 
@@ -969,7 +958,7 @@ LRESULT CEditDlg::OnExternalEditorEnded(WPARAM, LPARAM)
   ((CEdit*)GetDlgItem(IDC_NOTES))->Invalidate();
 
   // Delete temporary file
-  _tremove(m_szTempName);
+  _wremove(m_szTempName);
   return 0;
 }
 

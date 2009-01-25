@@ -74,15 +74,15 @@ XFilterXMLProcessor::~XFilterXMLProcessor()
 
 bool XFilterXMLProcessor::Process(const bool &bvalidation,
                                   const StringX &strXMLData,
-                                  const stringT &strXMLFileName,
-                                  const stringT &strXSDFileName)
+                                  const wstring &strXMLFileName,
+                                  const wstring &strXSDFileName)
 {
   bool bEerrorOccurred = false;
-  stringT cs_validation;
+  wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  stringT cs_import;
+  wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
-  stringT strResultText(_T(""));
+  wstring strResultText(L"");
   m_bValidation = bvalidation;  // Validate or Import
 
   XSecMemMgr sec_mm;
@@ -94,13 +94,7 @@ bool XFilterXMLProcessor::Process(const bool &bvalidation,
   }
   catch (const XMLException& toCatch)
   {
-#ifdef UNICODE
-    m_strResultText = stringT(toCatch.getMessage());
-#else
-    char *szData = XMLString::transcode(toCatch.getMessage());
-    strResultText = stringT(szData);
-    XMLString::release(&szData);
-#endif
+    m_strResultText = wstring(toCatch.getMessage());
     return false;
   }
 
@@ -140,21 +134,19 @@ bool XFilterXMLProcessor::Process(const bool &bvalidation,
     if (!strXMLFileName.empty()) {
       pSAX2Parser->parse(strXMLFileName.c_str());
     } else {
-      const char *szID = "database_filters";
-#ifdef UNICODE
-      const char *buffer = XMLString::transcode(strXMLData.c_str());
-#else
-      const char *buffer = strXMLData.c_str();
-#endif
+      const wchar_t *szID = L"database_filters";
+      StringX sbuffer(strXMLData);
+      StringX::size_type ipos;
+      ipos = sbuffer.find(L"UTF-8");
+      if (ipos != wstring::npos)
+        sbuffer.replace(ipos, 5, L"UTF-16");
+
       MemBufInputSource* memBufIS = new MemBufInputSource(
-                    (const XMLByte*)buffer,
-                    strXMLData.length(),
+                    (const XMLByte*)(sbuffer.c_str()),
+                    sbuffer.length() * sizeof(wchar_t),
                     szID, false);
       pSAX2Parser->parse(*memBufIS);
       delete memBufIS;
-#ifdef UNICODE
-      XMLString::release((char **)&buffer);
-#endif
     }
   }
   catch (const OutOfMemoryException&)
@@ -164,13 +156,7 @@ bool XFilterXMLProcessor::Process(const bool &bvalidation,
   }
   catch (const XMLException& e)
   {
-#ifdef UNICODE
-    strResultText = stringT(e.getMessage());
-#else
-    char *szData = XMLString::transcode(e.getMessage());
-    strResultText = stringT(szData);
-    XMLString::release(&szData);
-#endif
+    strResultText = wstring(e.getMessage());
     bEerrorOccurred = true;
   }
 

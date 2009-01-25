@@ -12,9 +12,8 @@
 
 #include "test.h"   // includes <string>, <iosfwd>
 #include <vector>
-using std::string;
-using std::ostream;
-using std::vector;
+
+using namespace std;
 
 class TestSuiteError;
 

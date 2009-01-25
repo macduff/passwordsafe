@@ -208,7 +208,7 @@ void DboxMain::OnUpdateTrayBrowse(CCmdUI *pCmdUI)
   } else {
     const bool bIsEmail = ci.IsURLEmail();
     CString cs_text = bIsEmail ? CS_SENDEMAIL : CS_BROWSEURL;
-    int nPos = cs_text.Find(_T("\t"));
+    int nPos = cs_text.Find(L"\t");
     if (nPos > 0)
       cs_text = cs_text.Left(nPos);
     pCmdUI->SetText(cs_text);
@@ -264,15 +264,15 @@ void DboxMain::OnTrayCopyURL(UINT nID)
 
   StringX cs_URL = ci.GetURL();
   StringX::size_type ipos;
-  ipos = cs_URL.find(_T("[alt]"));
+  ipos = cs_URL.find(L"[alt]");
   if (ipos != StringX::npos)
-    cs_URL.replace(ipos, 5, _T(""));
-  ipos = cs_URL.find(_T("[ssh]"));
+    cs_URL.replace(ipos, 5, L"");
+  ipos = cs_URL.find(L"[ssh]");
   if (ipos != StringX::npos)
-    cs_URL.replace(ipos, 5, _T(""));
-  ipos = cs_URL.find(_T("{alt}"));
+    cs_URL.replace(ipos, 5, L"");
+  ipos = cs_URL.find(L"{alt}");
   if (ipos != StringX::npos)
-    cs_URL.replace(ipos, 5, _T(""));
+    cs_URL.replace(ipos, 5, L"");
   SetClipboardData(cs_URL);
 
   UpdateLastClipboardAction(CItemData::URL);

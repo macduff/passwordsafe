@@ -26,6 +26,8 @@
 #include <map>
 #include <algorithm>
 
+using namespace std;
+
 //////////////////
 // CCoolMenuManager implements "cool" menus with buttons in them. To use:
 //
@@ -46,10 +48,10 @@ struct CMenuItemData {
   BOOL     IsCMID()       { return magicNum == COOLMENUITEMID; }
 };
 
-typedef std::vector<HMENU> MenuVector;
+typedef vector<HMENU> MenuVector;
 typedef MenuVector::iterator MenuVectorIter;
 
-typedef std::vector<CMenuItemData *> PMDVector;
+typedef vector<CMenuItemData *> PMDVector;
 typedef PMDVector::iterator PMDVectorIter;
 
 class CCoolMenuManager : private CSubclassWnd

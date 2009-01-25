@@ -40,7 +40,7 @@ LRESULT CPWDialog::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
         p = p->GetParent();
     }
     if (p == NULL)
-      TRACE(_T("CPWDialog::WindowProc - couldn't find DboxMain ancestor\n"));
+      TRACE(L"CPWDialog::WindowProc - couldn't find DboxMain ancestor\n");
   }
   return CDialog::WindowProc(message, wParam, lParam);
 }

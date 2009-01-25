@@ -58,10 +58,10 @@ void XMLCALL EFileHandlers::startElement(void *userdata, const XML_Char *name,
                                          const XML_Char **attrs)
 {
   bool battr_found(false);
-  m_strElemContent = _T("");
+  m_strElemContent = L"";
 
   if (m_bValidation) {
-    stringT element_name(name);
+    wstring element_name(name);
     if (!m_pValidator->startElement(element_name)) {
       m_bErrors = true;
       m_iErrorCode = m_pValidator->getErrorCode();
@@ -83,19 +83,8 @@ void XMLCALL EFileHandlers::startElement(void *userdata, const XML_Char *name,
 
       // Only interested in the delimiter attribute
       for (int i = 0; attrs[i]; i += 2) {
-        if (_tcscmp(attrs[i], _T("delimiter")) == 0) {
-#ifndef UNICODE
-          CUTF8Conv utf8conv;
-          int len = strlen(attrs[i + 1]);
-          StringX str;
-          bool utf8status = utf8conv.FromUTF8((unsigned char *)attrs[i + 1], len, str);
-          if (utf8status)
-            m_strElemContent = str.c_str();
-          else
-			      m_strElemContent = attrs[i + 1];
-#else
+        if (wcscmp(attrs[i], L"delimiter") == 0) {
           m_strElemContent = attrs[i + 1];
-#endif
           battr_found = true;
           break;
         }
@@ -124,8 +113,8 @@ void XMLCALL EFileHandlers::startElement(void *userdata, const XML_Char *name,
       m_element_datatype.push(XLD_XS_BASE64BINARY);
       // Only interested in the ftype attribute
       for (int i = 0; attrs[i]; i += 2) {
-        if (_tcscmp(attrs[i], _T("ftype")) == 0) {
-          m_ctype = (unsigned char)_ttoi(attrs[i + 1]);
+        if (wcscmp(attrs[i], L"ftype") == 0) {
+          m_ctype = (unsigned char)_wtoi(attrs[i + 1]);
           battr_found = true;
           break;
         }
@@ -144,10 +133,10 @@ void XMLCALL EFileHandlers::startElement(void *userdata, const XML_Char *name,
 
       // Only interested in the normal attribute
       for (int i = 0; attrs[i]; i += 2) {
-        if (_tcscmp(attrs[i], _T("normal")) == 0) {
+        if (wcscmp(attrs[i], L"normal") == 0) {
           cur_entry->bforce_normal_entry =
-            (_tcscmp(attrs[i + 1], _T("1")) == 0) ||
-            (_tcscmp(attrs[i + 1], _T("true")) == 0);
+            (wcscmp(attrs[i + 1], L"1") == 0) ||
+            (wcscmp(attrs[i + 1], L"true") == 0);
           break;
         }
       }
@@ -279,22 +268,22 @@ void XMLCALL EFileHandlers::characterData(void * /* userdata */, const XML_Char 
 {
   XML_Char *xmlchData = new XML_Char[length + 1];
 #if _MSC_VER >= 1400
-  _tcsncpy_s(xmlchData, length + 1, s, length);
+  wcsncpy_s(xmlchData, length + 1, s, length);
 #else
-  _tcsncpy(xmlchData, s, length);
+  wcsncpy(xmlchData, s, length);
 #endif
-  xmlchData[length] = TCHAR('\0');
+  xmlchData[length] = L'\0';
   m_strElemContent += StringX(xmlchData);
   delete [] xmlchData;
 }
 
 void XMLCALL EFileHandlers::endElement(void * userdata, const XML_Char *name)
 {
-  StringX buffer(_T(""));
+  StringX buffer(L"");
 
   if (m_bValidation) {
     int &element_datatype = m_element_datatype.top();
-    stringT element_name(name);
+    wstring element_name(name);
     if (!m_pValidator->endElement(element_name, m_strElemContent, element_datatype)) {
       m_bErrors = true;
       m_iErrorCode = m_pValidator->getErrorCode();
@@ -306,7 +295,7 @@ void XMLCALL EFileHandlers::endElement(void * userdata, const XML_Char *name)
   m_element_datatype.pop();
 
   if (m_bValidation) {
-    if (_tcscmp(name, _T("entry")) == 0)
+    if (wcscmp(name, L"entry") == 0)
       m_numEntries++;
     return;
   }

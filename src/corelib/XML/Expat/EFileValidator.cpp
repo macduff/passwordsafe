@@ -40,6 +40,8 @@
 #include <map>
 #include <sstream>
 
+using namespace std;
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -68,10 +70,10 @@ EFileValidator::~EFileValidator()
   m_element_stack.clear();
 }
 
-bool EFileValidator::startElement(stringT & strStartElement)
+bool EFileValidator::startElement(wstring & strStartElement)
 {
   m_iErrorCode = 0;
-  if (strStartElement == _T("passwordsafe")) {
+  if (strStartElement == L"passwordsafe") {
     if (!m_element_stack.empty() || m_ielement_occurs[XLE_PASSWORDSAFE] > 0) {
       m_iErrorCode = XLPEC_UNEXPECTED_ELEMENT;
       return false;
@@ -114,7 +116,7 @@ bool EFileValidator::startElement(stringT & strStartElement)
   
   if (maxoccurs != -1 && m_ielement_occurs[icurrent_element] >= maxoccurs) {
     m_iErrorCode = XLPEC_EXCEEDED_MAXOCCURS;
-    TCHAR buffer[10];
+    wchar_t buffer[10];
 #if _MSC_VER >= 1400
     _itot_s(maxoccurs, buffer, 10, 10);
 #else
@@ -406,9 +408,9 @@ bool EFileValidator::startElement(stringT & strStartElement)
 }
 
 
-bool EFileValidator::endElement(stringT & endElement, StringX &strValue, int &datatype)
+bool EFileValidator::endElement(wstring & endElement, StringX &strValue, int &datatype)
 {
-  if (endElement == _T("entry")) {
+  if (endElement == L"entry") {
     if (m_ielement_occurs[XLE_TITLE] == 0 || m_ielement_occurs[XLE_PASSWORD] == 0) {
       // missing title and/or password mandatory fields
       m_iErrorCode = XLPEC_MISSING_MANDATORY_FIELD;
@@ -458,9 +460,9 @@ bool EFileValidator::endElement(stringT & endElement, StringX &strValue, int &da
 
 bool EFileValidator::VerifyXMLDataType(const StringX &strElemContent, const int &datatype)
 {
-  static const TCHAR *digits(_T("0123456789"));
-  static const TCHAR *hexBinary(_T("0123456789abcdefABCDEF"));
-  static const TCHAR *base64Binary(_T("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"));
+  static const wchar_t *digits(L"0123456789");
+  static const wchar_t *hexBinary(L"0123456789abcdefABCDEF");
+  static const wchar_t *base64Binary(L"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/");
   // date = "yyyy-mm-dd"
   // time = "hh:mm:ss"
 
@@ -476,9 +478,9 @@ bool EFileValidator::VerifyXMLDataType(const StringX &strElemContent, const int 
         return false;
       // Note: a base64Binary string ends with either '....', '...=' or '..=='
       // An equal sign cannot appear anywhere else, so exclude from check as appropriate.
-      if (strValue.substr(i - 2, 2) == _T("=="))
+      if (strValue.substr(i - 2, 2) == L"==")
         i -= 2;
-      else if (strValue[i - 1] == _T('='))
+      else if (strValue[i - 1] == L'=')
         i--;
       return (strValue.find_first_not_of(base64Binary, 0, i) == StringX::npos);
     case XLD_XS_DATE:
@@ -492,47 +494,47 @@ bool EFileValidator::VerifyXMLDataType(const StringX &strElemContent, const int 
     case XLD_XS_TIME:
       return VerifyXMLTime(strValue);
     case XLD_BOOLTYPE:
-      return (strValue == _T("0") || strValue == _T("1"));
+      return (strValue == L"0" || strValue == L"1");
     case XLD_CHARACTERTYPE:
       return (i == 1);
     case XLD_DISPLAYSTATUSTYPE:
-      return (strValue == _T("AllCollapsed") ||
-              strValue == _T("AllExpanded") ||
-              strValue == _T("AsPerLastSave"));
+      return (strValue == L"AllCollapsed" ||
+              strValue == L"AllExpanded" ||
+              strValue == L"AsPerLastSave");
     case XLD_EXPIRYDAYSTYPE:
       if (strValue.find_first_not_of(digits) != StringX::npos)
         return false;
-      i = _ttoi(strValue.c_str());
+      i = _wtoi(strValue.c_str());
       return (i >= 1 && i <= 3650);
     case XLD_FIELDTYPE:
       if (strValue.find_first_not_of(digits) != StringX::npos)
         return false;
-      i = _ttoi(strValue.c_str());
+      i = _wtoi(strValue.c_str());
       return (i >= 18 && i <= 255);
     case XLD_NUMHASHTYPE:
       if (strValue.find_first_not_of(digits) != StringX::npos)
         return false;
-      i = _ttoi(strValue.c_str());
+      i = _wtoi(strValue.c_str());
       return (i >= 2048);
     case XLD_PASSWORDLENGTHTYPE:
       if (strValue.find_first_not_of(digits) != StringX::npos)
         return false;
-      i = _ttoi(strValue.c_str());
+      i = _wtoi(strValue.c_str());
       return (i >= 4 && i <= 1024);
     case XLD_PASSWORDLENGTHTYPE2:
       if (strValue.find_first_not_of(digits) != StringX::npos)
         return false;
-      i = _ttoi(strValue.c_str());
+      i = _wtoi(strValue.c_str());
       return (i >= 0 && i <= 1024);
     case XLD_PWHISTORYTYPE:
       if (strValue.find_first_not_of(digits) != StringX::npos)
         return false;
-      i = _ttoi(strValue.c_str());
+      i = _wtoi(strValue.c_str());
       return (i >= 0 && i <= 255);
     case XLD_TIMEOUTTYPE:
       if (strValue.find_first_not_of(digits) != StringX::npos)
         return false;
-      i = _ttoi(strValue.c_str());
+      i = _wtoi(strValue.c_str());
       return (i >= 1 && i <= 120);
     case XLD_UUIDTYPE:
       if (i != 32)
@@ -551,7 +553,7 @@ bool EFileValidator::VerifyXMLDataType(const StringX &strElemContent, const int 
 bool EFileValidator::VerifyXMLDate(const StringX &strValue)
 {
   // yyyy-mm-dd
-  if (strValue == _T("1970-01-01"))  // Special case
+  if (strValue == L"1970-01-01")  // Special case
     return true;
 
   const int ndigits = 8;
@@ -562,8 +564,8 @@ bool EFileValidator::VerifyXMLDate(const StringX &strValue)
     return false;
 
   // Validate strValue
-  if (strValue[4] != _T('-') ||
-      strValue[7] != _T('-'))
+  if (strValue[4] != L'-' ||
+      strValue[7] != L'-')
     return false;
 
   for (int i = 0; i < ndigits; i++) {
@@ -571,8 +573,8 @@ bool EFileValidator::VerifyXMLDate(const StringX &strValue)
       return false;
   }
 
-  iStringXStream is(strValue);
-  TCHAR dummy;
+  wiStringXStream is(strValue);
+  wchar_t dummy;
   is >> yyyy >> dummy >> mm >> dummy >> dd;
 
   return verifyDTvalues(yyyy, mm, dd, 0, 0, 0);
@@ -590,8 +592,8 @@ bool EFileValidator::VerifyXMLTime(const StringX &strValue)
     return false;
 
   // Validate strValue
-  if (strValue[2] != _T(':') ||
-      strValue[5] != _T(':'))
+  if (strValue[2] != L':' ||
+      strValue[5] != L':')
     return false;
 
   for (int i = 0; i < ndigits; i++) {
@@ -599,18 +601,18 @@ bool EFileValidator::VerifyXMLTime(const StringX &strValue)
       return false;
   }
 
-  iStringXStream is(strValue);
-  TCHAR dummy;
+  wiStringXStream is(strValue);
+  wchar_t dummy;
   is >> hh >> dummy >> min >> dummy >> ss;
 
   return verifyDTvalues(1970, 01, 01, hh, min, ss);
 }
 
-StringX EFileValidator::Trim(const StringX &s, const TCHAR *set)
+StringX EFileValidator::Trim(const StringX &s, const wchar_t *set)
 {
   // This version does NOT change the input arguments!
-  const TCHAR *tset = (set == NULL) ? _T(" \t\r\n") : set;
-  StringX retval(_T(""));
+  const wchar_t *tset = (set == NULL) ? L" \t\r\n" : set;
+  StringX retval(L"");
 
   StringX::size_type b = s.find_first_not_of(tset);
   if (b != StringX::npos) {

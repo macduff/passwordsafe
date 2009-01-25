@@ -126,7 +126,7 @@ private:
 
   CExtThread *m_thread; // worker thread
   static UINT ExternalEditorThread(LPVOID me);
-  TCHAR m_szTempName[MAX_PATH + 1];
+  wchar_t m_szTempName[MAX_PATH + 1];
   CToolTipCtrl* m_ToolTipCtrl;
 
   BOOL m_OverridePolicy;

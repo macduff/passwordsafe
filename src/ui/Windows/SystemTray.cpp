@@ -76,7 +76,7 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNAMIC(CSystemTray, CWnd)
 
 UINT CSystemTray::m_nIDEvent = 4567;
-const UINT CSystemTray::m_nTaskbarCreatedMsg = ::RegisterWindowMessage(_T("TaskbarCreated"));
+const UINT CSystemTray::m_nTaskbarCreatedMsg = ::RegisterWindowMessage(L"TaskbarCreated");
 
 /////////////////////////////////////////////////////////////////////////////
 // CSystemTray construction/creation/destruction
@@ -88,7 +88,7 @@ CSystemTray::CSystemTray()
 }
 #endif
 
-CSystemTray::CSystemTray(CWnd* pParent, UINT uCallbackMessage, LPCTSTR szToolTip,
+CSystemTray::CSystemTray(CWnd* pParent, UINT uCallbackMessage, LPCWSTR szToolTip,
                          HICON icon, CRUEList &RUEList,
                          UINT uID, UINT menuID)
   : m_RUEList(RUEList)
@@ -110,7 +110,7 @@ void CSystemTray::Initialise()
   m_menuID = 0;
 }
 
-BOOL CSystemTray::Create(CWnd* pParent, UINT uCallbackMessage, LPCTSTR szToolTip,
+BOOL CSystemTray::Create(CWnd* pParent, UINT uCallbackMessage, LPCWSTR szToolTip,
                          HICON icon, UINT uID, UINT menuID)
 {
   // this is only for Windows 95 (or higher)
@@ -128,7 +128,7 @@ BOOL CSystemTray::Create(CWnd* pParent, UINT uCallbackMessage, LPCTSTR szToolTip
   StringX ttt = PWSUtil::NormalizeTTT(szToolTip);
 
   // Create an invisible window
-  CWnd::CreateEx(0, AfxRegisterWndClass(0), _T(""), WS_POPUP, 0,0,10,10, NULL, 0);
+  CWnd::CreateEx(0, AfxRegisterWndClass(0), L"", WS_POPUP, 0,0,10,10, NULL, 0);
 
   // load up the NOTIFYICONDATA structure
   m_tnd.cbSize = sizeof(NOTIFYICONDATA);
@@ -137,7 +137,7 @@ BOOL CSystemTray::Create(CWnd* pParent, UINT uCallbackMessage, LPCTSTR szToolTip
   m_tnd.hIcon  = icon;
   m_tnd.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
   m_tnd.uCallbackMessage = uCallbackMessage;
-  _tcsncpy(m_tnd.szTip, ttt.c_str(), ttt.length());
+  wcsncpy(m_tnd.szTip, ttt.c_str(), ttt.length());
 
   // Set the tray icon
   m_bEnabled = Shell_NotifyIcon(NIM_ADD, &m_tnd);
@@ -201,7 +201,7 @@ BOOL CSystemTray::SetIcon(HICON hIcon)
   return Shell_NotifyIcon(NIM_MODIFY, &m_tnd);
 }
 
-BOOL CSystemTray::SetIcon(LPCTSTR lpszIconName)
+BOOL CSystemTray::SetIcon(LPCWSTR lpszIconName)
 {
   HICON hIcon = AfxGetApp()->LoadIcon(lpszIconName);
 
@@ -215,7 +215,7 @@ BOOL CSystemTray::SetIcon(UINT nIDResource)
   return SetIcon(hIcon);
 }
 
-BOOL CSystemTray::SetStandardIcon(LPCTSTR lpIconName)
+BOOL CSystemTray::SetStandardIcon(LPCWSTR lpIconName)
 {
   HICON hIcon = LoadIcon(NULL, lpIconName);
 
@@ -332,12 +332,12 @@ BOOL CSystemTray::StopAnimation()
 /////////////////////////////////////////////////////////////////////////////
 // CSystemTray tooltip text manipulation
 
-BOOL CSystemTray::SetTooltipText(LPCTSTR pszTip)
+BOOL CSystemTray::SetTooltipText(LPCWSTR pszTip)
 {
   if (!m_bEnabled) return FALSE;
   StringX ttt = PWSUtil::NormalizeTTT(pszTip);
   m_tnd.uFlags = NIF_TIP;
-  _tcsncpy(m_tnd.szTip, ttt.c_str(), ttt.length());
+  wcsncpy(m_tnd.szTip, ttt.c_str(), ttt.length());
 
   return Shell_NotifyIcon(NIM_MODIFY, &m_tnd);
 }

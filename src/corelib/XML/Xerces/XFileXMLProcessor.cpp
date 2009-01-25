@@ -66,7 +66,7 @@ static char THIS_FILE[] = __FILE__;
 XFileXMLProcessor::XFileXMLProcessor(PWScore *core, 
                                      UUIDList *possible_aliases,
                                      UUIDList *possible_shortcuts)
-  : m_xmlcore(core), m_delimiter(TCHAR('^')),
+  : m_xmlcore(core), m_delimiter(L'^'),
     m_possible_aliases(possible_aliases), m_possible_shortcuts(possible_shortcuts)
 {
 }
@@ -76,18 +76,18 @@ XFileXMLProcessor::~XFileXMLProcessor()
 }
 
 // ---------------------------------------------------------------------------
-bool XFileXMLProcessor::Process(const bool &bvalidation, const stringT &ImportedPrefix,
-                                const stringT &strXMLFileName, const stringT &strXSDFileName,
+bool XFileXMLProcessor::Process(const bool &bvalidation, const wstring &ImportedPrefix,
+                                const wstring &strXMLFileName, const wstring &strXSDFileName,
                                 int &nITER, int &nRecordsWithUnknownFields, 
                                 UnknownFieldList &uhfl)
 {
   bool bEerrorOccurred = false;
   bool b_into_empty = false;
-  stringT cs_validation;
+  wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  stringT cs_import;
+  wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
-  stringT strResultText(_T(""));
+  wstring strResultText(L"");
   m_bValidation = bvalidation;  // Validate or Import
 
   XSecMemMgr sec_mm;
@@ -99,23 +99,12 @@ bool XFileXMLProcessor::Process(const bool &bvalidation, const stringT &Imported
   }
   catch (const XMLException& toCatch)
   {
-#ifdef UNICODE
-    strResultText = stringT(toCatch.getMessage());
-#else
-    char *szData = XMLString::transcode(toCatch.getMessage());
-    strResultText = stringT(szData);
-    XMLString::release(&szData);
-#endif
+    strResultText = wstring(toCatch.getMessage());
     return false;
   }
 
-#ifdef UNICODE
   const XMLCh* xmlfilename = strXMLFileName.c_str();
   const XMLCh* schemafilename = strXSDFileName.c_str();
-#else
-  const XMLCh* xmlfilename = XMLString::transcode(strXMLFileName.c_str());
-  const XMLCh* schemafilename = XMLString::transcode(strXSDFileName.c_str());
-#endif
 
   //  Create a SAX2 parser object.
   SAX2XMLReader* pSAX2Parser = XMLReaderFactory::createXMLReader(&sec_mm);
@@ -160,13 +149,7 @@ bool XFileXMLProcessor::Process(const bool &bvalidation, const stringT &Imported
     bEerrorOccurred = true;
   }
   catch (const XMLException& e) {
-#ifdef UNICODE
-    strResultText = stringT(e.getMessage());
-#else
-    char *szData = XMLString::transcode(e.getMessage());
-    strResultText = stringT(szData);
-    XMLString::release(&szData);
-#endif
+    strResultText = wstring(e.getMessage());
     bEerrorOccurred = true;
   }
 
@@ -203,11 +186,6 @@ bool XFileXMLProcessor::Process(const bool &bvalidation, const stringT &Imported
         m_bDatabaseHeaderErrors = false;
     }
   }
-
-#ifndef UNICODE
-  XMLString::release((XMLCh **)&xmlfilename);
-  XMLString::release((XMLCh **)&schemafilename);
-#endif
 
   //  Delete the pSAX2Parser itself.  Must be done prior to calling Terminate, below.
   delete pSAX2Parser;

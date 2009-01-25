@@ -20,8 +20,9 @@
 
 #ifndef _SECSTRING_H_
 #define _SECSTRING_H_
+
 #ifdef _WIN32
-#include <afx.h>
+  #include <afx.h>
 #endif
 #include "corelib/StringX.h"
 #include "os/typedefs.h"
@@ -29,41 +30,41 @@
 class CSecString
 {
 public:
-  CSecString() : m_mystring(_S("")) {}
-  CSecString(LPCTSTR lpsz) : m_mystring(lpsz) {}
-  CSecString(LPCTSTR lpsz, int nLength) : m_mystring(lpsz, nLength) {}
+  CSecString() : m_mystring(L"") {}
+  CSecString(LPCWSTR lpsz) : m_mystring(lpsz) {}
+  CSecString(LPCWSTR lpsz, int nLength) : m_mystring(lpsz, nLength) {}
   CSecString(const CSecString& stringSrc) : m_mystring(stringSrc.m_mystring) {}
   CSecString(const CString& stringSrc) : m_mystring(stringSrc) {}
   CSecString(const StringX& sx) : m_mystring(sx.c_str()) {}
 
   ~CSecString() {trashstring();}
 
-  TCHAR operator[](int nIndex) const {return m_mystring[nIndex];}
+  wchar_t operator[](int nIndex) const {return m_mystring[nIndex];}
 
   // Following are dependent on M'soft's CString
   // We'll keep them inline for performance/code size, at the cost of ifdefs
   // in the header...
 #ifdef _WIN32
-  TCHAR GetAt(int nIndex) {return m_mystring.GetAt(nIndex);}
-  void SetAt(int nIndex, TCHAR ch) {m_mystring.SetAt(nIndex,ch);}
-  operator LPCTSTR() const {return (LPCTSTR)m_mystring;}
-  operator StringX() const {return StringX((LPCTSTR)m_mystring);}
+  wchar_t GetAt(int nIndex) {return m_mystring.GetAt(nIndex);}
+  void SetAt(int nIndex, wchar_t ch) {m_mystring.SetAt(nIndex,ch);}
+  operator LPCWSTR() const {return (LPCWSTR)m_mystring;}
+  operator StringX() const {return StringX((LPCWSTR)m_mystring);}
   BOOL IsEmpty() const {return m_mystring.IsEmpty();}
-  LPTSTR GetBuffer(int nMinBufLength) {return m_mystring.GetBuffer(nMinBufLength);}
-  LPTSTR GetBuffer() {return m_mystring.GetBuffer();}
+  LPWSTR GetBuffer(int nMinBufLength) {return m_mystring.GetBuffer(nMinBufLength);}
+  LPWSTR GetBuffer() {return m_mystring.GetBuffer();}
 
   void ReleaseBuffer(int nNewLength = -1) {m_mystring.ReleaseBuffer(nNewLength);}
 
   int GetLength() const {return m_mystring.GetLength();}
-  int Find(TCHAR ch) const {return m_mystring.Find(ch);}
-  int Find(LPCTSTR lpszSub) const {return m_mystring.Find(lpszSub);}
-  int Find(TCHAR ch, int nstart) const {return m_mystring.Find(ch, nstart);}
-  int Find(LPCTSTR lpszSub, int nstart) const {return m_mystring.Find(lpszSub, nstart);}
-  int FindOneOf(LPCTSTR lpszSub) const {return m_mystring.FindOneOf(lpszSub);}
-  int Replace(const TCHAR chOld, const TCHAR chNew) {return m_mystring.Replace(chOld,chNew);}
-  int Replace(const LPCTSTR lpszOld, const LPCTSTR lpszNew)
+  int Find(wchar_t ch) const {return m_mystring.Find(ch);}
+  int Find(LPCWSTR lpszSub) const {return m_mystring.Find(lpszSub);}
+  int Find(wchar_t ch, int nstart) const {return m_mystring.Find(ch, nstart);}
+  int Find(LPCWSTR lpszSub, int nstart) const {return m_mystring.Find(lpszSub, nstart);}
+  int FindOneOf(LPCWSTR lpszSub) const {return m_mystring.FindOneOf(lpszSub);}
+  int Replace(const wchar_t chOld, const wchar_t chNew) {return m_mystring.Replace(chOld,chNew);}
+  int Replace(const LPCWSTR lpszOld, const LPCWSTR lpszNew)
   {return m_mystring.Replace(lpszOld,lpszNew);}
-  int Remove(TCHAR ch) {return m_mystring.Remove(ch);}
+  int Remove(wchar_t ch) {return m_mystring.Remove(ch);}
   void TrimRight() {m_mystring.TrimRight();}
   void TrimLeft() {m_mystring.TrimLeft();}
 #if _MSC_VER >= 1400
@@ -74,69 +75,66 @@ public:
 #endif
   void MakeLower() {m_mystring.MakeLower();}
   void MakeUpper() {m_mystring.MakeUpper();}
-  int Compare(const LPCTSTR lpszOther) const {return m_mystring.Compare(lpszOther);}
-  int CompareNoCase(const LPCTSTR lpszOther) const {return m_mystring.CompareNoCase(lpszOther);}
+  int Compare(const LPCWSTR lpszOther) const {return m_mystring.Compare(lpszOther);}
+  int CompareNoCase(const LPCWSTR lpszOther) const {return m_mystring.CompareNoCase(lpszOther);}
   BOOL IsOnlyWhiteSpace() const
   {CSecString t(*this); return t.Trim().IsEmpty();}
   void EmptyIfOnlyWhiteSpace()
   {if (IsOnlyWhiteSpace() == TRUE) Empty();}
-  CSecString SpanIncluding(LPCTSTR lpszCharSet)
+  CSecString SpanIncluding(LPCWSTR lpszCharSet)
   {return CSecString(m_mystring.SpanIncluding(lpszCharSet));}
-  CSecString SpanExcluding(LPCTSTR lpszCharSet)
+  CSecString SpanExcluding(LPCWSTR lpszCharSet)
   {return CSecString(m_mystring.SpanExcluding(lpszCharSet));}
 #else
-  TCHAR GetAt(int nIndex);
-  void SetAt(int nIndex, TCHAR ch);
-  operator LPCTSTR() const;
+  wchar_t GetAt(int nIndex);
+  void SetAt(int nIndex, wchar_t ch);
+  operator LPCWSTR() const;
   BOOL IsEmpty() const;
-  LPTSTR GetBuffer(int nMinBufLength);
-  LPTSTR GetBuffer();
+  LPWSTR GetBuffer(int nMinBufLength);
+  LPWSTR GetBuffer();
   void ReleaseBuffer(int nNewLength = -1);
   int GetLength() const;
-  int Find(TCHAR ch) const;
-  int Find(LPCTSTR lpszSub) const;
-  int Find(TCHAR ch, int nstart) const;
-  int Find(LPCTSTR lpszSub, int nstart) const;
-  int FindOneOf(LPCTSTR lpszSub) const;
-  int Replace(const TCHAR chOld, const TCHAR chNew);
-  int Replace(const LPCTSTR lpszOld, const LPCTSTR lpszNew);
-  int Remove(TCHAR ch);
+  int Find(wchar_t ch) const;
+  int Find(LPCWSTR lpszSub) const;
+  int Find(wchar_t ch, int nstart) const;
+  int Find(LPCWSTR lpszSub, int nstart) const;
+  int FindOneOf(LPCWSTR lpszSub) const;
+  int Replace(const wchar_t chOld, const wchar_t chNew);
+  int Replace(const LPCWSTR lpszOld, const LPCWSTR lpszNew);
+  int Remove(wchar_t ch);
   void TrimRight();
   void TrimLeft();
   CSecString &Trim();
   void MakeLower();
-  int Compare(const LPCTSTR lpszOther) const;
-  int CompareNoCase(const LPCTSTR lpszOther) const;
+  int Compare(const LPCWSTR lpszOther) const;
+  int CompareNoCase(const LPCWSTR lpszOther) const;
   BOOL IsOnlyWhiteSpace() const;
   void EmptyIfOnlyWhiteSpace();
-  CSecString SpanIncluding(LPCTSTR lpszCharSet);
-  CSecString SpanExcluding(LPCTSTR lpszCharSet);
+  CSecString SpanIncluding(LPCWSTR lpszCharSet);
+  CSecString SpanExcluding(LPCWSTR lpszCharSet);
 #endif
 
   operator CString() const {return m_mystring;}
   operator CString&() {return m_mystring;}
 
   const CSecString& operator=(const CSecString& stringSrc);
-  const CSecString& operator=(TCHAR ch);
-  const CSecString& operator=(LPCTSTR lpsz);
-#ifndef UNICODE // do we need this at all?
-  const CSecString& operator=(const unsigned char* psz);
-#endif
+  const CSecString& operator=(wchar_t ch);
+  const CSecString& operator=(LPCWSTR lpsz);
   const CSecString& operator+=(const CSecString& s) {m_mystring += s.m_mystring; return *this;}
-  const CSecString& operator+=(TCHAR ch) {m_mystring += ch; return *this;}
-  const CSecString& operator+=(LPCTSTR lpsz) {m_mystring += lpsz; return *this;}
+  const CSecString& operator+=(wchar_t ch) {m_mystring += ch; return *this;}
+  const CSecString& operator+=(LPCWSTR lpsz) {m_mystring += lpsz; return *this;}
 
-  // CSecString operator+(LPCTSTR lpsz);
+  // CSecString operator+(LPCWSTR lpsz);
 
   friend CSecString operator+(const CSecString& string1,
     const CSecString& string2);
   friend CSecString operator+(const CSecString& string,
-    TCHAR ch);
-  friend CSecString operator+(TCHAR ch,
+    wchar_t ch);
+  friend CSecString operator+(wchar_t ch,
     const CSecString& string);
   friend CSecString operator+(const CSecString& string,
-    LPCTSTR lpsz);
-  friend CSecString operator+(LPCTSTR lpsz,
+    LPCWSTR lpsz);
+  friend CSecString operator+(LPCWSTR lpsz,
     const CSecString& string);
 
 
@@ -146,7 +144,7 @@ public:
   CSecString Mid(int nFirst, int nCount) const;
   void Empty();
   BOOL LoadString(const UINT &nID);
-  void Format(LPCTSTR lpszFormat, ... );
+  void Format(LPCWSTR lpszFormat, ... );
   void Format(UINT nID, ... );
   void Trash() {trashstring();}
 
@@ -159,19 +157,19 @@ private:
 
 inline bool operator==(const CSecString& s1, const CSecString& s2)
 {return (const CString)s1 == (const CString)s2;}
-inline bool operator==(const CSecString& s1, LPCTSTR s2)
+inline bool operator==(const CSecString& s1, LPCWSTR s2)
 {return (const CString)s1==s2;}
-inline bool operator==(LPCTSTR s1, const CSecString& s2)
+inline bool operator==(LPCWSTR s1, const CSecString& s2)
 {return s1==(const CString)s2;}
 inline bool operator!=(const CSecString& s1, const CSecString& s2)
 {return (const CString)s1 != (const CString)s2;}
-inline bool operator!=(const CSecString& s1, LPCTSTR s2)
+inline bool operator!=(const CSecString& s1, LPCWSTR s2)
 {return (const CString)s1 != s2;}
-inline bool operator!=(LPCTSTR s1, const CSecString& s2)
+inline bool operator!=(LPCWSTR s1, const CSecString& s2)
 {return s1 != (const CString)s2;}
 
 //-----------------------------------------------------------------------------
-#endif
+#endif /* _SECSTRING_H_ */
 //-----------------------------------------------------------------------------
 // Local variables:
 // mode: c++

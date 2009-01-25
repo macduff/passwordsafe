@@ -16,4 +16,3 @@ void pws_os::sleep(unsigned long mSec)
 {
   Sleep(mSec);
 }
-

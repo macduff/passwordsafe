@@ -27,7 +27,7 @@ class MFileSAX2ErrorHandler: public ISAXErrorHandler
 {
 public:
   // Local variables and functions
-  stringT m_strValidationResult;
+  wstring m_strValidationResult;
   BOOL bErrorsFound;
 
   // Standard functions

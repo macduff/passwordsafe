@@ -124,21 +124,21 @@ StringX CItemData::GetPassword() const
   return GetField(m_Password);
 }
 
-static void CleanNotes(StringX &s, TCHAR delimiter)
+static void CleanNotes(StringX &s, wchar_t delimiter)
 {
   if (delimiter != 0) {
     StringX r2;
     for (StringX::iterator iter = s.begin(); iter != s.end(); iter++)
       switch (*iter) {
-      case TCHAR('\r'): continue;
-      case TCHAR('\n'): r2 += delimiter; continue;
+      case L'\r': continue;
+      case L'\n': r2 += delimiter; continue;
       default: r2 += *iter;
       }
     s = r2;
   }
 }
 
-StringX CItemData::GetNotes(TCHAR delimiter) const
+StringX CItemData::GetNotes(wchar_t delimiter) const
 {
   StringX ret = GetField(m_Notes);
   CleanNotes(ret, delimiter);
@@ -209,7 +209,7 @@ void CItemData::GetUUID(uuid_array_t &uuid_array) const
   GetField(m_UUID, (unsigned char *)uuid_array, length);
 }
 
-static void String2PWPolicy(const stringT &cs_pwp, PWPolicy &pwp)
+static void String2PWPolicy(const wstring &cs_pwp, PWPolicy &pwp)
 {
   // should really be a c'tor of PWPolicy - later...
 
@@ -219,12 +219,12 @@ static void String2PWPolicy(const stringT &cs_pwp, PWPolicy &pwp)
   // Later releases must support these as a minimum.  Any fields added
   // by these releases will be lost if the user changes these field.
   ASSERT(cs_pwp.length() == 19);
-  istringstreamT is_flags(stringT(cs_pwp, 0, 4));
-  istringstreamT is_length(stringT(cs_pwp, 4, 3));
-  istringstreamT is_digitminlength(stringT(cs_pwp, 7, 3));
-  istringstreamT is_lowreminlength(stringT(cs_pwp, 10, 3));
-  istringstreamT is_symbolminlength(stringT(cs_pwp, 13, 3));
-  istringstreamT is_upperminlength(stringT(cs_pwp, 16, 3));
+  wistringstream is_flags(wstring(cs_pwp, 0, 4));
+  wistringstream is_length(wstring(cs_pwp, 4, 3));
+  wistringstream is_digitminlength(wstring(cs_pwp, 7, 3));
+  wistringstream is_lowreminlength(wstring(cs_pwp, 10, 3));
+  wistringstream is_symbolminlength(wstring(cs_pwp, 13, 3));
+  wistringstream is_upperminlength(wstring(cs_pwp, 16, 3));
   unsigned int f; // dain bramaged istringstream requires this runaround
   is_flags >> hex >> f;
   pwp.flags = static_cast<WORD>(f);
@@ -270,9 +270,9 @@ StringX CItemData::GetXTimeInt() const
   int xint;
   GetXTimeInt(xint);
   if (xint == 0)
-    return _T("");
+    return L"";
 
-  oStringXStream os;
+  woStringXStream os;
   os << xint << ends;
   return os.str();
 }
@@ -321,17 +321,17 @@ void CItemData::SetUnknownField(const unsigned char type,
 StringX CItemData::GetPWHistory() const
 {
   StringX ret = GetField(m_PWHistory);
-  if (ret == _T("0") || ret == _T("00000"))
-    ret = _T("");
+  if (ret == L"0" || ret == L"00000")
+    ret = L"";
   return ret;
 }
 
-StringX CItemData::GetPlaintext(const TCHAR &separator,
+StringX CItemData::GetPlaintext(const wchar_t &separator,
                                   const FieldBits &bsFields,
-                                  const TCHAR &delimiter,
+                                  const wchar_t &delimiter,
                                   const CItemData *cibase) const
 {
-  StringX ret(_T(""));
+  StringX ret(L"");
 
   StringX grouptitle;
   const StringX title(GetTitle());
@@ -342,22 +342,22 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
 
   // a '.' in title gets Import confused re: Groups
   grouptitle = title;
-  if (grouptitle.find(TCHAR('.')) != StringX::npos) {
+  if (grouptitle.find(L'.') != StringX::npos) {
     if (delimiter != 0) {
       StringX s;
       for (StringX::iterator iter = grouptitle.begin();
            iter != grouptitle.end(); iter++)
-        s += (*iter == TCHAR('.')) ? delimiter : *iter;
+        s += (*iter == L'.') ? delimiter : *iter;
       grouptitle = s;
     } else {
-      grouptitle = TCHAR('\"') + title + TCHAR('\"');
+      grouptitle = L'\"' + title + L'\"';
     }
   }
 
   if (!group.empty())
-    grouptitle = group + TCHAR('.') + grouptitle;
+    grouptitle = group + L'.' + grouptitle;
 
-  StringX history(_T(""));
+  StringX history(L"");
   if (bsFields.test(CItemData::PWHIST)) {
     // History exported as "00000" if empty, to make parsing easier
     BOOL pwh_status;
@@ -372,11 +372,11 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
     PWHistList::iterator iter;
     for (iter = PWHistList.begin(); iter != PWHistList.end(); iter++) {
       const PWHistEntry &pwshe = *iter;
-      history += _T(' ');
+      history += L' ';
       history += pwshe.changedate;
-      ostringstreamT os1;
-      os1 << hex << charT(' ') << setfill(charT('0')) << setw(4)
-          << pwshe.password.length() << charT(' ') << ends;
+      wostringstream os1;
+      os1 << hex << L' ' << setfill(L'0') << setw(4)
+          << pwshe.password.length() << L' ' << ends;
       history += os1.str().c_str();
       history += pwshe.password;
     }
@@ -385,16 +385,16 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
   StringX csPassword;
   if (m_entrytype == ET_ALIAS) {
     ASSERT(cibase != NULL);
-    csPassword = _T("[[") + 
-                 cibase->GetGroup() + _T(":") + 
-                 cibase->GetTitle() + _T(":") + 
-                 cibase->GetUser() + _T("]]") ;
+    csPassword = L"[[" + 
+                 cibase->GetGroup() + L":" + 
+                 cibase->GetTitle() + L":" + 
+                 cibase->GetUser() + L"]]" ;
   } else if (m_entrytype == ET_SHORTCUT) {
     ASSERT(cibase != NULL);
-    csPassword = _T("[~") + 
-                 cibase->GetGroup() + _T(":") + 
-                 cibase->GetTitle() + _T(":") + 
-                 cibase->GetUser() + _T("~]") ;
+    csPassword = L"[~" + 
+                 cibase->GetGroup() + L":" + 
+                 cibase->GetTitle() + L":" + 
+                 cibase->GetUser() + L"~]" ;
   } else
     csPassword = GetPassword();
 
@@ -414,7 +414,7 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
           GetRMTimeExp() + separator +
           GetPWPolicy() + separator +
           history + separator +
-          _T("\"") + notes + _T("\"");
+          L"\"" + notes + L"\"";
   } else {
     // Not everything
     if (bsFields.test(CItemData::GROUP) && bsFields.test(CItemData::TITLE))
@@ -448,7 +448,7 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
     if (bsFields.test(CItemData::PWHIST))
       ret += history + separator;
     if (bsFields.test(CItemData::NOTES))
-      ret += _T("\"") + notes + _T("\"");
+      ret += L"\"" + notes + L"\"";
     // remove trailing separator
     if (ret[ret.length()-1] == separator) {
       int rl = ret.length();
@@ -460,7 +460,7 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
 }
 
 string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
-                         TCHAR delimiter, const CItemData *cibase,
+                         wchar_t delimiter, const CItemData *cibase,
                          bool bforce_normal_entry) const
 {
   ostringstream oss; // ALWAYS a string of chars, never wchar_t!
@@ -487,17 +487,17 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
   // Password mandatory (see pwsafe.xsd)
   if (m_entrytype == ET_ALIAS) {
     ASSERT(cibase != NULL);
-    tmp = _T("[[") + 
-          cibase->GetGroup() + _T(":") + 
-          cibase->GetTitle() + _T(":") + 
-          cibase->GetUser() + _T("]]") ;
+    tmp = L"[[" + 
+          cibase->GetGroup() + L":" + 
+          cibase->GetTitle() + L":" + 
+          cibase->GetUser() + L"]]" ;
   } else
   if (m_entrytype == ET_SHORTCUT) {
     ASSERT(cibase != NULL);
-    tmp = _T("[~") + 
-          cibase->GetGroup() + _T(":") + 
-          cibase->GetTitle() + _T(":") + 
-          cibase->GetUser() + _T("~]") ;
+    tmp = L"[~" + 
+          cibase->GetGroup() + L":" + 
+          cibase->GetTitle() + L":" + 
+          cibase->GetUser() + L"~]" ;
   } else
     tmp = GetPassword();
   PWSUtil::WriteXMLField(oss, "password", tmp, utf8conv);
@@ -649,7 +649,7 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
       unsigned char c;
       for (int j = 0; j < (int)length; j++) {
         c = *pdata2++;
-        Format(cs_tmp, _T("%02x"), c);
+        Format(cs_tmp, L"%02x", c);
         tmp += cs_tmp;
       }
 #endif
@@ -740,28 +740,28 @@ void CItemData::SetName(const StringX &name, const StringX &defaultUsername)
   delete bf;
 }
 
-void CItemData::SetTitle(const StringX &title, TCHAR delimiter)
+void CItemData::SetTitle(const StringX &title, wchar_t delimiter)
 {
   if (delimiter == 0)
     SetField(m_Title, title);
   else {
-    StringX new_title(_T(""));
-    StringX newstringT, tmpstringT;
+    StringX new_title(L"");
+    StringX newwstring, tmpwstring;
     StringX::size_type pos = 0;
 
-    newstringT = title;
+    newwstring = title;
     do {
-      pos = newstringT.find(delimiter);
+      pos = newwstring.find(delimiter);
       if ( pos != StringX::npos ) {
-        new_title += newstringT.substr(0, pos) + _T(".");
+        new_title += newwstring.substr(0, pos) + L".";
 
-        tmpstringT = newstringT.substr(pos + 1);
-        newstringT = tmpstringT;
+        tmpwstring = newwstring.substr(pos + 1);
+        newwstring = tmpwstring;
       }
     } while ( pos != StringX::npos );
 
-    if (!newstringT.empty())
-      new_title += newstringT;
+    if (!newwstring.empty())
+      new_title += newwstring;
 
     SetField(m_Title, new_title);
   }
@@ -777,32 +777,32 @@ void CItemData::SetPassword(const StringX &password)
   SetField(m_Password, password);
 }
 
-void CItemData::SetNotes(const StringX &notes, TCHAR delimiter)
+void CItemData::SetNotes(const StringX &notes, wchar_t delimiter)
 {
   if (delimiter == 0)
     SetField(m_Notes, notes);
   else {
-    const StringX CRLF = _T("\r\n");
-    StringX multiline_notes(_T(""));
+    const StringX CRLF = L"\r\n";
+    StringX multiline_notes(L"");
 
-    StringX newstringT;
-    StringX tmpstringT;
+    StringX newwstring;
+    StringX tmpwstring;
 
     StringX::size_type pos = 0;
 
-    newstringT = notes;
+    newwstring = notes;
     do {
-      pos = newstringT.find(delimiter);
+      pos = newwstring.find(delimiter);
       if ( pos != StringX::npos ) {
-        multiline_notes += newstringT.substr(0, pos) + CRLF;
+        multiline_notes += newwstring.substr(0, pos) + CRLF;
 
-        tmpstringT = newstringT.substr(pos + 1);
-        newstringT = tmpstringT;
+        tmpwstring = newwstring.substr(pos + 1);
+        newwstring = tmpwstring;
       }
     } while ( pos != StringX::npos );
 
-    if (!newstringT.empty())
-      multiline_notes += newstringT;
+    if (!newwstring.empty())
+      multiline_notes += newwstring;
 
     SetField(m_Notes, multiline_notes);
   }
@@ -859,7 +859,7 @@ void CItemData::SetTime(int whichtime, time_t t)
   }
 }
 
-bool CItemData::SetTime(int whichtime, const stringT &time_str)
+bool CItemData::SetTime(int whichtime, const wstring &time_str)
 {
   time_t t(0);
 
@@ -867,7 +867,7 @@ bool CItemData::SetTime(int whichtime, const stringT &time_str)
     SetTime(whichtime, t);
     return true;
   } else
-    if (time_str == _T("now")) {
+    if (time_str == L"now") {
       time(&t);
       SetTime(whichtime, t);
       return true;
@@ -888,7 +888,7 @@ void CItemData::SetXTimeInt(int &xint)
    SetField(m_XTimeInterval, (const unsigned char *)&xint, sizeof(int));
 }
 
-bool CItemData::SetXTimeInt(const stringT &xint_str)
+bool CItemData::SetXTimeInt(const wstring &xint_str)
 {
   int xint(0);
 
@@ -897,8 +897,8 @@ bool CItemData::SetXTimeInt(const stringT &xint_str)
     return true;
   }
 
-  if (xint_str.find_first_not_of(_T("0123456789")) == stringT::npos) {
-    istringstreamT is(xint_str);
+  if (xint_str.find_first_not_of(L"0123456789") == wstring::npos) {
+    wistringstream is(xint_str);
     is >> xint;
     if (xint >= 0 && xint <= 3650) {
       SetXTimeInt(xint);
@@ -911,8 +911,8 @@ bool CItemData::SetXTimeInt(const stringT &xint_str)
 void CItemData::SetPWHistory(const StringX &PWHistory)
 {
   StringX pwh = PWHistory;
-  if (pwh == _T("0") || pwh == _T("00000"))
-    pwh = _T("");
+  if (pwh == L"0" || pwh == L"00000")
+    pwh = L"";
   SetField(m_PWHistory, pwh);
 }
 
@@ -924,12 +924,12 @@ void CItemData::SetPWPolicy(const PWPolicy &pwp)
 
   StringX cs_pwp;
   if (pwp.flags == 0 || (bhex_flag && bother_flags)) {
-    cs_pwp = _T("");
+    cs_pwp = L"";
   } else {
-    ostringstreamT os;
+    wostringstream os;
     unsigned int f; // dain bramaged istringstream requires this runaround
     f = static_cast<unsigned int>(pwp.flags);
-    os.fill(charT('0'));
+    os.fill(L'0');
     os << hex << setw(4) << f
        << setw(3) << pwp.length
        << setw(3) << pwp.digitminlength
@@ -941,7 +941,7 @@ void CItemData::SetPWPolicy(const PWPolicy &pwp)
   SetField(m_PWPolicy, cs_pwp);
 }
 
-bool CItemData::SetPWPolicy(const stringT &cs_pwp)
+bool CItemData::SetPWPolicy(const wstring &cs_pwp)
 {
   // Basic sanity checks
   if (cs_pwp.empty()) {
@@ -954,7 +954,7 @@ bool CItemData::SetPWPolicy(const stringT &cs_pwp)
   // Parse policy string, more sanity checks
   // See String2PWPolicy for valid format
   PWPolicy pwp;
-  String2PWPolicy(stringT(cs_pwp), pwp);
+  String2PWPolicy(wstring(cs_pwp), pwp);
   StringX cs_pwpolicy(cs_pwp.c_str());
 
   // Must be some flags; however hex incompatible with other flags
@@ -1075,7 +1075,7 @@ bool CItemData::ValidatePWHistory()
 
   const StringX pwh = GetPWHistory();
   if (pwh.length() < 5) { // not empty, but too short.
-    SetPWHistory(_T(""));
+    SetPWHistory(L"");
     return false;
   }
 
@@ -1089,7 +1089,7 @@ bool CItemData::ValidatePWHistory()
   size_t listnum = PWHistList.size();
 
   if (pwh_max == 0 && listnum == 0) {
-    SetPWHistory(_T(""));
+    SetPWHistory(L"");
     return false;
   }
 
@@ -1106,8 +1106,8 @@ bool CItemData::ValidatePWHistory()
   for (iter = PWHistList.begin(); iter != PWHistList.end(); iter++) {
     const PWHistEntry &pwshe = *iter;
     history += pwshe.changedate;
-    oStringXStream os1;
-    os1 << hex << setfill(charT('0')) << setw(4)
+    woStringXStream os1;
+    os1 << hex << setfill(L'0') << setw(4)
         << pwshe.password.length();
     history += os1.str();
     history += pwshe.password;
@@ -1117,7 +1117,7 @@ bool CItemData::ValidatePWHistory()
   return false;
 }
 
-bool CItemData::Matches(const stringT &string1, int iObject,
+bool CItemData::Matches(const wstring &string1, int iObject,
                         int iFunction) const
 {
   ASSERT(iFunction != 0); // must be positive or negative!
@@ -1134,7 +1134,7 @@ bool CItemData::Matches(const stringT &string1, int iObject,
       csObject = GetUser();
       break;
     case GROUPTITLE:
-      csObject = GetGroup() + TCHAR('.') + GetTitle();
+      csObject = GetGroup() + L'.' + GetTitle();
       break;
     case URL:
       csObject = GetURL();
@@ -1294,7 +1294,7 @@ static bool pull_string(StringX &str, unsigned char *data, int len)
   bool utf8status = utf8conv.FromUTF8((unsigned char *)&v[0],
     len, str);
   if (!utf8status) {
-    TRACE(_T("CItemData::DeserializePlainText(): FromUTF8 failed!\n"));
+    TRACE(L"CItemData::DeserializePlainText(): FromUTF8 failed!\n");
   }
   trashMemory(&v[0], len);
   return utf8status;
@@ -1332,7 +1332,7 @@ static bool pull_int(int &i, unsigned char *data, size_t len)
   return true;
 }
 
-bool CItemData::DeserializePlainText(const std::vector<char> &v)
+bool CItemData::DeserializePlainText(const vector<char> &v)
 {
   vector<char>::const_iterator iter = v.begin();
   int emergencyExit = 255;
@@ -1470,7 +1470,7 @@ static void push_string(vector<char> &v, char type,
       push_length(v, utf8Len);
       v.insert(v.end(), (char *)utf8, (char *)utf8 + utf8Len);
     } else
-      TRACE(_T("ItemData::SerializePlainText:ToUTF8(%s) failed\n"),
+      TRACE(L"ItemData::SerializePlainText:ToUTF8(%s) failed\n",
             str.c_str());
   }
 }
@@ -1515,12 +1515,12 @@ void CItemData::SerializePlainText(vector<char> &v, CItemData *cibase)  const
   if (m_entrytype == ET_ALIAS) {
     // I am an alias entry
     ASSERT(cibase != NULL);
-    tmp = _T("[[") + cibase->GetGroup() + _T(":") + cibase->GetTitle() + _T(":") + cibase->GetUser() + _T("]]");
+    tmp = L"[[" + cibase->GetGroup() + L":" + cibase->GetTitle() + L":" + cibase->GetUser() + L"]]";
   } else
   if (m_entrytype == ET_SHORTCUT) {
     // I am a shortcut entry
     ASSERT(cibase != NULL);
-    tmp = _T("[~") + cibase->GetGroup() + _T(":") + cibase->GetTitle() + _T(":") + cibase->GetUser() + _T("~]");
+    tmp = L"[~" + cibase->GetGroup() + L":" + cibase->GetTitle() + L":" + cibase->GetUser() + L"~]";
   } else
     tmp = GetPassword();
 

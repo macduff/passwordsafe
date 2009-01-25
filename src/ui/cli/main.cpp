@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
   if (status != PWScore::SUCCESS)
     goto done;
   {
-    stringT locker(getlogin() != NULL ? getlogin() : "unknown");
+    wstring locker(getlogin() != NULL ? getlogin() : "unknown");
     if (!core.LockFile(argv[1], locker)) {
       cout << "Couldn't lock file " << locker << endl;
       status = -1;

@@ -12,7 +12,7 @@
 // Create an action report file
 
 #ifdef _WIN32
-#include "afx.h"
+  #include "afx.h"
 #endif
 #include "os/typedefs.h"
 #include "StringXStream.h"
@@ -23,20 +23,20 @@ public:
   CReport() {}
   ~CReport() {}
 
-  void StartReport(LPCTSTR tcAction, const stringT &csDataBase);
+  void StartReport(LPCWSTR tcAction, const wstring &csDataBase);
   void EndReport();
-  void WriteLine(const stringT &cs_line, bool bCRLF = true);
-  void WriteLine(const LPTSTR &tc_line, bool bCRLF = true);
+  void WriteLine(const wstring &cs_line, bool bCRLF = true);
+  void WriteLine(const LPWSTR &tc_line, bool bCRLF = true);
   void WriteLine();
   bool SaveToDisk();
   StringX GetString() {return m_osxs.rdbuf()->str();}
 
 private:
-  oStringXStream m_osxs;
-  stringT m_cs_filename;
+  woStringXStream m_osxs;
+  wstring m_cs_filename;
   int m_imode;
-  stringT m_tcAction;
-  stringT m_csDataBase;
+  wstring m_tcAction;
+  wstring m_csDataBase;
 };
 
 #endif /* __REPORT_H */

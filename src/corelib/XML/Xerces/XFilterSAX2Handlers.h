@@ -79,8 +79,8 @@ public:
   void error(const SAXParseException& exc);
   void fatalError(const SAXParseException& exc);
   void resetErrors() {m_bErrors = false;}
-  stringT getValidationResult() {return m_strValidationResult;}
-  stringT getImportErrors() {return m_strImportErrors;}
+  wstring getValidationResult() {return m_strValidationResult;}
+  wstring getImportErrors() {return m_strImportErrors;}
 
 private:
   void FormatError(const SAXParseException& e, const int type);
@@ -93,8 +93,8 @@ private:
   Asker *m_pAsker;
 
   StringX m_strElemContent;
-  stringT m_strValidationResult;
-  stringT m_strImportErrors;
+  wstring m_strValidationResult;
+  wstring m_strImportErrors;
   int m_fieldlen;
   int m_iXMLVersion, m_iSchemaVersion;
   int m_iSchema_Version;

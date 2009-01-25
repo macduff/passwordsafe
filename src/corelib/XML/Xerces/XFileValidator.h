@@ -29,6 +29,8 @@
 // Xerces includes
 #include <xercesc/util/XercesDefs.hpp>
 
+using namespace std;
+
 XERCES_CPP_NAMESPACE_USE
 
 class XFileValidator : public XMLFileValidation

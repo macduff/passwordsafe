@@ -68,7 +68,7 @@ static void AFXAPI DDV_CheckMaxDays(CDataExchange* pDX, const int &how,
 
 BOOL CExpDTDlg::OnInitDialog()
 {
-  TCHAR szBuf[81];       // workspace
+  wchar_t szBuf[81];       // workspace
   CString sTimeFormat;   // the time format being worked on
   CString sDateFormat;
   CString sSearch;       // the string to search for
@@ -116,7 +116,7 @@ BOOL CExpDTDlg::OnInitDialog()
   VERIFY(::GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STIME, szBuf, 80));
   // Search for ":ss".
   sSearch = szBuf;
-  sSearch += _T("ss");
+  sSearch += L"ss";
   nIndex = sTimeFormat.Find(sSearch);
 
   if (nIndex != -1) {
@@ -125,7 +125,7 @@ BOOL CExpDTDlg::OnInitDialog()
   } else {
     // No ":ss", so try ":s".
     sSearch = szBuf;
-    sSearch += _T("s");
+    sSearch += L"s";
     nIndex = sTimeFormat.Find(sSearch);
 
     if (nIndex != -1 ) {

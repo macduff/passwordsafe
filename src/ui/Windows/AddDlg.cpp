@@ -19,13 +19,15 @@
 #include "corelib/PWSprefs.h"
 #include "ExpDTDlg.h"
 
+using namespace std;
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
 
-static TCHAR PSSWDCHAR = TCHAR('*');
+static wchar_t PSSWDCHAR = L'*';
 
 CString CAddDlg::CS_SHOW;
 CString CAddDlg::CS_HIDE;
@@ -33,8 +35,8 @@ CString CAddDlg::CS_HIDE;
 //-----------------------------------------------------------------------------
 CAddDlg::CAddDlg(CWnd* pParent)
   : CPWDialog(CAddDlg::IDD, pParent),
-  m_password(_T("")), m_notes(_T("")), m_username(_T("")), m_title(_T("")),
-  m_group(_T("")), m_URL(_T("")), m_autotype(_T("")),
+  m_password(L""), m_notes(L""), m_username(L""), m_title(L""),
+  m_group(L""), m_URL(L""), m_autotype(L""),
   m_tttXTime(time_t(0)), m_tttCPMTime(time_t(0)), m_XTimeInt(0),
   m_isPwHidden(false), m_OverridePolicy(FALSE)
 {
@@ -86,7 +88,7 @@ BOOL CAddDlg::OnInitDialog()
 
   // Populate the combo box
   if (m_ex_group.GetCount() == 0) {
-      std::vector<stringT> aryGroups;
+      vector<wstring> aryGroups;
       app.m_core.GetUniqueGroups(aryGroups);
       for (size_t igrp = 0; igrp < aryGroups.size(); igrp++) {
         m_ex_group.AddString(aryGroups[igrp].c_str());
@@ -271,11 +273,11 @@ void CAddDlg::OnOK()
 void CAddDlg::OnHelp() 
 {
 #if defined(POCKET_PC)
-  CreateProcess( _T("PegHelp.exe"), _T("pws_ce_help.html#adddata"), NULL, NULL, FALSE, 0, NULL, NULL, NULL, NULL );
+  CreateProcess( L"PegHelp.exe", L"pws_ce_help.html#adddata", NULL, NULL, FALSE, 0, NULL, NULL, NULL, NULL );
 #else
   CString cs_HelpTopic;
-  cs_HelpTopic = app.GetHelpFileName() + _T("::/html/entering_pwd.html");
-  HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+  cs_HelpTopic = app.GetHelpFileName() + L"::/html/entering_pwd.html";
+  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 #endif
 }
 
@@ -375,7 +377,7 @@ void CAddDlg::OnBnClickedClearXTime()
 {
   m_locXTime.LoadString(IDS_NEVER);
   GetDlgItem(IDC_XTIME)->SetWindowText((CString)m_locXTime);
-  GetDlgItem(IDC_XTIME_RECUR)->SetWindowText(_T(""));
+  GetDlgItem(IDC_XTIME_RECUR)->SetWindowText(L"");
   m_tttXTime = (time_t)0;
   m_XTimeInt = 0;
 }

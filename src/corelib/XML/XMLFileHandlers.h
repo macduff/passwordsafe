@@ -14,6 +14,8 @@
 #include "../UUIDGen.h"
 #include "../UnknownField.h"
 
+using namespace std;
+
 // Entry types
 enum {NORMAL = 0, ALIAS, SHORTCUT};
 
@@ -45,7 +47,7 @@ struct pwhistory_entry {
   StringX oldpassword;
 };
 
-typedef std::vector<pw_entry *> vdb_entries;
+typedef vector<pw_entry *> vdb_entries;
 
 class PWScore;
 
@@ -65,18 +67,18 @@ public:
   virtual ~XMLFileHandlers();
 
   void SetVariables(PWScore *core, const bool &bValidation,
-                    const stringT &ImportedPrefix, const TCHAR &delimiter,
+                    const wstring &ImportedPrefix, const wchar_t &delimiter,
                     UUIDList *possible_aliases, UUIDList *possible_shortcuts);
 
   bool getIfErrors() {return m_bErrors;}
   int getErrorCode() {return m_iErrorCode;}
-  stringT getErrorMessage() {return m_strErrorMessage;}
-  stringT getImportErrors() {return m_strImportErrors;}
+  wstring getErrorMessage() {return m_strErrorMessage;}
+  wstring getImportErrors() {return m_strImportErrors;}
 
   vdb_entries & getVDB_Entries() {return ventries;}
-  stringT getDefaultAutotypeString() {return m_sDefaultAutotypeString;}
-  stringT getDefaultUsername() {return m_sDefaultUsername;}
-  TCHAR getDelimiter() {return m_delimiter;}
+  wstring getDefaultAutotypeString() {return m_sDefaultAutotypeString;}
+  wstring getDefaultUsername() {return m_sDefaultUsername;}
+  wchar_t getDelimiter() {return m_delimiter;}
   int getNumEntries() {return m_numEntries;}
   int getNumIterations() {return m_nITER;}
   int getNumRecordsWithUnknownFields() {return m_nRecordsWithUnknownFields;}
@@ -94,13 +96,13 @@ protected:
   pwhistory_entry *cur_pwhistory_entry;
 
   StringX m_strElemContent;
-  stringT m_strImportErrors;
-  stringT m_strErrorMessage;
+  wstring m_strImportErrors;
+  wstring m_strErrorMessage;
   int m_nITER;
   int m_numEntries;
   int m_nRecordsWithUnknownFields;
   int m_iErrorCode;
-  TCHAR m_delimiter;
+  wchar_t m_delimiter;
   bool m_bentrybeingprocessed;
   bool m_bValidation;
   bool m_bErrors, m_bRecordHeaderErrors, m_bDatabaseHeaderErrors;
@@ -122,9 +124,9 @@ private:
   // Preferences possibly stored in database
   // Note: boolean is integer to allow an 'not set' value of '-1'
   int prefsinXML[NUMPREFSINXML];
-  stringT m_ImportedPrefix;
-  stringT m_sDefaultAutotypeString;
-  stringT m_sDefaultUsername;
+  wstring m_ImportedPrefix;
+  wstring m_sDefaultAutotypeString;
+  wstring m_sDefaultUsername;
 };
 
 #endif /* __XMLFILEHANDLERS_H */

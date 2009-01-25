@@ -12,6 +12,8 @@
 #include "stdafx.h"
 #include "PWResizeDialog.h"
 
+using namespace std;
+
 // CPWResizeDialog dialog
 
 IMPLEMENT_DYNAMIC(CPWResizeDialog, CPWDialog)
@@ -29,7 +31,7 @@ CPWResizeDialog::~CPWResizeDialog()
   delete m_pstatustext;
 }
 
-void CPWResizeDialog::AddBtnsCtrlIDs(std::vector<UINT> viBottomButtons, int iFocus)
+void CPWResizeDialog::AddBtnsCtrlIDs(vector<UINT> viBottomButtons, int iFocus)
 {
   m_viBottomButtons = viBottomButtons;
   m_numbtns = m_viBottomButtons.size();

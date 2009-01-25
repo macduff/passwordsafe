@@ -37,6 +37,8 @@
 #include <afxdisp.h>
 #include <vector>
 
+using namespace std;
+
 /////////////////////////////////////////////////////////////////////////////
 // CSystemTray window
 
@@ -45,7 +47,7 @@ class CSystemTray : public CWnd
   // Construction/destruction
 public:
   //    CSystemTray();
-  CSystemTray(CWnd* pWnd, UINT uCallbackMessage, LPCTSTR szTip, HICON icon,
+  CSystemTray(CWnd* pWnd, UINT uCallbackMessage, LPCWSTR szTip, HICON icon,
               CRUEList &RUEList, UINT uID, UINT menuID);
   virtual ~CSystemTray();
 
@@ -58,19 +60,19 @@ public:
   BOOL Visible() const { return !m_bHidden; }
 
   // Create the tray icon
-  BOOL Create(CWnd* pParent, UINT uCallbackMessage, LPCTSTR szTip, HICON icon,
+  BOOL Create(CWnd* pParent, UINT uCallbackMessage, LPCWSTR szTip, HICON icon,
               UINT uID, UINT menuID);
 
   // Change or retrieve the Tooltip text
-  BOOL SetTooltipText(LPCTSTR pszTooltipText);
+  BOOL SetTooltipText(LPCWSTR pszTooltipText);
   BOOL SetTooltipText(UINT nID);
   CString GetTooltipText() const;
 
   // Change or retrieve the icon displayed
   BOOL SetIcon(HICON hIcon);
-  BOOL SetIcon(LPCTSTR lpszIconName);
+  BOOL SetIcon(LPCWSTR lpszIconName);
   BOOL SetIcon(UINT nIDResource);
-  BOOL SetStandardIcon(LPCTSTR lpIconName);
+  BOOL SetStandardIcon(LPCWSTR lpIconName);
   BOOL SetStandardIcon(UINT nIDResource);
   HICON GetIcon() const;
   void HideIcon();
@@ -124,7 +126,7 @@ protected:
   CWnd *m_pTarget; // ronys
   static const UINT m_nTaskbarCreatedMsg; //thedavecollins
   const CRUEList &m_RUEList; // reference set to dboxmain's
-  std::vector<RUEntryStringImage> m_menulist;
+  vector<RUEntryStringImage> m_menulist;
 
   // Generated message map functions
 protected:

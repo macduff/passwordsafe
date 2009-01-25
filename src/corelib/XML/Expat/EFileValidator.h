@@ -36,27 +36,29 @@
 // Expat includes
 #include <expat.h>
 
+using namespace std;
+
 class EFileValidator : public XMLFileValidation
 {
 public:
   EFileValidator();
   ~EFileValidator();
 
-  bool startElement(stringT &startElement);
-  bool endElement(stringT &endElement, StringX &strElemContent, int &datatype);
+  bool startElement(wstring &startElement);
+  bool endElement(wstring &endElement, StringX &strElemContent, int &datatype);
   bool VerifyXMLDataType(const StringX &strElemContent, const int &datatype);
 
   int getErrorCode() {return m_iErrorCode;}
-  stringT getErrorMsg() {return m_sErrorMsg;}
+  wstring getErrorMsg() {return m_sErrorMsg;}
 
 private:
   bool VerifyXMLDate(const StringX &strElemContent);
   bool VerifyXMLTime(const StringX &strElemContent);
-  StringX Trim(const StringX &s, const TCHAR *set = NULL);
+  StringX Trim(const StringX &s, const wchar_t *set = NULL);
 
-  std::vector<int> m_element_stack;
+  vector<int> m_element_stack;
 
-  stringT m_sErrorMsg;
+  wstring m_sErrorMsg;
   int m_ielement_occurs[XLE_LAST_ELEMENT];
   int m_iprevious_element;
   int m_idatetime_element;

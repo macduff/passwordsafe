@@ -11,6 +11,8 @@
 #include "InfoDisplay.h"      // for Listbox Tooltips
 #include <vector>             // for Listbox Tooltips
 
+using namespace std;
+
 // ControlExtns.h : header file
 // Extensions to standard Static, Edit, ListBox and Combobox Controls
 
@@ -80,7 +82,7 @@ class CEditExtn : public CEdit
   // Construction
 public:
   CEditExtn(COLORREF focusColor = (RGB(222, 255, 222))); // light green
-  CEditExtn(int message_number, LPCTSTR szmenustring,
+  CEditExtn(int message_number, LPCWSTR szmenustring,
             COLORREF focusColor = (RGB(222, 255, 222))); //light green
   void ChangeColour() {m_bIsFocused = TRUE;}
 
@@ -130,7 +132,7 @@ class CSecEditExtn : public CEditExtn
 {
  public:
   CSecEditExtn();
-  CSecEditExtn(int message_number, LPCTSTR szmenustring);
+  CSecEditExtn(int message_number, LPCWSTR szmenustring);
   virtual ~CSecEditExtn();
 
   // Overriding virtuals doesn't work, due to defective
@@ -212,13 +214,13 @@ class CComboBoxExtn : public CComboBox
   // Construction
 public:
   CComboBoxExtn();
-  void SetToolTipStrings(std::vector<CSecString> vtooltips);
+  void SetToolTipStrings(vector<CSecString> vtooltips);
   CSecString GetToolTip(int nItem)
   {return m_vtooltips[nItem];}
 
 private:
   bool m_bUseToolTips;
-  std::vector<CSecString> m_vtooltips;
+  vector<CSecString> m_vtooltips;
 
 public:
   CEditExtn m_edit;

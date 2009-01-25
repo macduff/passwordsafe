@@ -7,6 +7,7 @@
 */
 #ifndef __PWS_TIME_H
 #define __PWS_TIME_H
+
 #include "../typedefs.h"
 
 typedef time_t __time32_t;
@@ -18,7 +19,7 @@ namespace pws_os {
   /**
    * Workaround the lack of a wchar_t version of asctime()
    */
-  extern int asctime(TCHAR *buf, size_t N, const struct tm *tm);
+  extern int asctime(wchar_t *buf, size_t N, const struct tm *tm);
 };
 
 // Provide a functional clone of MFC's CTime class
@@ -40,6 +41,7 @@ private:
   time_t m_t;
   struct tm m_tm;
 };
+
 #endif /* __PWS_TIME_H */
 //-----------------------------------------------------------------------------
 // Local variables:

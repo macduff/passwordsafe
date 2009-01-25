@@ -14,7 +14,6 @@
 #include "ThisMfcApp.h"
 #include "corelib/pwsprefs.h"
 #include "DDSupport.h"
-//#include "StringXStream.h"
 
 // dialog boxen
 #include "DboxMain.h"
@@ -33,6 +32,8 @@
 #include <time.h>
 #include <vector>
 #include <algorithm>
+
+using namespace std;
 
 /*
  * Make sure we get the right declaration of BlockInput
@@ -78,7 +79,7 @@ void DboxMain::OnAdd()
     }
   }
   dlg_add.m_group = m_TreeViewGroup;
-  m_TreeViewGroup = _T(""); // for next time
+  m_TreeViewGroup = L""; // for next time
   app.DisableAccelerator();
   INT_PTR rc = dlg_add.DoModal();
   app.EnableAccelerator();
@@ -109,7 +110,7 @@ void DboxMain::OnAdd()
     if (dlg_add.m_username.IsEmpty() && m_core.GetUseDefUser())
       user = m_core.GetDefUsername();
     else
-      user = LPCTSTR(dlg_add.m_username);
+      user = LPCWSTR(dlg_add.m_username);
     temp.CreateUUID();
     temp.SetGroup(dlg_add.m_group);
     temp.SetTitle(dlg_add.m_title);
@@ -122,7 +123,7 @@ void DboxMain::OnAdd()
       uuid_array_t alias_uuid;
       temp.GetUUID(alias_uuid);
       m_core.AddDependentEntry(dlg_add.m_base_uuid, alias_uuid, CItemData::ET_ALIAS);
-      temp.SetPassword(_T("[Alias]"));
+      temp.SetPassword(L"[Alias]");
       temp.SetAlias();
       ItemListIter iter = m_core.Find(dlg_add.m_base_uuid);
       if (iter != End()) {
@@ -150,7 +151,7 @@ void DboxMain::OnAdd()
 
     if (temp.IsAlias()) {
       temp.SetXTime((time_t)0);
-      temp.SetPWPolicy(_T(""));
+      temp.SetPWPolicy(L"");
     } else {
       temp.SetXTime(dlg_add.m_tttXTime);
       temp.SetPWPolicy(dlg_add.m_pwp);
@@ -248,7 +249,7 @@ void DboxMain::CreateShortcutEntry(CItemData *ci, const StringX &cs_group,
   temp.SetUser(cs_user);
 
   m_core.AddDependentEntry(base_uuid, shortcut_uuid, CItemData::ET_SHORTCUT);
-  temp.SetPassword(_T("[Shortcut]"));
+  temp.SetPassword(L"[Shortcut]");
   temp.SetShortcut();
   ItemListIter iter = m_core.Find(base_uuid);
   if (iter != End()) {
@@ -311,10 +312,10 @@ void DboxMain::OnAddGroup()
     if (m_TreeViewGroup.empty())
       m_TreeViewGroup = cmys_text;
     else
-      m_TreeViewGroup += _T(".") + cmys_text;
+      m_TreeViewGroup += L"." + cmys_text;
     HTREEITEM newGroup = m_ctlItemTree.AddGroup(m_TreeViewGroup.c_str());
     m_ctlItemTree.SelectItem(newGroup);
-    m_TreeViewGroup = _T(""); // for next time
+    m_TreeViewGroup = L""; // for next time
     m_ctlItemTree.EditLabel(newGroup);
   }
 }
@@ -537,7 +538,7 @@ void DboxMain::Delete(bool inRecursion)
       }
     }
   }
-  m_TreeViewGroup = _T("");
+  m_TreeViewGroup = L"";
 }
 
 void DboxMain::OnRename()
@@ -608,7 +609,7 @@ bool DboxMain::EditItem(CItemData *ci, PWScore *pcore)
   if (entrytype == CItemData::ET_ALIASBASE || entrytype == CItemData::ET_SHORTCUTBASE) {
     // Base entry
     UUIDList dependentslist;
-    StringX csDependents(_T(""));
+    StringX csDependents(L"");
 
     m_core.GetAllDependentEntries(original_uuid, dependentslist, 
       entrytype == CItemData::ET_ALIASBASE ? CItemData::ET_ALIAS : CItemData::ET_SHORTCUT);
@@ -631,10 +632,10 @@ bool DboxMain::EditItem(CItemData *ci, PWScore *pcore)
     ItemListIter iter = m_core.Find(original_base_uuid);
     if (iter != End()) {
       const CItemData &cibase = iter->second;
-      dlg_edit.m_base = _T("[") +
-                        cibase.GetGroup() + _T(":") +
-                        cibase.GetTitle() + _T(":") +
-                        cibase.GetUser()  + _T("]");
+      dlg_edit.m_base = L"[" +
+                        cibase.GetGroup() + L":" +
+                        cibase.GetTitle() + L":" +
+                        cibase.GetUser()  + L"]";
       dlg_edit.m_original_entrytype = CItemData::ET_ALIAS;
     }
   } else {
@@ -668,7 +669,7 @@ bool DboxMain::EditItem(CItemData *ci, PWScore *pcore)
       if (dlg_edit.m_ibasedata > 0) {
         // Now an alias
         pcore->AddDependentEntry(new_base_uuid, original_uuid, CItemData::ET_ALIAS);
-        editedItem.SetPassword(_T("[Alias]"));
+        editedItem.SetPassword(L"[Alias]");
         editedItem.SetAlias();
       } else {
         // Still 'normal'
@@ -690,7 +691,7 @@ bool DboxMain::EditItem(CItemData *ci, PWScore *pcore)
         if (dlg_edit.m_ibasedata > 0) {
           // Still an alias
           pcore->AddDependentEntry(new_base_uuid, original_uuid, CItemData::ET_ALIAS);
-          editedItem.SetPassword(_T("[Alias]"));
+          editedItem.SetPassword(L"[Alias]");
           editedItem.SetAlias();
         } else {
           // No longer an alias
@@ -707,7 +708,7 @@ bool DboxMain::EditItem(CItemData *ci, PWScore *pcore)
         // Now an alias
         // Make this one an alias
         pcore->AddDependentEntry(new_base_uuid, original_uuid, CItemData::ET_ALIAS);
-        editedItem.SetPassword(_T("[Alias]"));
+        editedItem.SetPassword(L"[Alias]");
         editedItem.SetAlias();
         // Move old aliases across
         pcore->MoveDependentEntries(original_uuid, new_base_uuid, CItemData::ET_ALIAS);
@@ -745,7 +746,7 @@ bool DboxMain::EditItem(CItemData *ci, PWScore *pcore)
 
     if (editedItem.IsAlias() || editedItem.IsShortcut()) {
       editedItem.SetXTime((time_t)0);
-      editedItem.SetPWPolicy(_T(""));
+      editedItem.SetPWPolicy(L"");
     } else {
       editedItem.SetPWPolicy(dlg_edit.m_pwp);
     }
@@ -878,7 +879,7 @@ void DboxMain::OnDuplicateEntry()
     do {
       i++;
       s_copy.Format(IDS_COPYNUMBER, i);
-      ci2_title = ci2_title0 + LPCTSTR(s_copy);
+      ci2_title = ci2_title0 + LPCWSTR(s_copy);
       listpos = m_core.Find(ci2_group, ci2_title, ci2_user);
     } while (listpos != m_core.GetEntryEndIter());
 
@@ -935,10 +936,10 @@ void DboxMain::OnDuplicateEntry()
       iter = m_core.Find(base_uuid);
       if (iter != m_core.GetEntryEndIter()) {
         StringX cs_tmp;
-        cs_tmp = _T("[") +
-                 iter->second.GetGroup() + _T(":") +
-                 iter->second.GetTitle() + _T(":") +
-                 iter->second.GetUser()  + _T("]");
+        cs_tmp = L"[" +
+                 iter->second.GetGroup() + L":" +
+                 iter->second.GetTitle() + L":" +
+                 iter->second.GetUser()  + L"]";
         ci2.SetPassword(cs_tmp);
       }
     }
@@ -1123,15 +1124,15 @@ void DboxMain::OnCopyURL()
 
   StringX cs_URL = ci->GetURL();
   StringX::size_type ipos;
-  ipos = cs_URL.find(_T("[alt]"));
+  ipos = cs_URL.find(L"[alt]");
   if (ipos != StringX::npos)
-    cs_URL.replace(ipos, 5, _T(""));
-  ipos = cs_URL.find(_T("[ssh]"));
+    cs_URL.replace(ipos, 5, L"");
+  ipos = cs_URL.find(L"[ssh]");
   if (ipos != StringX::npos)
-    cs_URL.replace(ipos, 5, _T(""));
-  ipos = cs_URL.find(_T("{alt}"));
+    cs_URL.replace(ipos, 5, L"");
+  ipos = cs_URL.find(L"{alt}");
   if (ipos != StringX::npos)
-    cs_URL.replace(ipos, 5, _T(""));
+    cs_URL.replace(ipos, 5, L"");
   SetClipboardData(cs_URL);
   UpdateLastClipboardAction(CItemData::URL);
   UpdateAccessTime(ci_original);
@@ -1140,11 +1141,11 @@ void DboxMain::OnCopyURL()
 void DboxMain::UpdateLastClipboardAction(const int iaction)
 {
   int imsg(0);
-  m_lastclipboardaction = _T("");
+  m_lastclipboardaction = L"";
   switch (iaction) {
     case -1:
       // Clipboard cleared
-      m_lastclipboardaction = _T("");
+      m_lastclipboardaction = L"";
       break;
     case CItemData::GROUP:
       imsg = IDS_GROUP;
@@ -1173,11 +1174,11 @@ void DboxMain::UpdateLastClipboardAction(const int iaction)
   }
 
   if (iaction > 0) {
-    TCHAR szTimeFormat[80], szTimeString[80];
+    wchar_t szTimeFormat[80], szTimeString[80];
     VERIFY(::GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STIMEFORMAT, 
-                           szTimeFormat, 80 /* sizeof(szTimeFormat) / sizeof(TCHAR) */));
+                           szTimeFormat, 80 /* sizeof(szTimeFormat) / sizeof(wchar_t) */));
     GetTimeFormat(LOCALE_USER_DEFAULT, 0, NULL, szTimeFormat,
-                  szTimeString, 80 /* sizeof(szTimeString) / sizeof(TCHAR) */);
+                  szTimeString, 80 /* sizeof(szTimeString) / sizeof(wchar_t) */);
     m_lastclipboardaction.Format(IDS_CLIPBOARDACTION, CString(MAKEINTRESOURCE(imsg)), 
                                  szTimeString);
   }
@@ -1216,14 +1217,14 @@ void DboxMain::OnAutoType()
   }
 }
 
-const CString DboxMain::DEFAULT_AUTOTYPE = _T("\\u\\t\\p\\n");
+const CString DboxMain::DEFAULT_AUTOTYPE = L"\\u\\t\\p\\n";
 
 void DboxMain::AutoType(const CItemData &ci)
 {
   StringX AutoCmd = ci.GetAutoType();
   StringX user(ci.GetUser());
   StringX group, title, pwd, notes;
-  std::vector<StringX> notes_lines;
+  vector<StringX> notes_lines;
   StringX::size_type index;
 
   uuid_array_t base_uuid, entry_uuid;
@@ -1258,17 +1259,17 @@ void DboxMain::AutoType(const CItemData &ci)
   if (!notes.empty()) {
     // Use \n and \r to tokenise this line
     StringX::size_type start(0), end(0);
-    const StringX delim = _T("\r\n");
+    const StringX delim = L"\r\n";
     StringX line;
     while (end != StringX::npos) {
       end = notes.find(delim, start);
       line = (notes.substr(start, (end == StringX::npos) ? StringX::npos : end - start));
       index = 0;
       for (;;) {
-        index = line.find(_T("\\t"), index);
+        index = line.find(L"\\t", index);
         if (index == line.npos)
           break;
-        line.replace(index, 2, _T("\t"));
+        line.replace(index, 2, L"\t");
         index += 1;
       }
       notes_lines.push_back(line);
@@ -1278,18 +1279,18 @@ void DboxMain::AutoType(const CItemData &ci)
     // Now change '\n' to '\r' in the complete notes field
     index = 0;
     for (;;) {
-      index = notes.find(_T("\r\n"), index);
+      index = notes.find(L"\r\n", index);
       if (index == notes.npos)
         break;
-      notes.replace(index, 2, _T("\r"));
+      notes.replace(index, 2, L"\r");
       index += 1;
     }
     index = 0;
     for (;;) {
-      index = notes.find(_T("\\t"), index);
+      index = notes.find(L"\\t", index);
       if (index == notes.npos)
         break;
-      notes.replace(index, 2, _T("\t"));
+      notes.replace(index, 2, L"\t");
       index += 1;
     }
   }
@@ -1306,7 +1307,7 @@ void DboxMain::AutoType(const CItemData &ci)
         if (!user.empty())
           AutoCmd = DEFAULT_AUTOTYPE;
         else
-          AutoCmd = _T("\\p\\n");
+          AutoCmd = L"\\p\\n";
       }
     }
   }
@@ -1319,8 +1320,8 @@ void DboxMain::AutoType(const CItemData &ci)
     ks.SetCapsLock(false);
   }
 
-  StringX tmp(_T(""));
-  TCHAR curChar;
+  StringX tmp(L"");
+  wchar_t curChar;
   const int N = AutoCmd.length();
   ks.ResetKeyboardState();
 
@@ -1356,35 +1357,35 @@ void DboxMain::AutoType(const CItemData &ci)
   int gNumIts;
   for (int n = 0; n < N; n++){
     curChar = AutoCmd[n];
-    if (curChar == TCHAR('\\')) {
+    if (curChar == L'\\') {
       n++;
       if (n < N)
         curChar = AutoCmd[n];
 
       switch (curChar){
-        case TCHAR('\\'):
-          tmp += TCHAR('\\');
+        case L'\\':
+          tmp += L'\\';
           break;
-        case TCHAR('n'):
-        case TCHAR('r'):
-          tmp += TCHAR('\r');
+        case L'n':
+        case L'r':
+          tmp += L'\r';
           break;
-        case TCHAR('t'):
-          tmp += TCHAR('\t');
+        case L't':
+          tmp += L'\t';
           break;
-        case TCHAR('g'):
+        case L'g':
           tmp += group;
           break;
-        case TCHAR('i'):
+        case L'i':
           tmp += title;
           break;
-        case TCHAR('u'):
+        case L'u':
           tmp += user;
           break;
-        case TCHAR('p'):
+        case L'p':
           tmp += pwd;
           break;
-        case TCHAR('o'):
+        case L'o':
         {
           if (n == (N - 1)) {
             // This was the last character - send the lot!
@@ -1394,9 +1395,9 @@ void DboxMain::AutoType(const CItemData &ci)
           int line_number(0);
           gNumIts = 0;
           for (n++; n < N && (gNumIts < 3); ++gNumIts, n++) {
-            if (_istdigit(AutoCmd[n])) {
+            if (iswdigit(AutoCmd[n])) {
               line_number *= 10;
-              line_number += (AutoCmd[n] - TCHAR('0'));
+              line_number += (AutoCmd[n] - L'0');
             } else
               break; // for loop
           }
@@ -1412,18 +1413,18 @@ void DboxMain::AutoType(const CItemData &ci)
           n--;
           break; // case 'o'
         }
-        case TCHAR('d'):
+        case L'd':
         {
           // Delay is going to change - send what we have with old delay
           ks.SendString(tmp);
           // start collecting new delay
-          tmp = _T("");
+          tmp = L"";
           int newdelay = 0;
           gNumIts = 0;
           for (n++; n < N && (gNumIts < 3); ++gNumIts, n++) {
-            if (_istdigit(AutoCmd[n])) {
+            if (iswdigit(AutoCmd[n])) {
               newdelay *= 10;
-              newdelay += (AutoCmd[n] - TCHAR('0'));
+              newdelay += (AutoCmd[n] - L'0');
             } else
               break; // for loop
           }
@@ -1432,15 +1433,15 @@ void DboxMain::AutoType(const CItemData &ci)
           ks.SetAndDelay(newdelay);
           break; // case 'd'
         }
-        case TCHAR('b'): // backspace!
-          tmp += TCHAR('\b');
+        case L'b': // backspace!
+          tmp += L'\b';
           break;
         // Ignore explicit control characters
-        case TCHAR('a'): // bell (can't hear it during testing!)
-        case TCHAR('v'): // vertical tab
-        case TCHAR('f'): // form feed
-        case TCHAR('e'): // escape
-        case TCHAR('x'): // hex digits (\xNN)
+        case L'a': // bell (can't hear it during testing!)
+        case L'v': // vertical tab
+        case L'f': // form feed
+        case L'e': // escape
+        case L'x': // hex digits (\xNN)
         // Ignore any others!
         // '\cC', '\uXXXX', '\OOO', '\<any other charatcer not recognised above>'
         default:
@@ -1494,30 +1495,30 @@ StringX DboxMain::GetAutoTypeString(const StringX autocmd,
         if (!user.empty())
           AutoCmd = DEFAULT_AUTOTYPE;
         else
-          AutoCmd = _T("\\p\\n");
+          AutoCmd = L"\\p\\n";
       }
     }
   }
 
   StringX Notes(notes);
-  std::vector<StringX> notes_lines;
+  vector<StringX> notes_lines;
   StringX::size_type index;
 
     // No recursive substitution (e.g. \p or \u), although '\t' will be replaced by a tab
   if (!notes.empty()) {
     // Use \n and \r to tokenise this line
     StringX::size_type start(0), end(0);
-    const StringX delim = _T("\r\n");
+    const StringX delim = L"\r\n";
     StringX line;
     while (end != StringX::npos) {
       end = Notes.find(delim, start);
       line = (Notes.substr(start, (end == StringX::npos) ? StringX::npos : end - start));
       index = 0;
       for (;;) {
-        index = line.find(_T("\\t"), index);
+        index = line.find(L"\\t", index);
         if (index == line.npos)
           break;
-        line.replace(index, 2, _T("\t"));
+        line.replace(index, 2, L"\t");
         index += 1;
       }
       notes_lines.push_back(line);
@@ -1527,57 +1528,57 @@ StringX DboxMain::GetAutoTypeString(const StringX autocmd,
     // Now change '\n' to '\r' in the complete notes field
     index = 0;
     for (;;) {
-      index = Notes.find(_T("\r\n"), index);
+      index = Notes.find(L"\r\n", index);
       if (index == Notes.npos)
         break;
-      Notes.replace(index, 2, _T("\r"));
+      Notes.replace(index, 2, L"\r");
       index += 1;
     }
     index = 0;
     for (;;) {
-      index = Notes.find(_T("\\t"), index);
+      index = Notes.find(L"\\t", index);
       if (index == Notes.npos)
         break;
-      Notes.replace(index, 2, _T("\t"));
+      Notes.replace(index, 2, L"\t");
       index += 1;
     }
   }
 
-  StringX tmp(_T(""));
-  TCHAR curChar;
+  StringX tmp(L"");
+  wchar_t curChar;
   const int N = AutoCmd.length();
 
   for (int n = 0; n < N; n++){
     curChar = AutoCmd[n];
-    if (curChar == TCHAR('\\')) {
+    if (curChar == L'\\') {
       n++;
       if (n < N)
         curChar = AutoCmd[n];
 
       switch (curChar){
-        case TCHAR('\\'):
-          tmp += TCHAR('\\');
+        case L'\\':
+          tmp += L'\\';
           break;
-        case TCHAR('n'):
-        case TCHAR('r'):
-          tmp += TCHAR('\r');
+        case L'n':
+        case L'r':
+          tmp += L'\r';
           break;
-        case TCHAR('t'):
-          tmp += TCHAR('\t');
+        case L't':
+          tmp += L'\t';
           break;
-        case TCHAR('g'):
+        case L'g':
           tmp += group;
           break;
-        case TCHAR('i'):
+        case L'i':
           tmp += title;
           break;
-        case TCHAR('u'):
+        case L'u':
           tmp += user;
           break;
-        case TCHAR('p'):
+        case L'p':
           tmp += pwd;
           break;
-        case TCHAR('o'):
+        case L'o':
         {
           if (n == (N - 1)) {
             // This was the last character - send the lot!
@@ -1587,9 +1588,9 @@ StringX DboxMain::GetAutoTypeString(const StringX autocmd,
           int line_number(0);
           int gNumIts(0);
           for (n++; n < N && (gNumIts < 3); ++gNumIts, n++) {
-            if (_istdigit(AutoCmd[n])) {
+            if (iswdigit(AutoCmd[n])) {
               line_number *= 10;
-              line_number += (AutoCmd[n] - TCHAR('0'));
+              line_number += (AutoCmd[n] - L'0');
             } else
               break; // for loop
           }
@@ -1605,19 +1606,19 @@ StringX DboxMain::GetAutoTypeString(const StringX autocmd,
           n--;
           break; // case 'o'
         }
-        case TCHAR('d'):
+        case L'd':
           // Ignore delay - treat it as just a string!
-          tmp += TCHAR("\\d");
+          tmp += wchar_t("\\d");
           break; // case 'd'
-        case TCHAR('b'): // backspace!
-          tmp += TCHAR('\b');
+        case L'b': // backspace!
+          tmp += L'\b';
           break;
         // Ignore explicit control characters
-        case TCHAR('a'): // bell (can't hear it during testing!)
-        case TCHAR('v'): // vertical tab
-        case TCHAR('f'): // form feed
-        case TCHAR('e'): // escape
-        case TCHAR('x'): // hex digits (\xNN)
+        case L'a': // bell (can't hear it during testing!)
+        case L'v': // vertical tab
+        case L'f': // form feed
+        case L'e': // escape
+        case L'x': // hex digits (\xNN)
           break;
         // Ignore any others!
         // '\cC', '\uXXXX', '\OOO', '\<any other charatcer not recognised above>'
@@ -1667,7 +1668,7 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
   UUIDList possible_aliases, possible_shortcuts;
   StringX Group, Title, User;
   POSITION pos;
-  TCHAR *dot;
+  wchar_t *dot;
   uuid_array_t entry_uuid;
   bool bAddToViews;
 
@@ -1683,7 +1684,7 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
     pDDObject->ToItem(tempitem);
 
     if (in_oblist.m_bDragNode) {
-      dot = (!DropGroup.empty() && !tempitem.GetGroup().empty()) ? _T(".") : _T("");
+      dot = (!DropGroup.empty() && !tempitem.GetGroup().empty()) ? L"." : L"";
       Group = DropGroup + dot + tempitem.GetGroup();
     } else {
       Group = DropGroup;
@@ -1709,17 +1710,17 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
 
     // Potentially remove outer single square brackets as GetBaseEntry expects only
     // one set of square brackets (processing import and user edit of entries)
-    if (cs_tmp.substr(0, 2) == _T("[[") &&
-        cs_tmp.substr(cs_tmp.length() - 2) == _T("]]")) {
+    if (cs_tmp.substr(0, 2) == L"[[" &&
+        cs_tmp.substr(cs_tmp.length() - 2) == L"]]") {
       cs_tmp = cs_tmp.substr(1, cs_tmp.length() - 2);
       pl.InputType = CItemData::ET_ALIAS;
     }
 
     // Potentially remove tilde as GetBaseEntry expects only
     // one set of square brackets (processing import and user edit of entries)
-    if (cs_tmp.substr(0, 2) == _T("[~") &&
-        cs_tmp.substr(cs_tmp.length() - 2) == _T("~]")) {
-      cs_tmp = _T("[") + cs_tmp.substr(2, cs_tmp.length() - 4) + _T("]");
+    if (cs_tmp.substr(0, 2) == L"[~" &&
+        cs_tmp.substr(cs_tmp.length() - 2) == L"~]") {
+      cs_tmp = L"[" + cs_tmp.substr(2, cs_tmp.length() - 4) + L"]";
       pl.InputType = CItemData::ET_SHORTCUT;
     }
 
@@ -1744,7 +1745,7 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
           continue;
         }
         m_core.AddDependentEntry(pl.base_uuid, entry_uuid, CItemData::ET_ALIAS);
-        tempitem.SetPassword(_T("[Alias]"));
+        tempitem.SetPassword(L"[Alias]");
         tempitem.SetAlias();
       } else
       if (pl.InputType == CItemData::ET_SHORTCUT) {
@@ -1758,7 +1759,7 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
           continue;
         }
         m_core.AddDependentEntry(pl.base_uuid, entry_uuid, CItemData::ET_SHORTCUT);
-        tempitem.SetPassword(_T("[Shortcut]"));
+        tempitem.SetPassword(L"[Shortcut]");
         tempitem.SetShortcut();
       }
     } else
@@ -1823,40 +1824,40 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
 }
 
 // Return whether first [g:t:u] is greater than the second [g:t:u]
-// used in std::sort in SortDependents below.
+// used in sort in SortDependents below.
 bool GTUCompare(const StringX &elem1, const StringX &elem2)
 {
   StringX g1, t1, u1, g2, t2, u2, tmp1, tmp2;
 
-  StringX::size_type i1 = g1.find_first_of(_T(":"));
+  StringX::size_type i1 = g1.find_first_of(L":");
   g1 = (i1 == StringX::npos) ? elem1 : elem1.substr(0, i1 - 1);
-  StringX::size_type i2 = g2.find_first_of(_T(":"));
+  StringX::size_type i2 = g2.find_first_of(L":");
   g2 = (i2 == StringX::npos) ? elem2 : elem2.substr(0, i2 - 1);
   if (g1 != g2)
     return g1.compare(g2) < 0;
 
   tmp1 = elem1.substr(g1.length() + 1);
   tmp2 = elem2.substr(g2.length() + 1);
-  i1 = tmp1.find_first_of(_T(":"));
+  i1 = tmp1.find_first_of(L":");
   t1 = (i1 == StringX::npos) ? tmp1 : tmp1.substr(0, i1 - 1);
-  i2 = tmp2.find_first_of(_T(":"));
+  i2 = tmp2.find_first_of(L":");
   t2 = (i2 == StringX::npos) ? tmp2 : tmp2.substr(0, i2 - 1);
   if (t1 != t2)
     return t1.compare(t2) < 0;
 
   tmp1 = tmp1.substr(t1.length() + 1);
   tmp2 = tmp2.substr(t2.length() + 1);
-  i1 = tmp1.find_first_of(_T(":"));
+  i1 = tmp1.find_first_of(L":");
   u1 = (i1 == StringX::npos) ? tmp1 : tmp1.substr(0, i1 - 1);
-  i2 = tmp2.find_first_of(_T(":"));
+  i2 = tmp2.find_first_of(L":");
   u2 = (i2 == StringX::npos) ? tmp2 : tmp2.substr(0, i2 - 1);
   return u1.compare(u2) < 0;
 }
 
 void DboxMain::SortDependents(UUIDList &dlist, StringX &csDependents)
 {
-  std::vector<StringX> sorted_dependents;
-  std::vector<StringX>::iterator sd_iter;
+  vector<StringX> sorted_dependents;
+  vector<StringX>::iterator sd_iter;
 
   ItemListIter iter;
   UUIDListIter diter;
@@ -1867,18 +1868,18 @@ void DboxMain::SortDependents(UUIDList &dlist, StringX &csDependents)
     diter->GetUUID(dependent_uuid);
     iter = m_core.Find(dependent_uuid);
     if (iter != m_core.GetEntryEndIter()) {
-      cs_dependent = iter->second.GetGroup() + _T(":") +
-                     iter->second.GetTitle() + _T(":") +
+      cs_dependent = iter->second.GetGroup() + L":" +
+                     iter->second.GetTitle() + L":" +
                      iter->second.GetUser();
       sorted_dependents.push_back(cs_dependent);
     }
   }
 
-  std::sort(sorted_dependents.begin(), sorted_dependents.end(), GTUCompare);
+  sort(sorted_dependents.begin(), sorted_dependents.end(), GTUCompare);
   csDependents.clear();
 
   for (sd_iter = sorted_dependents.begin(); sd_iter != sorted_dependents.end(); sd_iter++) {
-    csDependents += _T("\t[") +  *sd_iter + _T("]\r\n");
+    csDependents += L"\t[" +  *sd_iter + L"]\r\n";
   }
 }
 

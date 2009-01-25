@@ -7,6 +7,7 @@
 */
 #ifndef __MEM_H
 #define __MEM_H
+
 #include "typedefs.h"
 
 namespace pws_os {
@@ -18,6 +19,7 @@ namespace pws_os {
   extern bool mlock(void *p, size_t size);
   extern bool  munlock(void *p, size_t size);
 };
+
 #endif /* __MEM_H */
 //-----------------------------------------------------------------------------
 // Local variables:

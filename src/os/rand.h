@@ -7,6 +7,7 @@
 */
 #ifndef __RAND_H
 #define __RAND_H
+
 #include "typedefs.h"
 
 namespace pws_os {
@@ -23,6 +24,7 @@ namespace pws_os {
   // (hopefully) enough entropy to get the ball rolling...
   extern void GetRandomSeed(void *p, unsigned &slen);
 };
+
 #endif /* __RAND_H */
 //-----------------------------------------------------------------------------
 // Local variables:

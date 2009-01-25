@@ -230,7 +230,7 @@ void COptionsMisc::OnOK()
       // Following is THE WRONG QUESTION - see long comment
       // above for an explanation why
       PWSprefs::GetInstance()->GetPref(PWSprefs::ClearClipboardOnMinimize)) {
-    switch (MessageBox(_T("Yo man, I got troubles"),NULL,
+    switch (MessageBox(L"Yo man, I got troubles",NULL,
                        MB_YESNOCANCEL|MB_ICONQUESTION)) {
     case IDYES:
       // Following DOESN'T WORK - see long comment above for an explanation why
@@ -254,21 +254,21 @@ void COptionsMisc::OnBrowseForLocation()
   INT_PTR rc;
 
   if (m_csBrowser.IsEmpty())
-    cs_initiallocation = _T("C:\\");
+    cs_initiallocation = L"C:\\";
   else {
-    stringT path = m_csBrowser;
-    stringT drive, dir, name, ext;
+    wstring path = m_csBrowser;
+    wstring drive, dir, name, ext;
     pws_os::splitpath(path, drive, dir, name, ext);
-    path = pws_os::makepath(drive, dir, _T(""), _T(""));
+    path = pws_os::makepath(drive, dir, L"", L"");
     cs_initiallocation = path.c_str();
   }
 
   CFileDialog fd(TRUE, NULL, NULL,
                  OFN_FILEMUSTEXIST | OFN_LONGNAMES | OFN_DONTADDTORECENT | 
                  OFN_HIDEREADONLY | OFN_PATHMUSTEXIST,
-                 _T("Programs (*.exe)|*.exe|")
-                 _T("All files (*.*)|*.*|")
-                 _T("|"),
+                 L"Programs (*.exe)|*.exe|"
+                 L"All files (*.*)|*.*|"
+                 L"|",
                  this);
 
   cs_title.LoadString(IDS_SELECTBROWSER);

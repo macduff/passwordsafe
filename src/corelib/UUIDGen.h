@@ -30,6 +30,8 @@ typedef uuid_t UUID;
 
 #include <vector>
 
+using namespace std;
+
 class CUUIDGen
 {
 public:
@@ -43,22 +45,22 @@ public:
   struct ltuuid {
     bool operator()(const CUUIDGen &u1, const CUUIDGen &u2) const
     {
-      return std::memcmp(&u1.uuid,
+      return memcmp(&u1.uuid,
         &u2.uuid, sizeof(u1.uuid)) < 0;
     }
   };
 
-  friend std::ostream &operator<<(std::ostream &os, const CUUIDGen &uuid);
-  friend std::wostream &operator<<(std::wostream &os, const CUUIDGen &uuid);
+  friend ostream &operator<<(ostream &os, const CUUIDGen &uuid);
+  friend wostream &operator<<(wostream &os, const CUUIDGen &uuid);
 private:
   UUID uuid;
   mutable bool m_canonic;
 };
 
-std::ostream &operator<<(std::ostream &os, const CUUIDGen &uuid);
-std::wostream &operator<<(std::wostream &os, const CUUIDGen &uuid);
+ostream &operator<<(ostream &os, const CUUIDGen &uuid);
+wostream &operator<<(wostream &os, const CUUIDGen &uuid);
 
-typedef std::vector<CUUIDGen> UUIDList;
+typedef vector<CUUIDGen> UUIDList;
 typedef UUIDList::iterator UUIDListIter;
 
 #endif /* __UUIDGEN_H */

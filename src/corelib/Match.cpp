@@ -190,11 +190,11 @@ UINT PWSMatch::GetRule(MatchRule rule)
 void PWSMatch::GetMatchType(MatchType mtype,
                             int fnum1, int fnum2,
                             time_t fdate1, time_t fdate2,
-                            const stringT &fstring, bool fcase,
+                            const wstring &fstring, bool fcase,
                             int etype, bool bBetween,
-                            stringT &cs1, stringT &cs2)
+                            wstring &cs1, wstring &cs2)
 {
-  cs1 = cs2 = _T("");
+  cs1 = cs2 = L"";
   UINT id(0);
 
   switch (mtype) {
@@ -213,9 +213,9 @@ void PWSMatch::GetMatchType(MatchType mtype,
                   !fcase ? IDSC_CASE_INSENSITIVE : IDSC_CASE_SENSITIVE);
       break;
     case MT_INTEGER:
-      Format(cs1, _T("%d"), fnum1);
+      Format(cs1, L"%d", fnum1);
       if (bBetween)
-        Format(cs2, _T("%d"), fnum2);
+        Format(cs2, L"%d", fnum2);
       break;
     case MT_DATE:
       {
@@ -223,14 +223,14 @@ void PWSMatch::GetMatchType(MatchType mtype,
         errno_t err;
         err = _localtime32_s(&st_s, &fdate1);
         ASSERT(err == 0);
-        TCHAR tc_buf1[80];
-        _tcsftime(tc_buf1, sizeof(tc_buf1) / sizeof(tc_buf1[0]), _T("%x"), &st_s);
+        wchar_t tc_buf1[80];
+        wcsftime(tc_buf1, sizeof(tc_buf1) / sizeof(tc_buf1[0]), L"%x", &st_s);
         cs1 = tc_buf1;
         if (bBetween) {
           err = _localtime32_s(&st_s, &fdate2);
           ASSERT(err == 0);
-          TCHAR tc_buf2[80];
-          _tcsftime(tc_buf2, sizeof(tc_buf2) / sizeof(tc_buf2[0]), _T("%x"), &st_s);
+          wchar_t tc_buf2[80];
+          wcsftime(tc_buf2, sizeof(tc_buf2) / sizeof(tc_buf2[0]), L"%x", &st_s);
           cs2 = tc_buf2;
         }
       }

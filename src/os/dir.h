@@ -7,19 +7,21 @@
 */
 #ifndef __DIR_H
 #define __DIR_H
+
 #include "typedefs.h"
 
 namespace pws_os {
-  extern stringT getexecdir(); // path of executable
-  extern stringT getcwd();
-  extern bool chdir(const stringT &dir);
+  extern wstring getexecdir(); // path of executable
+  extern wstring getcwd();
+  extern bool chdir(const wstring &dir);
   // In following, drive will be empty on non-Windows platforms
-  extern bool splitpath(const stringT &path,
-                        stringT &drive, stringT &dir,
-                        stringT &file, stringT &ext);
-  extern stringT makepath(const stringT &drive, const stringT &dir,
-                          const stringT &file, const stringT &ext);
+  extern bool splitpath(const wstring &path,
+                        wstring &drive, wstring &dir,
+                        wstring &file, wstring &ext);
+  extern wstring makepath(const wstring &drive, const wstring &dir,
+                          const wstring &file, const wstring &ext);
 };
+
 #endif /* __DIR_H */
 //-----------------------------------------------------------------------------
 // Local variables:

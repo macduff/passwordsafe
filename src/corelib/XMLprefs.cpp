@@ -7,8 +7,9 @@
 */
 // XMLprefs.cpp : implementation file
 //
+
 #ifdef _WIN32
-#include <afx.h>
+  #include <afx.h>
 #endif
 #include "os/typedefs.h"
 #include "os/sys.h"
@@ -42,7 +43,7 @@ static FILE *f;
 
 bool CXMLprefs::Lock()
 {
-  stringT locker(_T(""));
+  wstring locker(L"");
   int tries = 10;
   do {
     m_bIsLocked = PWSprefs::LockCFGFile(m_csConfigFile, locker);
@@ -66,8 +67,8 @@ bool CXMLprefs::CreateXML(bool forLoad)
   ASSERT(m_pXMLDoc == NULL);
   m_pXMLDoc = new TiXmlDocument(m_csConfigFile.c_str());
   if (!forLoad && m_pXMLDoc != NULL) {
-    TiXmlDeclaration decl(_T("1.0"), _T("UTF-8"), _T("yes"));
-    TiXmlElement rootElem(_T("Pwsafe_Settings"));
+    TiXmlDeclaration decl(L"1.0", L"UTF-8", L"yes");
+    TiXmlElement rootElem(L"Pwsafe_Settings");
 
     return (m_pXMLDoc->InsertEndChild(decl) != NULL &&
       m_pXMLDoc->InsertEndChild(rootElem) != NULL);
@@ -164,7 +165,7 @@ exit:
 }
 
 // get a int value
-int CXMLprefs::Get(const stringT &csBaseKeyName, const stringT &csValueName, 
+int CXMLprefs::Get(const wstring &csBaseKeyName, const wstring &csValueName, 
                    int iDefaultValue)
 {
   /*
@@ -172,32 +173,32 @@ int CXMLprefs::Get(const stringT &csBaseKeyName, const stringT &csValueName,
   call the Get(String) method.
   */
   int iRetVal = iDefaultValue;
-  ostringstreamT os;
+  wostringstream os;
   os << iDefaultValue;
-  istringstreamT is(Get(csBaseKeyName, csValueName, os.str()));
+  wistringstream is(Get(csBaseKeyName, csValueName, os.str()));
   is >> iRetVal;
 
   return iRetVal;
 }
 
 // get a string value
-stringT CXMLprefs::Get(const stringT &csBaseKeyName, const stringT &csValueName, 
-                       const stringT &csDefaultValue)
+wstring CXMLprefs::Get(const wstring &csBaseKeyName, const wstring &csValueName, 
+                       const wstring &csDefaultValue)
 {
   ASSERT(m_pXMLDoc != NULL); // shouldn't be called if not loaded
   if (m_pXMLDoc == NULL) // just in case
     return csDefaultValue;
 
   int iNumKeys = 0;
-  stringT csValue = csDefaultValue;
+  wstring csValue = csDefaultValue;
 
   // Add the value to the base key separated by a '\'
-  stringT csKeyName(csBaseKeyName);
-  csKeyName += _T("\\");
+  wstring csKeyName(csBaseKeyName);
+  csKeyName += L"\\";
   csKeyName += csValueName;
 
   // Parse all keys from the base key name (keys separated by a '\')
-  stringT *pcsKeys = ParseKeys(csKeyName, iNumKeys);
+  wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
 
   // Traverse the xml using the keys parsed from the base key name to find the correct node
   if (pcsKeys != NULL) {
@@ -209,7 +210,7 @@ stringT CXMLprefs::Get(const stringT &csBaseKeyName, const stringT &csValueName,
 
       if (foundNode != NULL) {
         // get the text of the node (will be the value we requested)
-        csValue = stringT(foundNode->GetText());
+        csValue = wstring(foundNode->GetText());
       }
     }
     delete[] pcsKeys;
@@ -219,7 +220,7 @@ stringT CXMLprefs::Get(const stringT &csBaseKeyName, const stringT &csValueName,
 }
 
 // set a int value
-int CXMLprefs::Set(const stringT &csBaseKeyName, const stringT &csValueName,
+int CXMLprefs::Set(const wstring &csBaseKeyName, const wstring &csValueName,
                    int iValue)
 {
   /*
@@ -227,9 +228,9 @@ int CXMLprefs::Set(const stringT &csBaseKeyName, const stringT &csValueName,
   call the SetSettingString method.
   */
   int iRetVal = 0;
-  stringT csValue = _T("");
+  wstring csValue = L"";
 
-  Format(csValue, _T("%d"), iValue);
+  Format(csValue, L"%d", iValue);
 
   iRetVal = Set(csBaseKeyName, csValueName, csValue);
 
@@ -237,8 +238,8 @@ int CXMLprefs::Set(const stringT &csBaseKeyName, const stringT &csValueName,
 }
 
 // set a string value
-int CXMLprefs::Set(const stringT &csBaseKeyName, const stringT &csValueName, 
-                   const stringT &csValue)
+int CXMLprefs::Set(const wstring &csBaseKeyName, const wstring &csValueName, 
+                   const wstring &csValue)
 {
   // m_pXMLDoc may be NULL if Load() not called b4 Set,
   // or if called & failed
@@ -250,12 +251,12 @@ int CXMLprefs::Set(const stringT &csBaseKeyName, const stringT &csValueName,
   int iNumKeys = 0;
 
   // Add the value to the base key separated by a '\'
-  stringT csKeyName(csBaseKeyName);
-  csKeyName += _T("\\");
+  wstring csKeyName(csBaseKeyName);
+  csKeyName += L"\\";
   csKeyName += csValueName;
 
   // Parse all keys from the base key name (keys separated by a '\')
-  stringT *pcsKeys = ParseKeys(csKeyName, iNumKeys);
+  wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
 
   // Traverse the xml using the keys parsed from the base key name to find the correct node
   if (pcsKeys != NULL) {
@@ -285,7 +286,7 @@ int CXMLprefs::Set(const stringT &csBaseKeyName, const stringT &csValueName,
 }
 
 // delete a key or chain of keys
-bool CXMLprefs::DeleteSetting(const stringT &csBaseKeyName, const stringT &csValueName)
+bool CXMLprefs::DeleteSetting(const wstring &csBaseKeyName, const wstring &csValueName)
 {
   // m_pXMLDoc may be NULL if Load() not called b4 DeleteSetting,
   // or if called & failed
@@ -295,15 +296,15 @@ bool CXMLprefs::DeleteSetting(const stringT &csBaseKeyName, const stringT &csVal
 
   bool bRetVal = false;
   int iNumKeys = 0;
-  stringT csKeyName(csBaseKeyName);
+  wstring csKeyName(csBaseKeyName);
 
   if (!csValueName.empty()) {
-    csKeyName += _T("\\");
+    csKeyName += L"\\";
     csKeyName += csValueName;
   }
 
   // Parse all keys from the base key name (keys separated by a '\')
-  stringT *pcsKeys = ParseKeys(csKeyName, iNumKeys);
+  wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
 
   // Traverse the xml using the keys parsed from the base key name to find the correct node.
   if (pcsKeys != NULL) {
@@ -330,31 +331,31 @@ bool CXMLprefs::DeleteSetting(const stringT &csBaseKeyName, const stringT &csVal
 }
 
 // Parse all keys from the base key name.
-stringT* CXMLprefs::ParseKeys(const stringT &csFullKeyPath, int &iNumKeys)
+wstring* CXMLprefs::ParseKeys(const wstring &csFullKeyPath, int &iNumKeys)
 {
-  stringT* pcsKeys = NULL;
+  wstring* pcsKeys = NULL;
 
   // replace spaces with _ since xml doesn't like them
-  stringT csFKP(csFullKeyPath);
-  Replace(csFKP, _T(' '), _T('_'));
+  wstring csFKP(csFullKeyPath);
+  Replace(csFKP, L' ', L'_');
 
-  if (csFKP[csFKP.length() - 1] == TCHAR('\\'))
-    TrimRight(csFKP, _T("\\"));  // remove slashes on the end
+  if (csFKP[csFKP.length() - 1] == L'\\')
+    TrimRight(csFKP, L"\\");  // remove slashes on the end
 
-  stringT csTemp(csFKP);
+  wstring csTemp(csFKP);
 
-  iNumKeys = Remove(csTemp, _T('\\')) + 1;  // get a count of slashes
+  iNumKeys = Remove(csTemp, L'\\') + 1;  // get a count of slashes
 
-  pcsKeys = new stringT[iNumKeys];  // create storage for the keys
+  pcsKeys = new wstring[iNumKeys];  // create storage for the keys
 
   if (pcsKeys) {
-    stringT::size_type iFind = 0, iLastFind = 0;
+    wstring::size_type iFind = 0, iLastFind = 0;
     int iCount = -1;
 
     // get all of the keys in the chain
-    while (iFind != stringT::npos) {
-      iFind = csFKP.find(_T("\\"), iLastFind);
-      if (iFind != stringT::npos) {
+    while (iFind != wstring::npos) {
+      iFind = csFKP.find(L"\\", iLastFind);
+      if (iFind != wstring::npos) {
         iCount++;
         pcsKeys[iCount] = csFKP.substr(iLastFind, iFind - iLastFind);
         iLastFind = iFind + 1;
@@ -362,7 +363,7 @@ stringT* CXMLprefs::ParseKeys(const stringT &csFullKeyPath, int &iNumKeys)
         // get the last key in the chain
         if (iLastFind < csFKP.length())  {
           iCount++;
-          pcsKeys[iCount] = csFKP.substr(csFKP.find_last_of(_T("\\"))+1);
+          pcsKeys[iCount] = csFKP.substr(csFKP.find_last_of(L"\\")+1);
         }
       }
     }
@@ -380,7 +381,7 @@ void CXMLprefs::UnloadXML()
 
 // find a node given a chain of key names
 TiXmlElement *CXMLprefs::FindNode(TiXmlElement *parentNode,
-                                  stringT* pcsKeys, int iNumKeys,
+                                  wstring* pcsKeys, int iNumKeys,
                                   bool bAddNodes /*= false*/)
 {
   ASSERT(m_pXMLDoc != NULL); // shouldn't be called if load failed

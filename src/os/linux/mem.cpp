@@ -25,4 +25,3 @@ bool pws_os::munlock(void *p, size_t size)
   assert(p != NULL);
   return ::munlock(p, size) == 0;
 }
-

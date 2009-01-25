@@ -37,7 +37,9 @@
 // Expat includes
 #include <expat.h>
 
-typedef std::vector<CUUIDGen> UUIDList;
+using namespace std;
+
+typedef vector<CUUIDGen> UUIDList;
 
 class PWScore;
 
@@ -47,11 +49,11 @@ public:
   EFileXMLProcessor(PWScore *core, UUIDList *possible_aliases, UUIDList *possible_shortcuts);
   ~EFileXMLProcessor();
 
-  bool Process(const bool &bvalidation, const stringT &ImportedPrefix,
-               const stringT &strXMLFileName, const stringT & /* XML Schema */,
+  bool Process(const bool &bvalidation, const wstring &ImportedPrefix,
+               const wstring &strXMLFileName, const wstring & /* XML Schema */,
                int &nITER, int &nRecordsWithUnknownFields, UnknownFieldList &uhfl);
 
-  stringT getResultText() {return m_strResultText;}
+  wstring getResultText() {return m_strResultText;}
   int getNumEntriesValidated() {return m_numEntriesValidated;}
   int getNnumEntriesImported() {return m_numEntriesImported;}
   bool getIfDatabaseHeaderErrors() {return m_bDatabaseHeaderErrors;}
@@ -61,9 +63,9 @@ private:
   PWScore *m_xmlcore;
   UUIDList *m_possible_aliases;
   UUIDList *m_possible_shortcuts;
-  stringT m_strResultText;
+  wstring m_strResultText;
   int m_numEntriesValidated, m_numEntriesImported;
-  TCHAR m_delimiter;
+  wchar_t m_delimiter;
   bool m_bDatabaseHeaderErrors, m_bRecordHeaderErrors;
 };
 

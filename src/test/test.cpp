@@ -18,7 +18,7 @@
 
 using namespace std;
 
-void Test::do_test(bool cond, const std::string& lbl,
+void Test::do_test(bool cond, const string& lbl,
                    const char* fname, long lineno)
 {
   if (!cond)
@@ -27,7 +27,7 @@ void Test::do_test(bool cond, const std::string& lbl,
     _succeed();
 }
 
-void Test::do_fail(const std::string& lbl,
+void Test::do_fail(const string& lbl,
                    const char* fname, long lineno)
 {
   ++m_nFail;

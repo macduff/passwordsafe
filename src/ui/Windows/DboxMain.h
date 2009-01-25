@@ -39,6 +39,8 @@
 #include <vector>
 #include <map>
 
+using namespace std;
+
 #if (WINVER < 0x0501)  // These are already defined for WinXP and later
 #define HDF_SORTUP 0x0400
 #define HDF_SORTDOWN 0x0200
@@ -159,9 +161,9 @@ public:
 
   // FindAll is used by CPWFindToolBar, returns # of finds.
   size_t FindAll(const CString &str, BOOL CaseSensitive,
-                 std::vector<int> &indices);
+                 vector<int> &indices);
   size_t FindAll(const CString &str, BOOL CaseSensitive,
-                 std::vector<int> &indices,
+                 vector<int> &indices,
                  const CItemData::FieldBits &bsFields, const int subgroup_set, 
                  const CString &subgroup_name, const int subgroup_object,
                  const int subgroup_function);
@@ -607,7 +609,7 @@ private:
   CFont *m_pFontTree;
   CItemData *m_selectedAtMinimize; // to restore selection upon un-minimize
   bool m_inExit; // help U3ExitNow
-  std::vector<bool> m_displaystatus;  // used to save/restore display state over minimize/restore
+  vector<bool> m_displaystatus;  // used to save/restore display state over minimize/restore
 
   PWSclipboard m_clipboard;
 
@@ -622,8 +624,8 @@ private:
   void UnMinimize(bool update_windows);
   void UpdateAccessTime(CItemData *ci);
   void RestoreDisplayStatus();
-  std::vector<bool> GetGroupDisplayStatus(); // get current display state from window
-  void SetGroupDisplayStatus(const std::vector<bool> &displaystatus); // changes display
+  vector<bool> GetGroupDisplayStatus(); // get current display state from window
+  void SetGroupDisplayStatus(const vector<bool> &displaystatus); // changes display
   void MakeOrderedItemList(OrderedItemList &il);
   int CountChildren(HTREEITEM hStartItem);
   void SetColumns();  // default order
@@ -645,7 +647,7 @@ private:
   // For efficiency & general coolness, we use a map
   // between the ID and the index in the above array
   // rather than a sequential search
-  typedef std::map<UINT, int> MapUICommandTable;
+  typedef map<UINT, int> MapUICommandTable;
   typedef MapUICommandTable::const_iterator MapUICommandTableConstIter;
   MapUICommandTable m_MapUICommandTable;
 

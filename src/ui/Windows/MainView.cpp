@@ -99,9 +99,9 @@ int CALLBACK DboxMain::CompareFunc(LPARAM lParam1, LPARAM lParam2,
       group1 = pLHS->GetGroup();
       group2 = pRHS->GetGroup();
       if (group1.empty())  // root?
-        group1 = _T("\xff");
+        group1 = L"\xff";
       if (group2.empty())  // root?
-        group2 = _T("\xff");
+        group2 = L"\xff";
       iResult = CompareNoCase(group1, group2);
       if (iResult == 0) {
         iResult = CompareNoCase(pLHS->GetTitle(), pRHS->GetTitle());
@@ -345,7 +345,7 @@ void DboxMain::setupBars()
                       CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
                       CBRS_TOOLTIPS | CBRS_FLYBY;
   m_MainToolBar.SetBarStyle(dwStyle);
-  m_MainToolBar.SetWindowText(_T("Standard"));
+  m_MainToolBar.SetWindowText(L"Standard");
 
   // Add the Find ToolBar.
   if (!m_FindToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
@@ -360,7 +360,7 @@ void DboxMain::setupBars()
                       CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
                       CBRS_TOOLTIPS | CBRS_FLYBY;
   m_FindToolBar.SetBarStyle(dwStyle);
-  m_FindToolBar.SetWindowText(_T("Find"));
+  m_FindToolBar.SetWindowText(L"Find");
 
   // Set up DragBar bitmaps before calling SetToolBar
   m_DDGroup.Init(IDB_DRAGGROUP, IDB_DRAGGROUPX);
@@ -447,7 +447,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
   bsFields.set();  // Default search is all text fields!
 
   return FindAll(str, CaseSensitive, indices, bsFields, BST_UNCHECKED, 
-                 _T(""), 0, 0);
+                 L"", 0, 0);
 }
 
 size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
@@ -492,7 +492,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
   while (m_IsListView ? (listPos != listEnd) : (olistPos != olistEnd)) {
     const CItemData &curitem = m_IsListView ? listPos->second : *olistPos;
     if (subgroup_set == BST_CHECKED &&
-        !curitem.Matches(stringT(subgroup_name),
+        !curitem.Matches(wstring(subgroup_name),
                          subgroup_object, subgroup_function))
       goto nextentry;
 
@@ -1258,7 +1258,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex,
   StringX username = itemData.GetUser();
   // get only the first line for display
   StringX strNotes = itemData.GetNotes();
-  StringX::size_type iEOL = strNotes.find(TCHAR('\r'));
+  StringX::size_type iEOL = strNotes.find(L'\r');
   if (iEOL != StringX::npos) {
     StringX strTemp = strNotes.substr(0, iEOL);
     strNotes = strTemp;
@@ -1272,7 +1272,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex,
     // Insert the first column data
     switch (m_nColumnTypeByIndex[0]) {
       case CItemData::UUID:
-        cs_fielddata = _T("");
+        cs_fielddata = L"";
         break;
       case CItemData::GROUP:
         cs_fielddata = group;
@@ -1304,7 +1304,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex,
       case CItemData::XTIME:
         cs_fielddata = itemData.GetXTimeL();
         if (xint != 0)
-          cs_fielddata += _T(" *");
+          cs_fielddata += L" *";
         break;
       case CItemData::XTIME_INT:
         cs_fielddata = itemData.GetXTimeInt();
@@ -1317,47 +1317,47 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex,
         PWPolicy pwp;
         itemData.GetPWPolicy(pwp);
         if (pwp.flags != 0) {
-          CString cs_pwp(_T("")), cs_text;
+          CString cs_pwp(L""), cs_text;
           if (pwp.flags & PWSprefs::PWPolicyUseLowercase) {
-            cs_pwp += _T("L");
+            cs_pwp += L"L";
             if (pwp.lowerminlength > 1) {
-              cs_text.Format(_T("(%d)"), pwp.lowerminlength);
+              cs_text.Format(L"(%d)", pwp.lowerminlength);
               cs_pwp += cs_text;
             }
           }
           if (pwp.flags & PWSprefs::PWPolicyUseUppercase) {
-            cs_pwp += _T("U");
+            cs_pwp += L"U";
             if (pwp.upperminlength > 1) {
-              cs_text.Format(_T("(%d)"), pwp.upperminlength);
+              cs_text.Format(L"(%d)", pwp.upperminlength);
               cs_pwp += cs_text;
             }
           }
           if (pwp.flags & PWSprefs::PWPolicyUseDigits) {
-            cs_pwp += _T("D");
+            cs_pwp += L"D";
             if (pwp.digitminlength > 1) {
-              cs_text.Format(_T("(%d)"), pwp.digitminlength);
+              cs_text.Format(L"(%d)", pwp.digitminlength);
               cs_pwp += cs_text;
             }
           }
           if (pwp.flags & PWSprefs::PWPolicyUseSymbols) {
-            cs_pwp += _T("S");
+            cs_pwp += L"S";
             if (pwp.symbolminlength > 1) {
-              cs_text.Format(_T("(%d)"), pwp.symbolminlength);
+              cs_text.Format(L"(%d)", pwp.symbolminlength);
               cs_pwp += cs_text;
             }
           }
           if (pwp.flags & PWSprefs::PWPolicyUseHexDigits)
-            cs_pwp += _T("H");
+            cs_pwp += L"H";
           if (pwp.flags & PWSprefs::PWPolicyUseEasyVision)
-            cs_pwp += _T("E");
+            cs_pwp += L"E";
           if (pwp.flags & PWSprefs::PWPolicyMakePronounceable)
-            cs_pwp += _T("P");
+            cs_pwp += L"P";
 
-          oStringXStream osx;
-          osx << cs_pwp << _T(":") << pwp.length;
+          woStringXStream osx;
+          osx << cs_pwp << L":" << pwp.length;
           cs_fielddata = osx.str();
         } else
-          cs_fielddata = _T("");
+          cs_fielddata = L"";
         break;
       }
       default:
@@ -1430,7 +1430,7 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex,
         case CItemData::XTIME:
           cs_fielddata = itemData.GetXTimeL();
           if (xint != 0)
-            cs_fielddata += _T(" *");
+            cs_fielddata += L" *";
           break;
         case CItemData::XTIME_INT:
           cs_fielddata = itemData.GetXTimeInt();
@@ -1443,46 +1443,46 @@ int DboxMain::insertItem(CItemData &itemData, int iIndex,
           PWPolicy pwp;
           itemData.GetPWPolicy(pwp);
           if (pwp.flags != 0) {
-            CString cs_pwp(_T("")), cs_text;
+            CString cs_pwp(L""), cs_text;
             if (pwp.flags & PWSprefs::PWPolicyUseLowercase) {
-              cs_pwp += _T("L");
+              cs_pwp += L"L";
               if (pwp.lowerminlength > 1) {
-                cs_text.Format(_T("(%d)"), pwp.lowerminlength);
+                cs_text.Format(L"(%d)", pwp.lowerminlength);
                 cs_pwp += cs_text;
               }
             }
             if (pwp.flags & PWSprefs::PWPolicyUseUppercase) {
-              cs_pwp += _T("U");
+              cs_pwp += L"U";
               if (pwp.upperminlength > 1) {
-                cs_text.Format(_T("(%d)"), pwp.upperminlength);
+                cs_text.Format(L"(%d)", pwp.upperminlength);
                 cs_pwp += cs_text;
               }
             }
             if (pwp.flags & PWSprefs::PWPolicyUseDigits) {
-              cs_pwp += _T("D");
+              cs_pwp += L"D";
               if (pwp.digitminlength > 1) {
-                cs_text.Format(_T("(%d)"), pwp.digitminlength);
+                cs_text.Format(L"(%d)", pwp.digitminlength);
                 cs_pwp += cs_text;
               }
             }
             if (pwp.flags & PWSprefs::PWPolicyUseSymbols) {
-              cs_pwp += _T("S");
+              cs_pwp += L"S";
               if (pwp.symbolminlength > 1) {
-                cs_text.Format(_T("(%d)"), pwp.symbolminlength);
+                cs_text.Format(L"(%d)", pwp.symbolminlength);
                 cs_pwp += cs_text;
               }
             }
             if (pwp.flags & PWSprefs::PWPolicyUseHexDigits)
-              cs_pwp += _T("H");
+              cs_pwp += L"H";
             if (pwp.flags & PWSprefs::PWPolicyUseEasyVision)
-              cs_pwp += _T("E");
+              cs_pwp += L"E";
             if (pwp.flags & PWSprefs::PWPolicyMakePronounceable)
-              cs_pwp += _T("P");
-            oStringXStream osx;
-            osx << cs_pwp << _T(":") << pwp.length;
+              cs_pwp += L"P";
+            woStringXStream osx;
+            osx << cs_pwp << L":" << pwp.length;
             cs_fielddata = osx.str();
           } else
-            cs_fielddata = _T("");
+            cs_fielddata = L"";
           break;
         }
         default:
@@ -1747,7 +1747,7 @@ void DboxMain::SetListView()
   UnFindItem();
   m_ctlItemTree.ShowWindow(SW_HIDE);
   m_ctlItemList.ShowWindow(SW_SHOW);
-  PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, _T("list"));
+  PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, L"list");
   m_ctlItemList.SetFocus();
   m_IsListView = true;
   // Some items may change on change of view
@@ -1759,7 +1759,7 @@ void DboxMain::SetTreeView()
   UnFindItem();
   m_ctlItemList.ShowWindow(SW_HIDE);
   m_ctlItemTree.ShowWindow(SW_SHOW);
-  PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, _T("tree"));
+  PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, L"tree");
   m_ctlItemTree.SetFocus();
   m_IsListView = false;
   // Some items may change on change of view
@@ -1890,7 +1890,7 @@ void DboxMain::OnChangeTreeFont()
 
   if (fontdlg.DoModal() == IDOK) {
     CString treefont_str;
-    treefont_str.Format(_T("%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%s"),
+    treefont_str.Format(L"%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%s",
                         lf.lfHeight, lf.lfWidth, lf.lfEscapement, lf.lfOrientation,
                         lf.lfWeight, lf.lfItalic, lf.lfUnderline, lf.lfStrikeOut,
                         lf.lfCharSet, lf.lfOutPrecision, lf.lfClipPrecision,
@@ -1910,10 +1910,10 @@ void DboxMain::OnChangeTreeFont()
     AutoResizeColumns();
 
     // save user's choice of Tree/List font
-    prefs->SetPref(PWSprefs::TreeFont, LPCTSTR(treefont_str));
+    prefs->SetPref(PWSprefs::TreeFont, LPCWSTR(treefont_str));
     // save user's sample text
     prefs->SetPref(PWSprefs::TreeListSampleText,
-                   LPCTSTR(fontdlg.m_sampletext));
+                   LPCWSTR(fontdlg.m_sampletext));
   }
 }
 
@@ -1934,7 +1934,7 @@ void DboxMain::OnChangePswdFont()
 
   if (fontdlg.DoModal() == IDOK) {
     CString pswdfont_str;
-    pswdfont_str.Format(_T("%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%s"),
+    pswdfont_str.Format(L"%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%s",
                         lf.lfHeight, lf.lfWidth, lf.lfEscapement, lf.lfOrientation,
                         lf.lfWeight, lf.lfItalic, lf.lfUnderline, lf.lfStrikeOut,
                         lf.lfCharSet, lf.lfOutPrecision, lf.lfClipPrecision,
@@ -1943,13 +1943,13 @@ void DboxMain::OnChangePswdFont()
     // transfer the new font to the passwords
     SetPasswordFont(&lf);
     // save user's choice of password font
-    prefs->SetPref(PWSprefs::PasswordFont, LPCTSTR(pswdfont_str));
+    prefs->SetPref(PWSprefs::PasswordFont, LPCWSTR(pswdfont_str));
     // save user's sample text
-    prefs->SetPref(PWSprefs::PswdSampleText, LPCTSTR(fontdlg.m_sampletext));
+    prefs->SetPref(PWSprefs::PswdSampleText, LPCWSTR(fontdlg.m_sampletext));
   }
 }
 
-static CString GetToken(CString& str, LPCTSTR c)
+static CString GetToken(CString& str, LPCWSTR c)
 {
   // helper function for DboxMain::ExtractFont()
   int pos = str.Find(c);
@@ -1961,28 +1961,28 @@ static CString GetToken(CString& str, LPCTSTR c)
 
 void DboxMain::ExtractFont(CString& str, LOGFONT *plogfont)
 {
-  plogfont->lfHeight = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfWidth = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfEscapement = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfOrientation = _ttol((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfWeight = _ttol((LPCTSTR)GetToken(str, _T(",")));
+  plogfont->lfHeight = _wtol((LPCWSTR)GetToken(str, L","));
+  plogfont->lfWidth = _wtol((LPCWSTR)GetToken(str, L","));
+  plogfont->lfEscapement = _wtol((LPCWSTR)GetToken(str, L","));
+  plogfont->lfOrientation = _wtol((LPCWSTR)GetToken(str, L","));
+  plogfont->lfWeight = _wtol((LPCWSTR)GetToken(str, L","));
 
 #pragma warning(push)
 #pragma warning(disable:4244) //conversion from 'int' to 'BYTE', possible loss of data
-  plogfont->lfItalic = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfUnderline = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfStrikeOut = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfCharSet = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfOutPrecision = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfClipPrecision = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfQuality = _ttoi((LPCTSTR)GetToken(str, _T(",")));
-  plogfont->lfPitchAndFamily = _ttoi((LPCTSTR)GetToken(str, _T(",")));
+  plogfont->lfItalic = _wtoi((LPCWSTR)GetToken(str, L","));
+  plogfont->lfUnderline = _wtoi((LPCWSTR)GetToken(str, L","));
+  plogfont->lfStrikeOut = _wtoi((LPCWSTR)GetToken(str, L","));
+  plogfont->lfCharSet = _wtoi((LPCWSTR)GetToken(str, L","));
+  plogfont->lfOutPrecision = _wtoi((LPCWSTR)GetToken(str, L","));
+  plogfont->lfClipPrecision = _wtoi((LPCWSTR)GetToken(str, L","));
+  plogfont->lfQuality = _wtoi((LPCWSTR)GetToken(str, L","));
+  plogfont->lfPitchAndFamily = _wtoi((LPCWSTR)GetToken(str, L","));
 #pragma warning(pop)
 
 #if (_MSC_VER >= 1400)
-  _tcscpy_s(plogfont->lfFaceName, LF_FACESIZE, str);
+  wcscpy_s(plogfont->lfFaceName, LF_FACESIZE, str);
 #else
-  _tcscpy(plogfont->lfFaceName, str);
+  wcscpy(plogfont->lfFaceName, str);
 #endif  
 }
 
@@ -1992,9 +1992,9 @@ void DboxMain::UpdateSystemTray(const STATE s)
     case LOCKED:
       app.SetSystemTrayState(ThisMfcApp::LOCKED);
       if (!m_core.GetCurFile().empty()) {
-        CString ttt(_T("["));
+        CString ttt(L"[");
         ttt += m_core.GetCurFile().c_str();
-        ttt += _T("]");
+        ttt += L"]";
         app.SetTooltipText(ttt);
       }
       break;
@@ -2038,19 +2038,19 @@ BOOL DboxMain::LaunchBrowser(const CString &csURL)
   //    one to specify an ssh client (such as Putty) as the alternate browser,
   //    and user@machine as the URL.
 
-  theURL.Remove(_T('\r'));
-  theURL.Remove(_T('\n'));
-  theURL.Remove(_T('\t'));
+  theURL.Remove(L'\r');
+  theURL.Remove(L'\n');
+  theURL.Remove(L'\t');
 
-  bool isMailto = (theURL.Find(_T("mailto:")) != -1);
+  bool isMailto = (theURL.Find(L"mailto:") != -1);
   UINT errID = isMailto ? IDS_CANTEMAIL : IDS_CANTBROWSE;
 
-  int altReplacements = theURL.Replace(_T("[alt]"), _T(""));
-  int alt2Replacements = (theURL.Replace(_T("[ssh]"), _T("")) +
-                          theURL.Replace(_T("{alt}"), _T("")));
+  int altReplacements = theURL.Replace(L"[alt]", L"");
+  int alt2Replacements = (theURL.Replace(L"[ssh]", L"") +
+                          theURL.Replace(L"{alt}", L""));
 
-  if (alt2Replacements <= 0 && !isMailto && theURL.Find(_T("://")) == -1)
-    theURL = _T("http://") + theURL;
+  if (alt2Replacements <= 0 && !isMailto && theURL.Find(L"://") == -1)
+    theURL = L"http://" + theURL;
 
   CString csAltBrowser(PWSprefs::GetInstance()->
                        GetPref(PWSprefs::AltBrowser).c_str());
@@ -2071,7 +2071,7 @@ BOOL DboxMain::LaunchBrowser(const CString &csURL)
                            GetPref(PWSprefs::AltBrowserCmdLineParms).c_str());
 
     if (!csCmdLineParms.IsEmpty())
-      theURL = csCmdLineParms + _T(" ") + theURL;
+      theURL = csCmdLineParms + L" " + theURL;
     si.lpFile = csAltBrowser;
     si.lpParameters = theURL;
   }
@@ -2196,26 +2196,26 @@ void DboxMain::SetColumns(const CString cs_ListColumns)
 
   vector<int> vi_columns;
   vector<int>::const_iterator vi_IterColumns;
-  const TCHAR pSep[] = _T(",");
-  TCHAR *pTemp;
+  const wchar_t pSep[] = L",";
+  wchar_t *pTemp;
 
   // Duplicate as strtok modifies the string
-  pTemp = _tcsdup((LPCTSTR)cs_ListColumns);
+  pTemp = _wcsdup((LPCWSTR)cs_ListColumns);
 
 #if _MSC_VER >= 1400
   // Capture columns shown:
-  TCHAR *next_token;
-  TCHAR *token = _tcstok_s(pTemp, pSep, &next_token);
+  wchar_t *next_token;
+  wchar_t *token = wcstok_s(pTemp, pSep, &next_token);
   while(token) {
-    vi_columns.push_back(_ttoi(token));
-    token = _tcstok_s(NULL, pSep, &next_token);
+    vi_columns.push_back(_wtoi(token));
+    token = wcstok_s(NULL, pSep, &next_token);
   }
 #else
   // Capture columns shown:
-  TCHAR *token = _tcstok(pTemp, pSep);
+  wchar_t *token = wcstok(pTemp, pSep);
   while(token) {
-    vi_columns.push_back(_ttoi(token));
-    token = _tcstok(NULL, pSep);
+    vi_columns.push_back(_wtoi(token));
+    token = wcstok(NULL, pSep);
   }
 #endif
   free(pTemp);
@@ -2254,28 +2254,28 @@ void DboxMain::SetColumns(const CString cs_ListColumns)
 void DboxMain::SetColumnWidths(const CString cs_ListColumnsWidths)
 {
   //  User has saved the columns he/she wants and now we are putting them back
-  std::vector<int> vi_widths;
-  std::vector<int>::const_iterator vi_IterWidths;
-  const TCHAR pSep[] = _T(",");
-  TCHAR *pWidths;
+  vector<int> vi_widths;
+  vector<int>::const_iterator vi_IterWidths;
+  const wchar_t pSep[] = L",";
+  wchar_t *pWidths;
 
   // Duplicate as strtok modifies the string
-  pWidths = _tcsdup((LPCTSTR)cs_ListColumnsWidths);
+  pWidths = _wcsdup((LPCWSTR)cs_ListColumnsWidths);
 
 #if _MSC_VER >= 1400
   // Capture column widths shown:
-  TCHAR *next_token;
-  TCHAR *token = _tcstok_s(pWidths, pSep, &next_token);
+  wchar_t *next_token;
+  wchar_t *token = wcstok_s(pWidths, pSep, &next_token);
   while(token) {
-    vi_widths.push_back(_ttoi(token));
-    token = _tcstok_s(NULL, pSep, &next_token);
+    vi_widths.push_back(_wtoi(token));
+    token = wcstok_s(NULL, pSep, &next_token);
   }
 #else
   // Capture columnwidths shown:
-  TCHAR *token = _tcstok(pWidths, pSep);
+  wchar_t *token = wcstok(pWidths, pSep);
   while(token) {
-    vi_widths.push_back(_ttoi(token));
-    token = _tcstok(NULL, pSep);
+    vi_widths.push_back(_wtoi(token));
+    token = wcstok(NULL, pSep);
   }
 #endif
   free(pWidths);
@@ -2468,7 +2468,7 @@ void DboxMain::SetupColumnChooser(const bool bShowHide)
     }
 
     // Insert column with "dummy" header
-    m_pCC->m_ccListCtrl.InsertColumn(0, _T(""));
+    m_pCC->m_ccListCtrl.InsertColumn(0, L"");
     m_pCC->m_ccListCtrl.SetColumnWidth(0, m_iheadermaxwidth);
 
     // Make it just wide enough to take the text
@@ -2593,7 +2593,7 @@ int DboxMain::GetHeaderWidth(const int iType)
 void DboxMain::CalcHeaderWidths()
 {
   // Get default column width for datetime fields
-  TCHAR time_str[80], datetime_str[80];
+  wchar_t time_str[80], datetime_str[80];
   // Use "fictitious" longest English date
   SYSTEMTIME systime;
   systime.wYear = (WORD)2000;
@@ -2604,14 +2604,14 @@ void DboxMain::CalcHeaderWidths()
   systime.wMinute = (WORD)44;
   systime.wSecond = (WORD)55;
   systime.wMilliseconds = (WORD)0;
-  TCHAR szBuf[80];
+  wchar_t szBuf[80];
   VERIFY(::GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SSHORTDATE, szBuf, 80));
   GetDateFormat(LOCALE_USER_DEFAULT, 0, &systime, szBuf, datetime_str, 80);
-  szBuf[0] = _T(' ');  // Put a blank between date and time
+  szBuf[0] = L' ';  // Put a blank between date and time
   VERIFY(::GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STIMEFORMAT, &szBuf[1], 79));
   GetTimeFormat(LOCALE_USER_DEFAULT, 0, &systime, szBuf, time_str, 80);
 #if _MSC_VER >= 1400
-  _tcscat_s(datetime_str, 80, time_str);
+  wcscat_s(datetime_str, 80, time_str);
 #else
   _tcscat(datetime_str, 80, time_str);
 #endif
@@ -2690,14 +2690,14 @@ void DboxMain::UnFindItem()
 bool DboxMain::GetDriveAndDirectory(const StringX &cs_infile, CString &cs_drive,
                                     CString &cs_directory)
 {
-  stringT applicationpath = pws_os::getexecdir();
-  stringT inpath = cs_infile.c_str();
-  stringT appdrive, appdir;
-  stringT drive, dir, file, ext;
+  wstring applicationpath = pws_os::getexecdir();
+  wstring inpath = cs_infile.c_str();
+  wstring appdrive, appdir;
+  wstring drive, dir, file, ext;
 
   pws_os::splitpath(applicationpath, appdrive, appdir, file, ext);
   if (!pws_os::splitpath(inpath, drive, dir, file, ext)) {
-    PWSDebug::IssueError(_T("View Report: Error finding path to database"));
+    PWSDebug::IssueError(L"View Report: Error finding path to database");
     return false;
   }
 
@@ -2727,37 +2727,37 @@ void DboxMain::OnViewReports()
 
   csAction.LoadString(IDS_RPTCOMPARE);
   cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
-  if (::_tstat(cs_filename, &statbuf) == 0) {
+  if (::_wstat(cs_filename, &statbuf) == 0) {
     gmb.AddButton(1, csAction);
     bReportExists = true;
   }
   csAction.LoadString(IDS_RPTFIND);
   cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
-  if (::_tstat(cs_filename, &statbuf) == 0) {
+  if (::_wstat(cs_filename, &statbuf) == 0) {
     gmb.AddButton(2, csAction);
     bReportExists = true;
   }
   csAction.LoadString(IDS_RPTIMPORTTEXT);
   cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
-  if (::_tstat(cs_filename, &statbuf) == 0) {
+  if (::_wstat(cs_filename, &statbuf) == 0) {
     gmb.AddButton(3, csAction);
     bReportExists = true;
   }
   csAction.LoadString(IDS_RPTIMPORTXML);
   cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
-  if (::_tstat(cs_filename, &statbuf) == 0) {
+  if (::_wstat(cs_filename, &statbuf) == 0) {
     gmb.AddButton(4, csAction);
     bReportExists = true;
   }
   csAction.LoadString(IDS_RPTMERGE);
   cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
-  if (::_tstat(cs_filename, &statbuf) == 0) {
+  if (::_wstat(cs_filename, &statbuf) == 0) {
     gmb.AddButton(5, csAction);
     bReportExists = true;
   }
   csAction.LoadString(IDS_RPTVALIDATE);
   cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
-  if (::_tstat(cs_filename, &statbuf) == 0) {
+  if (::_wstat(cs_filename, &statbuf) == 0) {
     gmb.AddButton(6, csAction);
     bReportExists = true;
   }
@@ -2855,20 +2855,20 @@ void DboxMain::ViewReport(const CString &cs_ReportFileName)
   CString cs_path, csAction;
   CString cs_drive, cs_directory;
 
-  if (!GetDriveAndDirectory(LPCTSTR(cs_ReportFileName), cs_drive, cs_directory))
+  if (!GetDriveAndDirectory(LPCWSTR(cs_ReportFileName), cs_drive, cs_directory))
     return;
 
-  cs_path.Format(_T("%s%s"), cs_drive, cs_directory);
+  cs_path.Format(L"%s%s", cs_drive, cs_directory);
 
-  TCHAR szExecName[MAX_PATH + 1];
+  wchar_t szExecName[MAX_PATH + 1];
 
   // Find out the users default editor for "txt" files
   DWORD dwSize(MAX_PATH);
-  HRESULT stat = ::AssocQueryString(0, ASSOCSTR_EXECUTABLE, _T(".txt"), _T("Open"),
+  HRESULT stat = ::AssocQueryString(0, ASSOCSTR_EXECUTABLE, L".txt", L"Open",
                                     szExecName, &dwSize);
   if (int(stat) != S_OK) {  
 #ifdef _DEBUG
-    AfxMessageBox(_T("oops"));
+    AfxMessageBox(L"oops");
 #endif
     return;
   }
@@ -2882,16 +2882,13 @@ void DboxMain::ViewReport(const CString &cs_ReportFileName)
   ZeroMemory( &pi, sizeof(pi) );
 
   DWORD dwCreationFlags(0);
-#ifdef _UNICODE
   dwCreationFlags = CREATE_UNICODE_ENVIRONMENT;
-#endif
-
   CString cs_CommandLine;
 
   // Make the command line = "<program>" "file" 
-  cs_CommandLine.Format(_T("\"%s\" \"%s\""), szExecName, cs_ReportFileName);
+  cs_CommandLine.Format(L"\"%s\" \"%s\"", szExecName, cs_ReportFileName);
   int ilen = cs_CommandLine.GetLength();
-  LPTSTR pszCommandLine = cs_CommandLine.GetBuffer(ilen);
+  LPWSTR pszCommandLine = cs_CommandLine.GetBuffer(ilen);
 
   if (!CreateProcess(NULL, pszCommandLine, NULL, NULL, FALSE, dwCreationFlags, 
                      NULL, cs_path, &si, &pi)) {
@@ -2941,7 +2938,7 @@ int DboxMain::OnUpdateViewReports(const int nID)
       uistring = IDS_RPTVALIDATE;
       break;
     default:
-      TRACE(_T("ID=%d\n"), nID);
+      TRACE(L"ID=%d\n", nID);
       ASSERT(0);
   }
 
@@ -2951,7 +2948,7 @@ int DboxMain::OnUpdateViewReports(const int nID)
   struct _stat statbuf;
 
   // Only allow selection if file exists!
-  int status = ::_tstat(cs_filename, &statbuf);
+  int status = ::_wstat(cs_filename, &statbuf);
   return (status != 0) ? FALSE : TRUE;
 }
 
@@ -2967,7 +2964,7 @@ void DboxMain::OnCustomizeToolbar()
   CToolBarCtrl& mainTBCtrl = m_MainToolBar.GetToolBarCtrl();
   mainTBCtrl.Customize();
 
-  StringX cs_temp = LPCTSTR(m_MainToolBar.GetButtonString());
+  StringX cs_temp = LPCWSTR(m_MainToolBar.GetButtonString());
   PWSprefs::GetInstance()->SetPref(PWSprefs::MainToolBarButtons, cs_temp);
 }
 
@@ -3127,7 +3124,7 @@ void DboxMain::OnToolBarFindAdvanced()
 
 void DboxMain::OnToolBarFindReport()
 {
-  std::vector<int> *pindices;
+  vector<int> *pindices;
   CString csFindString;
 
   pindices = m_FindToolBar.GetSearchResults();
@@ -3152,7 +3149,7 @@ void DboxMain::OnToolBarFindReport()
   if (!bFAdvanced) {
     cs_temp.LoadString(IDS_NONE);
     buffer.Format(IDS_ADVANCEDOPTIONS, cs_temp);
-    rpt.WriteLine((LPCTSTR)buffer);
+    rpt.WriteLine((LPCWSTR)buffer);
     rpt.WriteLine();
   } else {
     if (Fsubgroup_set == BST_UNCHECKED) {
@@ -3229,46 +3226,46 @@ void DboxMain::OnToolBarFindReport()
                      cs_case);
     }
     buffer.Format(IDS_ADVANCEDOPTIONS, cs_temp);
-    rpt.WriteLine((LPCTSTR)buffer);
+    rpt.WriteLine((LPCWSTR)buffer);
     rpt.WriteLine();
 
     cs_temp.LoadString(IDS_RPTFIND);
     buffer.Format(IDS_ADVANCEDFIELDS, cs_temp);
-    rpt.WriteLine((LPCTSTR)buffer);
+    rpt.WriteLine((LPCWSTR)buffer);
 
-    buffer = _T("\t");
+    buffer = L"\t";
     if (bsFFields.test(CItemData::GROUP))
-      buffer += _T("\t") + CString(MAKEINTRESOURCE(IDS_FINDGROUP));
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_FINDGROUP));
     if (bsFFields.test(CItemData::TITLE))
-      buffer += _T("\t") + CString(MAKEINTRESOURCE(IDS_FINDTITLE));
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_FINDTITLE));
     if (bsFFields.test(CItemData::USER))
-      buffer += _T("\t") + CString(MAKEINTRESOURCE(IDS_FINDUSER));
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_FINDUSER));
     if (bsFFields.test(CItemData::PASSWORD))
-      buffer += _T("\t") + CString(MAKEINTRESOURCE(IDS_COMPPASSWORD));
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPPASSWORD));
     if (bsFFields.test(CItemData::NOTES))
-      buffer += _T("\t") + CString(MAKEINTRESOURCE(IDS_COMPNOTES));
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPNOTES));
     if (bsFFields.test(CItemData::URL))
-      buffer += _T("\t") + CString(MAKEINTRESOURCE(IDS_COMPURL));
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPURL));
     if (bsFFields.test(CItemData::AUTOTYPE))
-      buffer += _T("\t") + CString(MAKEINTRESOURCE(IDS_COMPAUTOTYPE));
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPAUTOTYPE));
     if (bsFFields.test(CItemData::PWHIST))
-      buffer += _T("\t") + CString(MAKEINTRESOURCE(IDS_COMPPWHISTORY));
-    rpt.WriteLine((LPCTSTR)buffer);
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPPWHISTORY));
+    rpt.WriteLine((LPCWSTR)buffer);
     rpt.WriteLine();
   }
 
   if (pindices->size() == 0) {
     buffer.Format(IDS_SEARCHRESULTS1, csFindString);
-    rpt.WriteLine((LPCTSTR)buffer);
+    rpt.WriteLine((LPCWSTR)buffer);
   } else {
     buffer.Format(IDS_SEARCHRESULTS2, csFindString);
-    rpt.WriteLine((LPCTSTR)buffer);
+    rpt.WriteLine((LPCWSTR)buffer);
     int i, index;
     for (i = 0; i < (int)pindices->size(); i++) {
       index = pindices->at(i);
       CItemData *ci = (CItemData *)m_ctlItemList.GetItemData(index);
       buffer.Format(IDS_COMPARESTATS, ci->GetGroup(), ci->GetTitle(), ci->GetUser());
-      rpt.WriteLine((LPCTSTR)buffer, false);
+      rpt.WriteLine((LPCWSTR)buffer, false);
     }
   }
   rpt.WriteLine();
@@ -3278,7 +3275,7 @@ void DboxMain::OnToolBarFindReport()
   gmb.SetTitle(IDS_RPTFIND);
   gmb.SetMsg(IDS_REPORTCREATED);
   gmb.SetStandardIcon(MB_ICONINFORMATION);
-  gmb.AddButton(1, _T("OK"), TRUE, TRUE);
+  gmb.AddButton(1, L"OK", TRUE, TRUE);
   gmb.AddButton(2, IDS_VIEWREPORT);
   INT_PTR msg_rc = gmb.DoModal();
   if (msg_rc == 2)
@@ -3519,7 +3516,7 @@ bool DboxMain::SetNotesWindow(const CPoint point, const bool bVisible)
 {
   CItemData *ci(NULL);
   CPoint target(point);
-  StringX cs_notes(_T(""));
+  StringX cs_notes(L"");
   UINT nFlags;
   HTREEITEM hItem(NULL);
   int nItem(-1);
@@ -3565,17 +3562,17 @@ bool DboxMain::SetNotesWindow(const CPoint point, const bool bVisible)
   }
 
   if (!cs_notes.empty()) {
-    Replace(cs_notes, StringX(_T("\r\n")), StringX(_T("\n")));
-    Remove(cs_notes, _T('\r'));
+    Replace(cs_notes, StringX(L"\r\n"), StringX(L"\n"));
+    Remove(cs_notes, L'\r');
 
     if (cs_notes.length() > 180)
-      cs_notes = cs_notes.substr(0, 180) + _T("[...]");
+      cs_notes = cs_notes.substr(0, 180) + L"[...]";
   }
 
   // move window
   CString cs_oldnotes;
   m_pNotesDisplay->GetWindowText(cs_oldnotes);
-  if (LPCTSTR(cs_oldnotes) != cs_notes)
+  if (LPCWSTR(cs_oldnotes) != cs_notes)
     m_pNotesDisplay->SetWindowText(cs_notes.c_str());
 
   m_pNotesDisplay->SetWindowPos(NULL, target.x, target.y, 0, 0,
@@ -3606,13 +3603,13 @@ CItemData *DboxMain::GetLastSelected()
 StringX DboxMain::GetGroupName()
 {
   HTREEITEM hi = m_ctlItemTree.GetSelectedItem();
-  StringX s(_T(""));
+  StringX s(L"");
   if (hi != NULL)
     s = m_ctlItemTree.GetItemText(hi);
 
   if ((GetKeyState(VK_CONTROL) & 0x8000) == 0) {
     while ((hi = m_ctlItemTree.GetParentItem(hi)) != NULL) {
-      s = StringX(m_ctlItemTree.GetItemText(hi)) + StringX(_T(".")) + s;
+      s = StringX(m_ctlItemTree.GetItemText(hi)) + StringX(L".") + s;
     }
   }
   return s;

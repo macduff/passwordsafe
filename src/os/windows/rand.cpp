@@ -9,6 +9,7 @@
 /**
  * \file Windows-specific implementation of rand.h
  */
+
 #include <afx.h>
 #include <Windows.h>
 #include <stdlib.h>
@@ -24,15 +25,15 @@ static BOOLEAN (APIENTRY *pfnGetRandomData)(void*, ULONG) = NULL;
 bool pws_os::InitRandomDataFunction()
 {
 	// Qualify full path name.  (Lockheed Martin) Secure Coding  11-14-2007
-	TCHAR szFileName[ MAX_PATH ];
+	wchar_t szFileName[ MAX_PATH ];
 	memset( szFileName, 0, MAX_PATH );
 	GetSystemDirectory( szFileName, MAX_PATH );
-	int nLen = _tcslen( szFileName );
+	int nLen = wcslen( szFileName );
 	if (nLen > 0) {
     if (szFileName[ nLen - 1 ] != '\\')
-      _tcscat_s( szFileName, MAX_PATH, _T("\\") );
+      wcscat_s( szFileName, MAX_PATH, L"\\" );
   }
-	_tcscat_s( szFileName, MAX_PATH, _T("ADVAPI32.DLL") );
+	wcscat_s( szFileName, MAX_PATH, L"ADVAPI32.DLL" );
 
 	HMODULE hLib = LoadLibrary( szFileName );
 	// End of change.  (Lockheed Martin) Secure Coding  11-14-2007

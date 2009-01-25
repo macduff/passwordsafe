@@ -20,11 +20,11 @@
  *
  * Each Password History Entry: 
  * %08x - time of this old password was set (time_t) 
- * %04x - length of old password (in TCHAR)
+ * %04x - length of old password (in wchar_t)
  * %s   - old password 
  *
  * No history being kept for a record can be represented either by the lack
- * of the PWH field (preferred), or by a header of _T("00000"):
+ * of the PWH field (preferred), or by a header of L"00000":
  * status = 0, max = 00, num = 00 
  *
  * Note that 0aabb where bb <= aa is possible if password history was enabled in the past
@@ -43,9 +43,12 @@
 #ifdef _WIN32
 #include <afx.h>
 #endif
+
 #include <time.h> // for time_t
 #include <vector>
 #include "StringX.h"
+
+using namespace std;
 
 struct PWHistEntry {
   time_t changetttdate;
@@ -69,7 +72,7 @@ PWHistEntry(const PWHistEntry &that) :
   }
 };
 
-typedef std::vector<PWHistEntry> PWHistList;
+typedef vector<PWHistEntry> PWHistList;
 
 // Parses a password history string as defined
 // in format spec to a vector of PWHistEntry

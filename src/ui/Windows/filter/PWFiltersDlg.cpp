@@ -22,13 +22,15 @@
 #include "corelib/corelib.h"
 #include "corelib/PWSFilters.h"
 
+using namespace std;
+
 // CPWFiltersDlg dialog
 
 IMPLEMENT_DYNAMIC(CPWFiltersDlg, CPWResizeDialog)
 
 CPWFiltersDlg::CPWFiltersDlg(CWnd* pParent /*=NULL*/,
                              const FilterType &filtertype /*=DFTYPE_MAIN*/,
-                             const CString &filtername /*=_T("")*/)
+                             const CString &filtername /*=L""*/)
   : CPWResizeDialog(CPWFiltersDlg::IDD, pParent),
   m_numfilters(0), m_iType(filtertype), m_hAccel(NULL), 
   m_filtername(filtername), m_bAllowSet(true)
@@ -41,7 +43,7 @@ CPWFiltersDlg::~CPWFiltersDlg()
 
 BOOL CPWFiltersDlg::OnInitDialog()
 {
-  std::vector<UINT> vibottombtns;
+  vector<UINT> vibottombtns;
   UINT main_bns[] = {IDC_APPLY, IDOK, IDCANCEL, ID_HELP};
   UINT other_bns[] = {IDOK, IDCANCEL, ID_HELP};
 
@@ -71,7 +73,7 @@ BOOL CPWFiltersDlg::OnInitDialog()
 
   m_FilterLC.Init(this, m_pfilters, m_iType);
   if (m_filtername.IsEmpty() || m_pfilters->fname.empty())
-    m_filtername = _T("Filter1");
+    m_filtername = L"Filter1";
   else
     m_filtername = m_pfilters->fname.c_str();
 
@@ -244,8 +246,8 @@ bool CPWFiltersDlg::VerifyFilters()
 void CPWFiltersDlg::OnHelp()
 {
   CString cs_HelpTopic;
-  cs_HelpTopic = app.GetHelpFileName() + _T("::/html/filters.html");
-  HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+  cs_HelpTopic = app.GetHelpFileName() + L"::/html/filters.html";
+  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 }
 
 void CPWFiltersDlg::OnFNameKillFocus()

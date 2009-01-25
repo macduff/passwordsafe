@@ -25,16 +25,16 @@
 #define SaltLengthV3 32
 
 //Use non-standard dash (ANSI decimal 173) for separation
-#define SPLTCHR _T('\xAD')
-#define SPLTSTR _T("  \xAD  ")
-#define DEFUSERCHR _T('\xA0')
+#define SPLTCHR L'\xAD'
+#define SPLTSTR L"  \xAD  "
+#define DEFUSERCHR L'\xA0'
 
 //Version defines
 #define V10 0
 #define V15 1
 
 extern void trashMemory(void* buffer, size_t length);
-extern void trashMemory(LPTSTR buffer, size_t length);
+extern void trashMemory(LPWSTR buffer, size_t length);
 extern void burnStack(unsigned long len); // borrowed from libtomcrypt
 
 extern void ConvertString(const StringX &text,
@@ -125,19 +125,19 @@ namespace PWSUtil {
 
   // For Windows implementation, hide Unicode abstraction,
   // and use secure versions (_s) when available
-  void strCopy(LPTSTR target, size_t tcount, const LPCTSTR source, size_t scount);
-  size_t strLength(const LPCTSTR str);
+  void strCopy(LPWSTR target, size_t tcount, const LPCWSTR source, size_t scount);
+  size_t strLength(const LPCWSTR str);
   StringX ConvertToDateTimeString(const time_t &t, const int result_format);
-  stringT GetNewFileName(const stringT &oldfilename, const stringT &newExtn);
-  extern const TCHAR *UNKNOWN_ASC_TIME_STR, *UNKNOWN_XML_TIME_STR;
-  const TCHAR *GetTimeStamp();
-  stringT Base64Encode(const BYTE *inData, size_t len);
+  wstring GetNewFileName(const wstring &oldfilename, const wstring &newExtn);
+  extern const wchar_t *UNKNOWN_ASC_TIME_STR, *UNKNOWN_XML_TIME_STR;
+  const wchar_t *GetTimeStamp();
+  wstring Base64Encode(const BYTE *inData, size_t len);
   void Base64Decode(const StringX &inString, BYTE* &outData, size_t &out_len);
   StringX NormalizeTTT(const StringX &in);
-  void WriteXMLField(std::ostream &os, const char *fname,
+  void WriteXMLField(ostream &os, const char *fname,
                      const StringX &value, CUTF8Conv &utf8conv,
                      const char *tabs = "\t\t");
-  std::string GetXMLTime(int indent, const char *name,
+  string GetXMLTime(int indent, const char *name,
                          time_t t, CUTF8Conv &utf8conv);
 };
 #endif /* __UTIL_H */

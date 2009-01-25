@@ -56,136 +56,136 @@ using namespace std;
  */
 
 const EFilterValidator::st_filter_elements EFilterValidator::m_filter_elements[XTE_LAST_ELEMENT] = {
-  {_T("filters"),
+  {L"filters",
     {XTE_FILTERS, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("filter"),
+  {L"filter",
     {XTE_FILTER, XTR_NA, -1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("filter_entry"),
+  {L"filter_entry",
     {XTE_FILTER_ENTRY, XTR_NA, -1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("filter_group"),
+  {L"filter_group",
     {XTE_FILTER_GROUP, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("group"),
+  {L"group",
     {XTE_GROUP, XTR_STRINGPRESENTRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_GROUP}},
-  {_T("grouptitle"),
+  {L"grouptitle",
     {XTE_GROUPTITLE, XTR_STRINGRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_GROUPTITLE}},
-  {_T("title"),
+  {L"title",
     {XTE_TITLE, XTR_STRINGRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_TITLE}},
-  {_T("username"),
+  {L"username",
     {XTE_USERNAME, XTR_STRINGPRESENTRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_USER}},
-  {_T("notes"),
+  {L"notes",
     {XTE_NOTES, XTR_STRINGPRESENTRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_NOTES}},
-  {_T("password"),
+  {L"password",
     {XTE_PASSWORD, XTR_PASSWORDRULE, 1, DFTYPE_MAIN, PWSMatch::MT_PASSWORD, FT_PASSWORD}},
-  {_T("create_time"),
+  {L"create_time",
     {XTE_CREATE_TIME, XTR_DATERULE, 1, DFTYPE_MAIN, PWSMatch::MT_DATE, FT_CTIME}},
-  {_T("password_modified_time"),
+  {L"password_modified_time",
     {XTE_PASSWORD_MODIFIED_TIME, XTR_DATERULE, 1, DFTYPE_MAIN, PWSMatch::MT_DATE, FT_PMTIME}},
-  {_T("last_access_time"),
+  {L"last_access_time",
     {XTE_LAST_ACCESS_TIME, XTR_DATERULE, 1, DFTYPE_MAIN, PWSMatch::MT_DATE, FT_ATIME}},
-  {_T("expiry_time"),
+  {L"expiry_time",
     {XTE_EXPIRY_TIME, XTR_DATERULE, 1, DFTYPE_MAIN, PWSMatch::MT_DATE, FT_XTIME}},
-  {_T("record_modified_time"),
+  {L"record_modified_time",
     {XTE_RECORD_MODIFIED_TIME, XTR_DATERULE, 1, DFTYPE_MAIN, PWSMatch::MT_DATE, FT_RMTIME}},
-  {_T("url"),
+  {L"url",
     {XTE_URL, XTR_STRINGPRESENTRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_URL}},
-  {_T("autotype"),
+  {L"autotype",
     {XTE_AUTOTYPE, XTR_STRINGPRESENTRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_AUTOTYPE}},
-  {_T("password_expiry_interval"),
+  {L"password_expiry_interval",
     {XTE_PASSWORD_EXPIRY_INTERVAL, XTR_INTEGERRULE, 1, DFTYPE_MAIN, PWSMatch::MT_INTEGER, FT_XTIME_INT}},
-  {_T("password_history"),
+  {L"password_history",
     {XTE_PASSWORD_HISTORY, XTR_PASSWORDHISTORYRULE, 1, DFTYPE_MAIN, PWSMatch::MT_PWHIST, FT_PWHIST}},
-  {_T("history_present"),
+  {L"history_present",
     {XTE_HISTORY_PRESENT, XTR_BOOLEANPRESENTRULE, 1, DFTYPE_PWHISTORY, PWSMatch::MT_BOOL, HT_PRESENT}},
-  {_T("history_active"),
+  {L"history_active",
     {XTE_HISTORY_ACTIVE, XTR_BOOLEANACTIVERULE, 1, DFTYPE_PWHISTORY, PWSMatch::MT_BOOL, HT_ACTIVE}},
-  {_T("history_number"),
+  {L"history_number",
     {XTE_HISTORY_NUMBER, XTR_INTEGERRULE, 1, DFTYPE_PWHISTORY, PWSMatch::MT_INTEGER, HT_NUM}},
-  {_T("history_maximum"),
+  {L"history_maximum",
     {XTE_HISTORY_MAXIMUM, XTR_INTEGERRULE, 1, DFTYPE_PWHISTORY, PWSMatch::MT_INTEGER, HT_MAX}},
-  {_T("history_changedate"),
+  {L"history_changedate",
     {XTE_HISTORY_CHANGEDATE, XTR_DATERULE, 1, DFTYPE_PWHISTORY, PWSMatch::MT_DATE, HT_CHANGEDATE}},
-  {_T("history_passwords"),
+  {L"history_passwords",
     {XTE_HISTORY_PASSWORDS, XTR_NA, 1, DFTYPE_PWHISTORY, PWSMatch::MT_PASSWORD, HT_PASSWORDS}},
-  {_T("password_policy"),
+  {L"password_policy",
     {XTE_PASSWORD_POLICY, XTR_NA, 1, DFTYPE_MAIN, PWSMatch::MT_POLICY, FT_POLICY}},
-  {_T("policy_present"),
+  {L"policy_present",
     {XTE_POLICY_PRESENT, XTR_NA, 1, DFTYPE_PWPOLICY, PWSMatch::MT_BOOL, PT_PRESENT}},
-  {_T("policy_length"),
+  {L"policy_length",
     {XTE_POLICY_LENGTH, XTR_INTEGERRULE, 1, DFTYPE_PWPOLICY, PWSMatch::MT_INTEGER, PT_LENGTH}},
-  {_T("policy_number_lowercase"),
+  {L"policy_number_lowercase",
     {XTE_POLICY_NUMBER_LOWERCASE, XTR_INTEGERRULE, 1, DFTYPE_PWPOLICY, PWSMatch::MT_INTEGER, PT_LOWERCASE}},
-  {_T("policy_number_uppercase"),
+  {L"policy_number_uppercase",
     {XTE_POLICY_NUMBER_UPPERCASE, XTR_INTEGERRULE, 1, DFTYPE_PWPOLICY, PWSMatch::MT_INTEGER, PT_UPPERCASE}},
-  {_T("policy_number_digits"),
+  {L"policy_number_digits",
     {XTE_POLICY_NUMBER_DIGITS, XTR_INTEGERRULE, 1, DFTYPE_PWPOLICY, PWSMatch::MT_INTEGER, PT_DIGITS}},
-  {_T("policy_number_symbols"),
+  {L"policy_number_symbols",
     {XTE_POLICY_NUMBER_SYMBOLS, XTR_INTEGERRULE, 1, DFTYPE_PWPOLICY, PWSMatch::MT_INTEGER, PT_SYMBOLS}},
-  {_T("policy_easyvision"),
+  {L"policy_easyvision",
     {XTE_POLICY_EASYVISION, XTR_BOOLEANSETRULE, 1, DFTYPE_PWPOLICY, PWSMatch::MT_BOOL, PT_EASYVISION}},
-  {_T("policy_pronounceable"),
+  {L"policy_pronounceable",
     {XTE_POLICY_PRONOUNCEABLE, XTR_BOOLEANSETRULE, 1, DFTYPE_PWPOLICY, PWSMatch::MT_BOOL, PT_PRONOUNCEABLE}},
-  {_T("policy_hexadecimal"),
+  {L"policy_hexadecimal",
     {XTE_POLICY_HEXADECIMAL, XTR_BOOLEANSETRULE, 1, DFTYPE_PWPOLICY, PWSMatch::MT_BOOL, PT_HEXADECIMAL}},
-  {_T("entrytype"),
+  {L"entrytype",
     {XTE_ENTRYTYPE, XTR_ENTRYRULE, 1, DFTYPE_MAIN, PWSMatch::MT_ENTRYTYPE, FT_ENTRYTYPE}},
-  {_T("unknownfields"),
+  {L"unknownfields",
     {XTE_UNKNOWNFIELDS, XTR_BOOLEANPRESENTRULE, 1, DFTYPE_MAIN, PWSMatch::MT_INVALID, FT_UNKNOWNFIELDS}},
-  {_T("test"),
+  {L"test",
     {XTE_TEST, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("rule"),
+  {L"rule",
     {XTE_RULE, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("logic"),
+  {L"logic",
     {XTE_LOGIC, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("string"),
+  {L"string",
     {XTE_STRING, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("case"),
+  {L"case",
     {XTE_CASE, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("warn"),
+  {L"warn",
     {XTE_WARN, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("num1"),
+  {L"num1",
     {XTE_NUM1, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("num2"),
+  {L"num2",
     {XTE_NUM2, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("date1"),
+  {L"date1",
     {XTE_DATE1, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("date2"),
+  {L"date2",
     {XTE_DATE2, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
-  {_T("type"),
+  {L"type",
     {XTE_TYPE, XTR_NA, 1, DFTYPE_INVALID, PWSMatch::MT_INVALID, FT_INVALID}},
 };
 
 const EFilterValidator::st_filter_rules EFilterValidator::m_filter_rulecodes[PWSMatch::MR_LAST] = {
-  {_T("NA"), {PWSMatch::MR_INVALID, XTR_NA} },
-  {_T("EQ"), {PWSMatch::MR_EQUALS, XTR_DATERULE | XTR_INTEGERRULE | XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
-  {_T("NE"), {PWSMatch::MR_NOTEQUAL, XTR_DATERULE | XTR_INTEGERRULE | XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
-  {_T("AC"), {PWSMatch::MR_ACTIVE, XTR_BOOLEANACTIVERULE} },
-  {_T("IA"), {PWSMatch::MR_INACTIVE, XTR_BOOLEANACTIVERULE} },
-  {_T("PR"), {PWSMatch::MR_PRESENT, XTR_BOOLEANPRESENTRULE | XTR_DATERULE | XTR_INTEGERRULE | XTR_STRINGPRESENTRULE} },
-  {_T("NP"), {PWSMatch::MR_NOTPRESENT, XTR_BOOLEANPRESENTRULE | XTR_DATERULE | XTR_INTEGERRULE | XTR_STRINGPRESENTRULE} },
-  {_T("SE"), {PWSMatch::MR_SET, XTR_BOOLEANSETRULE} },
-  {_T("NS"), {PWSMatch::MR_NOTSET, XTR_BOOLEANSETRULE} },
-  {_T("IS"), {PWSMatch::MR_IS, XTR_ENTRYRULE} },
-  {_T("NI"), {PWSMatch::MR_ISNOT, XTR_ENTRYRULE} },
-  {_T("BE"), {PWSMatch::MR_BEGINS, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
-  {_T("NB"), {PWSMatch::MR_NOTBEGIN, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
-  {_T("EN"), {PWSMatch::MR_ENDS, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
-  {_T("ND"), {PWSMatch::MR_NOTEND, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
-  {_T("CO"), {PWSMatch::MR_CONTAINS, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
-  {_T("NC"), {PWSMatch::MR_NOTCONTAIN, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
-  {_T("BT"), {PWSMatch::MR_BETWEEN, XTR_DATERULE | XTR_INTEGERRULE} },
-  {_T("LT"), {PWSMatch::MR_LT, XTR_INTEGERRULE} },
-  {_T("LE"), {PWSMatch::MR_LE, XTR_INTEGERRULE} },
-  {_T("GT"), {PWSMatch::MR_GT, XTR_INTEGERRULE} },
-  {_T("GE"), {PWSMatch::MR_GE, XTR_INTEGERRULE} },
-  {_T("BF"), {PWSMatch::MR_BEFORE, XTR_DATERULE} },
-  {_T("AF"), {PWSMatch::MR_AFTER, XTR_DATERULE} },
-  {_T("EX"), {PWSMatch::MR_EXPIRED, XTR_PASSWORDRULE} },
-  {_T("WX"), {PWSMatch::MR_WILLEXPIRE, XTR_PASSWORDRULE} }
+  {L"NA", {PWSMatch::MR_INVALID, XTR_NA} },
+  {L"EQ", {PWSMatch::MR_EQUALS, XTR_DATERULE | XTR_INTEGERRULE | XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
+  {L"NE", {PWSMatch::MR_NOTEQUAL, XTR_DATERULE | XTR_INTEGERRULE | XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
+  {L"AC", {PWSMatch::MR_ACTIVE, XTR_BOOLEANACTIVERULE} },
+  {L"IA", {PWSMatch::MR_INACTIVE, XTR_BOOLEANACTIVERULE} },
+  {L"PR", {PWSMatch::MR_PRESENT, XTR_BOOLEANPRESENTRULE | XTR_DATERULE | XTR_INTEGERRULE | XTR_STRINGPRESENTRULE} },
+  {L"NP", {PWSMatch::MR_NOTPRESENT, XTR_BOOLEANPRESENTRULE | XTR_DATERULE | XTR_INTEGERRULE | XTR_STRINGPRESENTRULE} },
+  {L"SE", {PWSMatch::MR_SET, XTR_BOOLEANSETRULE} },
+  {L"NS", {PWSMatch::MR_NOTSET, XTR_BOOLEANSETRULE} },
+  {L"IS", {PWSMatch::MR_IS, XTR_ENTRYRULE} },
+  {L"NI", {PWSMatch::MR_ISNOT, XTR_ENTRYRULE} },
+  {L"BE", {PWSMatch::MR_BEGINS, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
+  {L"NB", {PWSMatch::MR_NOTBEGIN, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
+  {L"EN", {PWSMatch::MR_ENDS, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
+  {L"ND", {PWSMatch::MR_NOTEND, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
+  {L"CO", {PWSMatch::MR_CONTAINS, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
+  {L"NC", {PWSMatch::MR_NOTCONTAIN, XTR_PASSWORDRULE | XTR_STRINGRULE | XTR_STRINGPRESENTRULE} },
+  {L"BT", {PWSMatch::MR_BETWEEN, XTR_DATERULE | XTR_INTEGERRULE} },
+  {L"LT", {PWSMatch::MR_LT, XTR_INTEGERRULE} },
+  {L"LE", {PWSMatch::MR_LE, XTR_INTEGERRULE} },
+  {L"GT", {PWSMatch::MR_GT, XTR_INTEGERRULE} },
+  {L"GE", {PWSMatch::MR_GE, XTR_INTEGERRULE} },
+  {L"BF", {PWSMatch::MR_BEFORE, XTR_DATERULE} },
+  {L"AF", {PWSMatch::MR_AFTER, XTR_DATERULE} },
+  {L"EX", {PWSMatch::MR_EXPIRED, XTR_PASSWORDRULE} },
+  {L"WX", {PWSMatch::MR_WILLEXPIRE, XTR_PASSWORDRULE} }
 };
 
 EFilterValidator::EFilterValidator()
 {
-  m_sErrorMsg = _T("");
+  m_sErrorMsg = L"";
   m_group_element_code = XTE_INVALID;
   m_datetime_element_code = XTE_INVALID;
   m_rule_code = XTR_NA;
@@ -195,14 +195,14 @@ EFilterValidator::EFilterValidator()
   // Populate Element Map - provides, amongst other things,
   // the equivalent of a 'switch' statement on a string value
   for (int i = 0; i < XTE_LAST_ELEMENT; i++) {
-    m_element_map.insert(Filter_Element_Pair(stringT(m_filter_elements[i].name),
+    m_element_map.insert(Filter_Element_Pair(wstring(m_filter_elements[i].name),
                                       m_filter_elements[i].filter_element_data));
   }
 
   // Populate Rules Map - provides, amongst other things, 
   // the equivalent of a 'switch' statement on a string value
   for (int i = 0; i < PWSMatch::MR_LAST; i++) {
-    m_rulecode_map.insert(Filter_Rules_Pair(stringT(m_filter_rulecodes[i].name),
+    m_rulecode_map.insert(Filter_Rules_Pair(wstring(m_filter_rulecodes[i].name),
                                       m_filter_rulecodes[i].filter_rulecode_data));
   }
 
@@ -227,9 +227,9 @@ EFilterValidator::~EFilterValidator()
   m_rulecode_map.clear();
 }
 
-bool EFilterValidator::startElement(stringT & strStartElement)
+bool EFilterValidator::startElement(wstring & strStartElement)
 {
-  if (strStartElement == _T("filters")) {
+  if (strStartElement == L"filters") {
     if (!m_element_code_stack.empty() || m_ielement_occurs[XTE_FILTERS] > 0) {
       return false;
     } else {
@@ -330,14 +330,14 @@ bool EFilterValidator::startElement(stringT & strStartElement)
   return true;
 }
 
-bool EFilterValidator::endElement(stringT &strEndElement,
+bool EFilterValidator::endElement(wstring &strEndElement,
                                   StringX &strValue)
 {
-  if (strEndElement == _T("filters"))
+  if (strEndElement == L"filters")
     return true;
 
   bool bGoodData(false);
-  if (strEndElement == _T("rule")) {
+  if (strEndElement == L"rule") {
     bGoodData = VerifyXMLRule(strValue, m_rule_code);
   } else {
     XTD_DataTypes data_type = m_element_datatype_stack.top();
@@ -351,7 +351,7 @@ bool EFilterValidator::endElement(stringT &strEndElement,
   }
 
   XTE_Codes &icurrent_element = m_element_code_stack.top();
-  stringT cs_missing_element(_T(""));
+  wstring cs_missing_element(L"");
   switch (icurrent_element) {
     case XTE_FILTER_ENTRY:
       m_bfiltergroup = false;
@@ -362,20 +362,20 @@ bool EFilterValidator::endElement(stringT &strEndElement,
           if (m_ielement_occurs[XTE_DATE1] != 1 ||
               m_ielement_occurs[XTE_DATE2] != 1) {
             m_iErrorCode = XTPEC_MISSING_ELEMENT;
-            cs_missing_element = m_ielement_occurs[XTE_DATE1] != 1 ? _T("date1") : _T("date2");
+            cs_missing_element = m_ielement_occurs[XTE_DATE1] != 1 ? L"date1" : L"date2";
           }
           break;
         case XTR_ENTRYRULE:
           if (m_ielement_occurs[XTE_TYPE] != 1) {
             m_iErrorCode = XTPEC_MISSING_ELEMENT;
-            cs_missing_element =  _T("type");
+            cs_missing_element =  L"type";
           }
           break;
         case XTR_INTEGERRULE:
           if (m_ielement_occurs[XTE_NUM1] != 1 ||
               m_ielement_occurs[XTE_NUM2] != 1) {
             m_iErrorCode = XTPEC_MISSING_ELEMENT;
-            cs_missing_element = m_ielement_occurs[XTE_NUM1] != 1 ? _T("num1") : _T("num2");
+            cs_missing_element = m_ielement_occurs[XTE_NUM1] != 1 ? L"num1" : L"num2";
           }
           break;
         case XTR_PASSWORDRULE:
@@ -385,16 +385,16 @@ bool EFilterValidator::endElement(stringT &strEndElement,
             m_iErrorCode = XTPEC_MISSING_ELEMENT;
           }
           if (m_ielement_occurs[XTE_WARN] != 1)
-            cs_missing_element = _T("warn");
+            cs_missing_element = L"warn";
           else
-            cs_missing_element = m_ielement_occurs[XTE_STRING] != 1 ? _T("string") : _T("case");
+            cs_missing_element = m_ielement_occurs[XTE_STRING] != 1 ? L"string" : L"case";
           break;
         case XTR_STRINGRULE:
         case XTR_STRINGPRESENTRULE:
         if (m_ielement_occurs[XTE_STRING] != 1 ||
               m_ielement_occurs[XTE_CASE] != 1) {
             m_iErrorCode = XTPEC_MISSING_ELEMENT;
-            cs_missing_element = m_ielement_occurs[XTE_STRING] != 1 ? _T("string") : _T("case");
+            cs_missing_element = m_ielement_occurs[XTE_STRING] != 1 ? L"string" : L"case";
           }
           break;
         case XTR_PASSWORDHISTORYRULE:
@@ -421,7 +421,7 @@ bool EFilterValidator::VerifyStartElement(cFilter_Element_iter e_iter)
   // Check we haven't reached maximum (iMaxOccurs == -1 means unbounded)
   if (e_iter->second.element_maxoccurs != -1 &&
       m_ielement_occurs[e_iter->second.element_code] >= e_iter->second.element_maxoccurs) {
-    TCHAR buffer[10];
+    wchar_t buffer[10];
 #if _MSC_VER >= 1400
     _itot_s(e_iter->second.element_maxoccurs, buffer, 10, 10);
 #else
@@ -647,7 +647,7 @@ bool EFilterValidator::VerifyStartElement(cFilter_Element_iter e_iter)
 
 bool EFilterValidator::VerifyXMLRule(const StringX &strElemContent, const XTR_Codes &rule_code)
 {
-  stringT strValue = stringT(strElemContent.c_str());
+  wstring strValue = wstring(strElemContent.c_str());
   m_matchrule = PWSMatch::MR_INVALID;
 
   if (strValue.length() == 0)
@@ -663,9 +663,9 @@ bool EFilterValidator::VerifyXMLRule(const StringX &strElemContent, const XTR_Co
   return ((r_iter->second.irule_code & rule_code) == rule_code);
 }
 
-PWSMatch::MatchRule EFilterValidator::GetMatchRule(const TCHAR *cs_rule)
+PWSMatch::MatchRule EFilterValidator::GetMatchRule(const wchar_t *cs_rule)
 {
-  const stringT strValue(cs_rule);
+  const wstring strValue(cs_rule);
 
   if (strValue.length() == 0)
     return PWSMatch::MR_INVALID;
@@ -681,7 +681,7 @@ PWSMatch::MatchRule EFilterValidator::GetMatchRule(const TCHAR *cs_rule)
 
 bool EFilterValidator::GetElementInfo(const XML_Char *name, st_filter_element_data &edata)
 {
-  const stringT strValue(name);
+  const wstring strValue(name);
 
   if (strValue.length() == 0)
     return false;
@@ -704,7 +704,7 @@ bool EFilterValidator::GetElementInfo(const XML_Char *name, st_filter_element_da
 
 bool EFilterValidator::VerifyXMLDataType(const StringX &strElemContent, const XTD_DataTypes &datatype)
 {
-  static const TCHAR *digits(_T("0123456789"));
+  static const wchar_t *digits(L"0123456789");
 
   switch (datatype) {
     case XTD_XS_DATE:
@@ -712,20 +712,20 @@ bool EFilterValidator::VerifyXMLDataType(const StringX &strElemContent, const XT
     case XTD_XS_INT:
       return (strElemContent.find_first_not_of(digits) == StringX::npos);
     case XTD_BOOLTYPE:
-      return (strElemContent == _T("0") || strElemContent == _T("1"));
+      return (strElemContent == L"0" || strElemContent == L"1");
     case XTD_ENTRYTYPE:
-      return (strElemContent == _T("normal") ||
-              strElemContent == _T("alias") ||
-              strElemContent == _T("shortcut") ||
-              strElemContent == _T("aliasbase") ||
-              strElemContent == _T("shortcutbase"));
+      return (strElemContent == L"normal" ||
+              strElemContent == L"alias" ||
+              strElemContent == L"shortcut" ||
+              strElemContent == L"aliasbase" ||
+              strElemContent == L"shortcutbase");
     case XTD_LOGICTYPE:
-      return (strElemContent == _T("and") ||
-              strElemContent == _T("or"));
+      return (strElemContent == L"and" ||
+              strElemContent == L"or");
     case XTD_NONBLANKSTRINGTYPE:
       return (strElemContent.length() == 1);
     case XTD_YESNOSTRINGTYPE:
-      return (strElemContent == _T("yes") || strElemContent == _T("no"));
+      return (strElemContent == L"yes" || strElemContent == L"no");
     case XTD_XS_STRING:            // All elements are strings!
     case XTD_FILEUUIDTYPE:         // defined but fields using this datatype are not used
     case XTD_NA:                   // N/A - element doesn't have a value in its own right
@@ -737,7 +737,7 @@ bool EFilterValidator::VerifyXMLDataType(const StringX &strElemContent, const XT
 bool EFilterValidator::VerifyXMLDate(const StringX &strValue)
 {
   // yyyy-mm-dd
-  if (strValue == _T("1970-01-01"))  // Special case
+  if (strValue == L"1970-01-01")  // Special case
     return true;
 
   const int ndigits = 8;
@@ -748,8 +748,8 @@ bool EFilterValidator::VerifyXMLDate(const StringX &strValue)
     return false;
 
   // Validate strValue
-  if (strValue[4] != _T('-') ||
-      strValue[7] != _T('-'))
+  if (strValue[4] != L'-' ||
+      strValue[7] != L'-')
     return false;
 
   for (int i = 0; i < ndigits; i++) {
@@ -757,18 +757,18 @@ bool EFilterValidator::VerifyXMLDate(const StringX &strValue)
       return false;
   }
 
-  iStringXStream is(strValue);
-  TCHAR dummy;
+  wiStringXStream is(strValue);
+  wchar_t dummy;
   is >> yyyy >> dummy >> mm >> dummy >> dd;
 
   return verifyDTvalues(yyyy, mm, dd, 0, 0, 0);
 }
 
-StringX EFilterValidator::Trim(const StringX &s, const TCHAR *set)
+StringX EFilterValidator::Trim(const StringX &s, const wchar_t *set)
 {
   // This version does NOT change the input arguments!
-  const TCHAR *tset = (set == NULL) ? _T(" \t\r\n") : set;
-  StringX retval(_T(""));
+  const wchar_t *tset = (set == NULL) ? L" \t\r\n" : set;
+  StringX retval(L"");
 
   StringX::size_type b = s.find_first_not_of(tset);
   if (b != StringX::npos) {

@@ -74,8 +74,8 @@ PWSfile::VERSION PWSfile::ReadVersion(const StringX &filename)
 }
 
 PWSfile::PWSfile(const StringX &filename, RWmode mode)
-  : m_filename(filename), m_passkey(_T("")), m_fd(NULL),
-  m_curversion(UNKNOWN_VERSION), m_rw(mode), m_defusername(_T("")),
+  : m_filename(filename), m_passkey(L""), m_fd(NULL),
+  m_curversion(UNKNOWN_VERSION), m_rw(mode), m_defusername(L""),
   m_fish(NULL), m_terminal(NULL),
   m_nRecordsWithUnknownFields(0)
 {
@@ -88,10 +88,10 @@ PWSfile::~PWSfile()
 
 PWSfile::HeaderRecord::HeaderRecord()
   : m_nCurrentMajorVersion(0), m_nCurrentMinorVersion(0),
-  m_nITER(0), m_prefString(_T("")), m_whenlastsaved(0),
-  m_lastsavedby(_T("")), m_lastsavedon(_T("")),
-  m_whatlastsaved(_T("")),
-  m_dbname(_T("")), m_dbdesc(_T(""))
+  m_nITER(0), m_prefString(L""), m_whenlastsaved(0),
+  m_lastsavedby(L""), m_lastsavedon(L""),
+  m_whatlastsaved(L""),
+  m_dbname(L""), m_dbdesc(L"")
 {
   memset(m_file_uuid_array, 0x00, sizeof(m_file_uuid_array));
 }
@@ -131,7 +131,7 @@ PWSfile::HeaderRecord &PWSfile::HeaderRecord::operator=(const PWSfile::HeaderRec
 
 void PWSfile::FOpen()
 {
-  const TCHAR* m = (m_rw == Read) ? _T("rb") : _T("wb");
+  const wchar_t* m = (m_rw == Read) ? L"rb" : L"wb";
   m_fd = pws_os::FOpen(m_filename.c_str(), m);
   m_fileLength = pws_os::fileLength(m_fd);
 }
@@ -222,13 +222,13 @@ void PWSfile::SetUnknownHeaderFields(UnknownFieldList &UHFL)
 
 // Following for 'legacy' use of pwsafe as file encryptor/decryptor
 // this is for the undocumented 'command line file encryption'
-static const stringT CIPHERTEXT_SUFFIX(_S(".PSF"));
+static const wstring CIPHERTEXT_SUFFIX(L".PSF");
 
 
-static stringT
+static wstring
 ErrorMessages()
 {
-  stringT cs_text;
+  wstring cs_text;
 
   switch (errno) {
   case EACCES:
@@ -252,12 +252,12 @@ ErrorMessages()
   return cs_text;
 }
 
-bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess)
+bool PWSfile::Encrypt(const wstring &fn, const StringX &passwd, wstring &errmess)
 {
   unsigned int len;
   unsigned char* buf;
 
-  FILE *in = pws_os::FOpen(fn, _T("rb"));;
+  FILE *in = pws_os::FOpen(fn, L"rb");;
   if (in != NULL) {
     len = pws_os::fileLength(in);
     buf = new unsigned char[len];
@@ -269,10 +269,10 @@ bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess
     return false;
   }
 
-  stringT out_fn = fn;
+  wstring out_fn = fn;
   out_fn += CIPHERTEXT_SUFFIX;
 
-  FILE *out = pws_os::FOpen(out_fn, _T("wb"));
+  FILE *out = pws_os::FOpen(out_fn, L"wb");
   if (out != NULL) {
 #ifdef KEEP_FILE_MODE_BWD_COMPAT
     fwrite( &len, 1, sizeof(len), out);
@@ -281,7 +281,7 @@ bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess
     unsigned char randhash[SHA1::HASHLEN];   // HashSize
     PWSrand::GetInstance()->GetRandomData( randstuff, 8 );
     // miserable bug - have to fix this way to avoid breaking existing files
-    randstuff[8] = randstuff[9] = TCHAR('\0');
+    randstuff[8] = randstuff[9] = L'\0';
     GenRandhash(passwd, randstuff, randhash);
     fwrite(randstuff, 1,  8, out);
     fwrite(randhash,  1, sizeof(randhash), out);
@@ -300,9 +300,7 @@ bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess
     ConvertString(passwd, pwd, passlen);
     Fish *fish = BlowFish::MakeBlowFish(pwd, passlen, thesalt, SaltLength);
     trashMemory(pwd, passlen);
-#ifdef UNICODE
     delete[] pwd; // gross - ConvertString allocates only if UNICODE.
-#endif
     _writecbc(out, buf, len, (unsigned char)0, fish, ipthing);
     delete fish;
     fclose(out);
@@ -316,12 +314,12 @@ bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess
   return true;
 }
 
-bool PWSfile::Decrypt(const stringT &fn, const StringX &passwd, stringT &errmess)
+bool PWSfile::Decrypt(const wstring &fn, const StringX &passwd, wstring &errmess)
 {
   unsigned int len;
   unsigned char* buf;
 
-  FILE *in = pws_os::FOpen(fn, _T("rb"));
+  FILE *in = pws_os::FOpen(fn, L"rb");
   if (in != NULL) {
     unsigned char salt[SaltLength];
     unsigned char ipthing[8];
@@ -332,7 +330,7 @@ bool PWSfile::Decrypt(const stringT &fn, const StringX &passwd, stringT &errmess
     fread(&len, 1, sizeof(len), in); // XXX portability issue
 #else
     fread(randstuff, 1, 8, in);
-    randstuff[8] = randstuff[9] = TCHAR('\0'); // ugly bug workaround
+    randstuff[8] = randstuff[9] = L'\0'; // ugly bug workaround
     fread(randhash, 1, sizeof(randhash), in);
 
     unsigned char temphash[SHA1::HASHLEN];
@@ -355,9 +353,7 @@ bool PWSfile::Decrypt(const stringT &fn, const StringX &passwd, stringT &errmess
     ConvertString(passwd, pwd, passlen);
     Fish *fish = BlowFish::MakeBlowFish(pwd, passlen, salt, SaltLength);
     trashMemory(pwd, passlen);
-#ifdef UNICODE
     delete[] pwd; // gross - ConvertString allocates only if UNICODE.
-#endif
     if (_readcbc(in, buf, len,dummyType, fish, ipthing, 0, file_len) == 0) {
       delete fish;
       delete[] buf; // if not yet allocated, delete[] NULL, which is OK
@@ -373,10 +369,10 @@ bool PWSfile::Decrypt(const stringT &fn, const StringX &passwd, stringT &errmess
   size_t suffix_len = CIPHERTEXT_SUFFIX.length();
   size_t filepath_len = fn.length();
 
-  stringT out_fn = fn;
+  wstring out_fn = fn;
   out_fn = out_fn.substr(0,filepath_len - suffix_len);
 
-  FILE *out = pws_os::FOpen(out_fn, _T("wb"));
+  FILE *out = pws_os::FOpen(out_fn, L"wb");
   if (out != NULL) {
     fwrite(buf, 1, len, out);
     delete[] buf; // allocated by _readcbc

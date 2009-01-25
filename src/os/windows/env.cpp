@@ -10,16 +10,16 @@
  * \file Windows-specific implementation of env.h
  */
 
-#include <sstream>
 #include <afx.h>
 #include <Windows.h> // for GetCurrentProcessId()
 #include <LMCONS.H> // for UNLEN definition
 #include "../env.h"
+#include <sstream>
 
-stringT pws_os::getenv(const char *env, bool is_path)
+wstring pws_os::getenv(const char *env, bool is_path)
 {
   ASSERT(env != NULL);
-  stringT retval;
+  wstring retval;
 #if _MSC_VER < 1400
   retval = getenv(env);
 #else
@@ -31,7 +31,6 @@ stringT pws_os::getenv(const char *env, bool is_path)
     ASSERT(value);
     if (value != NULL) {
       getenv_s(&requiredSize, value, requiredSize, env);
-#ifdef UNICODE
       int wsize;
       wchar_t wvalue;
       char *p = value;
@@ -43,14 +42,11 @@ stringT pws_os::getenv(const char *env, bool is_path)
         p += wsize;
         requiredSize -= wsize;
       } while (requiredSize != 1);
-#else
-      retval = value;
-#endif
       delete[] value;
       if (is_path) {
         // make sure path has trailing '\'
-        if (retval[retval.length()-1] != charT('\\'))
-          retval += _T("\\");
+        if (retval[retval.length()-1] != L'\\')
+          retval += L"\\";
       }
     }
   }
@@ -58,44 +54,40 @@ stringT pws_os::getenv(const char *env, bool is_path)
   return retval;
 }
 
-stringT pws_os::getusername()
+wstring pws_os::getusername()
 {
-  TCHAR user[UNLEN + sizeof(TCHAR)];
+  wchar_t user[UNLEN + sizeof(wchar_t)];
   //  ulen INCLUDES the trailing blank
-  DWORD ulen = UNLEN + sizeof(TCHAR);
+  DWORD ulen = UNLEN + sizeof(wchar_t);
   if (::GetUserName(user, &ulen)== FALSE) {
-    user[0] = TCHAR('?');
-    user[1] = TCHAR('\0');
+    user[0] = L'?';
+    user[1] = L'\0';
     ulen = 2;
   }
   ulen--;
-  stringT retval(user);
+  wstring retval(user);
   return retval;
 }
 
-stringT pws_os::gethostname()
+wstring pws_os::gethostname()
 {
   //  slen EXCLUDES the trailing blank
-  TCHAR sysname[MAX_COMPUTERNAME_LENGTH + sizeof(TCHAR)];
-  DWORD slen = MAX_COMPUTERNAME_LENGTH + sizeof(TCHAR);
+  wchar_t sysname[MAX_COMPUTERNAME_LENGTH + sizeof(wchar_t)];
+  DWORD slen = MAX_COMPUTERNAME_LENGTH + sizeof(wchar_t);
   if (::GetComputerName(sysname, &slen) == FALSE) {
-    sysname[0] = TCHAR('?');
-    sysname[1] = TCHAR('\0');
+    sysname[0] = L'?';
+    sysname[1] = L'\0';
     slen = 1;
   }
-  stringT retval(sysname);
+  wstring retval(sysname);
   return retval;
 }
 
-stringT pws_os::getprocessid()
+wstring pws_os::getprocessid()
 {
-#ifdef UNICODE
-  std::wostringstream os;
-#else
-  std::ostringstream os;
-#endif
+  wostringstream os;
   os.width(8);
-  os.fill(charT('0'));
+  os.fill(L'0');
   os << GetCurrentProcessId();
 
   return os.str();

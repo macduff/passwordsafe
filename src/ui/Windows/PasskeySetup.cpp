@@ -33,14 +33,14 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-static TCHAR PSSWDCHAR = TCHAR('*');
+static wchar_t PSSWDCHAR = L'*';
 
 //-----------------------------------------------------------------------------
 CPasskeySetup::CPasskeySetup(CWnd* pParent)
   : CPWDialog(CPasskeySetup::IDD, pParent)
 {
-  m_passkey = _T("");
-  m_verify = _T("");
+  m_passkey = L"";
+  m_verify = L"";
 }
 
 BOOL CPasskeySetup::OnInitDialog() 
@@ -125,11 +125,11 @@ void CPasskeySetup::OnOK()
 void CPasskeySetup::OnHelp() 
 {
 #if defined(POCKET_PC)
-  CreateProcess( _T("PegHelp.exe"), _T("pws_ce_help.html#newdatabase"), NULL, NULL, FALSE, 0, NULL, NULL, NULL, NULL );
+  CreateProcess( L"PegHelp.exe", L"pws_ce_help.html#newdatabase", NULL, NULL, FALSE, 0, NULL, NULL, NULL, NULL );
 #else
   CString cs_HelpTopic;
-  cs_HelpTopic = app.GetHelpFileName() + _T("::/html/create_new_db.html");
-  HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+  cs_HelpTopic = app.GetHelpFileName() + L"::/html/create_new_db.html";
+  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 #endif
 }
 

@@ -68,14 +68,14 @@ int DboxMain::BackupSafe()
   //SaveAs-type dialog box
   while (1) {
     CFileDialog fd(FALSE,
-                   _T("bak"),
+                   L"bak",
                    currbackup.c_str(),
                    OFN_PATHMUSTEXIST|OFN_HIDEREADONLY
                    | OFN_LONGNAMES|OFN_OVERWRITEPROMPT,
-                   _T("Password Safe Backups (*.bak)|*.bak||"),
+                   L"Password Safe Backups (*.bak)|*.bak||",
                    this);
     fd.m_ofn.lpstrTitle = cs_text;
-    stringT dir = PWSdirs::GetSafeDir();
+    wstring dir = PWSdirs::GetSafeDir();
     if (!dir.empty())
       fd.m_ofn.lpstrInitialDir = dir.c_str();
 
@@ -128,15 +128,15 @@ int DboxMain::Restore()
   //Open-type dialog box
   while (1) {
     CFileDialog fd(TRUE,
-                   _T("bak"),
+                   L"bak",
                    currbackup.c_str(),
                    OFN_FILEMUSTEXIST|OFN_HIDEREADONLY|OFN_LONGNAMES,
-                   _T("Password Safe Backups (*.bak)|*.bak|")
-                   _T("Password Safe Intermediate Backups (*.ibak)|*.ibak|")
-                   _T("|"),
+                   L"Password Safe Backups (*.bak)|*.bak|"
+                   L"Password Safe Intermediate Backups (*.ibak)|*.ibak|"
+                   L"|",
                    this);
     fd.m_ofn.lpstrTitle = cs_text;
-    stringT dir = PWSdirs::GetSafeDir();
+    wstring dir = PWSdirs::GetSafeDir();
     if (!dir.empty())
       fd.m_ofn.lpstrInitialDir = dir.c_str();
 
@@ -194,11 +194,11 @@ int DboxMain::Restore()
     return PWScore::CANT_OPEN_FILE;
   }
 
-  m_core.SetCurFile(_T("")); //Force a Save As...
+  m_core.SetCurFile(L""); //Force a Save As...
   m_core.SetChanged(Data); //So that the restored file will be saved
 #if !defined(POCKET_PC)
   m_titlebar.LoadString(IDS_UNTITLEDRESTORE);
-  app.SetTooltipText(_T("PasswordSafe"));
+  app.SetTooltipText(L"PasswordSafe");
 #endif
   ChangeOkUpdate();
   RefreshViews();
@@ -208,7 +208,7 @@ int DboxMain::Restore()
 
 void DboxMain::OnValidate() 
 {
-  stringT cs_msg;
+  wstring cs_msg;
   bool bchanged = m_core.Validate(cs_msg);
   if (!bchanged)
     LoadAString(cs_msg, IDS_VALIDATEOK);
@@ -222,7 +222,7 @@ void DboxMain::OnValidate()
 
 void DboxMain::OnOptions() 
 {
-  const CString PWSLnkName(_T("Password Safe")); // for startup shortcut
+  const CString PWSLnkName(L"Password Safe"); // for startup shortcut
   CPropertySheet optionsDlg(IDS_OPTIONS, this);
   COptionsDisplay         display;
   COptionsSecurity        security;
@@ -558,18 +558,18 @@ void DboxMain::OnOptions()
     prefs->SetPref(PWSprefs::UseDefaultUser,
       misc.m_usedefuser == TRUE);
     prefs->SetPref(PWSprefs::DefaultUsername,
-                   LPCTSTR(misc.m_defusername));
+                   LPCWSTR(misc.m_defusername));
     prefs->SetPref(PWSprefs::QuerySetDef,
       misc.m_querysetdef == TRUE);
     prefs->SetPref(PWSprefs::AltBrowser,
-                   LPCTSTR(misc.m_csBrowser));
+                   LPCWSTR(misc.m_csBrowser));
     prefs->SetPref(PWSprefs::AltBrowserCmdLineParms,
-                   LPCTSTR(misc.m_csBrowserCmdLineParms));
+                   LPCWSTR(misc.m_csBrowserCmdLineParms));
     if (misc.m_csAutotype.IsEmpty() || misc.m_csAutotype == DEFAULT_AUTOTYPE)
-      prefs->SetPref(PWSprefs::DefaultAutotypeString, _T(""));
+      prefs->SetPref(PWSprefs::DefaultAutotypeString, L"");
     else if (misc.m_csAutotype != DEFAULT_AUTOTYPE)
       prefs->SetPref(PWSprefs::DefaultAutotypeString,
-                     LPCTSTR(misc.m_csAutotype));
+                     LPCWSTR(misc.m_csAutotype));
     prefs->SetPref(PWSprefs::MinimizeOnAutotype,
       misc.m_minauto == TRUE);
 
@@ -578,13 +578,13 @@ void DboxMain::OnOptions()
     prefs->SetPref(PWSprefs::BackupBeforeEverySave,
       backup.m_backupbeforesave == TRUE);
     prefs->SetPref(PWSprefs::BackupPrefixValue,
-                   LPCTSTR(backup.m_userbackupprefix));
+                   LPCWSTR(backup.m_userbackupprefix));
     prefs->SetPref(PWSprefs::BackupSuffix,
       (unsigned int)backup.m_backupsuffix);
     prefs->SetPref(PWSprefs::BackupMaxIncremented,
       backup.m_maxnumincbackups);
     prefs->SetPref(PWSprefs::BackupDir,
-                   LPCTSTR(backup.m_userbackupotherlocation));
+                   LPCWSTR(backup.m_userbackupotherlocation));
 
     // JHF : no status bar under WinCE (was already so in the .h file !?!)
 #if !defined(POCKET_PC)
@@ -678,9 +678,9 @@ void DboxMain::OnOptions()
 
     if (system.m_startup != StartupShortcutExists) {
       if (system.m_startup == TRUE) {
-        TCHAR exeName[MAX_PATH];
+        wchar_t exeName[MAX_PATH];
         GetModuleFileName(NULL, exeName, MAX_PATH);
-        shortcut.SetCmdArguments(CString(_T("-s")));
+        shortcut.SetCmdArguments(CString(L"-s"));
         shortcut.CreateShortCut(exeName, PWSLnkName, CSIDL_STARTUP);
       } else { // remove existing startup shortcut
         shortcut.DeleteShortCut(PWSLnkName, CSIDL_STARTUP);
@@ -757,8 +757,8 @@ struct HistoryUpdateResetOff : public HistoryUpdater {
   void operator()(CItemData &ci)
   {
     StringX cs_tmp = ci.GetPWHistory();
-    if (cs_tmp.length() >= 5 && cs_tmp[0] == _T('1')) {
-      cs_tmp[0] = _T('0');
+    if (cs_tmp.length() >= 5 && cs_tmp[0] == L'1') {
+      cs_tmp[0] = L'0';
       ci.SetPWHistory(cs_tmp);
       m_num_altered++;
     }
@@ -768,16 +768,16 @@ struct HistoryUpdateResetOff : public HistoryUpdater {
 struct HistoryUpdateResetOn : public HistoryUpdater {
   HistoryUpdateResetOn(int &num_altered,
     int new_default_max) : HistoryUpdater(num_altered)
-  {m_text.Format(_T("1%02x00"), new_default_max);}
+  {m_text.Format(L"1%02x00", new_default_max);}
   void operator()(CItemData &ci)
   {
     StringX cs_tmp = ci.GetPWHistory();
     if (cs_tmp.length() < 5) {
-      ci.SetPWHistory(LPCTSTR(m_text));
+      ci.SetPWHistory(LPCWSTR(m_text));
       m_num_altered++;
     } else {
-      if (cs_tmp[0] == _T('0')) {
-        cs_tmp[0] = _T('1');
+      if (cs_tmp[0] == L'0') {
+        cs_tmp[0] = L'1';
         ci.SetPWHistory(cs_tmp);
         m_num_altered++;
       }
@@ -791,7 +791,7 @@ struct HistoryUpdateSetMax : public HistoryUpdater {
   HistoryUpdateSetMax(int &num_altered,
     int new_default_max) : HistoryUpdater(num_altered),
     m_new_default_max(new_default_max)
-  {m_text.Format(_T("1%02x"), new_default_max);}
+  {m_text.Format(L"1%02x", new_default_max);}
   void operator()(CItemData &ci)
   {
     StringX cs_tmp = ci.GetPWHistory();
@@ -799,16 +799,16 @@ struct HistoryUpdateSetMax : public HistoryUpdater {
     int len = cs_tmp.length();
     if (len >= 5) {
       int status, old_max, num_saved;
-      const TCHAR *lpszPWHistory = cs_tmp.c_str();
+      const wchar_t *lpszPWHistory = cs_tmp.c_str();
 #if _MSC_VER >= 1400
-      int iread = _stscanf_s(lpszPWHistory, _T("%01d%02x%02x"), 
+      int iread = _stscanf_s(lpszPWHistory, L"%01d%02x%02x", 
                              &status, &old_max, &num_saved);
 #else
-      int iread = _stscanf(lpszPWHistory, _T("%01d%02x%02x"),
+      int iread = _stscanf(lpszPWHistory, L"%01d%02x%02x",
                            &status, &old_max, &num_saved);
 #endif
       if (iread == 3 && status == 1 && num_saved <= m_new_default_max) {
-        cs_tmp = LPCTSTR(m_text) + cs_tmp.substr(3);
+        cs_tmp = LPCWSTR(m_text) + cs_tmp.substr(3);
         ci.SetPWHistory(cs_tmp);
         m_num_altered++;
       }

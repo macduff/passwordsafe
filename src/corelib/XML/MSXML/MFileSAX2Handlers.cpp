@@ -30,7 +30,7 @@
 //  MFileSAX2ErrorHandler Methods
 //  -----------------------------------------------------------------------
 MFileSAX2ErrorHandler::MFileSAX2ErrorHandler()
-  : bErrorsFound(FALSE), m_strValidationResult(_T(""))
+  : bErrorsFound(FALSE), m_strValidationResult(L"")
 {
   m_refCnt = 0;
 }
@@ -72,28 +72,19 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ErrorHandler::error(struct ISAXLocator * pLoc
                                                        const wchar_t * pwchErrorMessage,
                                                        HRESULT hrErrorCode )
 {
-  TCHAR szErrorMessage[MAX_PATH * 2] = {0};
-  TCHAR szFormatString[MAX_PATH * 2] = {0};
+  wchar_t szErrorMessage[MAX_PATH * 2] = {0};
+  wchar_t szFormatString[MAX_PATH * 2] = {0};
   int iLineNumber, iCharacter;
 
-#ifdef _UNICODE
 #if (_MSC_VER >= 1400)
-  _tcscpy_s(szErrorMessage, MAX_PATH * 2, pwchErrorMessage);
+  wcscpy_s(szErrorMessage, MAX_PATH * 2, pwchErrorMessage);
 #else
-  _tcscpy(szErrorMessage, pwchErrorMessage);
-#endif
-#else
-#if (_MSC_VER >= 1400)
-  size_t num_converted;
-  wcstombs_s(&num_converted, szErrorMessage, MAX_PATH * 2, pwchErrorMessage, MAX_PATH);
-#else
-  wcstombs(szErrorMessage, pwchErrorMessage, MAX_PATH);
-#endif
+  wcscpy(szErrorMessage, pwchErrorMessage);
 #endif
   pLocator->getLineNumber(&iLineNumber);
   pLocator->getColumnNumber(&iCharacter);
 
-  stringT cs_format;
+  wstring cs_format;
   LoadAString(cs_format, IDSC_MSXMLSAXGENERROR);
 
 #if (_MSC_VER >= 1400)
@@ -172,7 +163,7 @@ unsigned long __stdcall MFileSAX2ContentHandler::Release()
 //  -----------------------------------------------------------------------
 HRESULT STDMETHODCALLTYPE  MFileSAX2ContentHandler::startDocument()
 {
-  m_strImportErrors = _T("");
+  m_strImportErrors = L"";
   m_bentrybeingprocessed = false;
   return S_OK;
 }
@@ -183,43 +174,32 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ContentHandler::putDocumentLocator(
   return S_OK;
 }
 
-TCHAR * ProcessAttributes(
+wchar_t * ProcessAttributes(
   /* [in] */  ISAXAttributes __RPC_FAR *pAttributes,
-  /* [in] */  TCHAR *lpName)
+  /* [in] */  wchar_t *lpName)
 {
-  // Note 1: Caller needs to free the value returned, which is created via '_tcsdup'.
+  // Note 1: Caller needs to free the value returned, which is created via '_wcsdup'.
   // Note 2:  This ONLY processes the attributes to find ONE value.
   // Needs to be enhanced if we ever need more (which we do not currently)
   int iAttribs = 0;
   pAttributes->getLength(&iAttribs);
   for (int i = 0; i < iAttribs; i++) {
-    TCHAR szQName[MAX_PATH + 1] = {0};
-    TCHAR szValue[MAX_PATH + 1] = {0};
+    wchar_t szQName[MAX_PATH + 1] = {0};
+    wchar_t szValue[MAX_PATH + 1] = {0};
     const wchar_t *QName, *Value;
     int QName_length, Value_length;
 
     pAttributes->getQName(i, &QName, &QName_length);
     pAttributes->getValue(i, &Value, &Value_length);
-#ifdef _UNICODE
 #if (_MSC_VER >= 1400)
-    _tcsncpy_s(szQName, MAX_PATH + 1, QName, QName_length);
-    _tcsncpy_s(szValue, MAX_PATH + 1, Value, Value_length);
+    wcsncpy_s(szQName, MAX_PATH + 1, QName, QName_length);
+    wcsncpy_s(szValue, MAX_PATH + 1, Value, Value_length);
 #else
-    _tcsncpy(szQName, QName, QName_length);
-    _tcsncpy(szValue, Value, Value_length);
+    wcsncpy(szQName, QName, QName_length);
+    wcsncpy(szValue, Value, Value_length);
 #endif
-#else
-#if (_MSC_VER >= 1400)
-    size_t num_converted;
-    wcstombs_s(&num_converted, szQName, MAX_PATH + 1, QName, QName_length);
-    wcstombs_s(&num_converted, szValue, MAX_PATH + 1, Value, Value_length);
-#else
-    wcstombs(szQName, QName, QName_length);
-    wcstombs(szValue, Value, Value_length);
-#endif
-#endif
-    if (_tcscmp(szQName, lpName) == 0) {
-      return _tcsdup(szValue);
+    if (wcscmp(szQName, lpName) == 0) {
+      return _wcsdup(szValue);
     }
   }
   return NULL;
@@ -246,7 +226,7 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ContentHandler::startElement(
   if (m_bValidation) {
     if (wcscmp(szCurElement, L"passwordsafe") == 0) {
       // Only interested in the delimiter
-      TCHAR *lpValue = ProcessAttributes(pAttributes, _T("delimiter"));
+      wchar_t *lpValue = ProcessAttributes(pAttributes, L"delimiter");
       if (lpValue != NULL) {
         m_delimiter = lpValue[0];
         free(lpValue);
@@ -254,7 +234,7 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ContentHandler::startElement(
     }
   }
 
-  m_strElemContent = _T("");
+  m_strElemContent = L"";
 
   st_file_element_data edata;
   m_pValidator->GetElementInfo(szCurElement, edata);
@@ -267,9 +247,9 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ContentHandler::startElement(
     case XLE_RFIELD:
       {
         // Only interested in the ftype
-        TCHAR *lpValue = ProcessAttributes(pAttributes, _T("ftype"));
+        wchar_t *lpValue = ProcessAttributes(pAttributes, L"ftype");
         if (lpValue != NULL) {
-          m_ctype = (unsigned char)_ttoi(lpValue);
+          m_ctype = (unsigned char)_wtoi(lpValue);
           free(lpValue);
         }
       }
@@ -277,10 +257,10 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ContentHandler::startElement(
     case XLE_ENTRY:
       {
         // Only interested in the normal
-        TCHAR *lpValue = ProcessAttributes(pAttributes, _T("normal"));
+        wchar_t *lpValue = ProcessAttributes(pAttributes, L"normal");
         if (lpValue != NULL) {
           cur_entry->bforce_normal_entry =
-               _ttoi(lpValue) == 1 || _tcscmp(lpValue, _T("true")) == 0;
+               _wtoi(lpValue) == 1 || wcscmp(lpValue, L"true") == 0;
           free(lpValue);
         }
       }
@@ -299,21 +279,12 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ContentHandler::characters(
   if (m_bValidation)
     return S_OK;
 
-  TCHAR* szData = new TCHAR[cchChars + 2];
+  wchar_t* szData = new wchar_t[cchChars + 2];
 
-#ifdef _UNICODE
 #if (_MSC_VER >= 1400)
-  _tcsncpy_s(szData, cchChars + 2, pwchChars, cchChars);
+  wcsncpy_s(szData, cchChars + 2, pwchChars, cchChars);
 #else
-  _tcsncpy(szData, pwchChars, cchChars);
-#endif
-#else
-#if _MSC_VER >= 1400
-  size_t num_converted;
-  wcstombs_s(&num_converted, szData, cchChars + 2, pwchChars, cchChars);
-#else
-  wcstombs(szData, pwchChars, cchChars);
-#endif
+  wcsncpy(szData, pwchChars, cchChars);
 #endif
 
   szData[cchChars] = 0;
@@ -348,7 +319,7 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ContentHandler::endElement(
     return S_OK;
   }
 
-  StringX buffer(_T(""));
+  StringX buffer(L"");
 
   st_file_element_data edata;
   m_pValidator->GetElementInfo(szCurElement, edata);

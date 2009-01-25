@@ -56,10 +56,10 @@ EFilterHandlers::~EFilterHandlers()
 void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
                                            const XML_Char **attrs)
 {
-  m_strElemContent = _T("");
+  m_strElemContent = L"";
 
   if (m_bValidation) {
-    stringT element_name(name);
+    wstring element_name(name);
     if (!m_pValidator->startElement(element_name)) {
       m_bErrors = true;
       m_iErrorCode = m_pValidator->getErrorCode();
@@ -67,11 +67,11 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
       goto start_errors;
     }
 
-    if (_tcscmp(name, _T("filters")) == 0) {
+    if (wcscmp(name, L"filters") == 0) {
       bool bversion(false);
       for (int i = 0; attrs[i]; i += 2) {
-        if (_tcscmp(attrs[i], _T("version")) == 0) {
-          m_iXMLVersion = _ttoi(attrs[i + 1]);
+        if (wcscmp(attrs[i], L"version") == 0) {
+          m_iXMLVersion = _wtoi(attrs[i + 1]);
           bversion = true;
         break;
         }
@@ -84,11 +84,11 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
       return;
     }
 
-    if (_tcscmp(name, _T("filter")) == 0) {
+    if (wcscmp(name, L"filter") == 0) {
       bool bfiltername(false);
-      stringT filtername;
+      wstring filtername;
       for (int i = 0; attrs[i]; i += 2) {
-        if (_tcscmp(attrs[i], _T("filtername")) == 0) {
+        if (wcscmp(attrs[i], L"filtername") == 0) {
           filtername = attrs[i + 1];
           bfiltername = true;
         }
@@ -98,7 +98,7 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
         m_iErrorCode = XTPEC_FILTERNAME_MISSING;
         XML_StopParser((XML_Parser)userdata, XML_FALSE);
       } else {
-        pair<set<const stringT>::iterator, bool> ret;
+        pair<set<const wstring>::iterator, bool> ret;
         ret = m_unique_filternames.insert(filtername);
         if (ret.second == false) {
           // error - not unique
@@ -107,10 +107,10 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
         }
       }
     }
-    if (_tcscmp(name, _T("filter_entry")) == 0) {
+    if (wcscmp(name, L"filter_entry") == 0) {
       for (int i = 0; attrs[i]; i += 2) {
-        if (_tcscmp(attrs[i], _T("active")) == 0) {
-          if (_tcscmp(attrs[i + 1], _T("no")) == 0)
+        if (wcscmp(attrs[i], L"active") == 0) {
+          if (wcscmp(attrs[i + 1], L"no") == 0)
           break;
         }
       }
@@ -118,31 +118,31 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
     return;
   }
 
-  if (_tcscmp(name, _T("filters")) == 0) {
+  if (wcscmp(name, L"filters") == 0) {
     m_unique_filternames.clear();
     m_strErrorMessage.clear();
     m_bentrybeingprocessed = false;
   }
 
-  else if (_tcscmp(name, _T("filter")) == 0) {
+  else if (wcscmp(name, L"filter") == 0) {
     cur_filter = new st_filters;
     // Process the attributes we need.
     for (int i = 0; attrs[i]; i += 2) {
-      if (_tcscmp(attrs[i], _T("filtername")) == 0) {
-        cur_filter->fname = stringT(attrs[i + 1]);
+      if (wcscmp(attrs[i], L"filtername") == 0) {
+        cur_filter->fname = wstring(attrs[i + 1]);
       }
     }
   }
 
-  else if (_tcscmp(name, _T("filter_entry")) == 0) {
+  else if (wcscmp(name, L"filter_entry") == 0) {
     cur_filterentry = new st_FilterRow;
     cur_filterentry->Empty();
     cur_filterentry->bFilterActive = true;
     m_bentrybeingprocessed = true;
     // Process the attributes we need.
     for (int i = 0; attrs[i]; i += 2) {
-      if (_tcscmp(attrs[i], _T("active")) == 0) {
-        if (_tcscmp(attrs[i + 1], _T("no")) == 0)
+      if (wcscmp(attrs[i], L"active") == 0) {
+        if (wcscmp(attrs[i + 1], L"no") == 0)
           cur_filterentry->bFilterActive = false;
       }
     }
@@ -160,11 +160,11 @@ void XMLCALL EFilterHandlers::characterData(void * /* userdata */, const XML_Cha
 {
   XML_Char *xmlchData = new XML_Char[length + 1];
 #if _MSC_VER >= 1400
-  _tcsncpy_s(xmlchData, length + 1, s, length);
+  wcsncpy_s(xmlchData, length + 1, s, length);
 #else
-  _tcsncpy(xmlchData, s, length);
+  wcsncpy(xmlchData, s, length);
 #endif
-  xmlchData[length] = TCHAR('\0');
+  xmlchData[length] = L'\0';
   m_strElemContent += StringX(xmlchData);
   delete [] xmlchData;
 }
@@ -172,7 +172,7 @@ void XMLCALL EFilterHandlers::characterData(void * /* userdata */, const XML_Cha
 void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
 {
   if (m_bValidation) {
-    stringT element_name(name);
+    wstring element_name(name);
     if (!m_pValidator->endElement(element_name, m_strElemContent)) {
       m_bErrors = true;
       m_iErrorCode = m_pValidator->getErrorCode();
@@ -181,7 +181,7 @@ void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
     }
   }
 
-  if (m_bValidation && _tcscmp(name, _T("filters")) == 0) {
+  if (m_bValidation && wcscmp(name, L"filters") == 0) {
     // Check that the XML file version is present and that
     // a. it is less than or equal to the Filter schema version
     // b. it is less than or equal to the version supported by this PWS
@@ -202,17 +202,17 @@ void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
 
   st_filter_element_data edata;
 
-  if (_tcscmp(name, _T("filters")) == 0) {
+  if (wcscmp(name, L"filters") == 0) {
     return;
   }
 
-  else if (_tcscmp(name, _T("filter")) == 0) {
+  else if (wcscmp(name, L"filter") == 0) {
     INT_PTR rc = IDYES;
     st_Filterkey fk;
     fk.fpool = m_FPool;
     fk.cs_filtername = cur_filter->fname;
     if (m_MapFilters->find(fk) != m_MapFilters->end()) {
-      stringT question;
+      wstring question;
       Format(question, IDSC_FILTEREXISTS, cur_filter->fname.c_str());
       if (m_pAsker == NULL || !(*m_pAsker)(question)) {
         m_MapFilters->erase(fk);
@@ -225,7 +225,7 @@ void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
     return;
   }
 
-  else if (_tcscmp(name, _T("filter_entry")) == 0) {
+  else if (wcscmp(name, L"filter_entry") == 0) {
     if (m_type == DFTYPE_MAIN) {
       cur_filter->num_Mactive++;
       cur_filter->vMfldata.push_back(*cur_filterentry);
@@ -252,7 +252,7 @@ void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
         cur_filterentry->rule = m_pValidator->GetMatchRule(m_strElemContent.c_str());
         break;
       case XTE_LOGIC:
-        if (m_strElemContent == _T("or"))
+        if (m_strElemContent == L"or")
           cur_filterentry->ltype = LC_OR;
         else
           cur_filterentry->ltype = LC_AND;
@@ -261,14 +261,14 @@ void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
         cur_filterentry->fstring = m_strElemContent;
         break;
       case XTE_CASE:
-        cur_filterentry->fcase = _ttoi(m_strElemContent.c_str()) != 0;
+        cur_filterentry->fcase = _wtoi(m_strElemContent.c_str()) != 0;
         break;
       case XTE_WARN:
       case XTE_NUM1:
-        cur_filterentry->fnum1 = _ttoi(m_strElemContent.c_str());
+        cur_filterentry->fnum1 = _wtoi(m_strElemContent.c_str());
         break;
       case XTE_NUM2:
-        cur_filterentry->fnum2 = _ttoi(m_strElemContent.c_str());
+        cur_filterentry->fnum2 = _wtoi(m_strElemContent.c_str());
         break;
       case XTE_DATE1:
         if (VerifyXMLDateString(m_strElemContent.c_str(), t) &&
@@ -285,15 +285,15 @@ void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
           cur_filterentry->fdate2 = (time_t)0;
         break;
       case XTE_TYPE:
-        if (m_strElemContent == _T("normal"))
+        if (m_strElemContent == L"normal")
           cur_filterentry->etype = CItemData::ET_NORMAL;
-        else if (m_strElemContent == _T("alias"))
+        else if (m_strElemContent == L"alias")
          cur_filterentry->etype = CItemData::ET_ALIAS;
-        else if (m_strElemContent == _T("shortcut"))
+        else if (m_strElemContent == L"shortcut")
           cur_filterentry->etype = CItemData::ET_SHORTCUT;
-        else if (m_strElemContent == _T("aliasbase"))
+        else if (m_strElemContent == L"aliasbase")
           cur_filterentry->etype = CItemData::ET_ALIASBASE;
-        else if (m_strElemContent == _T("shortcutbase"))
+        else if (m_strElemContent == L"shortcutbase")
           cur_filterentry->etype = CItemData::ET_SHORTCUTBASE;
         break;
       case XTE_TEST:

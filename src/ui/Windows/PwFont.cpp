@@ -51,8 +51,8 @@ void ApplyPasswordFont(CWnd* pDlgItem)
 
   if (pPasswordFont == NULL) {
     pPasswordFont = new CFont;
-    TCHAR* tch_fontname;
-    tch_fontname = _T("Courier");
+    wchar_t* tch_fontname;
+    tch_fontname = L"Courier";
 
     // Note these font names are less than the max. permitted length (LF_FACESIZE = 31 + null)
     // no need to check length before copy.
@@ -63,7 +63,7 @@ void ApplyPasswordFont(CWnd* pDlgItem)
     memset(&lf, 0, sizeof(LOGFONT));
     lf.lfHeight = -16;
     lf.lfWeight = FW_NORMAL;
-    _tcsncpy(lf.lfFaceName, tch_fontname, _tcslen(tch_fontname));
+    wcsncpy(lf.lfFaceName, tch_fontname, wcslen(tch_fontname));
     lf.lfPitchAndFamily = FF_MODERN | FIXED_PITCH;
     pPasswordFont->CreateFontIndirect(&lf);
   }

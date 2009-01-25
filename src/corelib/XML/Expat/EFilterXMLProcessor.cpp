@@ -112,15 +112,15 @@ EFilterXMLProcessor::~EFilterXMLProcessor()
 
 bool EFilterXMLProcessor::Process(const bool &bvalidation,
                                   const StringX &strXMLData,
-                                  const stringT &strXMLFileName,
-                                  const stringT & /* XML Schema File Name */)
+                                  const wstring &strXMLFileName,
+                                  const wstring & /* XML Schema File Name */)
 {
   bool bEerrorOccurred = false;
-  stringT cs_validation;
+  wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  stringT cs_import;
+  wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
-  m_strResultText = _T("");
+  m_strResultText = L"";
   m_bValidation = bvalidation;  // Validate or Import
 
   XML_Memory_Handling_Suite ms = {WFilter_malloc, WFilter_realloc, WFilter_free};
@@ -143,11 +143,11 @@ bool EFilterXMLProcessor::Process(const bool &bvalidation,
   enum XML_Status status;
   if (!strXMLFileName.empty()) {
     // Parse the file
-    std::FILE *fd = NULL;
+    FILE *fd = NULL;
 #if _MSC_VER >= 1400
-    _tfopen_s(&fd, strXMLFileName.c_str(), _T("r"));
+    _wfopen_s(&fd, strXMLFileName.c_str(), L"r");
 #else
-    fd = _tfopen(strXMLFileName.c_str(), _T("r"));
+    fd = _wfopen(strXMLFileName.c_str(), L"r");
 #endif
     if (fd == NULL)
       return false;
@@ -169,15 +169,13 @@ bool EFilterXMLProcessor::Process(const bool &bvalidation,
   } else {
     // Parse in memory 'file'
     StringX sbuffer(strXMLData);
-#ifdef UNICODE
     StringX::size_type ipos;
-    ipos = sbuffer.find(_T("UTF-8"));
-    if (ipos != stringT::npos)
-      sbuffer.replace(ipos, 5, _T("UTF-16"));
-#endif
+    ipos = sbuffer.find(L"UTF-8");
+    if (ipos != wstring::npos)
+      sbuffer.replace(ipos, 5, L"UTF-16");
     char *buffer = (char *)&sbuffer.at(0);
     status = XML_Parse(pParser, buffer,
-                       _tcslen(sbuffer.c_str()) * sizeof(TCHAR), 1);
+                       sbuffer.length() * sizeof(wchar_t), 1);
   }
 
   if (pFilterHandler->getIfErrors() || bEerrorOccurred) {

@@ -24,6 +24,8 @@
 #include "resource2.h"
 #include "resource3.h"
 
+using namespace std;
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -49,7 +51,7 @@ CCompareResultsDlg::CCompareResultsDlg(CWnd* pParent,
 }
 
 // Return whether first [g:t:u] is greater than the second [g:t:u]
-// used in std::sort in OnInitDialog below.
+// used in sort in OnInitDialog below.
 bool GTUCompare2(st_CompareData elem1, st_CompareData elem2)
 {
   if (elem1.group != elem2.group)
@@ -63,7 +65,7 @@ bool GTUCompare2(st_CompareData elem1, st_CompareData elem2)
 
 BOOL CCompareResultsDlg::OnInitDialog()
 {
-  std::vector<UINT> vibottombtns;
+  vector<UINT> vibottombtns;
   vibottombtns.push_back(IDC_VIEWCOMPAREREPORT);
   vibottombtns.push_back(IDOK);
 
@@ -149,13 +151,13 @@ BOOL CCompareResultsDlg::OnInitDialog()
 
   // Sort the entries first by group, title, user (not case sensitive)
   if (m_numOnlyInCurrent > 0)
-    std::sort(m_OnlyInCurrent.begin(), m_OnlyInCurrent.end(), GTUCompare2);
+    sort(m_OnlyInCurrent.begin(), m_OnlyInCurrent.end(), GTUCompare2);
   if (m_numOnlyInComp > 0)
-    std::sort(m_OnlyInComp.begin(), m_OnlyInComp.end(), GTUCompare2);
+    sort(m_OnlyInComp.begin(), m_OnlyInComp.end(), GTUCompare2);
   if (m_numConflicts > 0)
-    std::sort(m_Conflicts.begin(), m_Conflicts.end(), GTUCompare2);
+    sort(m_Conflicts.begin(), m_Conflicts.end(), GTUCompare2);
   if (m_numIdentical > 0)
-    std::sort(m_Identical.begin(), m_Identical.end(), GTUCompare2);
+    sort(m_Identical.begin(), m_Identical.end(), GTUCompare2);
 
   AddCompareEntries(false);
 
@@ -220,19 +222,19 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
       st_CompareData &st_data = *cd_iter;
 
       if (st_data.unknflds0)
-        m_LCResults.InsertItem(iItem, _T("=*"));
+        m_LCResults.InsertItem(iItem, L"=*");
       else
-        m_LCResults.InsertItem(iItem, _T("="));
+        m_LCResults.InsertItem(iItem, L"=");
       if (st_data.unknflds1)
-        m_LCResults.SetItemText(iItem, COMPARE, _T("=*"));
+        m_LCResults.SetItemText(iItem, COMPARE, L"=*");
       else
-        m_LCResults.SetItemText(iItem, COMPARE, _T("="));
+        m_LCResults.SetItemText(iItem, COMPARE, L"=");
 
       m_LCResults.SetItemText(iItem, GROUP, st_data.group);
       m_LCResults.SetItemText(iItem, TITLE, st_data.title);
       m_LCResults.SetItemText(iItem, USER, st_data.user);
       for (i = USER + 1; i < m_nCols; i++)
-        m_LCResults.SetItemText(iItem, i, _T("-"));
+        m_LCResults.SetItemText(iItem, i, L"-");
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, MAKELONG(IDENTICAL, st_data.id));
@@ -245,16 +247,16 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
       st_CompareData &st_data = *cd_iter;
 
       if (st_data.unknflds0)
-        m_LCResults.InsertItem(iItem, _T("Y*"));
+        m_LCResults.InsertItem(iItem, L"Y*");
       else
-        m_LCResults.InsertItem(iItem, _T("Y"));
+        m_LCResults.InsertItem(iItem, L"Y");
 
-      m_LCResults.SetItemText(iItem, COMPARE, _T("-"));
+      m_LCResults.SetItemText(iItem, COMPARE, L"-");
       m_LCResults.SetItemText(iItem, GROUP, st_data.group);
       m_LCResults.SetItemText(iItem, TITLE, st_data.title);
       m_LCResults.SetItemText(iItem, USER, st_data.user);
       for (i = USER + 1; i < m_nCols; i++)
-        m_LCResults.SetItemText(iItem, i, _T("-"));
+        m_LCResults.SetItemText(iItem, i, L"-");
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, MAKELONG(CURRENT, st_data.id));
@@ -266,17 +268,17 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
     for (cd_iter = m_OnlyInComp.begin(); cd_iter != m_OnlyInComp.end(); cd_iter++) {
       st_CompareData &st_data = *cd_iter;
 
-      m_LCResults.InsertItem(iItem, _T("-"));
+      m_LCResults.InsertItem(iItem, L"-");
       if (st_data.unknflds1)
-        m_LCResults.SetItemText(iItem, COMPARE, _T("Y*"));
+        m_LCResults.SetItemText(iItem, COMPARE, L"Y*");
       else
-        m_LCResults.SetItemText(iItem, COMPARE, _T("Y"));
+        m_LCResults.SetItemText(iItem, COMPARE, L"Y");
 
       m_LCResults.SetItemText(iItem, GROUP, st_data.group);
       m_LCResults.SetItemText(iItem, TITLE, st_data.title);
       m_LCResults.SetItemText(iItem, USER, st_data.user);
       for (i = USER + 1; i < m_nCols; i++)
-        m_LCResults.SetItemText(iItem, i, _T("-"));
+        m_LCResults.SetItemText(iItem, i, L"-");
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, MAKELONG(COMPARE, st_data.id));
@@ -290,14 +292,14 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
       st_CompareData &st_data = *cd_iter;
 
       if (st_data.unknflds0)
-        m_LCResults.InsertItem(iItem, _T("Y*"));
+        m_LCResults.InsertItem(iItem, L"Y*");
       else
-        m_LCResults.InsertItem(iItem, _T("Y"));
+        m_LCResults.InsertItem(iItem, L"Y");
 
       if (st_data.unknflds1)
-        m_LCResults.SetItemText(iItem, COMPARE, _T("Y*"));
+        m_LCResults.SetItemText(iItem, COMPARE, L"Y*");
       else
-        m_LCResults.SetItemText(iItem, COMPARE, _T("Y"));
+        m_LCResults.SetItemText(iItem, COMPARE, L"Y");
 
       m_LCResults.SetItemText(iItem, GROUP, st_data.group);
       m_LCResults.SetItemText(iItem, TITLE, st_data.title);
@@ -306,27 +308,27 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
       // Start of the 'data' columns (if present)
       icol = PASSWORD;
       if (m_bsFields.test(CItemData::PASSWORD))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PASSWORD) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PASSWORD) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::NOTES))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::NOTES) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::NOTES) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::URL))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::URL) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::URL) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::AUTOTYPE))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::AUTOTYPE) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::AUTOTYPE) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::PWHIST))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PWHIST) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PWHIST) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::CTIME))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::CTIME) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::CTIME) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::ATIME))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::ATIME) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::ATIME) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::XTIME))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::XTIME) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::XTIME) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::PMTIME))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PMTIME) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PMTIME) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::RMTIME))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::RMTIME) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::RMTIME) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::POLICY))
-        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::POLICY) ? _T("X") : _T("-"));
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::POLICY) ? L"X" : L"-");
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, MAKELONG(BOTH, st_data.id));
@@ -381,8 +383,8 @@ void CCompareResultsDlg::OnOK()
 
 void CCompareResultsDlg::OnHelp()
 {
-  CString cs_HelpTopic = app.GetHelpFileName() + _T("::/html/compare_results.html");
-  HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+  CString cs_HelpTopic = app.GetHelpFileName() + L"::/html/compare_results.html";
+  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 }
 
 void CCompareResultsDlg::OnViewCompareReport()
@@ -432,8 +434,8 @@ bool CCompareResultsDlg::ProcessFunction(const int ifunction, st_CompareData *st
           group = pos->second.GetGroup();
           title = pos->second.GetTitle();
           user = pos->second.GetUser();
-          buffer.Format(IDS_COPYENTRY, _T("original"), group, title, user);
-          m_prpt->WriteLine((LPCTSTR)buffer);
+          buffer.Format(IDS_COPYENTRY, L"original", group, title, user);
+          m_prpt->WriteLine((LPCWSTR)buffer);
           break;
         case CCompareResultsDlg::COPY_TO_COMPARISONDB:
           // UUID of copied entry returned - now update data
@@ -445,8 +447,8 @@ bool CCompareResultsDlg::ProcessFunction(const int ifunction, st_CompareData *st
           group = pos->second.GetGroup();
           title = pos->second.GetTitle();
           user = pos->second.GetUser();
-          buffer.Format(IDS_COPYENTRY, _T("comparison"), group, title, user);
-          m_prpt->WriteLine((LPCTSTR)buffer);
+          buffer.Format(IDS_COPYENTRY, L"comparison", group, title, user);
+          m_prpt->WriteLine((LPCWSTR)buffer);
           break;
         case CCompareResultsDlg::EDIT:
         case CCompareResultsDlg::VIEW:
@@ -476,25 +478,25 @@ st_CompareData * CCompareResultsDlg::GetCompareData(const DWORD dwItemData, CCom
 
   switch (iList) {
     case IDENTICAL:
-      cd_iter = std::find_if(self->m_Identical.begin(), self->m_Identical.end(),
+      cd_iter = find_if(self->m_Identical.begin(), self->m_Identical.end(),
         equal_id(id));
       if (cd_iter != self->m_Identical.end())
         retval = &*cd_iter;
       break;
     case BOTH:
-      cd_iter = std::find_if(self->m_Conflicts.begin(), self->m_Conflicts.end(),
+      cd_iter = find_if(self->m_Conflicts.begin(), self->m_Conflicts.end(),
         equal_id(id));
       if (cd_iter != self->m_Conflicts.end())
         retval = &*cd_iter;
       break;
     case CURRENT:
-      cd_iter = std::find_if(self->m_OnlyInCurrent.begin(), self->m_OnlyInCurrent.end(),
+      cd_iter = find_if(self->m_OnlyInCurrent.begin(), self->m_OnlyInCurrent.end(),
         equal_id(id));
       if (cd_iter != self->m_OnlyInCurrent.end())
         retval = &*cd_iter;
       break;
     case COMPARE:
-      cd_iter = std::find_if(self->m_OnlyInComp.begin(), self->m_OnlyInComp.end(),
+      cd_iter = find_if(self->m_OnlyInComp.begin(), self->m_OnlyInComp.end(),
         equal_id(id));
       if (cd_iter != self->m_OnlyInComp.end())
         retval = &*cd_iter;
@@ -541,7 +543,7 @@ bool CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
 {
   // Check not already copied one way or another
   CString cs_text = m_LCResults.GetItemText(m_row, m_column);
-  if (cs_text.Compare(_T("=")) == 0)
+  if (cs_text.Compare(L"=") == 0)
     return false;
 
   CString cs_msg;
@@ -556,7 +558,7 @@ bool CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
     cs_msg.Format(IDS_COPYLEFTRIGHT, cs_originaldb, cs_comparisondb);
     ifunction = COPY_TO_COMPARISONDB;
   }
-  if (cs_text.Right(1) == _T("*"))
+  if (cs_text.Right(1) == L"*")
     cs_msg += CString(MAKEINTRESOURCE(IDS_COPYUNKNOWNFIELDS));
   if (AfxMessageBox(cs_msg, MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) != IDYES)
     return false;
@@ -576,17 +578,17 @@ bool CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
     return false;
 
   if (st_data->unknflds0)
-    m_LCResults.SetItemText(m_row, CURRENT, _T("=*"));
+    m_LCResults.SetItemText(m_row, CURRENT, L"=*");
   else
-    m_LCResults.SetItemText(m_row, CURRENT, _T("="));
+    m_LCResults.SetItemText(m_row, CURRENT, L"=");
 
   if (st_data->unknflds1)
-    m_LCResults.SetItemText(m_row, COMPARE, _T("=*"));
+    m_LCResults.SetItemText(m_row, COMPARE, L"=*");
   else
-    m_LCResults.SetItemText(m_row, COMPARE, _T("="));
+    m_LCResults.SetItemText(m_row, COMPARE, L"=");
 
   for (int i = 0; i < m_nCols - 5; i++)
-    m_LCResults.SetItemText(m_row, USER + 1 + i, _T("-"));
+    m_LCResults.SetItemText(m_row, USER + 1 + i, L"-");
 
   st_CompareData st_newdata;
   st_newdata = *st_data;
@@ -597,19 +599,19 @@ bool CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
   switch (indatabase) {
     case BOTH:
       m_numConflicts--;
-      cd_iter = std::find_if(m_Conflicts.begin(), m_Conflicts.end(), equal_id(id));
+      cd_iter = find_if(m_Conflicts.begin(), m_Conflicts.end(), equal_id(id));
       if (cd_iter != m_Conflicts.end())
         m_Conflicts.erase(cd_iter);
       break;
     case CURRENT:
       m_numOnlyInCurrent--;
-      cd_iter = std::find_if(m_OnlyInCurrent.begin(), m_OnlyInCurrent.end(), equal_id(id));
+      cd_iter = find_if(m_OnlyInCurrent.begin(), m_OnlyInCurrent.end(), equal_id(id));
       if (cd_iter != m_OnlyInCurrent.end())
         m_OnlyInCurrent.erase(cd_iter);
       break;
     case COMPARE:
       m_numOnlyInComp--;
-      cd_iter = std::find_if(m_OnlyInComp.begin(), m_OnlyInComp.end(), equal_id(id));
+      cd_iter = find_if(m_OnlyInComp.begin(), m_OnlyInComp.end(), equal_id(id));
       if (cd_iter != m_OnlyInComp.end())
         m_OnlyInComp.erase(cd_iter);
       break;
@@ -792,33 +794,33 @@ void CCompareResultsDlg::WriteReportData()
 
   if (m_OnlyInCurrent.size() > 0) {
     buffer.Format(IDS_COMPAREENTRIES1, m_cs_Filename1);
-    m_prpt->WriteLine((LPCTSTR)buffer);
+    m_prpt->WriteLine((LPCWSTR)buffer);
     for (cd_iter = m_OnlyInCurrent.begin(); cd_iter != m_OnlyInCurrent.end();
          cd_iter++) {
       const st_CompareData &st_data = *cd_iter;
 
       buffer.Format(IDS_COMPARESTATS, st_data.group, st_data.title, st_data.user);
-      m_prpt->WriteLine((LPCTSTR)buffer);
+      m_prpt->WriteLine((LPCWSTR)buffer);
     }
     m_prpt->WriteLine();
   }
 
   if (m_OnlyInComp.size() > 0) {
     buffer.Format(IDS_COMPAREENTRIES2, m_cs_Filename2);
-    m_prpt->WriteLine((LPCTSTR)buffer);
+    m_prpt->WriteLine((LPCWSTR)buffer);
     for (cd_iter = m_OnlyInComp.begin(); cd_iter != m_OnlyInComp.end();
          cd_iter++) {
       const st_CompareData &st_data = *cd_iter;
 
       buffer.Format(IDS_COMPARESTATS, st_data.group, st_data.title, st_data.user);
-      m_prpt->WriteLine((LPCTSTR)buffer);
+      m_prpt->WriteLine((LPCWSTR)buffer);
     }
     m_prpt->WriteLine();
   }
 
   if (m_Conflicts.size() > 0) {
     buffer.Format(IDS_COMPAREBOTHDIFF);
-    m_prpt->WriteLine((LPCTSTR)buffer);
+    m_prpt->WriteLine((LPCWSTR)buffer);
 
     const CString csx_password(MAKEINTRESOURCE(IDS_COMPPASSWORD));
     const CString csx_notes(MAKEINTRESOURCE(IDS_COMPNOTES));
@@ -837,7 +839,7 @@ void CCompareResultsDlg::WriteReportData()
       const st_CompareData &st_data = *cd_iter;
 
       buffer.Format(IDS_COMPARESTATS2, st_data.group, st_data.title, st_data.user);
-      m_prpt->WriteLine(stringT(buffer));
+      m_prpt->WriteLine(wstring(buffer));
       buffer.Empty();
 
       if (st_data.bsDiffs.test(CItemData::PASSWORD)) buffer += csx_password;
@@ -851,7 +853,7 @@ void CCompareResultsDlg::WriteReportData()
       if (st_data.bsDiffs.test(CItemData::RMTIME)) buffer += csx_rmtime;
       if (st_data.bsDiffs.test(CItemData::PWHIST)) buffer += csx_pwhistory;
       if (st_data.bsDiffs.test(CItemData::POLICY)) buffer += csx_policy;
-      m_prpt->WriteLine((LPCTSTR)buffer);
+      m_prpt->WriteLine((LPCWSTR)buffer);
     }
     m_prpt->WriteLine();
   }

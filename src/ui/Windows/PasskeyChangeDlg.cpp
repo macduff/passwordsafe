@@ -31,15 +31,15 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-static TCHAR PSSWDCHAR = TCHAR('*');
+static wchar_t PSSWDCHAR = L'*';
 
 //-----------------------------------------------------------------------------
 CPasskeyChangeDlg::CPasskeyChangeDlg(CWnd* pParent)
   : CPWDialog(CPasskeyChangeDlg::IDD, pParent)
 {
-  m_confirmnew = _T("");
-  m_newpasskey = _T("");
-  m_oldpasskey = _T("");
+  m_confirmnew = L"";
+  m_newpasskey = L"";
+  m_oldpasskey = L"";
 }
 
 void CPasskeyChangeDlg::DoDataExchange(CDataExchange* pDX)
@@ -127,11 +127,11 @@ void CPasskeyChangeDlg::OnCancel()
 void CPasskeyChangeDlg::OnHelp() 
 {
 #if defined(POCKET_PC)
-  CreateProcess( _T("PegHelp.exe"), _T("pws_ce_help.html#changecombo"), NULL, NULL, FALSE, 0, NULL, NULL, NULL, NULL );
+  CreateProcess( L"PegHelp.exe", L"pws_ce_help.html#changecombo", NULL, NULL, FALSE, 0, NULL, NULL, NULL, NULL );
 #else
   CString cs_HelpTopic;
-  cs_HelpTopic = app.GetHelpFileName() + _T("::/html/change_combo.html");
-  HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+  cs_HelpTopic = app.GetHelpFileName() + L"::/html/change_combo.html";
+  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 #endif
 }
 

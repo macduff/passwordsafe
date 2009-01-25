@@ -50,20 +50,20 @@ private:
   enum CharType {LOWERCASE = 0, UPPERCASE = 1,
     DIGIT = 2, SYMBOL = 3, HEXDIGIT = 4, NUMTYPES = 5};
   CharType GetRandomCharType(unsigned int rand) const; // select a chartype with weighted probability
-  charT GetRandomChar(CharType t, unsigned int rand) const;
+  wchar_t GetRandomChar(CharType t, unsigned int rand) const;
   StringX MakePronounceable() const;
 
   // here are all the character types, in both full and "easyvision" versions
-  static const charT std_lowercase_chars[];
-  static const charT std_uppercase_chars[];
-  static const charT std_digit_chars[];
-  static const charT std_symbol_chars[];
-  static const charT std_hexdigit_chars[];
-  static const charT easyvision_lowercase_chars[];
-  static const charT easyvision_uppercase_chars[];
-  static const charT easyvision_digit_chars[];
-  static const charT easyvision_symbol_chars[];
-  static const charT easyvision_hexdigit_chars[];
+  static const wchar_t std_lowercase_chars[];
+  static const wchar_t std_uppercase_chars[];
+  static const wchar_t std_digit_chars[];
+  static const wchar_t std_symbol_chars[];
+  static const wchar_t std_hexdigit_chars[];
+  static const wchar_t easyvision_lowercase_chars[];
+  static const wchar_t easyvision_uppercase_chars[];
+  static const wchar_t easyvision_digit_chars[];
+  static const wchar_t easyvision_symbol_chars[];
+  static const wchar_t easyvision_hexdigit_chars[];
   // and here are the lengths of the above arrays
   static const size_t std_lowercase_len;
   static const size_t std_uppercase_len;
@@ -81,7 +81,7 @@ private:
   // in GetRandomCharType.
   size_t m_lengths[NUMTYPES];
   size_t m_x[NUMTYPES+1]; // spread lengths along X axis
-  charT *m_char_arrays[NUMTYPES];
+  wchar_t *m_char_arrays[NUMTYPES];
 
   size_t m_sumlengths; // sum of all selected chartypes
 

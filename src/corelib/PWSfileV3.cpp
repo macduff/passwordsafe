@@ -108,7 +108,7 @@ int PWSfileV3::CheckPassword(const StringX &filename,
   SHA256 H;
 
   if (fd == NULL) {
-    fd = pws_os::FOpen(filename.c_str(), _T("rb"));
+    fd = pws_os::FOpen(filename.c_str(), L"rb");
   }
   if (fd == NULL)
     return CANT_OPEN_FILE;
@@ -164,7 +164,7 @@ size_t PWSfileV3::WriteCBC(unsigned char type, const StringX &data)
   int utf8Len;
   status = m_utf8conv.ToUTF8(data, utf8, utf8Len);
   if (!status)
-    TRACE(_T("ToUTF8(%s) failed\n"), data);
+    TRACE(L"ToUTF8(%s) failed\n", data);
   return WriteCBC(type, utf8, utf8Len);
 }
 
@@ -251,7 +251,7 @@ int PWSfileV3::WriteRecord(const CItemData &item)
     delete[] pdata;
   }
 
-  WriteCBC(CItemData::END, _T(""));
+  WriteCBC(CItemData::END, L"");
 
   return status;
 }
@@ -326,10 +326,8 @@ void PWSfileV3::StretchKey(const unsigned char *salt, unsigned long saltLen,
   H0.Update(salt, saltLen);
   H0.Final(X);
 
-#ifdef UNICODE
   trashMemory(pstr, passLen);
   delete[] pstr;
-#endif
 
   ASSERT(N >= MIN_HASH_ITERATIONS); // minimal value we're willing to use
   for (unsigned int i = 0; i < N; i++) {
@@ -451,11 +449,11 @@ int PWSfileV3::WriteHeader()
 
   // Write out display status
   if (!m_hdr.m_displaystatus.empty()) {
-    StringX ds(_T(""));
+    StringX ds(L"");
     vector<bool>::const_iterator iter;
     for (iter = m_hdr.m_displaystatus.begin();
       iter != m_hdr.m_displaystatus.end(); iter++)
-      ds += (*iter) ? _T("1") : _T("0");
+      ds += (*iter) ? L"1" : L"0";
     numWritten = WriteCBC(HDR_DISPSTAT, ds);
     if (numWritten <= 0) { status = FAILURE; goto end; }
   }
@@ -464,8 +462,8 @@ int PWSfileV3::WriteHeader()
   time_t time_now;
   time(&time_now);
 #if 0  // BUGBUGBUG
-  stringT cs_update_time;
-  cs_update_time.Format(_T("%08x"), time_now);
+  wstring cs_update_time;
+  cs_update_time.Format(L"%08x", time_now);
   numWritten = WriteCBC(HDR_LASTUPDATETIME, cs_update_time);
 #endif
   numWritten = WriteCBC(HDR_LASTUPDATETIME,
@@ -476,8 +474,8 @@ int PWSfileV3::WriteHeader()
   // Write out who saved it!
   {
     const SysInfo *si = SysInfo::GetInstance();
-    stringT user = si->GetRealUser();
-    stringT sysname = si->GetRealHost();
+    wstring user = si->GetRealUser();
+    wstring sysname = si->GetRealHost();
     numWritten = WriteCBC(HDR_LASTUPDATEUSER, user.c_str());
     if (numWritten > 0)
       numWritten = WriteCBC(HDR_LASTUPDATEHOST, sysname.c_str());
@@ -501,7 +499,7 @@ int PWSfileV3::WriteHeader()
   }
   if (!m_MapFilters.empty()) {
     ostringstream oss;
-    m_MapFilters.WriteFilterXMLFile(oss, m_hdr, _T(""));
+    m_MapFilters.WriteFilterXMLFile(oss, m_hdr, L"");
     numWritten = WriteCBC(HDR_FILTERS,
                           reinterpret_cast<const unsigned char *>(oss.str().c_str()),
                           oss.str().length());
@@ -615,20 +613,20 @@ int PWSfileV3::ReadHeader()
           utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, pref);
           m_hdr.m_prefString = pref;
           if (!utf8status)
-            TRACE(_T("FromUTF8(m_prefString) failed\n"));
+            TRACE(L"FromUTF8(m_prefString) failed\n");
         } else
-          m_hdr.m_prefString = _T("");
+          m_hdr.m_prefString = L"";
         break;
 
       case HDR_DISPSTAT: /* Tree Display Status */
         if (utf8 != NULL) utf8[utf8Len] = '\0';
         utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
         for (StringX::iterator iter = text.begin(); iter != text.end(); iter++) {
-          const TCHAR v = *iter;
-          m_hdr.m_displaystatus.push_back(v == TCHAR('1'));
+          const wchar_t v = *iter;
+          m_hdr.m_displaystatus.push_back(v == L'1');
         }
         if (!utf8status)
-          TRACE(_T("FromUTF8(m_displaystatus) failed\n"));
+          TRACE(L"FromUTF8(m_displaystatus) failed\n");
         break;
 
       case HDR_LASTUPDATETIME: /* When last saved */
@@ -638,8 +636,8 @@ int PWSfileV3::ReadHeader()
           if (utf8 != NULL) utf8[utf8Len] = '\0';
             utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
             if (!utf8status)
-              TRACE(_T("FromUTF8(m_whenlastsaved) failed\n"));
-            iStringXStream is(text);
+              TRACE(L"FromUTF8(m_whenlastsaved) failed\n");
+            wiStringXStream is(text);
             is >> hex >> m_hdr.m_whenlastsaved;
         } else if (utf8Len == 4) {
           // retrieve time_t
@@ -655,7 +653,7 @@ int PWSfileV3::ReadHeader()
           if (utf8 != NULL) utf8[utf8Len] = '\0';
           utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
           if (utf8status) {
-            iStringXStream is(text);
+            wiStringXStream is(text);
             int ulen = 0;
             is >> setw(4) >> hex >> ulen;
             StringX uh;
@@ -663,7 +661,7 @@ int PWSfileV3::ReadHeader()
             m_hdr.m_lastsavedby = uh.substr(0,ulen);
             m_hdr.m_lastsavedon = uh.substr(ulen);
           } else
-            TRACE(_T("FromUTF8(m_wholastsaved) failed\n"));
+            TRACE(L"FromUTF8(m_wholastsaved) failed\n");
         }
         break;
 
@@ -672,7 +670,7 @@ int PWSfileV3::ReadHeader()
         utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
         m_hdr.m_whatlastsaved = text;
         if (!utf8status)
-          TRACE(_T("FromUTF8(m_whatlastsaved) failed\n"));
+          TRACE(L"FromUTF8(m_whatlastsaved) failed\n");
         break;
 
       case HDR_LASTUPDATEUSER:
@@ -710,16 +708,16 @@ int PWSfileV3::ReadHeader()
         if (utf8 != NULL) utf8[utf8Len] = '\0';
         utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
         if (utf8Len > 0) {
-          stringT strErrors;
-          stringT XSDFilename = PWSdirs::GetXMLDir() + _T("pwsafe_filter.xsd");
+          wstring strErrors;
+          wstring XSDFilename = PWSdirs::GetXMLDir() + L"pwsafe_filter.xsd";
 #if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
           // Expat is a non-validating parser - no use for Schema!
           if (!pws_os::FileExists(XSDFilename)) {
             // Ask user whether to keep as unknown field or delete!
-              stringT message, message2;
-              Format(message, IDSC_MISSINGXSD, _T("pwsafe_filter.xsd"));
+              wstring message, message2;
+              Format(message, IDSC_MISSINGXSD, L"pwsafe_filter.xsd");
               LoadAString(message2, IDSC_FILTERSKEPT);
-              message += stringT(_T("\n\n")) + message2;
+              message += wstring(L"\n\n") + message2;
               if (m_pReporter != NULL)
                 (*m_pReporter)(message);
 
@@ -731,12 +729,12 @@ int PWSfileV3::ReadHeader()
             break;
           }
 #endif
-          int rc = m_MapFilters.ImportFilterXMLFile(FPOOL_DATABASE, text.c_str(), _T(""),
+          int rc = m_MapFilters.ImportFilterXMLFile(FPOOL_DATABASE, text.c_str(), L"",
                                                     XSDFilename.c_str(),
                                                     strErrors, m_pAsker);
           if (rc != PWScore::SUCCESS) {
             // Ask user whether to keep as unknown field or delete!
-            stringT question;
+            wstring question;
             LoadAString(question, IDSC_CANTPROCESSDBFILTERS);
             bool keep = (m_pAsker == NULL) || (!(*m_pAsker)(question));
             if (keep) {
@@ -761,9 +759,9 @@ int PWSfileV3::ReadHeader()
         m_UHFL.push_back(unkhfe);
 #if 0
 #ifdef _DEBUG
-        stringT cs_timestamp;
+        wstring cs_timestamp;
         cs_timestamp = PWSUtil::GetTimeStamp();
-        TRACE(_T("%s: Header has unknown field: %02x, length %d/0x%04x, value:\n"), 
+        TRACE(L"%s: Header has unknown field: %02x, length %d/0x%04x, value:\n", 
         cs_timestamp.c_str(), fieldType, utf8Len, utf8Len);
         PWSDebug::HexDump(utf8, utf8Len, cs_timestamp);
 #endif
@@ -781,7 +779,7 @@ bool PWSfileV3::IsV3x(const StringX &filename, VERSION &v)
   // This is written so as to support V30, V31, V3x...
 
   ASSERT(pws_os::FileExists(filename.c_str()));
-  FILE *fd = pws_os::FOpen(filename.c_str(), _T("rb"));
+  FILE *fd = pws_os::FOpen(filename.c_str(), L"rb");
 
   ASSERT(fd != NULL);
   char tag[sizeof(V3TAG)];

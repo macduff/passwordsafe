@@ -23,7 +23,7 @@ class MFilterSAX2ErrorHandler: public ISAXErrorHandler
 {
 public:
   // Local variables and functions
-  stringT m_strValidationResult;
+  wstring m_strValidationResult;
   BOOL bErrorsFound;
 
   // Standard functions
@@ -61,7 +61,7 @@ class MFilterSAX2ContentHandler: public ISAXContentHandler
 {
 public:
   // Local variables & function
-  stringT m_strImportErrors;
+  wstring m_strImportErrors;
   PWSFilters *m_MapFilters;
   FilterPool m_FPool;
   int m_type;

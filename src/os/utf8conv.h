@@ -7,6 +7,7 @@
 */
 #ifndef __OSUTF8CONV_H
 #define __OSUTF8CONV_H
+
 #include "typedefs.h"
 
 namespace pws_os {
@@ -27,6 +28,7 @@ namespace pws_os {
   extern size_t mbstowcs(wchar_t *dst, size_t maxdstlen,
                          const char *src, size_t srclen, bool isUTF8 = true);
 };
+
 #endif /* __OSUTF8CONV_H */
 //-----------------------------------------------------------------------------
 // Local variables:

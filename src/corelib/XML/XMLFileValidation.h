@@ -162,11 +162,11 @@ public:
 #endif
 
 private:
-  std::map<stringT, st_file_element_data> m_element_map;
-  typedef std::pair<stringT, st_file_element_data> file_element_pair;
+  map<wstring, st_file_element_data> m_element_map;
+  typedef pair<wstring, st_file_element_data> file_element_pair;
 
   static const struct st_file_elements {
-    TCHAR *name; st_file_element_data file_element_data;
+    wchar_t *name; st_file_element_data file_element_data;
   } m_file_elements[XLE_ELEMENTS];
 };
 

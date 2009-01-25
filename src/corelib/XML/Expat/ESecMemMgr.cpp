@@ -48,11 +48,11 @@ void* ESecMemMgr::malloc(size_t size)
     *puser_mem = size;
     // Get pointer to start of user memory and return it to user
     puser_mem += offset;
-    //TRACE(_T("malloc:  preal = %p, puser = %p, size = %08d, actual size = %08d\n"),
+    //TRACE(L"malloc:  preal = %p, puser = %p, size = %08d, actual size = %08d\n",
     //  preal_mem, puser_mem, size, actual_size);
     return (void *)puser_mem;
   } else {
-    //TRACE(_T("malloc:  preal = %p, puser =   N/A   , size = %08d, actual size = %08d\n"),
+    //TRACE(L"malloc:  preal = %p, puser =   N/A   , size = %08d, actual size = %08d\n",
     //  preal_mem, size, actual_size);
     return NULL;
   }
@@ -62,14 +62,14 @@ void* ESecMemMgr::realloc(void *pold_mem, size_t new_size)
 {
   if (pold_mem == NULL) {
     // Equivalent to allocate it
-    //TRACE(_T("realloc: pold =  %p, puser =   N/A   , size =   N/A   , new size    = %08d\n"),
+    //TRACE(L"realloc: pold =  %p, puser =   N/A   , size =   N/A   , new size    = %08d\n",
     //  pold_mem, new_size);
     return this->malloc(new_size);
   }
 
   if (new_size == 0) {
     // Equivalent to free it
-    //TRACE(_T("realloc: pold =  %p, puser =   N/A   , size =   N/A   , new size    = %08d\n"),
+    //TRACE(L"realloc: pold =  %p, puser =   N/A   , size =   N/A   , new size    = %08d\n",
     //  pold_mem, new_size);
     this->free(pold_mem);
     return NULL;
@@ -88,12 +88,12 @@ void* ESecMemMgr::realloc(void *pold_mem, size_t new_size)
     memcpy(pnew_mem, pold_mem, copy_size);
     // Now free old memory
     this->free(pold_mem);
-    //TRACE(_T("realloc: pold =  %p, preal =   N/A   , size = %08d, new size    = %08d\n"),
+    //TRACE(L"realloc: pold =  %p, preal =   N/A   , size = %08d, new size    = %08d\n",
     //  pold_mem, old_size, new_size);
     // Give the user the new memory
     return pnew_mem;
   } else {
-    //TRACE(_T("realloc: pold =  %p, preal =   N/A   , size =   N/A   , new size    = %08d\n"),
+    //TRACE(L"realloc: pold =  %p, preal =   N/A   , size =   N/A   , new size    = %08d\n",
     //  pold_mem, new_size);
     return NULL;
   }
@@ -113,7 +113,7 @@ void ESecMemMgr::free(void * puser_mem)
       memset(puser_mem, 0x00, size);
     }
     // Free it
-    //TRACE(_T("free:    preal = %p, puser = %p, size = %08d\n"),
+    //TRACE(L"free:    preal = %p, puser = %p, size = %08d\n",
     //  preal_mem, puser_mem, size);
     ::free((void *)preal_mem);
   }

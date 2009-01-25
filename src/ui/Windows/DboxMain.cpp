@@ -69,7 +69,7 @@ static char THIS_FILE[] = __FILE__;
 * the user chooses to see the password:
 */
 
-const TCHAR *HIDDEN_PASSWORD = _T("**************");
+const wchar_t *HIDDEN_PASSWORD = L"**************";
 CString DboxMain::CS_DELETEENTRY;
 CString DboxMain::CS_DELETEGROUP;
 CString DboxMain::CS_RENAMEENTRY;
@@ -106,7 +106,7 @@ DboxMain::DboxMain(CWnd* pParent)
   m_bStartHiddenAndMinimized(false),
   m_bAlreadyToldUserNoSave(false), m_inExit(false),
   m_pCC(NULL), m_bBoldItem(false), m_bIsRestoring(false), m_bImageInLV(false),
-  m_lastclipboardaction(_T("")), m_pNotesDisplay(NULL),
+  m_lastclipboardaction(L""), m_pNotesDisplay(NULL),
   m_LastFoundTreeItem(NULL), m_bFilterActive(false), m_bNumPassedFiltering(0),
   m_currentfilterpool(FPOOL_LAST)
 {
@@ -137,7 +137,7 @@ DboxMain::DboxMain(CWnd* pParent)
   ClearData();
 
 #if !defined(POCKET_PC)
-  m_titlebar = _T("");
+  m_titlebar = L"";
   m_toolbarsSetup = FALSE;
 #endif
 }
@@ -584,7 +584,7 @@ void DboxMain::InitPasswordSafe()
   m_pFontTree = new CFont;
   CString szTreeFont = prefs->GetPref(PWSprefs::TreeFont).c_str();
 
-  if (szTreeFont != _T("")) {
+  if (szTreeFont != L"") {
     LOGFONT *ptreefont = new LOGFONT;
     memset(ptreefont, 0, sizeof(LOGFONT)); 
     ExtractFont(szTreeFont, ptreefont);
@@ -599,7 +599,7 @@ void DboxMain::InitPasswordSafe()
   // Set up fonts before playing with Tree/List views
   CString szPasswordFont = prefs->GetPref(PWSprefs::PasswordFont).c_str();
 
-  if (szPasswordFont != _T("")) {
+  if (szPasswordFont != L"") {
     LOGFONT *pPasswordfont = new LOGFONT;
     memset(pPasswordfont, 0, sizeof(LOGFONT)); 
     ExtractFont(szPasswordFont, pPasswordfont);
@@ -608,7 +608,7 @@ void DboxMain::InitPasswordSafe()
   }
 
   const CString lastView = prefs->GetPref(PWSprefs::LastView).c_str();
-  if (lastView != _T("list"))
+  if (lastView != L"list")
     OnTreeView();
   else
     OnListView();
@@ -682,7 +682,7 @@ void DboxMain::InitPasswordSafe()
 
   // create notes info display window
   m_pNotesDisplay = new CInfoDisplay;
-  if (!m_pNotesDisplay->Create(0, 0, _T(""), this)) {
+  if (!m_pNotesDisplay->Create(0, 0, L"", this)) {
     // failed
     delete m_pNotesDisplay;
     m_pNotesDisplay = NULL;
@@ -694,16 +694,16 @@ void DboxMain::InitPasswordSafe()
   // if there's a filter file named "autoload_filters.xml", 
   // do what its name implies...
   CString cs_temp = CString(PWSdirs::GetConfigDir().c_str()) +
-    _T("autoload_filters.xml");
+    L"autoload_filters.xml";
   if (pws_os::FileExists(cs_temp.GetString())) {
-    stringT strErrors;
-    stringT XSDFilename = PWSdirs::GetXMLDir() + _T("pwsafe_filter.xsd");
+    wstring strErrors;
+    wstring XSDFilename = PWSdirs::GetXMLDir() + L"pwsafe_filter.xsd";
 
 #if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
   // Expat is a non-validating parser - no use for Schema!
   if (!pws_os::FileExists(XSDFilename)) {
     CString cs_title, cs_msg;
-    cs_temp.Format(IDSC_MISSINGXSD, _T("pwsafe_filter.xsd"));
+    cs_temp.Format(IDSC_MISSINGXSD, L"pwsafe_filter.xsd");
     cs_msg.Format(IDS_CANTAUTOIMPORTFILTERS, cs_temp);
     cs_title.LoadString(IDSC_CANTVALIDATEXML);
     MessageBox(cs_msg, cs_title, MB_OK | MB_ICONSTOP);
@@ -714,8 +714,8 @@ void DboxMain::InitPasswordSafe()
     CWaitCursor waitCursor;  // This may take a while!
 
     MFCAsker q;
-    int rc = m_MapFilters.ImportFilterXMLFile(FPOOL_AUTOLOAD, _T(""),
-                                              stringT(cs_temp),
+    int rc = m_MapFilters.ImportFilterXMLFile(FPOOL_AUTOLOAD, L"",
+                                              wstring(cs_temp),
                                               XSDFilename.c_str(), strErrors, &q);
     waitCursor.Restore();  // Restore normal cursor
     if (rc != PWScore::SUCCESS){
@@ -859,7 +859,7 @@ void DboxMain::SetInitialDatabaseDisplay()
 
 void DboxMain::OnDestroy()
 {
-  const stringT filename(m_core.GetCurFile().c_str());
+  const wstring filename(m_core.GetCurFile().c_str());
   // The only way we're the locker is if it's locked & we're !readonly
   if (!filename.empty() && !m_core.IsReadOnly() && m_core.IsLockedFile(filename))
     m_core.UnlockFile(filename);
@@ -939,7 +939,7 @@ void DboxMain::OnItemDoubleClick(NMHDR * /* pNotifyStruct */, LRESULT *pLResult)
   // Continue if in ListView  or Leaf in TreeView
 
 #if defined(POCKET_PC)
-  if ( app.GetProfileInt(_T(PWS_REG_OPTIONS), _T("dcshowspassword"), FALSE) == FALSE ) {
+  if ( app.GetProfileInt(_T(PWS_REG_OPTIONS), L"dcshowspassword", FALSE) == FALSE ) {
     OnCopyPassword();
   } else {
     OnShowPassword();
@@ -1096,11 +1096,11 @@ void DboxMain::OnAbout()
 
 void DboxMain::OnPasswordSafeWebsite()
 {
-  HINSTANCE stat = ::ShellExecute(NULL, NULL, _T("http://passwordsafe.sourceforge.net/"),
-    NULL, _T("."), SW_SHOWNORMAL);
+  HINSTANCE stat = ::ShellExecute(NULL, NULL, L"http://passwordsafe.sourceforge.net/",
+    NULL, L".", SW_SHOWNORMAL);
   if (int(stat) <= 32) {
 #ifdef _DEBUG
-    AfxMessageBox(_T("oops"));
+    AfxMessageBox(L"oops");
 #endif
   }
 }
@@ -1109,8 +1109,8 @@ void DboxMain::OnU3ShopWebsite()
 {
 #ifdef DEMO
   ::ShellExecute(NULL, NULL,
-    _T("http://software.u3.com/Product_Details.aspx?productId=294&Selection=7"),
-    NULL, _T("."), SW_SHOWNORMAL);
+    L"http://software.u3.com/Product_Details.aspx?productId=294&Selection=7",
+    NULL, L".", SW_SHOWNORMAL);
   /*
   * TBD - point to language-specific sites:
   * FRENCH: Same as above plus "&Lang=f"
@@ -1182,10 +1182,10 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
       nBuild = HIWORD(dwBuildRevision);
     }
     if (nBuild == 0)
-      dbox_pkentry->m_appversion.Format(_T("Version %d.%02d%s"),
+      dbox_pkentry->m_appversion.Format(L"Version %d.%02d%s",
                                         nMajor, nMinor, SPECIAL_BUILD);
     else
-      dbox_pkentry->m_appversion.Format(_T("Version %d.%02d.%02d%s"),
+      dbox_pkentry->m_appversion.Format(L"Version %d.%02d.%02d%s",
                                         nMajor, nMinor, nBuild, SPECIAL_BUILD);
 
     app.DisableAccelerator();
@@ -1213,8 +1213,8 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
     DBGMSG("PasskeyEntry returns IDOK\n");
     const StringX curFile = dbox_pkentry->GetFileName().GetString();
     pcore->SetCurFile(curFile);
-    stringT locker(_T("")); // null init is important here
-    passkey = LPCTSTR(dbox_pkentry->GetPasskey());
+    wstring locker(L""); // null init is important here
+    passkey = LPCWSTR(dbox_pkentry->GetPasskey());
     // This dialog's setting of read-only overrides file dialog
     bool bIsReadOnly = dbox_pkentry->IsReadOnly();
     pcore->SetReadOnly(bIsReadOnly);
@@ -1243,14 +1243,14 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
     if (!locker.empty()) {
       CString cs_user_and_host, cs_PID;
       cs_user_and_host = (CString)locker.c_str();
-      int i_pid = cs_user_and_host.ReverseFind(_T(':'));
+      int i_pid = cs_user_and_host.ReverseFind(L':');
       if (i_pid > -1) {
         // If PID present then it is ":%08d" = 9 chars in length
         ASSERT((cs_user_and_host.GetLength() - i_pid) == 9);
         cs_PID.Format(IDS_PROCESSID, cs_user_and_host.Right(8));
         cs_user_and_host = cs_user_and_host.Left(i_pid);
       } else
-        cs_PID = _T("");
+        cs_PID = L"";
 
       const CString cs_title(MAKEINTRESOURCE(IDS_FILEINUSE));
       CString cs_msg;
@@ -1348,7 +1348,7 @@ DboxMain::OnToolTipText(UINT,
   // need to handle both ANSI and UNICODE versions of the message
   TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNMHDR;
   TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNMHDR;
-  TCHAR tc_FullText[4096];  // Maxsize of a string in a resource file
+  wchar_t tc_FullText[4096];  // Maxsize of a string in a resource file
   CString cs_TipText;
   UINT nID = pNMHDR->idFrom;
   if (pNMHDR->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
@@ -1424,10 +1424,10 @@ DboxMain::OnToolTipText(UINT,
 #ifndef _UNICODE
   if (pNMHDR->code == TTN_NEEDTEXTA)
 #if _MSC_VER >= 1400
-    _tcsncpy_s(pTTTA->szText, (sizeof(pTTTA->szText)/sizeof(pTTTA->szText[0])),
+    wcsncpy_s(pTTTA->szText, (sizeof(pTTTA->szText)/sizeof(pTTTA->szText[0])),
                cs_TipText, _TRUNCATE);
 #else
-    _tcsncpy(pTTTA->szText, cs_TipText, (sizeof(pTTTA->szText)/sizeof(pTTTA->szText[0])));
+    wcsncpy(pTTTA->szText, cs_TipText, (sizeof(pTTTA->szText)/sizeof(pTTTA->szText[0])));
 #endif
   else {
     int n = MultiByteToWideChar(CP_ACP, 0, cs_TipText, -1, pTTTW->szText,
@@ -1445,10 +1445,10 @@ DboxMain::OnToolTipText(UINT,
       pTTTA->szText[n - 1] = 0;
   } else
 #if _MSC_VER >= 1400
-    _tcsncpy_s(pTTTW->szText, (sizeof(pTTTW->szText)/sizeof(pTTTW->szText[0])),
+    wcsncpy_s(pTTTW->szText, (sizeof(pTTTW->szText)/sizeof(pTTTW->szText[0])),
     cs_TipText, _TRUNCATE);
 #else
-    _tcsncpy(pTTTW->szText, cs_TipText, (sizeof(pTTTW->szText)/sizeof(pTTTW->szText[0])));
+    wcsncpy(pTTTW->szText, cs_TipText, (sizeof(pTTTW->szText)/sizeof(pTTTW->szText[0])));
 #endif
 #endif // _UNICODE
 #endif // LONG_TOOLTIPS
@@ -1543,7 +1543,7 @@ void DboxMain::ConfigureSystemMenu()
   CMenu* sysMenu = GetSystemMenu( FALSE );
   const CString str(MAKEINTRESOURCE(IDS_ALWAYSONTOP));
 
-  sysMenu->InsertMenu( 5, MF_BYPOSITION | MF_STRING, ID_SYSMENU_ALWAYSONTOP, (LPCTSTR)str );
+  sysMenu->InsertMenu( 5, MF_BYPOSITION | MF_STRING, ID_SYSMENU_ALWAYSONTOP, (LPCWSTR)str );
 #endif
 }
 
@@ -1571,16 +1571,16 @@ void DboxMain::SetUpMenuStrings(CMenu *pPopupMenu)
 
   const int count = pPopupMenu->GetMenuItemCount();
 
-  TCHAR tcMenuString[_MAX_PATH] = {0};
+  wchar_t tcMenuString[_MAX_PATH] = {0};
   MENUITEMINFO miinfo;
   memset(&miinfo, 0x00, sizeof(MENUITEMINFO));
   miinfo.cbSize = sizeof(MENUITEMINFO);
   miinfo.fMask = MIIM_ID | MIIM_STRING;
   miinfo.dwTypeData = tcMenuString;  
 
-  std::bitset<10> bsMenuItems;
+  bitset<10> bsMenuItems;
   for (int i = 0; i < count; i++) {
-    ZeroMemory(tcMenuString, _MAX_PATH * sizeof(TCHAR));
+    ZeroMemory(tcMenuString, _MAX_PATH * sizeof(wchar_t));
     miinfo.cch = _MAX_PATH;
     pPopupMenu->GetMenuItemInfo(i, &miinfo, TRUE);
     if (miinfo.wID >= 1) {
@@ -1704,7 +1704,7 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID)
         // Add missing menu items (deleted when menu shown and group selected)
         pPopupMenu->InsertMenu(ID_EDITMENU_SEPARATOR1, MF_BYCOMMAND | MF_ENABLED | MF_STRING,
                                ID_MENUITEM_DUPLICATEENTRY, CS_DUPLICATEENTRY);
-        pPopupMenu->AppendMenu(MF_SEPARATOR, ID_EDITMENU_SEPARATOR3, (LPCTSTR)NULL);
+        pPopupMenu->AppendMenu(MF_SEPARATOR, ID_EDITMENU_SEPARATOR3, (LPCWSTR)NULL);
         pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING, ID_MENUITEM_COPYPASSWORD, CS_COPYPASSWORD);
         pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING, ID_MENUITEM_COPYUSERNAME, CS_COPYUSERNAME);
         pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING, ID_MENUITEM_COPYNOTESFLD, CS_COPYNOTESFLD);
@@ -2043,7 +2043,7 @@ void DboxMain::UnMinimize(bool update_windows)
       case PWScore::SUCCESS:
         rc2 = m_core.ReadCurFile(passkey);
 #if !defined(POCKET_PC)
-        m_titlebar = PWSUtil::NormalizeTTT(_T("Password Safe - ") +
+        m_titlebar = PWSUtil::NormalizeTTT(L"Password Safe - " +
                                            m_core.GetCurFile()).c_str();
 #endif
         break;
@@ -2341,14 +2341,14 @@ void DboxMain::UpdateStatusBar()
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_CLIPBOARDACTION, uiID, uiStyle, rectPane.Width());
       m_statusBar.SetPaneText(CPWStatusBar::SB_CLIPBOARDACTION, m_lastclipboardaction);
 
-      s = m_core.IsChanged() ? _T("*") : _T(" ");
-      s += m_core.HaveDBPrefsChanged() ? _T("°") : _T(" ");
+      s = m_core.IsChanged() ? L"*" : L" ";
+      s += m_core.HaveDBPrefsChanged() ? L"°" : L" ";
       dc.DrawText(s, &rectPane, DT_CALCRECT);
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_MODIFIED, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_MODIFIED, uiID, uiStyle, rectPane.Width());
       m_statusBar.SetPaneText(CPWStatusBar::SB_MODIFIED, s);
 
-      s = m_core.IsReadOnly() ? _T("R-O") : _T("R/W");
+      s = m_core.IsReadOnly() ? L"R-O" : L"R/W";
       dc.DrawText(s, &rectPane, DT_CALCRECT);
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_READONLY, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_READONLY, uiID, uiStyle, rectPane.Width());
@@ -2367,23 +2367,23 @@ void DboxMain::UpdateStatusBar()
       s.LoadString(IDS_STATCOMPANY);
       m_statusBar.SetPaneText(CPWStatusBar::SB_DBLCLICK, s);
 
-      dc.DrawText(_T(" "), &rectPane, DT_CALCRECT);
+      dc.DrawText(L" ", &rectPane, DT_CALCRECT);
 
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_CLIPBOARDACTION, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_CLIPBOARDACTION, uiID, uiStyle, rectPane.Width());
-      m_statusBar.SetPaneText(CPWStatusBar::SB_CLIPBOARDACTION, _T(" "));
+      m_statusBar.SetPaneText(CPWStatusBar::SB_CLIPBOARDACTION, L" ");
 
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_MODIFIED, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_MODIFIED, uiID, uiStyle, rectPane.Width());
-      m_statusBar.SetPaneText(CPWStatusBar::SB_MODIFIED, _T(" "));
+      m_statusBar.SetPaneText(CPWStatusBar::SB_MODIFIED, L" ");
 
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_READONLY, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_READONLY, uiID, uiStyle, rectPane.Width());
-      m_statusBar.SetPaneText(CPWStatusBar::SB_READONLY, _T(" "));
+      m_statusBar.SetPaneText(CPWStatusBar::SB_READONLY, L" ");
 
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_NUM_ENT, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_NUM_ENT, uiID, uiStyle, rectPane.Width());
-      m_statusBar.SetPaneText(CPWStatusBar::SB_NUM_ENT, _T(" "));
+      m_statusBar.SetPaneText(CPWStatusBar::SB_NUM_ENT, L" ");
     }
   }
 
@@ -2392,7 +2392,7 @@ void DboxMain::UpdateStatusBar()
   title is fresh...
   */
 #if !defined(POCKET_PC)
-  SetWindowText(LPCTSTR(m_titlebar));
+  SetWindowText(LPCWSTR(m_titlebar));
 #endif
 }
 
@@ -2595,7 +2595,7 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
 
   if (it == m_MapUICommandTable.end()) {
     // Don't have it - allow by default
-    TRACE(_T("m_UICommandTable is out of date - i18n issue?"));
+    TRACE(L"m_UICommandTable is out of date - i18n issue?");
     return TRUE;
   }
 

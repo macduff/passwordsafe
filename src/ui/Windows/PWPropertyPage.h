@@ -27,7 +27,7 @@ class CPWPropertyPage : public CPropertyPage
 public:
   CPWPropertyPage(UINT nID) : CPropertyPage(nID) {}
   virtual ~CPWPropertyPage() {}
-  virtual const TCHAR *GetHelpName() const = 0;
+  virtual const wchar_t *GetHelpName() const = 0;
 };
 
 #endif /* __PWPROPERTYPAGE_H */

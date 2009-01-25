@@ -55,17 +55,14 @@ distribution.
 	#include <string>
  	#include <iostream>
 	#include <sstream>
-#ifdef UNICODE
-#define TIXML_STRING		std::wstring
-#define TIXML_OSTREAM   std::wostream
-#else
-#define TIXML_STRING		std::string
-#define TIXML_OSTREAM   std::ostream
-#endif /* UNICODE */
+  #define TIXML_STRING		wstring
+  #define TIXML_OSTREAM   wostream
 #else
 	#include "tinystr.h"
 	#define TIXML_STRING		TiXmlString
 #endif
+
+using namespace std;
 
 // Deprecated library function hell. Compilers want to use the
 // new safe versions. This probably doesn't fully address the problem,
@@ -76,9 +73,9 @@ distribution.
 #ifdef TIXML_SAFE
 	#if defined(_MSC_VER) && (_MSC_VER >= 1400 )
 		// Microsoft visual studio, version 2005 and higher.
-		#define TIXML_SNPRINTF _sntprintf_s
-		#define TIXML_SNSCANF  _sntscanf_s
-		#define TIXML_SSCANF  _stscanf_s
+		#define TIXML_SNPRINTF _snwprintf_s
+		#define TIXML_SNSCANF  _snwscanf_s
+		#define TIXML_SSCANF  swscanf_s
 	#elif defined(_MSC_VER) && (_MSC_VER >= 1200 )
 		// Microsoft visual studio, version 6 and higher.
 		//#pragma message( "Using _sn* functions." )
@@ -88,15 +85,9 @@ distribution.
 	#elif defined(__GNUC__) && (__GNUC__ >= 3 )
 		// GCC version 3 and higher.s
 		//#warning( "Using sn* functions." )
-        #ifdef UNICODE
-		  #define TIXML_SNPRINTF swprintf
-		  #define TIXML_SNSCANF  snscanf
-          #define TIXML_SSCANF  pws_os::sswscanf
-        #else
-		  #define TIXML_SNPRINTF snprintf
-		  #define TIXML_SNSCANF  snscanf
-		  #define TIXML_SSCANF  sscanf
-        #endif /* UNICODE */
+	  #define TIXML_SNPRINTF swprintf
+	  #define TIXML_SNSCANF  snscanf
+    #define TIXML_SSCANF  pws_os::sswscanf
 	#endif
 #endif	
 
@@ -221,7 +212,7 @@ public:
 	virtual ~TiXmlBase()			{}
 
 	/**	All TinyXml classes can print themselves to a filestream
-		or the string class (TiXmlString in non-STL mode, std::string
+		or the string class (TiXmlString in non-STL mode, string
 		in STL mode.) Either or both cfile and str can be null.
 		
 		This is a formatted print, and will insert 
@@ -271,7 +262,7 @@ public:
 	// in the UTF-8 sequence.
 	static const int utf8ByteTable[256];
 
-	virtual const TCHAR* Parse(	const TCHAR* p, 
+	virtual const wchar_t* Parse(	const wchar_t* p, 
 								TiXmlParsingData* data, 
 								TiXmlEncoding encoding /*= TIXML_ENCODING_UNKNOWN */ ) = 0;
 
@@ -305,47 +296,47 @@ public:
 
 protected:
 
-	static const TCHAR* SkipWhiteSpace( const TCHAR*, TiXmlEncoding encoding );
-	inline static bool IsWhiteSpace( TCHAR c )		
+	static const wchar_t* SkipWhiteSpace( const wchar_t*, TiXmlEncoding encoding );
+	inline static bool IsWhiteSpace( wchar_t c )		
 	{
     if ((unsigned)(c + 1) <= 256)
-      return ( _istspace( c ) || c == TCHAR('\n') || c == TCHAR('\r') );
+      return ( iswspace( c ) || c == L'\n' || c == L'\r' );
     return false;
 	}
 	inline static bool IsWhiteSpace( int c )
 	{
 		if ( c < 256 )
-			return IsWhiteSpace( (TCHAR) c );
+			return IsWhiteSpace( (wchar_t) c );
 		return false;	// Again, only truly correct for English/Latin...but usually works.
 	}
 
 	#ifdef TIXML_USE_STL
-	static bool	StreamWhiteSpace( std::istream * in, TIXML_STRING * tag );
-	static bool StreamTo( std::istream * in, int character, TIXML_STRING * tag );
+	static bool	StreamWhiteSpace( istream * in, TIXML_STRING * tag );
+	static bool StreamTo( istream * in, int character, TIXML_STRING * tag );
 	#endif
 
 	/*	Reads an XML name into the string provided. Returns
 		a pointer just past the last character of the name,
 		or 0 if the function has an error.
 	*/
-	static const TCHAR* ReadName( const TCHAR* p, TIXML_STRING* name, TiXmlEncoding encoding );
+	static const wchar_t* ReadName( const wchar_t* p, TIXML_STRING* name, TiXmlEncoding encoding );
 
 	/*	Reads text. Returns a pointer past the given end tag.
 		Wickedly complex options, but it keeps the (sensitive) code in one place.
 	*/
-	static const TCHAR* ReadText(	const TCHAR* in,				// where to start
+	static const wchar_t* ReadText(	const wchar_t* in,				// where to start
 									TIXML_STRING* text,			// the string read
 									bool ignoreWhiteSpace,		// whether to keep the white space
-									const TCHAR* endTag,			// what ends this text
+									const wchar_t* endTag,			// what ends this text
 									bool ignoreCase,			// whether to ignore case in the end tag
 									TiXmlEncoding encoding );	// the current encoding
 
 	// If an entity has been found, transform it into a character.
-	static const TCHAR* GetEntity( const TCHAR* in, TCHAR* value, int* length, TiXmlEncoding encoding );
+	static const wchar_t* GetEntity( const wchar_t* in, wchar_t* value, int* length, TiXmlEncoding encoding );
 
 	// Get a character, while interpreting entities.
 	// The length can be from 0 to 4 bytes.
-	inline static const TCHAR* GetChar( const TCHAR* p, TCHAR* _value, int* length, TiXmlEncoding encoding )
+	inline static const wchar_t* GetChar( const wchar_t* p, wchar_t* _value, int* length, TiXmlEncoding encoding )
 	{
 		assert( p );
 		if ( encoding == TIXML_ENCODING_UTF8 )
@@ -360,7 +351,7 @@ protected:
 
 		if ( *length == 1 )
 		{
-			if ( *p == TCHAR('&') )
+			if ( *p == L'&' )
 				return GetEntity( p, _value, length, encoding );
 			*_value = *p;
 			return p+1;
@@ -384,12 +375,12 @@ protected:
 	// Return true if the next characters in the stream are any of the endTag sequences.
 	// Ignore case only works for english, and should only be relied on when comparing
 	// to English words: StringEqual( p, "version", true ) is fine.
-	static bool StringEqual(	const TCHAR* p,
-								const TCHAR* endTag,
+	static bool StringEqual(	const wchar_t* p,
+								const wchar_t* endTag,
 								bool ignoreCase,
 								TiXmlEncoding encoding );
 
-	static const TCHAR* errorString[ TIXML_ERROR_STRING_COUNT ];
+	static const wchar_t* errorString[ TIXML_ERROR_STRING_COUNT ];
 
 	TiXmlCursor location;
 
@@ -398,8 +389,8 @@ protected:
 	
 	// None of these methods are reliable for any language except English.
 	// Good for approximation, not great for accuracy.
-	static int IsAlpha( TCHAR anyByte, TiXmlEncoding encoding );
-	static int IsAlphaNum( TCHAR anyByte, TiXmlEncoding encoding );
+	static int IsAlpha( wchar_t anyByte, TiXmlEncoding encoding );
+	static int IsAlphaNum( wchar_t anyByte, TiXmlEncoding encoding );
 	inline static int ToLower( int v, TiXmlEncoding encoding )
 	{
 		if ( encoding == TIXML_ENCODING_UTF8 )
@@ -412,7 +403,7 @@ protected:
 			return tolower( v );
 		}
 	}
-	static void ConvertUTF32ToUTF8( unsigned long input, TCHAR* output, int* length );
+	static void ConvertUTF32ToUTF8( unsigned long input, wchar_t* output, int* length );
 
 private:
 	TiXmlBase( const TiXmlBase& );				// not implemented.
@@ -420,9 +411,9 @@ private:
 
 	struct Entity
 	{
-		const TCHAR*     str;
+		const wchar_t*     str;
 		unsigned int	strLength;
-		TCHAR		    chr;
+		wchar_t		    chr;
 	};
 	enum
 	{
@@ -452,7 +443,7 @@ public:
 	    /** An input stream operator, for every class. Tolerant of newlines and
 		    formatting, but doesn't expect them.
 	    */
-	    friend std::istream& operator >> (std::istream& in, TiXmlNode& base);
+	    friend istream& operator >> (istream& in, TiXmlNode& base);
 
 	    /** An output stream operator, for every class. Note that this outputs
 		    without any newlines or formatting, as opposed to Print(), which
@@ -472,7 +463,7 @@ public:
 	    */	
 	    friend TIXML_OSTREAM& operator<< (TIXML_OSTREAM& out, const TiXmlNode& base);
 
-		/// Appends the XML node or attribute to a std::string.
+		/// Appends the XML node or attribute to a string.
 		friend TIXML_STRING& operator<< (TIXML_STRING& out, const TiXmlNode& base );
 
 	#endif
@@ -505,10 +496,10 @@ public:
 
 		The subclasses will wrap this function.
 	*/
-	const TCHAR *Value() const { return value.c_str (); }
+	const wchar_t *Value() const { return value.c_str (); }
 
   #ifdef TIXML_USE_STL
-	/** Return Value() as a std::string. If you only use STL,
+	/** Return Value() as a string. If you only use STL,
 	    this is more efficient than calling Value().
 		Only available in STL mode.
 	*/
@@ -526,10 +517,10 @@ public:
 		Text:		the text string
 		@endverbatim
 	*/
-	void SetValue(const TCHAR * _value) { value = _value;}
+	void SetValue(const wchar_t * _value) { value = _value;}
 
   #ifdef TIXML_USE_STL
-	/// STL std::string form.
+	/// STL string form.
 	void SetValue( const TIXML_STRING& _value )	{ value = _value; }
 	#endif
 
@@ -542,9 +533,9 @@ public:
 
 	const TiXmlNode* FirstChild()	const	{ return firstChild; }		///< The first child of this node. Will be null if there are no children.
 	TiXmlNode* FirstChild()					{ return firstChild; }
-	const TiXmlNode* FirstChild( const TCHAR * value ) const;			///< The first child of this node with the matching 'value'. Will be null if none found.
+	const TiXmlNode* FirstChild( const wchar_t * value ) const;			///< The first child of this node with the matching 'value'. Will be null if none found.
 	/// The first child of this node with the matching 'value'. Will be null if none found.
-	TiXmlNode* FirstChild( const TCHAR * _value ) {
+	TiXmlNode* FirstChild( const wchar_t * _value ) {
 		// Call through to the const version - safe since nothing is changed. Exiting syntax: cast this to a const (always safe)
 		// call the method, cast the return back to non-const.
 		return const_cast< TiXmlNode* > ((const_cast< const TiXmlNode* >(this))->FirstChild( _value ));
@@ -552,16 +543,16 @@ public:
 	const TiXmlNode* LastChild() const	{ return lastChild; }		/// The last child of this node. Will be null if there are no children.
 	TiXmlNode* LastChild()	{ return lastChild; }
 	
-	const TiXmlNode* LastChild( const TCHAR * value ) const;			/// The last child of this node matching 'value'. Will be null if there are no children.
-	TiXmlNode* LastChild( const TCHAR * _value ) {
+	const TiXmlNode* LastChild( const wchar_t * value ) const;			/// The last child of this node matching 'value'. Will be null if there are no children.
+	TiXmlNode* LastChild( const wchar_t * _value ) {
 		return const_cast< TiXmlNode* > ((const_cast< const TiXmlNode* >(this))->LastChild( _value ));
 	}
 
     #ifdef TIXML_USE_STL
-	const TiXmlNode* FirstChild( const std::string& _value ) const	{	return FirstChild (_value.c_str ());	}	///< STL std::string form.
-	TiXmlNode* FirstChild( const std::string& _value )				{	return FirstChild (_value.c_str ());	}	///< STL std::string form.
-	const TiXmlNode* LastChild( const std::string& _value ) const	{	return LastChild (_value.c_str ());	}	///< STL std::string form.
-	TiXmlNode* LastChild( const std::string& _value )				{	return LastChild (_value.c_str ());	}	///< STL std::string form.
+	const TiXmlNode* FirstChild( const string& _value ) const	{	return FirstChild (_value.c_str ());	}	///< STL string form.
+	TiXmlNode* FirstChild( const string& _value )				{	return FirstChild (_value.c_str ());	}	///< STL string form.
+	const TiXmlNode* LastChild( const string& _value ) const	{	return LastChild (_value.c_str ());	}	///< STL string form.
+	TiXmlNode* LastChild( const string& _value )				{	return LastChild (_value.c_str ());	}	///< STL string form.
 	#endif
 
 	/** An alternate way to walk the children of a node.
@@ -586,14 +577,14 @@ public:
 	}
 
 	/// This flavor of IterateChildren searches for children with a particular 'value'
-	const TiXmlNode* IterateChildren( const TCHAR * value, const TiXmlNode* previous ) const;
-	TiXmlNode* IterateChildren( const TCHAR * _value, const TiXmlNode* previous ) {
+	const TiXmlNode* IterateChildren( const wchar_t * value, const TiXmlNode* previous ) const;
+	TiXmlNode* IterateChildren( const wchar_t * _value, const TiXmlNode* previous ) {
 		return const_cast< TiXmlNode* >( (const_cast< const TiXmlNode* >(this))->IterateChildren( _value, previous ) );
 	}
 
     #ifdef TIXML_USE_STL
-	const TiXmlNode* IterateChildren( const std::string& _value, const TiXmlNode* previous ) const	{	return IterateChildren (_value.c_str (), previous);	}	///< STL std::string form.
-	TiXmlNode* IterateChildren( const std::string& _value, const TiXmlNode* previous ) {	return IterateChildren (_value.c_str (), previous);	}	///< STL std::string form.
+	const TiXmlNode* IterateChildren( const string& _value, const TiXmlNode* previous ) const	{	return IterateChildren (_value.c_str (), previous);	}	///< STL string form.
+	TiXmlNode* IterateChildren( const string& _value, const TiXmlNode* previous ) {	return IterateChildren (_value.c_str (), previous);	}	///< STL string form.
 	#endif
 
 	/** Add a new node related to this. Adds a child past the LastChild.
@@ -636,16 +627,16 @@ public:
 	TiXmlNode* PreviousSibling()						{ return prev; }
 
 	/// Navigate to a sibling node.
-	const TiXmlNode* PreviousSibling( const TCHAR * ) const;
-	TiXmlNode* PreviousSibling( const TCHAR *_prev ) {
+	const TiXmlNode* PreviousSibling( const wchar_t * ) const;
+	TiXmlNode* PreviousSibling( const wchar_t *_prev ) {
 		return const_cast< TiXmlNode* >( (const_cast< const TiXmlNode* >(this))->PreviousSibling( _prev ) );
 	}
 
     #ifdef TIXML_USE_STL
-	const TiXmlNode* PreviousSibling( const std::string& _value ) const	{	return PreviousSibling (_value.c_str ());	}	///< STL std::string form.
-	TiXmlNode* PreviousSibling( const std::string& _value ) 			{	return PreviousSibling (_value.c_str ());	}	///< STL std::string form.
-	const TiXmlNode* NextSibling( const std::string& _value) const		{	return NextSibling (_value.c_str ());	}	///< STL std::string form.
-	TiXmlNode* NextSibling( const std::string& _value) 					{	return NextSibling (_value.c_str ());	}	///< STL std::string form.
+	const TiXmlNode* PreviousSibling( const string& _value ) const	{	return PreviousSibling (_value.c_str ());	}	///< STL string form.
+	TiXmlNode* PreviousSibling( const string& _value ) 			{	return PreviousSibling (_value.c_str ());	}	///< STL string form.
+	const TiXmlNode* NextSibling( const string& _value) const		{	return NextSibling (_value.c_str ());	}	///< STL string form.
+	TiXmlNode* NextSibling( const string& _value) 					{	return NextSibling (_value.c_str ());	}	///< STL string form.
 	#endif
 
 	/// Navigate to a sibling node.
@@ -653,8 +644,8 @@ public:
 	TiXmlNode* NextSibling()							{ return next; }
 
 	/// Navigate to a sibling node with the given 'value'.
-	const TiXmlNode* NextSibling( const TCHAR * ) const;
-	TiXmlNode* NextSibling( const TCHAR * _next ) {
+	const TiXmlNode* NextSibling( const wchar_t * ) const;
+	TiXmlNode* NextSibling( const wchar_t * _next ) {
 		return const_cast< TiXmlNode* >( (const_cast< const TiXmlNode* >(this))->NextSibling( _next ) );
 	}
 
@@ -671,14 +662,14 @@ public:
 		Calls NextSibling and ToElement. Will skip all non-Element
 		nodes. Returns 0 if there is not another element.
 	*/
-	const TiXmlElement* NextSiblingElement( const TCHAR * ) const;
-	TiXmlElement* NextSiblingElement( const TCHAR *_next ) {
+	const TiXmlElement* NextSiblingElement( const wchar_t * ) const;
+	TiXmlElement* NextSiblingElement( const wchar_t *_next ) {
 		return const_cast< TiXmlElement* >( (const_cast< const TiXmlNode* >(this))->NextSiblingElement( _next ) );
 	}
 
     #ifdef TIXML_USE_STL
-	const TiXmlElement* NextSiblingElement( const std::string& _value) const	{	return NextSiblingElement (_value.c_str ());	}	///< STL std::string form.
-	TiXmlElement* NextSiblingElement( const std::string& _value)				{	return NextSiblingElement (_value.c_str ());	}	///< STL std::string form.
+	const TiXmlElement* NextSiblingElement( const string& _value) const	{	return NextSiblingElement (_value.c_str ());	}	///< STL string form.
+	TiXmlElement* NextSiblingElement( const string& _value)				{	return NextSiblingElement (_value.c_str ());	}	///< STL string form.
 	#endif
 
 	/// Convenience function to get through elements.
@@ -688,14 +679,14 @@ public:
 	}
 
 	/// Convenience function to get through elements.
-	const TiXmlElement* FirstChildElement( const TCHAR * _value ) const;
-	TiXmlElement* FirstChildElement( const TCHAR * _value ) {
+	const TiXmlElement* FirstChildElement( const wchar_t * _value ) const;
+	TiXmlElement* FirstChildElement( const wchar_t * _value ) {
 		return const_cast< TiXmlElement* >( (const_cast< const TiXmlNode* >(this))->FirstChildElement( _value ) );
 	}
 
     #ifdef TIXML_USE_STL
-	const TiXmlElement* FirstChildElement( const std::string& _value ) const	{	return FirstChildElement (_value.c_str ());	}	///< STL std::string form.
-	TiXmlElement* FirstChildElement( const std::string& _value )				{	return FirstChildElement (_value.c_str ());	}	///< STL std::string form.
+	const TiXmlElement* FirstChildElement( const string& _value ) const	{	return FirstChildElement (_value.c_str ());	}	///< STL string form.
+	TiXmlElement* FirstChildElement( const string& _value )				{	return FirstChildElement (_value.c_str ());	}	///< STL string form.
 	#endif
 
 	/** Query the type (as an enumerated value, above) of this node.
@@ -767,11 +758,11 @@ protected:
 
 	#ifdef TIXML_USE_STL
 	    // The real work of the input operator.
-	virtual void StreamIn( std::istream* in, TIXML_STRING* tag ) = 0;
+	virtual void StreamIn( istream* in, TIXML_STRING* tag ) = 0;
 	#endif
 
 	// Figure out what is at *p, and parse it. Returns null if it is not an xml node.
-	TiXmlNode* Identify( const TCHAR* start, TiXmlEncoding encoding );
+	TiXmlNode* Identify( const wchar_t* start, TiXmlEncoding encoding );
 
 	TiXmlNode*		parent;
 	NodeType		type;
@@ -810,7 +801,7 @@ public:
 	}
 
 	#ifdef TIXML_USE_STL
-	/// std::string constructor.
+	/// string constructor.
 	TiXmlAttribute( const TIXML_STRING& _name, const TIXML_STRING& _value )
 	{
 		name = _name;
@@ -821,7 +812,7 @@ public:
 	#endif
 
 	/// Construct an attribute with a name and value.
-	TiXmlAttribute( const TCHAR * _name, const TCHAR * _value )
+	TiXmlAttribute( const wchar_t * _name, const wchar_t * _value )
 	{
 		name = _name;
 		value = _value;
@@ -829,8 +820,8 @@ public:
 		prev = next = 0;
 	}
 
-	const TCHAR*		Name()  const		{ return name.c_str(); }		///< Return the name of this attribute.
-	const TCHAR*		Value() const		{ return value.c_str(); }		///< Return the value of this attribute.
+	const wchar_t*		Name()  const		{ return name.c_str(); }		///< Return the name of this attribute.
+	const wchar_t*		Value() const		{ return value.c_str(); }		///< Return the value of this attribute.
 	#ifdef TIXML_USE_STL
 	const TIXML_STRING& ValueStr() const	{ return value; }     ///< Return the value of this attribute.
 	#endif
@@ -853,16 +844,16 @@ public:
 	/// QueryDoubleValue examines the value string. See QueryIntValue().
 	int QueryDoubleValue( double* _value ) const;
 
-	void SetName( const TCHAR* _name )	{ name = _name; }				///< Set the name of this attribute.
-	void SetValue( const TCHAR* _value )	{ value = _value; }				///< Set the value.
+	void SetName( const wchar_t* _name )	{ name = _name; }				///< Set the name of this attribute.
+	void SetValue( const wchar_t* _value )	{ value = _value; }				///< Set the value.
 
 	void SetIntValue( int _value );										///< Set the value from an integer.
 	void SetDoubleValue( double _value );								///< Set the value from a double.
 
     #ifdef TIXML_USE_STL
-	/// STL std::string form.
+	/// STL string form.
 	void SetName( const TIXML_STRING& _name )	{ name = _name; }	
-	/// STL std::string form.	
+	/// STL string form.	
 	void SetValue( const TIXML_STRING& _value )	{ value = _value; }
 	#endif
 
@@ -883,9 +874,9 @@ public:
 	bool operator>( const TiXmlAttribute& rhs )  const { return name > rhs.name; }
 
 	/*	Attribute parsing starts: first letter of the name
-						 returns: the next TCHAR after the value end quote
+						 returns: the next wchar_t after the value end quote
 	*/
-	virtual const TCHAR* Parse( const TCHAR* p, TiXmlParsingData* data, TiXmlEncoding encoding );
+	virtual const wchar_t* Parse( const wchar_t* p, TiXmlParsingData* data, TiXmlEncoding encoding );
 
 	// Prints this Attribute to a FILE stream.
 	virtual void Print( FILE* cfile, int depth ) const {
@@ -935,8 +926,8 @@ public:
 	const TiXmlAttribute* Last() const		{ return ( sentinel.prev == &sentinel ) ? 0 : sentinel.prev; }
 	TiXmlAttribute* Last()					{ return ( sentinel.prev == &sentinel ) ? 0 : sentinel.prev; }
 
-	const TiXmlAttribute*	Find( const TCHAR* _name ) const;
-	TiXmlAttribute*	Find( const TCHAR* _name ) {
+	const TiXmlAttribute*	Find( const wchar_t* _name ) const;
+	TiXmlAttribute*	Find( const wchar_t* _name ) {
 		return const_cast< TiXmlAttribute* >( (const_cast< const TiXmlAttributeSet* >(this))->Find( _name ) );
 	}
 	#ifdef TIXML_USE_STL
@@ -965,10 +956,10 @@ class TiXmlElement : public TiXmlNode
 {
 public:
 	/// Construct an element.
-	TiXmlElement (const TCHAR * in_value);
+	TiXmlElement (const wchar_t * in_value);
 
 	#ifdef TIXML_USE_STL
-	/// std::string constructor.
+	/// string constructor.
 	TiXmlElement( const TIXML_STRING& _value );
 	#endif
 
@@ -981,7 +972,7 @@ public:
 	/** Given an attribute name, Attribute() returns the value
 		for the attribute of that name, or null if none exists.
 	*/
-	const TCHAR* Attribute( const TCHAR* name ) const;
+	const wchar_t* Attribute( const wchar_t* name ) const;
 
 	/** Given an attribute name, Attribute() returns the value
 		for the attribute of that name, or null if none exists.
@@ -989,7 +980,7 @@ public:
 		the integer value will be put in the return 'i', if 'i'
 		is non-null.
 	*/
-	const TCHAR* Attribute( const TCHAR* name, int* i ) const;
+	const wchar_t* Attribute( const wchar_t* name, int* i ) const;
 
 	/** Given an attribute name, Attribute() returns the value
 		for the attribute of that name, or null if none exists.
@@ -997,7 +988,7 @@ public:
 		the double value will be put in the return 'd', if 'd'
 		is non-null.
 	*/
-	const TCHAR* Attribute( const TCHAR* name, double* d ) const;
+	const wchar_t* Attribute( const wchar_t* name, double* d ) const;
 
 	/** QueryIntAttribute examines the attribute - it is an alternative to the
 		Attribute() method with richer error checking.
@@ -1006,11 +997,11 @@ public:
 		an integer, it returns TIXML_WRONG_TYPE. If the attribute
 		does not exist, then TIXML_NO_ATTRIBUTE is returned.
 	*/	
-	int QueryIntAttribute( const TCHAR* name, int* _value ) const;
+	int QueryIntAttribute( const wchar_t* name, int* _value ) const;
 	/// QueryDoubleAttribute examines the attribute - see QueryIntAttribute().
-	int QueryDoubleAttribute( const TCHAR* name, double* _value ) const;
+	int QueryDoubleAttribute( const wchar_t* name, double* _value ) const;
 	/// QueryFloatAttribute examines the attribute - see QueryIntAttribute().
-	int QueryFloatAttribute( const TCHAR* name, float* _value ) const {
+	int QueryFloatAttribute( const wchar_t* name, float* _value ) const {
 		double d;
 		int result = QueryDoubleAttribute( name, &d );
 		if ( result == TIXML_SUCCESS ) {
@@ -1034,19 +1025,19 @@ public:
 		if ( !node )
 			return TIXML_NO_ATTRIBUTE;
 
-		std::stringstream sstream( node->ValueStr() );
+		stringstream sstream( node->ValueStr() );
 		sstream >> *outValue;
 		if ( !sstream.fail() )
 			return TIXML_SUCCESS;
 		return TIXML_WRONG_TYPE;
 	}
 	/*
-	 This is - in theory - a bug fix for "QueryValueAtribute returns truncated std::string"
+	 This is - in theory - a bug fix for "QueryValueAtribute returns truncated string"
 	 but template specialization is hard to get working cross-compiler. Leaving the bug for now.
 	 
-	// The above will fail for std::string because the space character is used as a seperator.
-	// Specialize for strings. Bug [ 1695429 ] QueryValueAtribute returns truncated std::string
-	template<> int QueryValueAttribute( const std::string& name, std::string* outValue ) const
+	// The above will fail for string because the space character is used as a seperator.
+	// Specialize for strings. Bug [ 1695429 ] QueryValueAtribute returns truncated string
+	template<> int QueryValueAttribute( const string& name, string* outValue ) const
 	{
 		const TiXmlAttribute* node = attributeSet.Find( name );
 		if ( !node )
@@ -1060,7 +1051,7 @@ public:
 	/** Sets an attribute of name to a given value. The attribute
 		will be created if it does not exist, or changed if it does.
 	*/
-	void SetAttribute( const TCHAR* name, const TCHAR * _value );
+	void SetAttribute( const wchar_t* name, const wchar_t * _value );
 
     #ifdef TIXML_USE_STL
 	const TIXML_STRING* Attribute( const TIXML_STRING& name ) const;
@@ -1069,27 +1060,27 @@ public:
 	int QueryIntAttribute( const TIXML_STRING& name, int* _value ) const;
 	int QueryDoubleAttribute( const TIXML_STRING& name, double* _value ) const;
 
-	/// STL std::string form.
+	/// STL string form.
 	void SetAttribute( const TIXML_STRING& name, const TIXML_STRING& _value );
-	///< STL std::string form.
+	///< STL string form.
 	void SetAttribute( const TIXML_STRING& name, int _value );
 	#endif
 
 	/** Sets an attribute of name to a given value. The attribute
 		will be created if it does not exist, or changed if it does.
 	*/
-	void SetAttribute( const TCHAR * name, int value );
+	void SetAttribute( const wchar_t * name, int value );
 
 	/** Sets an attribute of name to a given value. The attribute
 		will be created if it does not exist, or changed if it does.
 	*/
-	void SetDoubleAttribute( const TCHAR * name, double value );
+	void SetDoubleAttribute( const wchar_t * name, double value );
 
 	/** Deletes an attribute with the given name.
 	*/
-	void RemoveAttribute( const TCHAR * name );
+	void RemoveAttribute( const wchar_t * name );
     #ifdef TIXML_USE_STL
-	void RemoveAttribute( const std::string& name )	{	RemoveAttribute (name.c_str ());	}	///< STL std::string form.
+	void RemoveAttribute( const string& name )	{	RemoveAttribute (name.c_str ());	}	///< STL string form.
 	#endif
 
 	const TiXmlAttribute* FirstAttribute() const	{ return attributeSet.First(); }		///< Access the first attribute in this element.
@@ -1129,7 +1120,7 @@ public:
 				 similarly named TiXmlHandle::Text() and TiXmlNode::ToText() which are 
 				 safe type casts on the referenced node.
 	*/
-	const TCHAR* GetText() const;
+	const wchar_t* GetText() const;
 
 	/// Creates a new Element and returns it - the returned element is a copy.
 	virtual TiXmlNode* Clone() const;
@@ -1139,7 +1130,7 @@ public:
 	/*	Attribtue parsing starts: next char past '<'
 						 returns: next char past '>'
 	*/
-	virtual const TCHAR* Parse( const TCHAR* p, TiXmlParsingData* data, TiXmlEncoding encoding );
+	virtual const wchar_t* Parse( const wchar_t* p, TiXmlParsingData* data, TiXmlEncoding encoding );
 
 	virtual const TiXmlElement*     ToElement()     const { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 	virtual TiXmlElement*           ToElement()	          { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
@@ -1155,13 +1146,13 @@ protected:
 
 	// Used to be public [internal use]
 	#ifdef TIXML_USE_STL
-	virtual void StreamIn( std::istream * in, TIXML_STRING * tag );
+	virtual void StreamIn( istream * in, TIXML_STRING * tag );
 	#endif
 	/*	[internal use]
 		Reads the "value" of the element -- another element, or text.
 		This should terminate with the current end tag.
 	*/
-	const TCHAR* ReadValue( const TCHAR* in, TiXmlParsingData* prevData, TiXmlEncoding encoding );
+	const wchar_t* ReadValue( const wchar_t* in, TiXmlParsingData* prevData, TiXmlEncoding encoding );
 
 private:
 
@@ -1177,7 +1168,7 @@ public:
 	/// Constructs an empty comment.
 	TiXmlComment() : TiXmlNode( TiXmlNode::COMMENT ) {}
 	/// Construct a comment from text.
-	TiXmlComment( const TCHAR* _value ) : TiXmlNode( TiXmlNode::COMMENT ) {
+	TiXmlComment( const wchar_t* _value ) : TiXmlNode( TiXmlNode::COMMENT ) {
 		SetValue( _value );
 	}
 	TiXmlComment( const TiXmlComment& );
@@ -1193,7 +1184,7 @@ public:
 	/*	Attribtue parsing starts: at the ! of the !--
 						 returns: next char past '>'
 	*/
-	virtual const TCHAR* Parse( const TCHAR* p, TiXmlParsingData* data, TiXmlEncoding encoding );
+	virtual const wchar_t* Parse( const wchar_t* p, TiXmlParsingData* data, TiXmlEncoding encoding );
 
 	virtual const TiXmlComment*  ToComment() const { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 	virtual TiXmlComment*  ToComment() { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
@@ -1207,7 +1198,7 @@ protected:
 
 	// used to be public
 	#ifdef TIXML_USE_STL
-	virtual void StreamIn( std::istream * in, TIXML_STRING * tag );
+	virtual void StreamIn( istream * in, TIXML_STRING * tag );
 	#endif
 //	virtual void StreamOut( TIXML_OSTREAM * out ) const;
 
@@ -1229,7 +1220,7 @@ public:
 		normal, encoded text. If you want it be output as a CDATA text
 		element, set the parameter _cdata to 'true'
 	*/
-	TiXmlText (const TCHAR * initValue ) : TiXmlNode (TiXmlNode::TEXT)
+	TiXmlText (const wchar_t * initValue ) : TiXmlNode (TiXmlNode::TEXT)
 	{
 		SetValue( initValue );
 		cdata = false;
@@ -1256,7 +1247,7 @@ public:
 	/// Turns on or off a CDATA representation of text.
 	void SetCDATA( bool _cdata )	{ cdata = _cdata; }
 
-	virtual const TCHAR* Parse( const TCHAR* p, TiXmlParsingData* data, TiXmlEncoding encoding );
+	virtual const wchar_t* Parse( const wchar_t* p, TiXmlParsingData* data, TiXmlEncoding encoding );
 
 	virtual const TiXmlText* ToText() const { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 	virtual TiXmlText*       ToText()       { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
@@ -1273,7 +1264,7 @@ protected :
 	bool Blank() const;	// returns true if all white space and new lines
 	// [internal use]
 	#ifdef TIXML_USE_STL
-	virtual void StreamIn( std::istream * in, TIXML_STRING * tag );
+	virtual void StreamIn( istream * in, TIXML_STRING * tag );
 	#endif
 
 private:
@@ -1308,9 +1299,9 @@ public:
 #endif
 
 	/// Construct.
-	TiXmlDeclaration(	const TCHAR* _version,
-						const TCHAR* _encoding,
-						const TCHAR* _standalone );
+	TiXmlDeclaration(	const wchar_t* _version,
+						const wchar_t* _encoding,
+						const wchar_t* _standalone );
 
 	TiXmlDeclaration( const TiXmlDeclaration& copy );
 	void operator=( const TiXmlDeclaration& copy );
@@ -1318,11 +1309,11 @@ public:
 	virtual ~TiXmlDeclaration()	{}
 
 	/// Version. Will return an empty string if none was found.
-	const TCHAR *Version() const			{ return version.c_str (); }
+	const wchar_t *Version() const			{ return version.c_str (); }
 	/// Encoding. Will return an empty string if none was found.
-	const TCHAR *Encoding() const		{ return encoding.c_str (); }
+	const wchar_t *Encoding() const		{ return encoding.c_str (); }
 	/// Is this a standalone document?
-	const TCHAR *Standalone() const		{ return standalone.c_str (); }
+	const wchar_t *Standalone() const		{ return standalone.c_str (); }
 
 	/// Creates a copy of this Declaration and returns it.
 	virtual TiXmlNode* Clone() const;
@@ -1332,7 +1323,7 @@ public:
 		Print( cfile, depth, 0 );
 	}
 
-	virtual const TCHAR* Parse( const TCHAR* p, TiXmlParsingData* data, TiXmlEncoding encoding );
+	virtual const wchar_t* Parse( const wchar_t* p, TiXmlParsingData* data, TiXmlEncoding encoding );
 
 	virtual const TiXmlDeclaration* ToDeclaration() const { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 	virtual TiXmlDeclaration*       ToDeclaration()       { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
@@ -1345,7 +1336,7 @@ protected:
 	void CopyTo( TiXmlDeclaration* target ) const;
 	// used to be public
 	#ifdef TIXML_USE_STL
-	virtual void StreamIn( std::istream * in, TIXML_STRING * tag );
+	virtual void StreamIn( istream * in, TIXML_STRING * tag );
 	#endif
 
 private:
@@ -1377,7 +1368,7 @@ public:
 	// Print this Unknown to a FILE stream.
 	virtual void Print( FILE* cfile, int depth ) const;
 
-	virtual const TCHAR* Parse( const TCHAR* p, TiXmlParsingData* data, TiXmlEncoding encoding );
+	virtual const wchar_t* Parse( const wchar_t* p, TiXmlParsingData* data, TiXmlEncoding encoding );
 
 	virtual const TiXmlUnknown*     ToUnknown()     const { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 	virtual TiXmlUnknown*           ToUnknown()	    { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
@@ -1390,7 +1381,7 @@ protected:
 	void CopyTo( TiXmlUnknown* target ) const;
 
 	#ifdef TIXML_USE_STL
-	virtual void StreamIn( std::istream * in, TIXML_STRING * tag );
+	virtual void StreamIn( istream * in, TIXML_STRING * tag );
 	#endif
 
 private:
@@ -1408,7 +1399,7 @@ public:
 	/// Create an empty document, that has no name.
 	TiXmlDocument();
 	/// Create a document with a name. The name of the document is also the filename of the xml.
-	TiXmlDocument( const TCHAR * documentName );
+	TiXmlDocument( const wchar_t * documentName );
 
 	#ifdef TIXML_USE_STL
 	/// Constructor.
@@ -1428,9 +1419,9 @@ public:
 	/// Save a file using the current document value. Returns true if successful.
 	bool SaveFile() const;
 	/// Load a file using the given filename. Returns true if successful.
-	bool LoadFile( const TCHAR * filename, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING );
+	bool LoadFile( const wchar_t * filename, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING );
 	/// Save a file using the given filename. Returns true if successful.
-	bool SaveFile( const TCHAR * filename ) const;
+	bool SaveFile( const wchar_t * filename ) const;
 	/** Load a file using the given FILE*. Returns true if successful. Note that this method
 		doesn't stream - the entire object pointed at by the FILE*
 		will be interpreted as an XML file. TinyXML doesn't stream in XML from the current
@@ -1441,13 +1432,13 @@ public:
 	bool SaveFile( FILE* ) const;
 
 	#ifdef TIXML_USE_STL
-	bool LoadFile( const std::string& filename, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING )			///< STL std::string version.
+	bool LoadFile( const string& filename, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING )			///< STL string version.
 	{
 //		StringToBuffer f( filename );
 //		return ( f.buffer && LoadFile( f.buffer, encoding ));
 		return LoadFile( filename.c_str(), encoding );
 	}
-	bool SaveFile( const std::string& filename ) const		///< STL std::string version.
+	bool SaveFile( const string& filename ) const		///< STL string version.
 	{
 //		StringToBuffer f( filename );
 //		return ( f.buffer && SaveFile( f.buffer ));
@@ -1459,7 +1450,7 @@ public:
 		method (either TIXML_ENCODING_LEGACY or TIXML_ENCODING_UTF8 will force TinyXml
 		to use that encoding, regardless of what TinyXml might otherwise try to detect.
 	*/
-	virtual const TCHAR* Parse( const TCHAR* p, TiXmlParsingData* data = 0, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING );
+	virtual const wchar_t* Parse( const wchar_t* p, TiXmlParsingData* data = 0, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING );
 
 	/** Get the root element -- the only top level element -- of the document.
 		In well formed XML, there should only be one. TinyXml is tolerant of
@@ -1476,7 +1467,7 @@ public:
 	bool Error() const						{ return error; }
 
 	/// Contains a textual (english) description of the error if one occurs.
-	const TCHAR * ErrorDesc() const	{ return errorDesc.c_str (); }
+	const wchar_t * ErrorDesc() const	{ return errorDesc.c_str (); }
 
 	/** Generally, you probably want the error string ( ErrorDesc() ). But if you
 		prefer the ErrorId, this function will fetch it.
@@ -1526,7 +1517,7 @@ public:
 	*/
 	void ClearError()						{	error = false; 
 												errorId = 0; 
-												errorDesc = _T(""); 
+												errorDesc = L""; 
 												errorLocation.row = errorLocation.col = 0; 
 												//errorLocation.last = 0; 
 											}
@@ -1536,14 +1527,14 @@ public:
 
 	/* Write the document to a string using formatted printing ("pretty print"). This
 		will allocate a character array (new char[]) and return it as a pointer. The
-		calling code pust call delete[] on the return TCHAR* to avoid a memory leak.
+		calling code pust call delete[] on the return wchar_t* to avoid a memory leak.
 	*/
 	//char* PrintToMemory() const; 
 
 	/// Print this Document to a FILE stream.
 	virtual void Print( FILE* cfile, int depth = 0 ) const;
 	// [internal use]
-	void SetError( int err, const TCHAR* errorLocation, TiXmlParsingData* prevData, TiXmlEncoding encoding );
+	void SetError( int err, const wchar_t* errorLocation, TiXmlParsingData* prevData, TiXmlEncoding encoding );
 
 	virtual const TiXmlDocument*    ToDocument()    const { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 	virtual TiXmlDocument*          ToDocument()          { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
@@ -1556,7 +1547,7 @@ protected :
 	// [internal use]
 	virtual TiXmlNode* Clone() const;
 	#ifdef TIXML_USE_STL
-	virtual void StreamIn( std::istream * in, TIXML_STRING * tag );
+	virtual void StreamIn( istream * in, TIXML_STRING * tag );
 	#endif
 
 private:
@@ -1663,16 +1654,16 @@ public:
 	/// Return a handle to the first child node.
 	TiXmlHandle FirstChild() const;
 	/// Return a handle to the first child node with the given name.
-	TiXmlHandle FirstChild( const TCHAR * value ) const;
+	TiXmlHandle FirstChild( const wchar_t * value ) const;
 	/// Return a handle to the first child element.
 	TiXmlHandle FirstChildElement() const;
 	/// Return a handle to the first child element with the given name.
-	TiXmlHandle FirstChildElement( const TCHAR * value ) const;
+	TiXmlHandle FirstChildElement( const wchar_t * value ) const;
 
 	/** Return a handle to the "index" child with the given name. 
 		The first child is 0, the second 1, etc.
 	*/
-	TiXmlHandle Child( const TCHAR* value, int index ) const;
+	TiXmlHandle Child( const wchar_t* value, int index ) const;
 	/** Return a handle to the "index" child. 
 		The first child is 0, the second 1, etc.
 	*/
@@ -1681,7 +1672,7 @@ public:
 		The first child element is 0, the second 1, etc. Note that only TiXmlElements
 		are indexed: other types are not counted.
 	*/
-	TiXmlHandle ChildElement( const TCHAR* value, int index ) const;
+	TiXmlHandle ChildElement( const wchar_t* value, int index ) const;
 	/** Return a handle to the "index" child element. 
 		The first child element is 0, the second 1, etc. Note that only TiXmlElements
 		are indexed: other types are not counted.
@@ -1689,11 +1680,11 @@ public:
 	TiXmlHandle ChildElement( int index ) const;
 
 	#ifdef TIXML_USE_STL
-	TiXmlHandle FirstChild( const std::string& _value ) const				{ return FirstChild( _value.c_str() ); }
-	TiXmlHandle FirstChildElement( const std::string& _value ) const		{ return FirstChildElement( _value.c_str() ); }
+	TiXmlHandle FirstChild( const string& _value ) const				{ return FirstChild( _value.c_str() ); }
+	TiXmlHandle FirstChildElement( const string& _value ) const		{ return FirstChildElement( _value.c_str() ); }
 
-	TiXmlHandle Child( const std::string& _value, int index ) const			{ return Child( _value.c_str(), index ); }
-	TiXmlHandle ChildElement( const std::string& _value, int index ) const	{ return ChildElement( _value.c_str(), index ); }
+	TiXmlHandle Child( const string& _value, int index ) const			{ return Child( _value.c_str(), index ); }
+	TiXmlHandle ChildElement( const string& _value, int index ) const	{ return ChildElement( _value.c_str(), index ); }
 	#endif
 
 	/** Return the handle as a TiXmlNode. This may return null.
@@ -1754,7 +1745,7 @@ class TiXmlPrinter : public TiXmlVisitor
 {
 public:
 	TiXmlPrinter() : depth( 0 ), simpleTextPrint( false ),
-        buffer(), indent( _T("    ") ), lineBreak( _T("\n") ) {}
+        buffer(), indent( L"    " ), lineBreak( L"\n" ) {}
 
 	virtual bool VisitEnter( const TiXmlDocument& doc );
 	virtual bool VisitExit( const TiXmlDocument& doc );
@@ -1770,25 +1761,25 @@ public:
 	/** Set the indent characters for printing. By default 4 spaces
 		but tab (\t) is also useful, or null/empty string for no indentation.
 	*/
-	void SetIndent( const TCHAR* _indent )			{ indent = _indent ? _indent : _T("") ; }
+	void SetIndent( const wchar_t* _indent )			{ indent = _indent ? _indent : L"" ; }
 	/// Query the indention string.
-	const TCHAR* Indent()							{ return indent.c_str(); }
+	const wchar_t* Indent()							{ return indent.c_str(); }
 	/** Set the line breaking string. By default set to newline (\n). 
 		Some operating systems prefer other characters, or can be
 		set to the null/empty string for no indenation.
 	*/
-	void SetLineBreak( const TCHAR* _lineBreak ) { lineBreak = _lineBreak ? _lineBreak : _T(""); }
+	void SetLineBreak( const wchar_t* _lineBreak ) { lineBreak = _lineBreak ? _lineBreak : L""; }
 	/// Query the current line breaking string.
-	const TCHAR* LineBreak()							{ return lineBreak.c_str(); }
+	const wchar_t* LineBreak()							{ return lineBreak.c_str(); }
 
 	/** Switch over to "stream printing" which is the most dense formatting without 
 		linebreaks. Common when the XML is needed for network transmission.
 	*/
-	void SetStreamPrinting()						{ indent = _T("");
-                                                      lineBreak = _T("");
+	void SetStreamPrinting()						{ indent = L"";
+                                                      lineBreak = L"";
 													}	
 	/// Return the result.
-	const TCHAR* CStr()								{ return buffer.c_str(); }
+	const wchar_t* CStr()								{ return buffer.c_str(); }
 	/// Return the length of the result string.
 	size_t Size()									{ return buffer.size(); }
 

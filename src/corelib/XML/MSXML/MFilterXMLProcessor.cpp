@@ -44,17 +44,17 @@ MFilterXMLProcessor::~MFilterXMLProcessor()
 
 bool MFilterXMLProcessor::Process(const bool &bvalidation,
                                   const StringX &strXMLData,
-                                  const stringT &strXMLFileName,
-                                  const stringT &strXSDFileName)
+                                  const wstring &strXMLFileName,
+                                  const wstring &strXSDFileName)
 {
   HRESULT hr, hr0, hr60, hr40, hr30;
   bool b_ok = false;
-  stringT cs_validation;
+  wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  stringT cs_import;
+  wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
 
-  m_strResultText = _T("");
+  m_strResultText = L"";
   m_bValidation = bvalidation;  // Validate or Import
 
   //  Create SAXReader object
@@ -205,14 +205,10 @@ bool MFilterXMLProcessor::Process(const bool &bvalidation,
     //  Let's begin the parsing now
     if (!strXMLFileName.empty()) {
       wchar_t wcURL[MAX_PATH]={0};
-#ifdef _UNICODE
 #if _MSC_VER >= 1400
-      _tcscpy_s(wcURL, MAX_PATH, strXMLFileName.c_str());
+      wcscpy_s(wcURL, MAX_PATH, strXMLFileName.c_str());
 #else
-      _tcscpy(wcURL, strXMLFileName.c_str());
-#endif
-#else
-      mbstowcs(wcURL, strXMLFileName.c_str(), strXMLFileName.length());
+      wcscpy(wcURL, strXMLFileName.c_str());
 #endif
       hr = pSAX2Reader->parseURL(wcURL);
     } else {

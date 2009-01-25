@@ -14,6 +14,8 @@
 #include "corelib/BlowFish.h"  // ditto
 #include "corelib/PWSrand.h"   // ditto
 
+using namespace std;
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -24,22 +26,18 @@ static char THIS_FILE[] = __FILE__;
 #define EM_SELECTALL (WM_APP - 1)
 
 // Right-click Edit Context Menu
-#define MENUSTRING_UNDO        _T("&Undo")
+#define MENUSTRING_UNDO        L"&Undo"
 // Separator
-#define MENUSTRING_CUT         _T("Cu&t")
-#define MENUSTRING_COPY        _T("&Copy")
-#define MENUSTRING_PASTE       _T("&Paste")
-#define MENUSTRING_DELETE      _T("&Delete")
+#define MENUSTRING_CUT         L"Cu&t"
+#define MENUSTRING_COPY        L"&Copy"
+#define MENUSTRING_PASTE       L"&Paste"
+#define MENUSTRING_DELETE      L"&Delete"
 // Separator
-#define MENUSTRING_SELECTALL   _T("Select &All")
+#define MENUSTRING_SELECTALL   L"Select &All"
 // Separator
 // Custom menu goes here!
 
-#if defined(UNICODE)
 #define EDIT_CLIPBOARD_TEXT_FORMAT  CF_UNICODETEXT
-#else
-#define EDIT_CLIPBOARD_TEXT_FORMAT  CF_TEXT
-#endif
 
 const COLORREF crefInFocus = (RGB(222, 255, 222));  // Light green
 const COLORREF crefNoFocus = (RGB(255, 255, 255));  // White
@@ -149,7 +147,7 @@ CEditExtn::CEditExtn(COLORREF focusColor)
   m_brNoFocus.CreateSolidBrush(crefNoFocus);
 }
 
-CEditExtn::CEditExtn(int message_number, LPCTSTR menustring,
+CEditExtn::CEditExtn(int message_number, LPCWSTR menustring,
                      COLORREF focusColor)
   : m_bIsFocused(FALSE), m_lastposition(-1),
     m_message_number(message_number), m_menustring(menustring),
@@ -382,7 +380,7 @@ void CListBoxExtn::ActivateToolTips()
   m_bUseToolTips = true;
   m_pLBToolTips = new CInfoDisplay;
 
-  if (!m_pLBToolTips->Create(0, 0, _T(""), this)) {
+  if (!m_pLBToolTips->Create(0, 0, L"", this)) {
     // failed
     delete m_pLBToolTips;
     m_pLBToolTips = NULL;
@@ -564,7 +562,7 @@ void CComboBoxExtn::ChangeColour()
   m_listbox.ChangeColour();
 }
 
-void CComboBoxExtn::SetToolTipStrings(std::vector<CSecString> vtooltips)
+void CComboBoxExtn::SetToolTipStrings(vector<CSecString> vtooltips)
 {
   m_bUseToolTips = true;
   m_vtooltips = vtooltips;
@@ -578,7 +576,7 @@ void CComboBoxExtn::SetToolTipStrings(std::vector<CSecString> vtooltips)
 // so that sensitive information doesn't leak in a debug version...
 //-----------------------------------------------------------------
 
-const TCHAR FILLER = TCHAR(0x08); // ASCII backspace doesn't occur in Edit
+const wchar_t FILLER = wchar_t(0x08); // ASCII backspace doesn't occur in Edit
 
 struct CSecEditExtn::Impl
 {
@@ -600,7 +598,7 @@ CSecEditExtn::CSecEditExtn()
 {
 }
 
-CSecEditExtn::CSecEditExtn(int message_number, LPCTSTR szmenustring)
+CSecEditExtn::CSecEditExtn(int message_number, LPCWSTR szmenustring)
   : CEditExtn(message_number, szmenustring, (RGB(255, 222, 222))),
     m_impl(new Impl), m_secure(true), m_in_recursion(false)
 {
@@ -660,7 +658,7 @@ afx_msg void CSecEditExtn::OnUpdate()
 #ifdef DEBUG_CSECEDITEXTN
   CString dstr;
   GetWindowText(dstr);
-  TRACE(_T("CSecEditExtn::OnUpdate(%s)\n"),dstr);
+  TRACE(L"CSecEditExtn::OnUpdate(%s)\n",dstr);
 #endif
   if (m_secure) {
     if (!m_in_recursion)
@@ -730,7 +728,7 @@ void CSecEditExtn::OnSecureUpdate()
   }
   m_in_recursion = true; // the following change will trigger another update
 #ifdef DEBUG_CSECEDITEXTN
-  TRACE(_T("CSecEditExtn::OnSecureUpdate: GetSel(%d, %d), str = %s\n"),
+  TRACE(L"CSecEditExtn::OnSecureUpdate: GetSel(%d, %d), str = %s\n",
         startSel, endSel, str);
 #endif
   SetSecureText(str);

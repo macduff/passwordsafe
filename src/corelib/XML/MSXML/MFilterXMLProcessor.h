@@ -16,6 +16,8 @@
 
 #include <vector>
 
+using namespace std;
+
 class MFilterXMLProcessor
 {
 public:
@@ -24,17 +26,17 @@ public:
 
   bool Process(const bool &bvalidation,
                const StringX &strXMLData,
-               const stringT &strXMLFileName,
-               const stringT &strXSDFileName);
+               const wstring &strXMLFileName,
+               const wstring &strXSDFileName);
 
-  stringT getResultText() {return m_strResultText;}
+  wstring getResultText() {return m_strResultText;}
   int m_MSXML_Version;
 
 private:
   Asker *m_pAsker;
   PWSFilters &m_MapFilters;
   FilterPool m_FPool;
-  stringT m_strResultText;
+  wstring m_strResultText;
   bool m_bValidation;
 };
 

@@ -26,6 +26,8 @@
 #include "ItemData.h"
 #include "Proxy.h"
 
+using namespace std;
+
 enum FilterType {DFTYPE_INVALID = 0,
                  DFTYPE_MAIN,
                  DFTYPE_PWHISTORY, 
@@ -116,7 +118,7 @@ struct st_FilterRow {
     ftype(FT_INVALID), mtype(PWSMatch::MT_INVALID), rule(PWSMatch::MR_INVALID),
     fnum1(0), fnum2(0),
     fdate1(0), fdate2(0),
-    fstring(_T("")), fcase(false), etype(CItemData::ET_INVALID),
+    fstring(L""), fcase(false), etype(CItemData::ET_INVALID),
     ltype(LC_INVALID)
   {}
 
@@ -158,7 +160,7 @@ struct st_FilterRow {
     rule = PWSMatch::MR_INVALID;
     fnum1 = fnum2 = 0;
     fdate1 = fdate2 = (time_t)0;
-    fstring = _T("");
+    fstring = L"";
     fcase = false;
     etype = CItemData::ET_INVALID;
     ltype = LC_INVALID;
@@ -171,13 +173,13 @@ struct st_FilterRow {
 // Basically a named vector of filter rows, along with
 // some accounting information
 
-typedef std::vector<st_FilterRow> vFilterRows;
-typedef std::vector<int> vfiltergroup;
-typedef std::vector<vfiltergroup> vfiltergroups;
+typedef vector<st_FilterRow> vFilterRows;
+typedef vector<int> vfiltergroup;
+typedef vector<vfiltergroup> vfiltergroups;
 
 struct st_filters {
   // Filter name
-  stringT fname;
+  wstring fname;
   // Counters
   int num_Mactive;
   int num_Hactive;
@@ -190,7 +192,7 @@ struct st_filters {
   vFilterRows vPfldata;
 
   st_filters()
-  : fname(_T("")), num_Mactive(0), num_Hactive(0), num_Pactive(0)
+  : fname(L""), num_Mactive(0), num_Hactive(0), num_Pactive(0)
   {}
 
   st_filters(const st_filters &that)
@@ -217,7 +219,7 @@ struct st_filters {
 
   void Empty()
   {
-    fname = _T("");
+    fname = L"";
     num_Mactive = num_Hactive = num_Pactive = 0;
     vMfldata.clear();
     vHfldata.clear();
@@ -230,7 +232,7 @@ enum FilterPool {FPOOL_DATABASE = 1, FPOOL_AUTOLOAD, FPOOL_IMPORTED, FPOOL_SESSI
 
 struct st_Filterkey {
   FilterPool fpool;
-  stringT cs_filtername;
+  wstring cs_filtername;
 };
 
 // Following is for map<> compare function
@@ -244,24 +246,24 @@ struct ltfk {
   }
 };
 
-class PWSFilters : public std::map<st_Filterkey, st_filters, ltfk> {
+class PWSFilters : public map<st_Filterkey, st_filters, ltfk> {
  public:
-  typedef std::pair<st_Filterkey, st_filters> Pair;
+  typedef pair<st_Filterkey, st_filters> Pair;
   
-  std::string GetFilterXMLHeader(const StringX &currentfile,
+  string GetFilterXMLHeader(const StringX &currentfile,
                                  const PWSfile::HeaderRecord &hdr);
 
   int WriteFilterXMLFile(const StringX &filename, const PWSfile::HeaderRecord hdr,
                          const StringX &currentfile);
-  int WriteFilterXMLFile(std::ostream &os, PWSfile::HeaderRecord hdr,
+  int WriteFilterXMLFile(ostream &os, PWSfile::HeaderRecord hdr,
                          const StringX &currentfile, const bool bWithFormatting = false);
   int ImportFilterXMLFile(const FilterPool fpool,
                           const StringX &strXMLData,
-                          const stringT &strXMLFileName,
-                          const stringT &strXSDFileName, stringT &strErrors,
+                          const wstring &strXMLFileName,
+                          const wstring &strXSDFileName, wstring &strErrors,
                           Asker *pAsker);
 
-  static stringT GetFilterDescription(const st_FilterRow &st_fldata);
+  static wstring GetFilterDescription(const st_FilterRow &st_fldata);
 };
 
 #endif  // __PWSFILTERS_H

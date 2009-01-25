@@ -21,6 +21,8 @@
 #include <vector>
 #include <string>
 
+using namespace std;
+
 struct PWPolicy {
   unsigned short flags;
   int length;
@@ -62,7 +64,7 @@ struct PWPolicy {
   }
 };
 
-typedef std::vector<CItemField> UnknownFields;
+typedef vector<CItemField> UnknownFields;
 typedef UnknownFields::const_iterator UnknownFieldsConstIter;
 
 //-----------------------------------------------------------------------------
@@ -110,7 +112,7 @@ public:
       ET_LAST};
 
     // a bitset for indicating a subset of an item's fields: 
-    typedef std::bitset<LAST> FieldBits;
+    typedef bitset<LAST> FieldBits;
 
     static void SetSessionKey(); // call exactly once per session
 
@@ -128,7 +130,7 @@ public:
     StringX GetTitle() const; // V20
     StringX GetUser() const; // V20
     StringX GetPassword() const;
-    StringX GetNotes(TCHAR delimiter = 0) const;
+    StringX GetNotes(wchar_t delimiter = 0) const;
     void GetUUID(uuid_array_t &) const; // V20
     StringX GetGroup() const; // V20
     StringX GetURL() const; // V30
@@ -171,9 +173,9 @@ public:
     StringX GetPWPolicy() const;
     // GetPlaintext returns all fields separated by separator, if delimiter is != 0, then
     // it's used for multi-line notes and to replace '.' within the Title field.
-    StringX GetPlaintext(const TCHAR &separator, const FieldBits &bsExport,
-      const TCHAR &delimiter, const CItemData *cibase) const;
-    std::string GetXML(unsigned id, const FieldBits &bsExport, TCHAR m_delimiter,
+    StringX GetPlaintext(const wchar_t &separator, const FieldBits &bsExport,
+      const wchar_t &delimiter, const CItemData *cibase) const;
+    string GetXML(unsigned id, const FieldBits &bsExport, wchar_t m_delimiter,
                        const CItemData *cibase, bool bforce_normal_entry) const;
     void GetUnknownField(unsigned char &type, unsigned int &length,
                          unsigned char * &pdata,
@@ -194,34 +196,34 @@ public:
     void CreateUUID(); // V20 - generate UUID for new item
     void SetName(const StringX &name,
       const StringX &defaultUsername); // V17 - deprecated - replaced by SetTitle & SetUser
-    void SetTitle(const StringX &title, TCHAR delimiter = 0);
+    void SetTitle(const StringX &title, wchar_t delimiter = 0);
     void SetUser(const StringX &user); // V20
     void SetPassword(const StringX &password);
-    void SetNotes(const StringX &notes, TCHAR delimiter = 0);
+    void SetNotes(const StringX &notes, wchar_t delimiter = 0);
     void SetUUID(const uuid_array_t &UUID); // V20
     void SetGroup(const StringX &group); // V20
     void SetURL(const StringX &URL); // V30
     void SetAutoType(const StringX &autotype); // V30
     void SetATime() {SetTime(ATIME);}  // V30
     void SetATime(time_t t) {SetTime(ATIME, t);}  // V30
-    bool SetATime(const stringT &time_str) {return SetTime(ATIME, time_str);}  // V30
+    bool SetATime(const wstring &time_str) {return SetTime(ATIME, time_str);}  // V30
     void SetCTime() {SetTime(CTIME);}  // V30
     void SetCTime(time_t t) {SetTime(CTIME, t);}  // V30
-    bool SetCTime(const stringT &time_str) {return SetTime(CTIME, time_str);}  // V30
+    bool SetCTime(const wstring &time_str) {return SetTime(CTIME, time_str);}  // V30
     void SetXTime() {SetTime(XTIME);}  // V30
     void SetXTime(time_t t) {SetTime(XTIME, t);}  // V30
-    bool SetXTime(const stringT &time_str) {return SetTime(XTIME, time_str);}  // V30
+    bool SetXTime(const wstring &time_str) {return SetTime(XTIME, time_str);}  // V30
     void SetPMTime() {SetTime(PMTIME);}  // V30
     void SetPMTime(time_t t) {SetTime(PMTIME, t);}  // V30
-    bool SetPMTime(const stringT &time_str) {return SetTime(PMTIME, time_str);}  // V30
+    bool SetPMTime(const wstring &time_str) {return SetTime(PMTIME, time_str);}  // V30
     void SetRMTime() {SetTime(RMTIME);}  // V30
     void SetRMTime(time_t t) {SetTime(RMTIME, t);}  // V30
-    bool SetRMTime(const stringT &time_str) {return SetTime(RMTIME, time_str);}  // V30
+    bool SetRMTime(const wstring &time_str) {return SetTime(RMTIME, time_str);}  // V30
     void SetXTimeInt(int &xint); // V30
-    bool SetXTimeInt(const stringT &xint_str); // V30
+    bool SetXTimeInt(const wstring &xint_str); // V30
     void SetPWHistory(const StringX &PWHistory);  // V30
     void SetPWPolicy(const PWPolicy &pwp);
-    bool SetPWPolicy(const stringT &cs_pwp);
+    bool SetPWPolicy(const wstring &cs_pwp);
     CItemData& operator=(const CItemData& second);
     // Following used by display methods - we just keep it handy
     void *GetDisplayInfo() const {return m_display_info;}
@@ -235,7 +237,7 @@ public:
     bool WillExpire(const int numdays);
 
     // Predicate to determine if item matches given criteria
-    bool Matches(const stringT &string1, int iObject, 
+    bool Matches(const wstring &string1, int iObject, 
                  int iFunction) const;  // string values
     bool Matches(int num1, int num2, int iObject,
                  int iFunction) const;  // intger values
@@ -247,8 +249,8 @@ public:
     BOOL IsUserEmpty() const {return m_User.IsEmpty();}
     BOOL IsNotesEmpty() const {return m_Notes.IsEmpty();}
     BOOL IsURLEmpty() const {return m_URL.IsEmpty();}
-    void SerializePlainText(std::vector<char> &v, CItemData *cibase = NULL) const;
-    bool DeserializePlainText(const std::vector<char> &v);
+    void SerializePlainText(vector<char> &v, CItemData *cibase = NULL) const;
+    bool DeserializePlainText(const vector<char> &v);
     bool SetField(int type, unsigned char *data, int len);
 
     EntryType GetEntryType() const
@@ -277,7 +279,7 @@ public:
     {m_entrytype = ET_SHORTCUT;}
 
     bool IsURLEmail() const
-    {return GetURL().find(_T("mailto:")) != StringX::npos;}
+    {return GetURL().find(L"mailto:") != StringX::npos;}
 
 private:
   CItemField m_Name;
@@ -319,7 +321,7 @@ private:
   void GetTime(int whichtime, time_t &t) const; // V30
   void SetTime(const int whichtime); // V30
   void SetTime(const int whichtime, time_t t); // V30
-  bool SetTime(const int whichtime, const stringT &time_str); // V30
+  bool SetTime(const int whichtime, const wstring &time_str); // V30
 
   // Create local Encryption/Decryption object
   BlowFish *MakeBlowFish() const;

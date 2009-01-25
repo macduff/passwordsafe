@@ -50,13 +50,13 @@ const struct st_filter_rulecodes {
   int irule_code;
 };
 
-typedef std::map<const stringT, const st_filter_element_data> Filter_Element_Map;
-typedef std::map<const stringT, const st_filter_element_data> :: const_iterator cFilter_Element_iter;
-typedef std::pair<const stringT, const st_filter_element_data> Filter_Element_Pair;
+typedef map<const wstring, const st_filter_element_data> Filter_Element_Map;
+typedef map<const wstring, const st_filter_element_data> :: const_iterator cFilter_Element_iter;
+typedef pair<const wstring, const st_filter_element_data> Filter_Element_Pair;
 
-typedef std::map<const stringT, const st_filter_rulecodes> Filter_Rulecodes_Map;
-typedef std::map<const stringT, const st_filter_rulecodes> :: const_iterator cFilter_Rules_iter;
-typedef std::pair<const stringT, const st_filter_rulecodes> Filter_Rules_Pair;
+typedef map<const wstring, const st_filter_rulecodes> Filter_Rulecodes_Map;
+typedef map<const wstring, const st_filter_rulecodes> :: const_iterator cFilter_Rules_iter;
+typedef pair<const wstring, const st_filter_rulecodes> Filter_Rules_Pair;
 
 class EFilterValidator
 {
@@ -64,29 +64,29 @@ public:
   EFilterValidator();
   ~EFilterValidator();
 
-  bool startElement(stringT &strStartElement);
-  bool endElement(stringT &strEndElement, StringX &strElemContent);
+  bool startElement(wstring &strStartElement);
+  bool endElement(wstring &strEndElement, StringX &strElemContent);
 
   bool VerifyXMLDataType(const StringX &strElemContent, const XTD_DataTypes &datatype);
   bool GetElementInfo(const XML_Char *name, st_filter_element_data &edata);
-  PWSMatch::MatchRule GetMatchRule(const TCHAR *cs_rule);
+  PWSMatch::MatchRule GetMatchRule(const wchar_t *cs_rule);
 
   int getErrorCode() {return m_iErrorCode;}
-  stringT getErrorMsg() {return m_sErrorMsg;}
+  wstring getErrorMsg() {return m_sErrorMsg;}
 
 private:
   bool VerifyStartElement(cFilter_Element_iter e_iter);
   bool VerifyXMLRule(const StringX &strElemContent, const XTR_Codes &rule_code);
   bool VerifyXMLDate(const StringX &strElemContent);
-  StringX Trim(const StringX &s, const TCHAR *set = NULL);
+  StringX Trim(const StringX &s, const wchar_t *set = NULL);
 
   Filter_Element_Map m_element_map;
   Filter_Rulecodes_Map m_rulecode_map;
 
-  std::stack<XTE_Codes> m_element_code_stack;
-  std::stack<XTD_DataTypes> m_element_datatype_stack;
+  stack<XTE_Codes> m_element_code_stack;
+  stack<XTD_DataTypes> m_element_datatype_stack;
 
-  stringT m_sErrorMsg;
+  wstring m_sErrorMsg;
   int m_iErrorCode;
 
   int m_ielement_occurs[XTE_LAST_ELEMENT];
@@ -97,10 +97,10 @@ private:
   PWSMatch::MatchRule m_matchrule;
 
   static const struct st_filter_elements {
-    TCHAR *name; st_filter_element_data filter_element_data;
+    wchar_t *name; st_filter_element_data filter_element_data;
   } m_filter_elements[XTE_LAST_ELEMENT];
   static const struct st_filter_rules {
-    TCHAR *name; st_filter_rulecodes filter_rulecode_data;
+    wchar_t *name; st_filter_rulecodes filter_rulecode_data;
   } m_filter_rulecodes[PWSMatch::MR_LAST];
 };
 

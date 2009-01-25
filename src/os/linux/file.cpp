@@ -9,6 +9,7 @@
 /**
  * \file Linux-specific implementation of file.h
  */
+ 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -30,36 +31,25 @@
 
 using namespace std;
 
-const TCHAR *pws_os::PathSeparator = _T("/");
+const wchar_t *pws_os::PathSeparator = L"/";
 
-bool pws_os::FileExists(const stringT &filename)
+bool pws_os::FileExists(const wstring &filename)
 {
   struct stat statbuf;
   int status;
-#ifndef UNICODE
-  status = ::stat(filename.c_str(), &statbuf);
-#else
   size_t N = wcstombs(NULL, filename.c_str(), 0) + 1;
   char *fn = new char[N];
   wcstombs(fn, filename.c_str(), N);
   status = ::stat(fn, &statbuf);
   delete[] fn;
-#endif /* UNICODE */
   return (status == 0);
 }
 
-bool pws_os::FileExists(const stringT &filename, bool &bReadOnly)
+bool pws_os::FileExists(const wstring &filename, bool &bReadOnly)
 {
   int status;
   bool retval = false;
   bReadOnly = false;
-#ifndef UNICODE
-  status = ::access(filename.c_str(), R_OK);
-  if (status == 0) {
-    bReadOnly = (::access(filename.c_str(), W_OK) != 0);
-    retval = true;
-  }
-#else
   size_t N = wcstombs(NULL, filename.c_str(), 0) + 1;
   char *fn = new char[N];
   wcstombs(fn, filename.c_str(), N);
@@ -69,16 +59,12 @@ bool pws_os::FileExists(const stringT &filename, bool &bReadOnly)
     retval = true;
   }
   delete[] fn;
-#endif /* UNICODE */
   return retval;
 }
 
-bool pws_os::RenameFile(const stringT &oldname, const stringT &newname)
+bool pws_os::RenameFile(const wstring &oldname, const wstring &newname)
 {
   int status;
-#ifndef UNICODE
-  status = ::rename(oldname.c_str(), newname.c_str());
-#else
   size_t oldN = wcstombs(NULL, oldname.c_str(), 0) + 1;
   char *oldfn = new char[oldN];
   wcstombs(oldfn, oldname.c_str(), oldN);
@@ -88,24 +74,23 @@ bool pws_os::RenameFile(const stringT &oldname, const stringT &newname)
   status = ::rename(oldfn, newfn);
   delete[] oldfn;
   delete[] newfn;
-#endif /* UNICODE */
   return (status == 0);
 }
 
-bool pws_os::CopyAFile(const stringT &from, const stringT &to)
+bool pws_os::CopyAFile(const wstring &from, const wstring &to)
 {
   // can we read the source?
   if (::access(from.c_str(), R_OK) != 0)
     return false;
   // creates dirs as needed
-  stringT::size_type start = (to[0] == '/') ? 1 : 0;
-  stringT::size_type stop;
+  wstring::size_type start = (to[0] == '/') ? 1 : 0;
+  wstring::size_type stop;
   do {
     stop = to.find_first_of("/", start);
-    if (stop != stringT::npos)
+    if (stop != wstring::npos)
       ::mkdir(to.substr(start, stop).c_str(), 0700); // fail if already there - who cares?
     start = stop + 1;
-  } while (stop != stringT::npos);
+  } while (stop != wstring::npos);
   ifstream src(from.c_str(), ios_base::in|ios_base::binary);
   ofstream dst(to.c_str(), ios_base::out|ios_base::binary);
   const size_t BUFSIZE = 2048;
@@ -120,25 +105,25 @@ bool pws_os::CopyAFile(const stringT &from, const stringT &to)
   return true;
 }
 
-bool pws_os::DeleteAFile(const stringT &filename)
+bool pws_os::DeleteAFile(const wstring &filename)
 {
   return ::unlink(filename.c_str());
 }
 
-static stringT filterString;
+static wstring filterString;
 
 static int filterFunc(const struct dirent *de)
 {
   return fnmatch(filterString.c_str(), de->d_name, 0) == 0;
 }
 
-void pws_os::FindFiles(const stringT &filter, vector<stringT> &res)
+void pws_os::FindFiles(const wstring &filter, vector<wstring> &res)
 {
   // filter is a full path with a filter file name.
   // start by splitting it up
-  stringT dir;
-  stringT::size_type last_slash = filter.find_last_of("/");
-  if (last_slash != stringT::npos) {
+  wstring dir;
+  wstring::size_type last_slash = filter.find_last_of("/");
+  if (last_slash != wstring::npos) {
     dir = filter.substr(0, last_slash);
     filterString = filter.substr(last_slash + 1);
   } else {
@@ -158,32 +143,26 @@ void pws_os::FindFiles(const stringT &filter, vector<stringT> &res)
   free(namelist);
 }
 
-static stringT GetLockFileName(const stringT &filename)
+static wstring GetLockFileName(const wstring &filename)
 {
   assert(!filename.empty());
   // derive lock filename from filename
-  stringT retval(filename, 0, filename.find_last_of(TCHAR('.')));
-  retval += _T(".plk");
+  wstring retval(filename, 0, filename.find_last_of(L'.'));
+  retval += L".plk";
   return retval;
 }
 
-bool pws_os::LockFile(const stringT &filename, stringT &locker, 
+bool pws_os::LockFile(const wstring &filename, wstring &locker, 
                       HANDLE &lockFileHandle, int &LockCount)
 {
-  const stringT lock_filename = GetLockFileName(filename);
-  stringT s_locker;
-#ifndef UNICODE
-  const char *lfn = lock_filename.c_str();
-#else
+  const wstring lock_filename = GetLockFileName(filename);
+  wstring s_locker;
   size_t lfs = wcstombs(NULL, lock_filename.c_str(), lock_filename.length()) + 1;
   char *lfn = new char[lfs];
   wcstombs(lfn, lock_filename.c_str(), lock_filename.length());
-#endif
   int fh = open(lfn, (O_CREAT | O_EXCL | O_WRONLY),
                  (S_IREAD | S_IWRITE));
-#ifdef UNICODE
   delete[] lfn;
-#endif
 
   if (fh == -1) { // failed to open exclusively. Already locked, or ???
     switch (errno) {
@@ -195,8 +174,8 @@ bool pws_os::LockFile(const stringT &filename, stringT &locker,
     case EEXIST: // filename already exists
       {
         // read locker data ("user@machine:nnnnnnnn") from file
-          istringstreamT is(lock_filename);
-          stringT lockerStr;
+          wistringstream is(lock_filename);
+          wstring lockerStr;
           if (is >> lockerStr) {
             locker = lockerStr;
           }
@@ -218,50 +197,44 @@ bool pws_os::LockFile(const stringT &filename, stringT &locker,
     return false;
   } else { // valid filehandle, write our info
     int numWrit;
-    const stringT user = pws_os::getusername();
-    const stringT host = pws_os::gethostname();
-    const stringT pid = pws_os::getprocessid();
+    const wstring user = pws_os::getusername();
+    const wstring host = pws_os::gethostname();
+    const wstring pid = pws_os::getprocessid();
 
-    numWrit = write(fh, user.c_str(), user.length() * sizeof(TCHAR));
-    numWrit += write(fh, _T("@"), sizeof(TCHAR));
-    numWrit += write(fh, host.c_str(), host.length() * sizeof(TCHAR));
-    numWrit += write(fh, _T(":"), sizeof(TCHAR));
-    numWrit += write(fh, pid.c_str(), pid.length() * sizeof(TCHAR));
+    numWrit = write(fh, user.c_str(), user.length() * sizeof(wchar_t));
+    numWrit += write(fh, L"@", sizeof(wchar_t));
+    numWrit += write(fh, host.c_str(), host.length() * sizeof(wchar_t));
+    numWrit += write(fh, L":", sizeof(wchar_t));
+    numWrit += write(fh, pid.c_str(), pid.length() * sizeof(wchar_t));
     ASSERT(numWrit > 0);
     close(fh);
     return true;
   }
 }
 
-void pws_os::UnlockFile(const stringT &filename,
+void pws_os::UnlockFile(const wstring &filename,
                         HANDLE &lockFileHandle, int &LockCount)
 {
-  stringT lock_filename = GetLockFileName(filename);
-#ifndef UNICODE
-  const char *lfn = lock_filename.c_str();
-#else
+  wstring lock_filename = GetLockFileName(filename);
   size_t lfs = wcstombs(NULL, lock_filename.c_str(), lock_filename.length()) + 1;
   char *lfn = new char[lfs];
   wcstombs(lfn, lock_filename.c_str(), lock_filename.length());
-#endif
   unlink(lfn);
-#ifdef UNICODE
   delete[] lfn;
-#endif
 }
 
-bool pws_os::IsLockedFile(const stringT &filename)
+bool pws_os::IsLockedFile(const wstring &filename)
 {
-  const stringT lock_filename = GetLockFileName(filename);
+  const wstring lock_filename = GetLockFileName(filename);
   return pws_os::FileExists(lock_filename);
 }
 
-std::FILE *pws_os::FOpen(const stringT &filename, const TCHAR *mode)
+FILE *pws_os::FOpen(const wstring &filename, const wchar_t *mode)
 {
   return ::fopen(filename.c_str(), mode);
 }
 
-long pws_os::fileLength(std::FILE *fp)
+long pws_os::fileLength(FILE *fp)
 {
   int fd = fileno(fp);
   if (fd == -1)
@@ -271,4 +244,3 @@ long pws_os::fileLength(std::FILE *fp)
     return -1;
   return st.st_size;
 }
-

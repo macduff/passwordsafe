@@ -38,13 +38,13 @@
 #include "../PWSfileV3.h"
 #include "../VerifyFormat.h"
 
+using namespace std;
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
-
-using namespace std;
 
 XMLFileHandlers::XMLFileHandlers()
 {
@@ -52,10 +52,10 @@ XMLFileHandlers::XMLFileHandlers()
   cur_pwhistory_entry = NULL;
   m_strElemContent.clear();
 
-  m_sDefaultAutotypeString = _T("");
-  m_sDefaultUsername = _T("");
-  m_delimiter = _T('\0');
-  m_strErrorMessage = _T("");
+  m_sDefaultAutotypeString = L"";
+  m_sDefaultUsername = L"";
+  m_delimiter = L'\0';
+  m_strErrorMessage = L"";
   m_iErrorCode = 0;
 
   m_bheader = false;
@@ -78,7 +78,7 @@ XMLFileHandlers::~XMLFileHandlers()
 }
 
 void XMLFileHandlers::SetVariables(PWScore *core, const bool &bValidation,
-                                   const stringT &ImportedPrefix, const TCHAR &delimiter,
+                                   const wstring &ImportedPrefix, const wchar_t &delimiter,
                                    UUIDList *possible_aliases, UUIDList *possible_shortcuts)
 {
   m_bValidation = bValidation;
@@ -107,21 +107,21 @@ bool XMLFileHandlers::ProcessStartElement(const int icurrent_element)
 
       cur_entry = new pw_entry;
       // Clear all fields
-      cur_entry->group = _T("");
-      cur_entry->title = _T("");
-      cur_entry->username = _T("");
-      cur_entry->password = _T("");
-      cur_entry->url = _T("");
-      cur_entry->autotype = _T("");
-      cur_entry->ctime = _T("");
-      cur_entry->atime = _T("");
-      cur_entry->xtime = _T("");
-      cur_entry->xtime_interval = _T("");
-      cur_entry->pmtime = _T("");
-      cur_entry->rmtime = _T("");
-      cur_entry->pwhistory = _T("");
-      cur_entry->notes = _T("");
-      cur_entry->uuid = _T("");
+      cur_entry->group = L"";
+      cur_entry->title = L"";
+      cur_entry->username = L"";
+      cur_entry->password = L"";
+      cur_entry->url = L"";
+      cur_entry->autotype = L"";
+      cur_entry->ctime = L"";
+      cur_entry->atime = L"";
+      cur_entry->xtime = L"";
+      cur_entry->xtime_interval = L"";
+      cur_entry->pmtime = L"";
+      cur_entry->rmtime = L"";
+      cur_entry->pwhistory = L"";
+      cur_entry->notes = L"";
+      cur_entry->uuid = L"";
       cur_entry->pwp.Empty();
       cur_entry->entrytype = NORMAL;
       cur_entry->bforce_normal_entry = false;
@@ -133,8 +133,8 @@ bool XMLFileHandlers::ProcessStartElement(const int icurrent_element)
 
       ASSERT(cur_pwhistory_entry == NULL);
       cur_pwhistory_entry = new pwhistory_entry;
-      cur_pwhistory_entry->changed = _T("");
-      cur_pwhistory_entry->oldpassword = _T("");
+      cur_pwhistory_entry->changed = L"";
+      cur_pwhistory_entry->oldpassword = L"";
       break;
     case XLE_CTIME:
     case XLE_ATIME:
@@ -153,12 +153,12 @@ bool XMLFileHandlers::ProcessStartElement(const int icurrent_element)
 
 void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
 {
-  StringX buffer(_T(""));
+  StringX buffer(L"");
   int i;
 
   switch (icurrent_element) {
     case XLE_NUMBERHASHITERATIONS:
-      i = _ttoi(m_strElemContent.c_str());
+      i = _wtoi(m_strElemContent.c_str());
       if (i > MIN_HASH_ITERATIONS) {
         m_nITER = i;
       }
@@ -194,14 +194,14 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
     case XLE_SHOWUSERNAMEINTREE:
     case XLE_SORTASCENDING:
     case XLE_USEDEFAULTUSER:
-      prefsinXML[icurrent_element - XLE_PREF_START] = _ttoi(m_strElemContent.c_str());
+      prefsinXML[icurrent_element - XLE_PREF_START] = _wtoi(m_strElemContent.c_str());
       break;
     case XLE_TREEDISPLAYSTATUSATOPEN:
-      if (m_strElemContent == _T("AllCollapsed"))
+      if (m_strElemContent == L"AllCollapsed")
         prefsinXML[XLE_TREEDISPLAYSTATUSATOPEN - XLE_PREF_START] = PWSprefs::AllCollapsed;
-      else if (m_strElemContent == _T("AllExpanded"))
+      else if (m_strElemContent == L"AllExpanded")
         prefsinXML[XLE_TREEDISPLAYSTATUSATOPEN - XLE_PREF_START] = PWSprefs::AllExpanded;
-      else if (m_strElemContent == _T("AsPerLastSave"))
+      else if (m_strElemContent == L"AsPerLastSave")
         prefsinXML[XLE_TREEDISPLAYSTATUSATOPEN - XLE_PREF_START] = PWSprefs::AsPerLastSave;
       break;
     case XLE_DEFAULTUSERNAME:
@@ -229,12 +229,12 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
         m_fieldlen = length / 2;
         m_pfield = new unsigned char[m_fieldlen + sizeof(int)];
         int nscanned = 0;
-        TCHAR *lpsz_string = m_strElemContent.GetBuffer(length);
+        wchar_t *lpsz_string = m_strElemContent.GetBuffer(length);
         for (int i = 0; i < m_fieldlen; i++) {
 #if _MSC_VER >= 1400
-          nscanned += _stscanf_s(lpsz_string, _T("%02x"), &m_pfield[i]);
+          nscanned += _stscanf_s(lpsz_string, L"%02x", &m_pfield[i]);
 #else
-          nscanned += _stscanf(lpsz_string, _T("%02x"), &m_pfield[i]);
+          nscanned += _stscanf(lpsz_string, L"%02x", &m_pfield[i]);
 #endif
           lpsz_string += 2;
         }
@@ -247,7 +247,7 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
           if (m_ctype >= PWSfileV3::HDR_LAST) {
             m_ukhxl.push_back(ukxfe);
 /* #ifdef _DEBUG
-            stringT cs_timestamp;
+            wstring cs_timestamp;
             cs_timestamp = PWSUtil::GetTimeStamp();
             TRACE(_T("%s: Header has unknown field: %02x, length %d/0x%04x, value:\n",
             cs_timestamp, m_ctype, m_fieldlen, m_fieldlen);
@@ -292,36 +292,36 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
       break;
     case XLE_PASSWORD:
       cur_entry->password = m_strElemContent;
-      if (Replace(m_strElemContent, _T(':'), _T(';')) <= 2) {
-        if (m_strElemContent.substr(0, 2) == _T("[[") &&
-            m_strElemContent.substr(m_strElemContent.length() - 2) == _T("]]")) {
+      if (Replace(m_strElemContent, L':', L';') <= 2) {
+        if (m_strElemContent.substr(0, 2) == L"[[" &&
+            m_strElemContent.substr(m_strElemContent.length() - 2) == L"]]") {
             cur_entry->entrytype = ALIAS;
         }
-        if (m_strElemContent.substr(0, 2) == _T("[~") &&
-            m_strElemContent.substr(m_strElemContent.length() - 2) == _T("~]")) {
+        if (m_strElemContent.substr(0, 2) == L"[~" &&
+            m_strElemContent.substr(m_strElemContent.length() - 2) == L"~]") {
             cur_entry->entrytype = SHORTCUT;
         }
       }
       break;
     case XLE_CTIME:
-      Replace(cur_entry->ctime, _T('-'), _T('/'));
+      Replace(cur_entry->ctime, L'-', L'/');
       m_whichtime = -1;
       break;
     case XLE_ATIME:
-      Replace(cur_entry->atime, _T('-'), _T('/'));
+      Replace(cur_entry->atime, L'-', L'/');
       m_whichtime = -1;
       break;
     case XLE_LTIME:
     case XLE_XTIME:
-      Replace(cur_entry->xtime, _T('-'), _T('/'));
+      Replace(cur_entry->xtime, L'-', L'/');
       m_whichtime = -1;
       break;
     case XLE_PMTIME:
-      Replace(cur_entry->pmtime, _T('-'), _T('/'));
+      Replace(cur_entry->pmtime, L'-', L'/');
       m_whichtime = -1;
       break;
     case XLE_RMTIME:
-      Replace(cur_entry->rmtime, _T('-'), _T('/'));
+      Replace(cur_entry->rmtime, L'-', L'/');
       m_whichtime = -1;
       break;
     case XLE_XTIME_INTERVAL:
@@ -332,23 +332,23 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
         m_nRecordsWithUnknownFields++;
       break;
     case XLE_STATUS:
-      i = _ttoi(m_strElemContent.c_str());
-      Format(buffer, _T("%01x"), i);
+      i = _wtoi(m_strElemContent.c_str());
+      Format(buffer, L"%01x", i);
       cur_entry->pwhistory = buffer;
       break;
     case XLE_MAX:
-      i = _ttoi(m_strElemContent.c_str());
-      Format(buffer, _T("%02x"), i);
+      i = _wtoi(m_strElemContent.c_str());
+      Format(buffer, L"%02x", i);
       cur_entry->pwhistory += buffer;
       break;
     case XLE_NUM:
-      i = _ttoi(m_strElemContent.c_str());
-      Format(buffer, _T("%02x"), i);
+      i = _wtoi(m_strElemContent.c_str());
+      Format(buffer, L"%02x", i);
       cur_entry->pwhistory += buffer;
       break;
     case XLE_HISTORY_ENTRY:
       ASSERT(cur_pwhistory_entry != NULL);
-      Format(buffer, _T(" %s %04x %s"),
+      Format(buffer, L" %s %04x %s",
              cur_pwhistory_entry->changed.c_str(),
              cur_pwhistory_entry->oldpassword.length(),
              cur_pwhistory_entry->oldpassword.c_str());
@@ -358,11 +358,11 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
       break;
     case XLE_CHANGED:
       ASSERT(cur_pwhistory_entry != NULL);
-      Replace(cur_pwhistory_entry->changed, _T('-'), _T('/'));
+      Replace(cur_pwhistory_entry->changed, L'-', L'/');
       Trim(cur_pwhistory_entry->changed);
       if (cur_pwhistory_entry->changed.empty()) {
         //                                 1234567890123456789
-        cur_pwhistory_entry->changed = _T("1970-01-01 00:00:00");
+        cur_pwhistory_entry->changed = L"1970-01-01 00:00:00";
       }
       m_whichtime = -1;
       break;
@@ -371,61 +371,61 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
       cur_pwhistory_entry->oldpassword = m_strElemContent;
       break;
     case XLE_ENTRY_PWLENGTH:
-      cur_entry->pwp.length = _ttoi(m_strElemContent.c_str());
+      cur_entry->pwp.length = _wtoi(m_strElemContent.c_str());
       break;
     case XLE_ENTRY_PWUSEDIGITS:
-      if (m_strElemContent == _T("1"))
+      if (m_strElemContent == L"1")
         cur_entry->pwp.flags |= PWSprefs::PWPolicyUseDigits;
       else
         cur_entry->pwp.flags &= ~PWSprefs::PWPolicyUseDigits;
       break;
     case XLE_ENTRY_PWUSEEASYVISION:
-      if (m_strElemContent == _T("1"))
+      if (m_strElemContent == L"1")
         cur_entry->pwp.flags |= PWSprefs::PWPolicyUseEasyVision;
       else
         cur_entry->pwp.flags &= ~PWSprefs::PWPolicyUseEasyVision;
       break;
     case XLE_ENTRY_PWUSEHEXDIGITS:
-      if (m_strElemContent == _T("1"))
+      if (m_strElemContent == L"1")
         cur_entry->pwp.flags |= PWSprefs::PWPolicyUseHexDigits;
       else
         cur_entry->pwp.flags &= ~PWSprefs::PWPolicyUseHexDigits;
       break;
     case XLE_ENTRY_PWUSELOWERCASE:
-      if (m_strElemContent == _T("1"))
+      if (m_strElemContent == L"1")
         cur_entry->pwp.flags |= PWSprefs::PWPolicyUseLowercase;
       else
         cur_entry->pwp.flags &= ~PWSprefs::PWPolicyUseLowercase;
       break;
     case XLE_ENTRY_PWUSESYMBOLS:
-      if (m_strElemContent == _T("1"))
+      if (m_strElemContent == L"1")
         cur_entry->pwp.flags |= PWSprefs::PWPolicyUseSymbols;
       else
         cur_entry->pwp.flags &= ~PWSprefs::PWPolicyUseSymbols;
       break;
     case XLE_ENTRY_PWUSEUPPERCASE:
-      if (m_strElemContent == _T("1"))
+      if (m_strElemContent == L"1")
         cur_entry->pwp.flags |= PWSprefs::PWPolicyUseUppercase;
       else
         cur_entry->pwp.flags &= ~PWSprefs::PWPolicyUseUppercase;
       break;
     case XLE_ENTRY_PWMAKEPRONOUNCEABLE:
-      if (m_strElemContent == _T("1"))
+      if (m_strElemContent == L"1")
         cur_entry->pwp.flags |= PWSprefs::PWPolicyMakePronounceable;
       else
         cur_entry->pwp.flags &= ~PWSprefs::PWPolicyMakePronounceable;
       break;
     case XLE_ENTRY_PWDIGITMINLENGTH:
-      cur_entry->pwp.digitminlength = _ttoi(m_strElemContent.c_str());
+      cur_entry->pwp.digitminlength = _wtoi(m_strElemContent.c_str());
       break;
     case XLE_ENTRY_PWLOWERCASEMINLENGTH:
-      cur_entry->pwp.lowerminlength = _ttoi(m_strElemContent.c_str());
+      cur_entry->pwp.lowerminlength = _wtoi(m_strElemContent.c_str());
       break;
     case XLE_ENTRY_PWSYMBOLMINLENGTH:
-      cur_entry->pwp.symbolminlength = _ttoi(m_strElemContent.c_str());
+      cur_entry->pwp.symbolminlength = _wtoi(m_strElemContent.c_str());
       break;
     case XLE_ENTRY_PWUPPERCASEMINLENGTH:
-      cur_entry->pwp.upperminlength = _ttoi(m_strElemContent.c_str());
+      cur_entry->pwp.upperminlength = _wtoi(m_strElemContent.c_str());
       break;
     case XLE_DATE:
       switch (m_whichtime) {
@@ -456,24 +456,24 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
     case XLE_TIME:
       switch (m_whichtime) {
         case XLE_CTIME:
-          cur_entry->ctime += _T(" ") + m_strElemContent;
+          cur_entry->ctime += L" " + m_strElemContent;
           break;
         case XLE_ATIME:
-          cur_entry->atime += _T(" ") + m_strElemContent;
+          cur_entry->atime += L" " + m_strElemContent;
           break;
         case XLE_LTIME:
         case XLE_XTIME:
-          cur_entry->xtime += _T(" ") + m_strElemContent;
+          cur_entry->xtime += L" " + m_strElemContent;
           break;
         case XLE_PMTIME:
-          cur_entry->pmtime += _T(" ") + m_strElemContent;
+          cur_entry->pmtime += L" " + m_strElemContent;
           break;
         case XLE_RMTIME:
-          cur_entry->rmtime += _T(" ") + m_strElemContent;
+          cur_entry->rmtime += L" " + m_strElemContent;
           break;
         case XLE_CHANGED:
           ASSERT(cur_pwhistory_entry != NULL);
-          cur_pwhistory_entry->changed += _T(" ") + m_strElemContent;
+          cur_pwhistory_entry->changed += L" " + m_strElemContent;
           break;
         default:
           ASSERT(0);
@@ -506,12 +506,12 @@ void XMLFileHandlers::AddEntries()
       // overwritten and then copy to where we want it!
       unsigned char temp_uuid_array[sizeof(uuid_array_t) + sizeof(int)];
       int nscanned = 0;
-      const TCHAR *lpszuuid = cur_entry->uuid.c_str();
+      const wchar_t *lpszuuid = cur_entry->uuid.c_str();
       for (unsigned i = 0; i < sizeof(uuid_array_t); i++) {
 #if _MSC_VER >= 1400
-        nscanned += _stscanf_s(lpszuuid, _T("%02x"), &temp_uuid_array[i]);
+        nscanned += _stscanf_s(lpszuuid, L"%02x", &temp_uuid_array[i]);
 #else
-        nscanned += _stscanf(lpszuuid, _T("%02x"), &temp_uuid_array[i]);
+        nscanned += _stscanf(lpszuuid, L"%02x", &temp_uuid_array[i]);
 #endif
         lpszuuid += 2;
       }
@@ -525,7 +525,7 @@ void XMLFileHandlers::AddEntries()
     }
     StringX newgroup;
     if (!m_ImportedPrefix.empty()) {
-      newgroup = m_ImportedPrefix.c_str(); newgroup += _T(".");
+      newgroup = m_ImportedPrefix.c_str(); newgroup += L".";
     }
     EmptyIfOnlyWhiteSpace(cur_entry->group);
     newgroup += cur_entry->group;
@@ -535,7 +535,7 @@ void XMLFileHandlers::AddEntries()
         StringX Unique_Title;
         ItemListConstIter iter;
         int i = 0;
-        stringT s_import;
+        wstring s_import;
         do {
           i++;
           Format(s_import, IDSC_IMPORTNUMBER, i);
@@ -569,7 +569,7 @@ void XMLFileHandlers::AddEntries()
     if (!cur_entry->xtime.empty())
       tempitem.SetXTime(cur_entry->xtime.c_str());
     if (!cur_entry->xtime_interval.empty()) {
-      int numdays = _ttoi(cur_entry->xtime_interval.c_str());
+      int numdays = _wtoi(cur_entry->xtime_interval.c_str());
       if (numdays > 0 && numdays <= 3650)
         tempitem.SetXTimeInt(numdays);
     }
@@ -581,7 +581,7 @@ void XMLFileHandlers::AddEntries()
     }
 
     StringX newPWHistory;
-    stringT strPWHErrors;
+    wstring strPWHErrors;
     switch (VerifyImportPWHistoryString(cur_entry->pwhistory,
                                         newPWHistory, strPWHErrors)) {
       case PWH_OK:
@@ -598,7 +598,7 @@ void XMLFileHandlers::AddEntries()
       case PWH_TOO_LONG:
       case PWH_INVALID_CHARACTER:
       {
-        stringT buffer;
+        wstring buffer;
         Format(buffer, IDSC_SAXERRORPWH, cur_entry->group.c_str(),
                cur_entry->title.c_str(),
                cur_entry->username.c_str());
@@ -621,7 +621,7 @@ void XMLFileHandlers::AddEntries()
         vi_IterUXRFE++) {
           UnknownFieldEntry unkrfe = *vi_IterUXRFE;
           /* #ifdef _DEBUG
-          stringT cs_timestamp;
+          wstring cs_timestamp;
           cs_timestamp = PWSUtil::GetTimeStamp();
           TRACE(_T("%s: Record %s, %s, %s has unknown field: %02x, length %d/0x%04x, value:\n",
           cs_timestamp, cur_entry->group, cur_entry->title, cur_entry->username,

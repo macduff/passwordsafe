@@ -95,7 +95,7 @@ static void WFile_free(void *p)
 EFileXMLProcessor::EFileXMLProcessor(PWScore *core,
                                      UUIDList *possible_aliases,
                                      UUIDList *possible_shortcuts)
-  : m_xmlcore(core), m_delimiter(TCHAR('^')),
+  : m_xmlcore(core), m_delimiter(L'^'),
     m_possible_aliases(possible_aliases), m_possible_shortcuts(possible_shortcuts)
 {
   pSecMM = new ESecMemMgr;
@@ -117,30 +117,30 @@ EFileXMLProcessor::~EFileXMLProcessor()
 
 // ---------------------------------------------------------------------------
 bool EFileXMLProcessor::Process(const bool &bvalidation,
-                                const stringT &ImportedPrefix,
-                                const stringT &strXMLFileName,
-                                const stringT & /* XML Schema File Name */,
+                                const wstring &ImportedPrefix,
+                                const wstring &strXMLFileName,
+                                const wstring & /* XML Schema File Name */,
                                 int &nITER,
                                 int &nRecordsWithUnknownFields,
                                 UnknownFieldList &uhfl)
 {
   // Open the file
-  std::FILE *fd = NULL;
+  FILE *fd = NULL;
 #if _MSC_VER >= 1400
-  _tfopen_s(&fd, strXMLFileName.c_str(), _T("r"));
+  _wfopen_s(&fd, strXMLFileName.c_str(), L"r");
 #else
-  fd = _tfopen(strXMLFileName.c_str(), _T("r"));
+  fd = _wfopen(strXMLFileName.c_str(), L"r");
 #endif
   if (fd == NULL)
     return false;
 
   bool bEerrorOccurred = false;
   bool b_into_empty = m_xmlcore->GetNumEntries() == 0;
-  stringT cs_validation;
+  wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  stringT cs_import;
+  wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
-  m_strResultText = _T("");
+  m_strResultText = L"";
 
   pFileHandler->SetVariables(bvalidation ? NULL : m_xmlcore, bvalidation, 
                              ImportedPrefix, m_delimiter,
@@ -194,8 +194,8 @@ bool EFileXMLProcessor::Process(const bool &bvalidation,
            XML_ErrorString(XML_GetErrorCode(pParser)));
   } else {
     if (!bvalidation) {
-      TCHAR delimiter = pFileHandler->getDelimiter();
-      if (delimiter != _T('\0'))
+      wchar_t delimiter = pFileHandler->getDelimiter();
+      if (delimiter != L'\0')
         m_delimiter = delimiter;
 
       // Now add entries

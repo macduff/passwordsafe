@@ -41,7 +41,7 @@ bool verifyDTvalues(int yyyy, int mon, int dd,
 }
 
 
-bool VerifyImportDateTimeString(const stringT &time_str, time_t &t)
+bool VerifyImportDateTimeString(const wstring &time_str, time_t &t)
 {
   //  String format must be "yyyy/mm/dd hh:mm:ss"
   //                        "0123456789012345678"
@@ -56,19 +56,19 @@ bool VerifyImportDateTimeString(const stringT &time_str, time_t &t)
     return false;
 
   // Validate time_str
-  if (time_str[4] != TCHAR('/') ||
-      time_str[7] != TCHAR('/') ||
-      time_str[10] != TCHAR(' ') ||
-      time_str[13] != TCHAR(':') ||
-      time_str[16] != TCHAR(':'))
+  if (time_str[4] != L'/' ||
+      time_str[7] != L'/' ||
+      time_str[10] != L' ' ||
+      time_str[13] != L':' ||
+      time_str[16] != L':')
     return false;
 
   for (int i = 0;  i < ndigits; i++)
     if (!isdigit(time_str[idigits[i]]))
       return false;
 
-  istringstreamT is(time_str);
-  TCHAR dummy;
+  wistringstream is(time_str);
+  wchar_t dummy;
 
   is >> yyyy >> dummy >> mon >> dummy >> dd
      >> hh >> dummy >> min >> dummy >> ss;
@@ -90,17 +90,17 @@ bool VerifyImportDateTimeString(const stringT &time_str, time_t &t)
   return true;
 }
 
-bool VerifyASCDateTimeString(const stringT &time_str, time_t &t)
+bool VerifyASCDateTimeString(const wstring &time_str, time_t &t)
 {
   //  String format must be "ddd MMM dd hh:mm:ss yyyy"
   //                        "012345678901234567890123"
   // e.g.,                  "Wed Oct 06 21:02:38 2008"
 
-  const stringT str_months = _T("JanFebMarAprMayJunJulAugSepOctNovDec");
-  const stringT str_days = _T("SunMonTueWedThuFriSat");
+  const wstring str_months = L"JanFebMarAprMayJunJulAugSepOctNovDec";
+  const wstring str_days = L"SunMonTueWedThuFriSat";
   const int ndigits = 12;
   const int idigits[ndigits] = {8, 9, 11, 12, 14, 15, 17, 18, 20, 21, 22, 23};
-  stringT::size_type iMON, iDOW;
+  wstring::size_type iMON, iDOW;
   int yyyy, mon, dd, hh, min, ss;
 
   t = (time_t)-1;
@@ -109,21 +109,21 @@ bool VerifyASCDateTimeString(const stringT &time_str, time_t &t)
     return false;
 
   // Validate time_str
-  if (time_str[13] != TCHAR(':') ||
-      time_str[16] != TCHAR(':'))
+  if (time_str[13] != L':' ||
+      time_str[16] != L':')
     return false;
 
   for (int i = 0; i < ndigits; i++)
     if (!isdigit(time_str[idigits[i]]))
       return false;
 
-  istringstreamT is(time_str);
-  stringT dow, mon_str;
-  TCHAR dummy;
+  wistringstream is(time_str);
+  wstring dow, mon_str;
+  wchar_t dummy;
   is >> dow >> mon_str >> dd >> hh >> dummy >> min >> dummy >> ss >> yyyy;
 
   iMON = str_months.find(mon_str);
-  if (iMON == stringT::npos)
+  if (iMON == wstring::npos)
     return false;
 
   mon = (iMON / 3) + 1;
@@ -141,11 +141,11 @@ bool VerifyASCDateTimeString(const stringT &time_str, time_t &t)
   const CTime ct(yyyy, mon, dd, hh, min, ss, -1);
 
   iDOW = str_days.find(dow);
-  if (iDOW == stringT::npos)
+  if (iDOW == wstring::npos)
     return false;
 
   iDOW = (iDOW / 3) + 1;
-  if (iDOW != stringT::size_type(ct.GetDayOfWeek()))
+  if (iDOW != wstring::size_type(ct.GetDayOfWeek()))
     return false;
 
   t = (time_t)ct.GetTime();
@@ -153,13 +153,13 @@ bool VerifyASCDateTimeString(const stringT &time_str, time_t &t)
   return true;
 }
 
-bool VerifyXMLDateTimeString(const stringT &time_str, time_t &t)
+bool VerifyXMLDateTimeString(const wstring &time_str, time_t &t)
 {
   //  String format must be "yyyy-mm-ddThh:mm:ss"
   //                        "0123456789012345678"
   // e.g.,                  "2008-10-06T21:20:56"
 
-  stringT xtime_str;
+  wstring xtime_str;
 
   const int ndigits = 14;
   const int idigits[ndigits] = {0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18};
@@ -171,11 +171,11 @@ bool VerifyXMLDateTimeString(const stringT &time_str, time_t &t)
     return false;
 
   // Validate time_str
-  if (time_str[4] != TCHAR('-') ||
-      time_str[7] != TCHAR('-') ||
-      time_str[10] != TCHAR('T') ||
-      time_str[13] != TCHAR(':') ||
-      time_str[16] != TCHAR(':'))
+  if (time_str[4] != L'-' ||
+      time_str[7] != L'-' ||
+      time_str[10] != L'T' ||
+      time_str[13] != L':' ||
+      time_str[16] != L':')
     return false;
 
   for (int i = 0; i < ndigits; i++) {
@@ -183,8 +183,8 @@ bool VerifyXMLDateTimeString(const stringT &time_str, time_t &t)
       return false;
   }
 
-  istringstreamT is(time_str);
-  TCHAR dummy;
+  wistringstream is(time_str);
+  wchar_t dummy;
   is >> yyyy >> dummy >> mon >> dummy >> dd >> dummy
       >> hh >> dummy >> min >> dummy >> ss;
 
@@ -205,12 +205,12 @@ bool VerifyXMLDateTimeString(const stringT &time_str, time_t &t)
   return true;
 }
 
-bool VerifyXMLDateString(const stringT &time_str, time_t &t)
+bool VerifyXMLDateString(const wstring &time_str, time_t &t)
 {
   //  String format must be "yyyy-mm-dd"
   //                        "0123456789"
 
-  stringT xtime_str;
+  wstring xtime_str;
   const int ndigits = 8;
   const int idigits[ndigits] = {0, 1, 2, 3, 5, 6, 8, 9};
   int yyyy, mon, dd;
@@ -221,8 +221,8 @@ bool VerifyXMLDateString(const stringT &time_str, time_t &t)
     return false;
 
   // Validate time_str
-  if (time_str.substr(4,1) != _S("-") ||
-      time_str.substr(7,1) != _S("-"))
+  if (time_str.substr(4,1) != L"-" ||
+      time_str.substr(7,1) != L"-")
     return false;
 
   for (int i = 0; i < ndigits; i++) {
@@ -230,8 +230,8 @@ bool VerifyXMLDateString(const stringT &time_str, time_t &t)
       return false;
   }
 
-  istringstreamT is(time_str);
-  TCHAR dummy;
+  wistringstream is(time_str);
+  wchar_t dummy;
 
   is >> yyyy >> dummy >> mon >> dummy >> dd;
 
@@ -253,7 +253,7 @@ bool VerifyXMLDateString(const stringT &time_str, time_t &t)
 }
 
 int VerifyImportPWHistoryString(const StringX &PWHistory,
-                                StringX &newPWHistory, stringT &strErrors)
+                                StringX &newPWHistory, wstring &strErrors)
 {
   // Format is (! == mandatory blank, unless at the end of the record):
   //    sxx00
@@ -262,20 +262,20 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
   // Note:
   //    !yyyy/mm/dd!hh:mm:ss! may be !1970-01-01 00:00:00! meaning unknown
 
-  stringT buffer;
+  wstring buffer;
   int ipwlen, pwleft = 0, s = -1, m = -1, n = -1;
   int rc = PWH_OK;
   time_t t;
 
-  newPWHistory = _T("");
-  strErrors = _T("");
+  newPWHistory = L"";
+  strErrors = L"";
 
   if (PWHistory.empty())
     return PWH_OK;
 
   StringX pwh(PWHistory);
   StringX tmp;
-  const TCHAR *lpszPWHistory = NULL;
+  const wchar_t *lpszPWHistory = NULL;
   int len = pwh.length();
 
   if (len < 5) {
@@ -283,8 +283,8 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
     goto exit;
   }
 
-  if (pwh[0] == TCHAR('0')) s = 0;
-  else if (pwh[0] == TCHAR('1')) s = 1;
+  if (pwh[0] == L'0') s = 0;
+  else if (pwh[0] == L'1') s = 1;
   else {
     rc = PWH_INVALID_STATUS;
     goto exit;
@@ -293,9 +293,9 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
   {
     StringX s1 (pwh.substr(1, 2));
     StringX s2 (pwh.substr(3, 4));
-    iStringXStream is1(s1), is2(s2);
-    is1 >> std::hex >> m;
-    is2 >> std::hex >> n;
+    wiStringXStream is1(s1), is2(s2);
+    is1 >> hex >> m;
+    is2 >> hex >> n;
   }
 
   if (n > m) {
@@ -311,7 +311,7 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
     goto exit;
   }
 
-  Format(buffer, _T("%01d%02x%02x"), s, m, n);
+  Format(buffer, L"%01d%02x%02x", s, m, n);
   newPWHistory = buffer.c_str();
 
   for (int i = 0; i < n; i++) {
@@ -320,7 +320,7 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
       goto exit;
     }
 
-    if (lpszPWHistory[0] != _T(' ')) {
+    if (lpszPWHistory[0] != L' ') {
       rc = PWH_INVALID_CHARACTER;
       goto exit;
     }
@@ -330,7 +330,7 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
 
     tmp = StringX(lpszPWHistory, 19);
 
-    if (tmp.substr(0, 10) == _T("1970-01-01"))
+    if (tmp.substr(0, 10) == L"1970-01-01")
       t = 0;
     else {
       if (!VerifyImportDateTimeString(tmp.c_str(), t)) {
@@ -342,7 +342,7 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
     lpszPWHistory += 19;
     pwleft -= 19;
 
-    if (lpszPWHistory[0] != _T(' ')) {
+    if (lpszPWHistory[0] != L' ') {
       rc = PWH_INVALID_CHARACTER;
       goto exit;
     }
@@ -351,13 +351,13 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
     pwleft--;
     {
       StringX s3(lpszPWHistory, 4);
-      iStringXStream is3(s3);
-      is3 >> std::hex >> ipwlen;
+      wiStringXStream is3(s3);
+      is3 >> hex >> ipwlen;
     }
     lpszPWHistory += 4;
     pwleft -= 4;
 
-    if (lpszPWHistory[0] != _T(' ')) {
+    if (lpszPWHistory[0] != L' ') {
       rc = PWH_INVALID_CHARACTER;
       goto exit;
     }
@@ -371,7 +371,7 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
     }
 
     tmp = StringX(lpszPWHistory, ipwlen);
-    Format(buffer, _T("%08x%04x%s"), (long) t, ipwlen, tmp.c_str());
+    Format(buffer, L"%08x%04x%s", (long) t, ipwlen, tmp.c_str());
     newPWHistory += buffer.c_str();
     buffer.clear();
     lpszPWHistory += ipwlen;
@@ -383,7 +383,7 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
 
  exit:
   Format(buffer, IDSC_PWHERROR, len - pwleft + 1);
-  stringT temp;
+  wstring temp;
   switch (rc) {
     case PWH_OK:
     case PWH_IGNORE:
@@ -419,7 +419,7 @@ int VerifyImportPWHistoryString(const StringX &PWHistory,
   }
   strErrors = buffer + temp;
   if (rc != PWH_OK)
-    newPWHistory = _T("");
+    newPWHistory = L"";
 
   return rc;
 }

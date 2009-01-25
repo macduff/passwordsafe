@@ -29,14 +29,14 @@ public:
 
   static bool IsUnderU3();
 
-  void SetEffectiveUser(const stringT &u) {m_euser = u;}
-  void SetEffectiveHost(const stringT &h) {m_esysname = h;}
+  void SetEffectiveUser(const wstring &u) {m_euser = u;}
+  void SetEffectiveHost(const wstring &h) {m_esysname = h;}
 
-  const stringT &GetRealUser() const {return m_ruser;}
-  const stringT &GetRealHost() const {return m_rsysname;}
-  const stringT &GetEffectiveUser() const {return m_euser;}
-  const stringT &GetEffectiveHost() const {return m_esysname;}
-  const stringT &GetCurrentPID() const {return m_ProcessID;}
+  const wstring &GetRealUser() const {return m_ruser;}
+  const wstring &GetRealHost() const {return m_rsysname;}
+  const wstring &GetEffectiveUser() const {return m_euser;}
+  const wstring &GetEffectiveHost() const {return m_esysname;}
+  const wstring &GetCurrentPID() const {return m_ProcessID;}
 
 private:
   SysInfo();
@@ -44,9 +44,9 @@ private:
 
   static SysInfo *self;
 
-  stringT m_ruser, m_rsysname;
-  stringT m_euser, m_esysname;
-  stringT m_ProcessID;
+  wstring m_ruser, m_rsysname;
+  wstring m_euser, m_esysname;
+  wstring m_ProcessID;
 };
 #endif /* __SYSINFO_H */
 //-----------------------------------------------------------------------------

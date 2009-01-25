@@ -29,10 +29,10 @@ PWSfileV1V2::~PWSfileV1V2()
 }
 
 // Used to warn pre-2.0 users, and to identify the database as 2.x:
-static const StringX V2ItemName(_T(" !!!Version 2 File Format!!! Please upgrade to PasswordSafe 2.0 or later"));
+static const StringX V2ItemName(L" !!!Version 2 File Format!!! Please upgrade to PasswordSafe 2.0 or later");
 // Used to specify the exact version
-static const StringX VersionString(_T("2.0"));
-static const StringX AltVersionString(_T("pre-2.0")); 
+static const StringX VersionString(L"2.0");
+static const StringX AltVersionString(L"pre-2.0"); 
 
 int PWSfileV1V2::WriteV2Header()
 {
@@ -52,13 +52,13 @@ int PWSfileV1V2::WriteV2Header()
   unsigned int rlen = RangeRand(62) + 2; // 64 is a trade-off...
   char *rbuf = new char[rlen];
   PWSrand::GetInstance()->GetRandomData(rbuf, rlen-1);
-  rbuf[rlen-1] = TCHAR('\0'); // although zero may be there before - who cares?
-  stringT rname(V2ItemName);
+  rbuf[rlen-1] = L'\0'; // although zero may be there before - who cares?
+  wstring rname(V2ItemName);
   rname += rbuf;
   delete[] rbuf;
-  header.SetName(rname, _T(""));
+  header.SetName(rname, L"");
 #else
-  header.SetName(V2ItemName, _T(""));
+  header.SetName(V2ItemName, L"");
 #endif /* BREAK_PRE_2_14_COMPATIBILITY */
   header.SetPassword(VersionString);
   header.SetNotes(m_hdr.m_prefString);
@@ -112,18 +112,14 @@ int PWSfileV1V2::Open(const StringX &passkey)
   if (m_fd == NULL)
     return CANT_OPEN_FILE;
 
-  LPCTSTR passstr = m_passkey.c_str();
+  LPCWSTR passstr = m_passkey.c_str();
   unsigned long passLen = passkey.length();
   unsigned char *pstr;
 
-#ifdef UNICODE
   pstr = new unsigned char[3*passLen];
   size_t len = pws_os::wcstombs((char *)pstr, 3 * passLen, passstr, passLen, false);
   ASSERT(len != 0);
   passLen = len;
-#else
-  pstr = (unsigned char *)passstr;
-#endif
 
   if (m_rw == Write) {
     // Following used to verify passkey against file's passkey
@@ -131,7 +127,7 @@ int PWSfileV1V2::Open(const StringX &passkey)
     unsigned char randhash[20];   // HashSize
 
     PWSrand::GetInstance()->GetRandomData( randstuff, 8 );
-    randstuff[8] = randstuff[9] = TCHAR('\0');
+    randstuff[8] = randstuff[9] = L'\0';
     GenRandhash(m_passkey, randstuff, randhash);
 
     fwrite(randstuff, 1, 8, m_fd);
@@ -152,10 +148,8 @@ int PWSfileV1V2::Open(const StringX &passkey)
   } else { // open for read
     status = CheckPassword(m_filename, m_passkey, m_fd);
     if (status != SUCCESS) {
-#ifdef UNICODE
       trashMemory(pstr, 3*passLen);
       delete[] pstr;
-#endif
       Close();
       return status;
     }
@@ -167,10 +161,8 @@ int PWSfileV1V2::Open(const StringX &passkey)
     if (m_curversion == V20)
       status = ReadV2Header();
   } // read mode
-#ifdef UNICODE
   trashMemory(pstr, 3*passLen);
   delete[] pstr;
-#endif
   return status;
 }
 
@@ -184,7 +176,7 @@ int PWSfileV1V2::CheckPassword(const StringX &filename,
 {
   FILE *fd = a_fd;
   if (fd == NULL) {
-    fd = pws_os::FOpen(filename.c_str(), _T("rb"));
+    fd = pws_os::FOpen(filename.c_str(), L"rb");
   }
   if (fd == NULL)
     return CANT_OPEN_FILE;
@@ -216,13 +208,13 @@ static StringX ReMergeNotes(const CItemData &item)
   StringX notes = item.GetNotes();
   const StringX url(item.GetURL());
   if (!url.empty()) {
-    notes += _T("\r\n"); notes += url;
+    notes += L"\r\n"; notes += url;
   }
   const StringX at(item.GetAutoType());
   if (!at.empty()) {
-    stringT cs_autotype;
+    wstring cs_autotype;
     LoadAString(cs_autotype, IDSC_AUTOTYPE);
-    notes += _T("\r\n");
+    notes += L"\r\n";
     notes += cs_autotype.c_str();
     notes += at;
   }
@@ -231,11 +223,6 @@ static StringX ReMergeNotes(const CItemData &item)
 
 size_t PWSfileV1V2::WriteCBC(unsigned char type, const StringX &data)
 {
-#ifndef UNICODE
-  const unsigned char *datastr = (const unsigned char *)data.c_str();
-
-  return PWSfile::WriteCBC(type, datastr, data.length());
-#else
   wchar_t *wcPtr = const_cast<wchar_t *>(data.c_str());
   int wcLen = data.length()+1;
   int mbLen = 3*wcLen;
@@ -248,7 +235,6 @@ size_t PWSfileV1V2::WriteCBC(unsigned char type, const StringX &data)
   trashMemory(acp, mbLen);
   delete[] acp;
   return retval;
-#endif
 }
 
 int PWSfileV1V2::WriteRecord(const CItemData &item)
@@ -282,7 +268,7 @@ int PWSfileV1V2::WriteRecord(const CItemData &item)
         StringX group = item.GetGroup();
         StringX title = item.GetTitle();
         if (!group.empty()) {
-          group += _T(".");
+          group += L".";
           group += title;
           title = group;
         }
@@ -309,7 +295,7 @@ int PWSfileV1V2::WriteRecord(const CItemData &item)
       WriteCBC(CItemData::USER, item.GetUser());
       WriteCBC(CItemData::PASSWORD, item.GetPassword());
       WriteCBC(CItemData::NOTES, ReMergeNotes(item));
-      WriteCBC(CItemData::END, _T(""));
+      WriteCBC(CItemData::END, L"");
       break;
     }
     default:
@@ -322,16 +308,16 @@ int PWSfileV1V2::WriteRecord(const CItemData &item)
 static void ExtractAutoTypeCmd(StringX &notesStr, StringX &autotypeStr)
 {
   StringX instr(notesStr);
-  stringT cs_autotype;
+  wstring cs_autotype;
   LoadAString(cs_autotype, IDSC_AUTOTYPE);
   StringX::size_type left = instr.find(cs_autotype.c_str(), 0);
   if (left == StringX::npos) {
-    autotypeStr = _T(""); 
+    autotypeStr = L""; 
   } else {
     StringX tmp(notesStr);
     tmp = tmp.substr(left+9); // throw out everything left of "autotype:"
     instr = instr.substr(0, left);
-    StringX::size_type right = tmp.find_first_of(_T("\r\n"));
+    StringX::size_type right = tmp.find_first_of(L"\r\n");
     if (right != StringX::npos) {
       instr += tmp.substr(right);
       tmp = tmp.substr(0, right);
@@ -345,18 +331,18 @@ static void ExtractURL(StringX &notesStr, StringX &outurl)
 {
   StringX instr(notesStr);
   // Extract first instance of (http|https|ftp)://[^ \t\r\n]+
-  StringX::size_type left = instr.find(_T("http://"));
+  StringX::size_type left = instr.find(L"http://");
   if (left == StringX::npos)
-    left = instr.find(_T("https://"));
+    left = instr.find(L"https://");
   if (left == StringX::npos)
-    left = instr.find(_T("ftp://"));
+    left = instr.find(L"ftp://");
   if (left == StringX::npos) {
-    outurl = _T("");
+    outurl = L"";
   } else {
     StringX url(instr);
     instr = notesStr.substr(0, left);
     url = url.substr(left); // throw out everything left of URL
-    StringX::size_type right = url.find_first_of(_T(" \t\r\n"));
+    StringX::size_type right = url.find_first_of(L" \t\r\n");
     if (right != StringX::npos) {
       instr += url.substr(right);
       url = url.substr(0, right);    
@@ -377,7 +363,6 @@ size_t PWSfileV1V2::ReadCBC(unsigned char &type, StringX &data)
                     m_fish, m_IV, m_terminal);
 
   if (buffer_len > 0) {
-#ifdef UNICODE
     wchar_t *wc = new wchar_t[buffer_len+1];
 
     size_t wcLen = pws_os::mbstowcs(wc, buffer_len + 1,
@@ -385,20 +370,16 @@ size_t PWSfileV1V2::ReadCBC(unsigned char &type, StringX &data)
                                     buffer_len, false);
     ASSERT(wcLen != 0);
     if (wcLen < buffer_len + 1)
-      wc[wcLen] = TCHAR('\0');
+      wc[wcLen] = L'\0';
     else
-      wc[buffer_len] = TCHAR('\0');
+      wc[buffer_len] = L'\0';
     data = wc;
     trashMemory(wc, wcLen);
     delete[] wc;
-#else
-    StringX str((const char *)buffer, buffer_len);
-    data = str;
-#endif
     trashMemory(buffer, buffer_len);
     delete[] buffer;
   } else {
-    data = _T("");
+    data = L"";
     // no need to delete[] buffer, since _readcbc will not allocate if
     // buffer_len is zero
   }
@@ -461,7 +442,7 @@ int PWSfileV1V2::ReadRecord(CItemData &item)
               endFound = true; break;
             case CItemData::UUID:
             {
-              LPCTSTR ptr = tempdata.c_str();
+              LPCWSTR ptr = tempdata.c_str();
               uuid_array_t uuid_array;
               for (unsigned i = 0; i < sizeof(uuid_array); i++)
                 uuid_array[i] = (unsigned char)ptr[i];

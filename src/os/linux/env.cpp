@@ -17,15 +17,13 @@
 #include <unistd.h>
 #include <limits.h>
 
-
 #include "../env.h"
 
-#ifdef UNICODE
-static stringT towc(const char *val)
+static wstring towc(const char *val)
 {
-  stringT retval;
+  wstring retval;
   assert(val != NULL);
-  int len = std::strlen(val);
+  int len = strlen(val);
   int wsize;
   const char *p = val;
   wchar_t wvalue;
@@ -39,67 +37,50 @@ static stringT towc(const char *val)
   } while (len != 1);
   return retval;
 }
-#endif
 
-stringT pws_os::getenv(const char *env, bool is_path)
+wstring pws_os::getenv(const char *env, bool is_path)
 {
   assert(env != NULL);
-  stringT retval;
-  char *value = std::getenv(env);
+  wstring retval;
+  char *value = getenv(env);
   if (value != NULL) {
-#ifdef UNICODE
     retval = towc(value);
-#else
-    retval = value;
-#endif
     if (is_path) {
       // make sure path has trailing '\'
-      if (retval[retval.length()-1] != charT('/'))
-        retval += _S("/");
+      if (retval[retval.length()-1] != L'/')
+        retval += L"/";
     } // is_path
   } // value != NULL
   return retval;
 }
 
-stringT pws_os::getusername()
+wstring pws_os::getusername()
 {
-  stringT retval;
+  wstring retval;
   const char *user = getlogin();
   if (user == NULL)
     user = "?";
-#ifdef UNICODE
   retval = towc(user);
-#else
-  retval = user;
-#endif
   return retval;
 }
 
-stringT pws_os::gethostname()
+wstring pws_os::gethostname()
 {
-  stringT retval;
+  wstring retval;
   char name[HOST_NAME_MAX];
   if (::gethostname(name, HOST_NAME_MAX) != 0) {
     assert(0);
     name[0] = '?'; name[1] = '\0';
   }
-#ifdef UNICODE
   retval = towc(name);
-#else
-  retval = name;
-#endif
   return retval;
 }
 
-stringT pws_os::getprocessid()
+wstring pws_os::getprocessid()
 {
-#ifdef UNICODE
-  std::wostringstream os;
-#else
-  std::ostringstream os;
-#endif
+  wostringstream os;
   os.width(8);
-  os.fill(charT('0'));
+  os.fill(L'0');
   os << getpid();
 
   return os.str();

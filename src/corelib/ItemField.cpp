@@ -102,7 +102,7 @@ void CItemField::Set(const unsigned char* value, unsigned int length, BlowFish *
 
 void CItemField::Set(const StringX &value, BlowFish *bf)
 {
-  const LPCTSTR plainstr = value.c_str();
+  const LPCWSTR plainstr = value.c_str();
 
   Set((const unsigned char *)plainstr,
       value.length() * sizeof(*plainstr), bf);
@@ -120,7 +120,7 @@ void CItemField::Get(unsigned char *value, unsigned int &length, BlowFish *bf) c
   * if In < BlockLength, assertion is triggered (no way to handle gracefully)
   */
   if (m_Length == 0) {
-    value[0] = TCHAR('\0');
+    value[0] = L'\0';
     length = 0;
   } else { // we have data to decrypt
     int BlockLength = GetBlockSize(m_Length);
@@ -146,19 +146,19 @@ void CItemField::Get(StringX &value, BlowFish *bf) const
          (m_Length > 0 && m_Data != NULL));
 
   if (m_Length == 0) {
-    value = _T("");
+    value = L"";
   } else { // we have data to decrypt
     size_t BlockLength = GetBlockSize(m_Length);
     unsigned char *tempmem = new unsigned char[BlockLength];
-    TCHAR *pt = reinterpret_cast<TCHAR *>(tempmem);
+    wchar_t *pt = reinterpret_cast<wchar_t *>(tempmem);
     size_t x;
 
     // decrypt block by block
     for (x = 0; x < BlockLength; x += 8)
       bf->Decrypt(m_Data + x, tempmem + x);
 
-    // copy to value TCHAR by TCHAR
-    for (x = 0; x < m_Length/sizeof(TCHAR); x++)
+    // copy to value wchar_t by wchar_t
+    for (x = 0; x < m_Length/sizeof(wchar_t); x++)
       value += pt[x];
 
     trashMemory(tempmem, BlockLength);

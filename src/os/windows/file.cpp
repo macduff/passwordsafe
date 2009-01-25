@@ -9,6 +9,7 @@
 /**
  * \file Windows-specific implementation of file.h
  */
+
 #include <afx.h>
 #include <Windows.h>
 #include <LMCONS.H> // for UNLEN definition
@@ -22,23 +23,25 @@
 #include "../dir.h"
 #include "../env.h"
 
-const TCHAR *pws_os::PathSeparator = _T("\\");
+using namespace std;
 
-bool pws_os::FileExists(const stringT &filename)
+const wchar_t *pws_os::PathSeparator = L"\\";
+
+bool pws_os::FileExists(const wstring &filename)
 {
   struct _stat statbuf;
   int status;
 
-  status = _tstat(filename.c_str(), &statbuf);
+  status = _wstat(filename.c_str(), &statbuf);
   return (status == 0);
 }
 
-bool pws_os::FileExists(const stringT &filename, bool &bReadOnly)
+bool pws_os::FileExists(const wstring &filename, bool &bReadOnly)
 {
   struct _stat statbuf;
   int status;
 
-  status = _tstat(filename.c_str(), &statbuf);
+  status = _wstat(filename.c_str(), &statbuf);
 
   // As "stat" gives "user permissions" not "file attributes"....
   if (status == 0) {
@@ -51,33 +54,33 @@ bool pws_os::FileExists(const stringT &filename, bool &bReadOnly)
   }
 }
 
-bool pws_os::RenameFile(const stringT &oldname, const stringT &newname)
+bool pws_os::RenameFile(const wstring &oldname, const wstring &newname)
 {
-  _tremove(newname.c_str()); // otherwise rename will fail if newname exists
-  int status = _trename(oldname.c_str(), newname.c_str());
+  _wremove(newname.c_str()); // otherwise rename will fail if newname exists
+  int status = _wrename(oldname.c_str(), newname.c_str());
 
   return (status == 0);
 }
 
-extern bool pws_os::CopyAFile(const stringT &from, const stringT &to)
+extern bool pws_os::CopyAFile(const wstring &from, const wstring &to)
 {
   // Copy file and create any intervening directories as necessary & automatically
-  TCHAR szSource[_MAX_PATH];
-  TCHAR szDestination[_MAX_PATH];
+  wchar_t szSource[_MAX_PATH];
+  wchar_t szDestination[_MAX_PATH];
 
-  const TCHAR *lpsz_current = from.c_str();
-  const TCHAR *lpsz_new = to.c_str();
+  const wchar_t *lpsz_current = from.c_str();
+  const wchar_t *lpsz_new = to.c_str();
 #if _MSC_VER >= 1400
-  _tcscpy_s(szSource, _MAX_PATH, lpsz_current);
-  _tcscpy_s(szDestination, _MAX_PATH, lpsz_new);
+  wcscpy_s(szSource, _MAX_PATH, lpsz_current);
+  wcscpy_s(szDestination, _MAX_PATH, lpsz_new);
 #else
-  _tcscpy(szSource, lpsz_current);
-  _tcscpy(szDestination, lpsz_new);
+  wcscpy(szSource, lpsz_current);
+  wcscpy(szDestination, lpsz_new);
 #endif
 
   // Must end with double NULL
-  szSource[from.length() + 1] = TCHAR('\0');
-  szDestination[to.length() + 1] = TCHAR('\0');
+  szSource[from.length() + 1] = L'\0';
+  szDestination[to.length() + 1] = L'\0';
 
   SHFILEOPSTRUCT sfop;
   memset(&sfop, 0, sizeof(sfop));
@@ -90,19 +93,19 @@ extern bool pws_os::CopyAFile(const stringT &from, const stringT &to)
   return (SHFileOperation(&sfop) == 0);
 }
 
-bool pws_os::DeleteAFile(const stringT &filename)
+bool pws_os::DeleteAFile(const wstring &filename)
 {
   return DeleteFile(filename.c_str()) == TRUE;
 }
 
 
-void pws_os::FindFiles(const stringT &filter, std::vector<stringT> &res)
+void pws_os::FindFiles(const wstring &filter, vector<wstring> &res)
 {
   CFileFind finder;
   BOOL bWorking = finder.FindFile(filter.c_str());
   while (bWorking) {
     bWorking = finder.FindNextFile();
-    res.push_back(LPCTSTR(finder.GetFileName()));
+    res.push_back(LPCWSTR(finder.GetFileName()));
   }
 }
 
@@ -119,20 +122,20 @@ void pws_os::FindFiles(const stringT &filter, std::vector<stringT> &res)
 * Thanks to Frank (xformer) for discussion on the subject.
 */
 
-static stringT GetLockFileName(const stringT &filename)
+static wstring GetLockFileName(const wstring &filename)
 {
   ASSERT(!filename.empty());
   // derive lock filename from filename
-  stringT retval(filename, 0, filename.find_last_of(TCHAR('.')));
-  retval += _T(".plk");
+  wstring retval(filename, 0, filename.find_last_of(L'.'));
+  retval += L".plk";
   return retval;
 }
 
-static void GetLocker(const stringT &lock_filename, stringT &locker)
+static void GetLocker(const wstring &lock_filename, wstring &locker)
 {
-  locker = _T("Unable to determine locker");
+  locker = L"Unable to determine locker";
   // read locker data ("user@machine:nnnnnnnn") from file
-  TCHAR lockerStr[UNLEN + MAX_COMPUTERNAME_LENGTH + 11];
+  wchar_t lockerStr[UNLEN + MAX_COMPUTERNAME_LENGTH + 11];
   // flags here counter (my) intuition, but see
   // http://msdn.microsoft.com/library/default.asp?url=/library/en-us/fileio/base/creating_and_opening_files.asp
   HANDLE h2 = ::CreateFile(lock_filename.c_str(),
@@ -159,23 +162,23 @@ static void GetLocker(const stringT &lock_filename, stringT &locker)
                      &bytesRead, NULL);
     CloseHandle(h2);
     if (bytesRead > 0) {
-      lockerStr[bytesRead/sizeof(TCHAR)] = TCHAR('\0');
+      lockerStr[bytesRead/sizeof(wchar_t)] = L'\0';
       locker = lockerStr;
     } // read info from lock file
   }
 }
 
-bool pws_os::LockFile(const stringT &filename, stringT &locker, 
+bool pws_os::LockFile(const wstring &filename, wstring &locker, 
                       HANDLE &lockFileHandle, int &LockCount)
 {
-  const stringT lock_filename = GetLockFileName(filename);
-  stringT s_locker;
-  const stringT user = pws_os::getusername();
-  const stringT host = pws_os::gethostname();
-  const stringT pid = pws_os::getprocessid();
+  const wstring lock_filename = GetLockFileName(filename);
+  wstring s_locker;
+  const wstring user = pws_os::getusername();
+  const wstring host = pws_os::gethostname();
+  const wstring pid = pws_os::getprocessid();
 
-  const stringT path(lock_filename);
-  stringT drv, dir, fname, ext;
+  const wstring path(lock_filename);
+  wstring drv, dir, fname, ext;
 
   pws_os::splitpath(path, drv, dir, fname, ext);
 
@@ -188,7 +191,7 @@ bool pws_os::LockFile(const stringT &filename, stringT &locker,
     // potential for a TOCTTOU issue here. Worse case, lock
     // will fail.
 
-    const stringT cs_me = user + _T("@") + host + _T(":") + pid;
+    const wstring cs_me = user + L"@" + host + L":" + pid;
     GetLocker(lock_filename, s_locker);
 
     if (cs_me == s_locker) {
@@ -226,7 +229,7 @@ bool pws_os::LockFile(const stringT &filename, stringT &locker,
       locker = s_locker.c_str();
       break;
     default:
-      locker = _T("Cannot create lock file - no permission in directory?");
+      locker = L"Cannot create lock file - no permission in directory?";
       break;
     } // switch (error)
     return false;
@@ -234,22 +237,22 @@ bool pws_os::LockFile(const stringT &filename, stringT &locker,
     DWORD numWrit, sumWrit;
     BOOL write_status;
     write_status = ::WriteFile(lockFileHandle,
-                               user.c_str(), user.length() * sizeof(TCHAR),
+                               user.c_str(), user.length() * sizeof(wchar_t),
                                &sumWrit, NULL);
     write_status &= ::WriteFile(lockFileHandle,
-                                _T("@"), sizeof(TCHAR),
+                                L"@", sizeof(wchar_t),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     write_status &= ::WriteFile(lockFileHandle,
-                                host.c_str(), host.length() * sizeof(TCHAR),
+                                host.c_str(), host.length() * sizeof(wchar_t),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     write_status &= ::WriteFile(lockFileHandle,
-                                _T(":"), sizeof(TCHAR),
+                                L":", sizeof(wchar_t),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     write_status &= ::WriteFile(lockFileHandle,
-                                pid.c_str(), pid.length() * sizeof(TCHAR),
+                                pid.c_str(), pid.length() * sizeof(wchar_t),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     ASSERT(sumWrit > 0);
@@ -258,23 +261,23 @@ bool pws_os::LockFile(const stringT &filename, stringT &locker,
   }
 }
 
-void pws_os::UnlockFile(const stringT &filename,
+void pws_os::UnlockFile(const wstring &filename,
                         HANDLE &lockFileHandle, int &LockCount)
 {
-  const stringT user = pws_os::getusername();
-  const stringT host = pws_os::gethostname();
-  const stringT pid = pws_os::getprocessid();
+  const wstring user = pws_os::getusername();
+  const wstring host = pws_os::gethostname();
+  const wstring pid = pws_os::getprocessid();
 
   // Use Win32 API for locking - supposedly better at
   // detecting dead locking processes
   if (lockFileHandle != INVALID_HANDLE_VALUE) {
-    stringT locker;
-    const stringT lock_filename = GetLockFileName(filename);
-    const stringT cs_me = user + _T("@") + host + _T(":") + pid;
+    wstring locker;
+    const wstring lock_filename = GetLockFileName(filename);
+    const wstring cs_me = user + L"@" + host + L":" + pid;
     GetLocker(lock_filename, locker);
 
-    const stringT path(lock_filename);
-    stringT drv, dir, fname, ext;
+    const wstring path(lock_filename);
+    wstring drv, dir, fname, ext;
     
     pws_os::splitpath(path, drv, dir, fname, ext);
 
@@ -289,9 +292,9 @@ void pws_os::UnlockFile(const stringT &filename,
   }
 }
 
-bool pws_os::IsLockedFile(const stringT &filename)
+bool pws_os::IsLockedFile(const wstring &filename)
 {
-  const stringT lock_filename = GetLockFileName(filename);
+  const wstring lock_filename = GetLockFileName(filename);
   // under this scheme, we need to actually try to open the file to determine
   // if it's locked.
   HANDLE h = CreateFile(lock_filename.c_str(),
@@ -325,23 +328,23 @@ bool pws_os::IsLockedFile(const stringT &filename)
   }
 }
 
-std::FILE *pws_os::FOpen(const stringT &filename, const TCHAR *mode)
+FILE *pws_os::FOpen(const wstring &filename, const wchar_t *mode)
 {
-  std::FILE *fd = NULL;
+  FILE *fd = NULL;
 #if _MSC_VER >= 1400
-  _tfopen_s(&fd, filename.c_str(), mode);
+  _wfopen_s(&fd, filename.c_str(), mode);
 #else
-  fd = _tfopen(m_filename.c_str(), mode);
+  fd = _wfopen(m_filename.c_str(), mode);
 #endif
   return fd;
 }
 
-long pws_os::fileLength(std::FILE *fp) {
+long pws_os::fileLength(FILE *fp) {
   if (fp != NULL) {
-    long pos = std::ftell(fp);
-    std::fseek(fp, 0, SEEK_END);
+    long pos = ftell(fp);
+    fseek(fp, 0, SEEK_END);
     long len = ftell(fp);
-    std::fseek(fp, pos, SEEK_SET);
+    fseek(fp, pos, SEEK_SET);
     return len;
   } else
     return 0;

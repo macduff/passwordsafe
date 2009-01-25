@@ -18,6 +18,8 @@
 #include <map>
 #include <algorithm>
 
+using namespace std;
+
 // CPWToolBar
 
 /*
@@ -55,18 +57,18 @@
 // They should match m_MainToolBarIDs below.
 // Note a separator is denoted by '~'
 const CString CPWToolBar::m_csMainButtons[] = {
-  _T("new"), _T("open"), _T("close"), _T("save"), _T("~"),
-  _T("copypassword"), _T("copyuser"), _T("copynotes"), _T("clearclipboard"), _T("~"),
-  _T("autotype"), _T("browseurl"), _T("~"),
-  _T("add"), _T("viewedit"), _T("~"),
-  _T("delete"), _T("~"),
-  _T("expandall"), _T("collapseall"), _T("~"),
-  _T("options"), _T("~"),
-  _T("help"),
+  L"new", L"open", L"close", L"save", L"~",
+  L"copypassword", L"copyuser", L"copynotes", L"clearclipboard", L"~",
+  L"autotype", L"browseurl", L"~",
+  L"add", L"viewedit", L"~",
+  L"delete", L"~",
+  L"expandall", L"collapseall", L"~",
+  L"options", L"~",
+  L"help",
   // Optional (non-default) buttons next
-  _T("exporttext"), _T("exportxml"), _T("importtext"), _T("importxml"), 
-  _T("saveas"), _T("compare"), _T("merge"), _T("listtree"), _T("find"), _T("viewreports"), 
-  _T("applyfilters"), _T("setfilters"), _T("managefilters"), _T("passwordsubset")
+  L"exporttext", L"exportxml", L"importtext", L"importxml", 
+  L"saveas", L"compare", L"merge", L"listtree", L"find", L"viewreports", 
+  L"applyfilters", L"setfilters", L"managefilters", L"passwordsubset"
 };
 
 const UINT CPWToolBar::m_MainToolBarIDs[] = {
@@ -524,7 +526,7 @@ void CPWToolBar::Init(const int NumBits, bool bRefresh)
     m_pOriginalTBinfo[i].iString = bIsSeparator ? -1 : j;
 
     if (i <= m_iNumDefaultButtons)
-      m_csDefaultButtonString += m_csMainButtons[i] + _T(" ");
+      m_csDefaultButtonString += m_csMainButtons[i] + L" ";
 
     if (m_MainToolBarIDs[i] == ID_HELP)
       m_iNumDefaultButtons = i;
@@ -552,7 +554,7 @@ void CPWToolBar::CustomizeButtons(CString csButtonNames)
     tbCtrl.DeleteButton(i);
   }
 
-  std::vector<CString> vcsButtonNameArray;
+  vector<CString> vcsButtonNameArray;
 
   csButtonNames.MakeLower();
 
@@ -560,19 +562,19 @@ void CPWToolBar::CustomizeButtons(CString csButtonNames)
     vcsButtonNameArray.push_back(m_csMainButtons[i]);
   }
 
-  std::vector<CString>::const_iterator cstring_iter;
+  vector<CString>::const_iterator cstring_iter;
 
   int curPos(0);
   // Note all separators will be treated as the first!
   i = 0;
-  CString csToken = csButtonNames.Tokenize(_T(" "), curPos);
-  while (csToken != _T("") && curPos != -1) {
-    cstring_iter = std::find(vcsButtonNameArray.begin(), vcsButtonNameArray.end(), csToken);
+  CString csToken = csButtonNames.Tokenize(L" ", curPos);
+  while (csToken != L"" && curPos != -1) {
+    cstring_iter = find(vcsButtonNameArray.begin(), vcsButtonNameArray.end(), csToken);
     if (cstring_iter != vcsButtonNameArray.end()) {
       int index = (int)(cstring_iter - vcsButtonNameArray.begin());
       tbCtrl.AddButtons(1, &m_pOriginalTBinfo[index]);
     }
-    csToken = csButtonNames.Tokenize(_T(" "), curPos);
+    csToken = csButtonNames.Tokenize(L" ", curPos);
   }
 
   tbCtrl.AutoSize();
@@ -580,7 +582,7 @@ void CPWToolBar::CustomizeButtons(CString csButtonNames)
 
 CString CPWToolBar::GetButtonString()
 {
-  CString cs_buttonnames(_T(""));
+  CString cs_buttonnames(L"");
   TBBUTTONINFO tbinfo;
   int num_buttons, i;
 
@@ -588,8 +590,8 @@ CString CPWToolBar::GetButtonString()
 
   num_buttons = tbCtrl.GetButtonCount();
 
-  std::vector<UINT> vcsButtonIDArray;
-  std::vector<UINT>::const_iterator uint_iter;
+  vector<UINT> vcsButtonIDArray;
+  vector<UINT>::const_iterator uint_iter;
 
   for (i = 0; i < m_iMaxNumButtons; i++) {
     vcsButtonIDArray.push_back(m_MainToolBarIDs[i]);
@@ -603,14 +605,14 @@ CString CPWToolBar::GetButtonString()
     tbCtrl.GetButtonInfo(i, &tbinfo);
 
     if (tbinfo.fsStyle & TBSTYLE_SEP) {
-      cs_buttonnames += _T("~ ");
+      cs_buttonnames += L"~ ";
       continue;
     }
 
-    uint_iter = std::find(vcsButtonIDArray.begin(), vcsButtonIDArray.end(), tbinfo.idCommand);
+    uint_iter = find(vcsButtonIDArray.begin(), vcsButtonIDArray.end(), tbinfo.idCommand);
     if (uint_iter != vcsButtonIDArray.end()) {
       int index = (int)(uint_iter - vcsButtonIDArray.begin());
-      cs_buttonnames += m_csMainButtons[index] + _T(" ");
+      cs_buttonnames += m_csMainButtons[index] + L" ";
     }
   }
 
@@ -678,28 +680,28 @@ void CPWToolBar::LoadDefaultToolBar(const int toolbarMode)
   // includes separators which don't have strings giving an even bigger buffer!
   // Because they are a concatenation of null terminated strings terminated by a double
   // null, they cannot be stored in a CString variable,
-  TCHAR *lpszTBCustomizationStrings = new TCHAR[m_iMaxNumButtons * 64];
+  wchar_t *lpszTBCustomizationStrings = new wchar_t[m_iMaxNumButtons * 64];
   const int maxlength = m_iMaxNumButtons * 64;
 
   // By clearing, ensures string ends with a double NULL
-  memset(lpszTBCustomizationStrings, 0x00, maxlength * sizeof(TCHAR));
+  memset(lpszTBCustomizationStrings, 0x00, maxlength * sizeof(wchar_t));
 
   j = 0;
   for (i = 0; i < m_iMaxNumButtons; i++) {
     if (m_MainToolBarIDs[i] != ID_SEPARATOR) {
       CString cs_buttondesc;
       cs_buttondesc.LoadString(m_MainToolBarIDs[i]);
-      int iPos = cs_buttondesc.ReverseFind(_T('\n'));
+      int iPos = cs_buttondesc.ReverseFind(L'\n');
       if (iPos < 0) // could happen with incomplete translation
         continue;
       cs_buttondesc = cs_buttondesc.Right(cs_buttondesc.GetLength() - iPos - 1);
       int idesclen = cs_buttondesc.GetLength();
-      TCHAR *szDescription = cs_buttondesc.GetBuffer(idesclen);
+      wchar_t *szDescription = cs_buttondesc.GetBuffer(idesclen);
 #if _MSC_VER >= 1400
-      memcpy_s(&lpszTBCustomizationStrings[j], maxlength - j, szDescription, idesclen * sizeof(TCHAR));
+      memcpy_s(&lpszTBCustomizationStrings[j], maxlength - j, szDescription, idesclen * sizeof(wchar_t));
 #else
-      ASSERT((maxlength - j) > idesclen * sizeof(TCHAR));
-      memcpy(&lpszTBCustomizationStrings[j], szDescription, idesclen * sizeof(TCHAR));
+      ASSERT((maxlength - j) > idesclen * sizeof(wchar_t));
+      memcpy(&lpszTBCustomizationStrings[j], szDescription, idesclen * sizeof(wchar_t));
 #endif
       cs_buttondesc.ReleaseBuffer();
       j += idesclen + 1;

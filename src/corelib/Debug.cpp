@@ -11,15 +11,15 @@
 #include "Debug.h"
 
 #ifndef DEBUG
-void PWSDebug::IssueError(const stringT &)
+void PWSDebug::IssueError(const wstring &)
 {
 }
 void PWSDebug::HexDump(unsigned char *, const int, 
-                       const stringT &, const int)
+                       const wstring &, const int)
 {
 }
 #else
-void PWSDebug::IssueError(const stringT &csFunction)
+void PWSDebug::IssueError(const wstring &csFunction)
 {
   LPVOID lpMsgBuf;
   LPVOID lpDisplayBuf;
@@ -30,24 +30,24 @@ void PWSDebug::IssueError(const stringT &csFunction)
                 NULL,
                 dw,
                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR) &lpMsgBuf,
+                (LPWSTR) &lpMsgBuf,
                 0, NULL);
 
   lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
-                                    (lstrlen((LPCTSTR)lpMsgBuf) + csFunction.length() + 40) * sizeof(TCHAR)); 
-  wsprintf((LPTSTR)lpDisplayBuf, TEXT("%s failed with error %d: %s"), 
+                                    (lstrlen((LPCWSTR)lpMsgBuf) + csFunction.length() + 40) * sizeof(wchar_t)); 
+  wsprintf((LPWSTR)lpDisplayBuf, TEXT("%s failed with error %d: %s"), 
            csFunction.c_str(), dw, lpMsgBuf); 
-  MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK); 
+  MessageBox(NULL, (LPCWSTR)lpDisplayBuf, TEXT("Error"), MB_OK); 
 
   LocalFree(lpMsgBuf);
   LocalFree(lpDisplayBuf);
 }
 
 void PWSDebug::HexDump(unsigned char *pmemory, const int length, 
-                       const stringT &cs_prefix, const int maxnum)
+                       const wstring &cs_prefix, const int maxnum)
 {
   unsigned char *pmem;
-  stringT cs_outbuff, cs_hexbuff, cs_charbuff;
+  wstring cs_outbuff, cs_hexbuff, cs_charbuff;
   int i, j, len(length);
   unsigned char c;
 
@@ -56,7 +56,7 @@ void PWSDebug::HexDump(unsigned char *pmemory, const int length,
     // Show offset for this line.
     cs_charbuff.clear();
     cs_hexbuff.clear();
-    Format(cs_outbuff, _T("%s: %08x *"), cs_prefix.c_str(), pmem);
+    Format(cs_outbuff, L"%s: %08x *", cs_prefix.c_str(), pmem);
 
     // Format hex portion of line and save chars for ascii portion
     if (len > maxnum)
@@ -68,15 +68,15 @@ void PWSDebug::HexDump(unsigned char *pmemory, const int length,
       c = *pmem++;
 
       if ((i % 4) == 0 && i != 0)
-        cs_outbuff += _T(' ');
+        cs_outbuff += L' ';
 
-      cs_hexbuff.Format(_T("%02x"), c);
+      cs_hexbuff.Format(L"%02x", c);
       cs_outbuff += cs_hexbuff;
 
       if (c >= 32 && c < 127)
-        cs_charbuff += (TCHAR)c;
+        cs_charbuff += (wchar_t)c;
       else
-        cs_charbuff += _T('.');
+        cs_charbuff += L'.';
     }
 
     j = maxnum - j;
@@ -84,25 +84,25 @@ void PWSDebug::HexDump(unsigned char *pmemory, const int length,
     // Fill out hex portion of short lines.
     for (i = j; i > 0; i--) {
       if ((i % 4) != 0)
-        cs_outbuff += _T("  ");
+        cs_outbuff += L"  ";
       else
-        cs_outbuff += _T("   ");
+        cs_outbuff += L"   ";
     }
 
     // Add ASCII character portion to line.
-    cs_outbuff += _T("* |");
+    cs_outbuff += L"* |";
     cs_outbuff += cs_charbuff;
 
     // Fill out end of short lines.
     for (i = j; i > 0; i--)
-      cs_outbuff += _T(' ');
+      cs_outbuff += L' ';
 
-    cs_outbuff += _T('|');
+    cs_outbuff += L'|';
 
     // Next line
     len -= maxnum;
 
-    TRACE(_T("%s\n"), cs_outbuff.c_str());
+    TRACE(L"%s\n", cs_outbuff.c_str());
   };
 }
 #endif

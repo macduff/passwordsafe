@@ -40,16 +40,8 @@
 
 using namespace std;
 
-// hide w_char/char differences where possible:
-#ifdef UNICODE
-typedef std::wifstream ifstreamT;
-typedef std::wofstream ofstreamT;
-#else
-typedef std::ifstream ifstreamT;
-typedef std::ofstream ofstreamT;
-#endif
-typedef std::vector<stringT>::const_iterator vciter;
-typedef std::vector<stringT>::iterator viter;
+typedef vector<wstring>::const_iterator vciter;
+typedef vector<wstring>::iterator viter;
 
 // These are in the same order as "enum MatchRule" in Match.h
 static const char * szentry[] = {"normal", 
@@ -152,7 +144,7 @@ static string GetFilterXML(const st_filters &filters, bool bWithFormatting)
   oss << sztab1 << "<filter filtername=\"" << reinterpret_cast<const char *>(utf8) 
       << "\">" << szendl;
 
-  std::vector<st_FilterRow>::const_iterator Flt_citer;
+  vector<st_FilterRow>::const_iterator Flt_citer;
   for (Flt_citer = filters.vMfldata.begin(); 
        Flt_citer != filters.vMfldata.end(); Flt_citer++) {
     const st_FilterRow &st_fldata = *Flt_citer;
@@ -425,7 +417,7 @@ int PWSFilters::WriteFilterXMLFile(ostream &os,
   return PWScore::SUCCESS;
 }
 
-std::string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
+string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
                                            const PWSfile::HeaderRecord &hdr)
 {
   CUTF8Conv utf8conv;
@@ -434,7 +426,7 @@ std::string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
 
   ostringstream oss;
   StringX tmp;
-  stringT cs_tmp;
+  wstring cs_tmp;
   time_t time_now;
 
   time(&time_now);
@@ -449,7 +441,7 @@ std::string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
   
   if (!currentfile.empty()) {
     cs_tmp = currentfile.c_str();
-    Replace(cs_tmp, stringT(_T("&")), stringT(_T("&amp;")));
+    Replace(cs_tmp, wstring(L"&"), wstring(L"&amp;"));
 
     utf8conv.ToUTF8(cs_tmp.c_str(), utf8, utf8Len);
     oss << "Database=\"";
@@ -465,9 +457,9 @@ std::string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
         << hdr.m_nCurrentMinorVersion;
     oss << "\"" << endl;
     if (!hdr.m_lastsavedby.empty() || !hdr.m_lastsavedon.empty()) {
-      stringT wls(_T(""));
+      wstring wls(L"");
       Format(wls,
-             _T("%s on %s"),
+             L"%s on %s",
              hdr.m_lastsavedby.c_str(), hdr.m_lastsavedon.c_str());
       utf8conv.ToUTF8(wls.c_str(), utf8, utf8Len);
       oss << "WhoSaved=\"";
@@ -504,9 +496,9 @@ std::string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
 // Don't support importing XML from non-Windows using Microsoft XML libraries
 int PWSFilters::ImportFilterXMLFile(const FilterPool, 
                                     const StringX &, 
-                                    const stringT &, 
-                                    const stringT &,
-                                    stringT &,
+                                    const wstring &, 
+                                    const wstring &,
+                                    wstring &,
                                     Asker *)
 {
   return PWScore::UNIMPLEMENTED;
@@ -514,9 +506,9 @@ int PWSFilters::ImportFilterXMLFile(const FilterPool,
 #else
 int PWSFilters::ImportFilterXMLFile(const FilterPool fpool,
                                     const StringX &strXMLData,
-                                    const stringT &strXMLFileName,
-                                    const stringT &strXSDFileName,
-                                    stringT &strErrors,
+                                    const wstring &strXMLFileName,
+                                    const wstring &strXSDFileName,
+                                    wstring &strErrors,
                                     Asker *pAsker)
 {
 #if   USE_XML_LIBRARY == EXPAT
@@ -528,13 +520,13 @@ int PWSFilters::ImportFilterXMLFile(const FilterPool fpool,
 #endif
   bool status, validation;
 
-  strErrors = _T("");
+  strErrors = L"";
 
   validation = true;
   if (strXMLFileName.empty())
-    status = fXML.Process(validation, strXMLData, _T(""), strXSDFileName);
+    status = fXML.Process(validation, strXMLData, L"", strXSDFileName);
   else
-    status = fXML.Process(validation, _T(""), strXMLFileName, strXSDFileName);
+    status = fXML.Process(validation, L"", strXMLFileName, strXSDFileName);
 
   strErrors = fXML.getResultText();
   if (!status) {
@@ -543,9 +535,9 @@ int PWSFilters::ImportFilterXMLFile(const FilterPool fpool,
 
   validation = false;
   if (strXMLFileName.empty())
-    status = fXML.Process(validation, strXMLData, _T(""), strXSDFileName);
+    status = fXML.Process(validation, strXMLData, L"", strXSDFileName);
   else
-    status = fXML.Process(validation, _T(""), strXMLFileName, strXSDFileName);
+    status = fXML.Process(validation, L"", strXMLFileName, strXSDFileName);
 
     strErrors = fXML.getResultText();
   if (!status) {
@@ -568,12 +560,12 @@ int PWSFilters::ImportFilterXMLFile(const FilterPool fpool,
 }
 #endif
 
-stringT PWSFilters::GetFilterDescription(const st_FilterRow &st_fldata)
+wstring PWSFilters::GetFilterDescription(const st_FilterRow &st_fldata)
 {
   // Get the description of the current criterion to display on the static text
-  stringT cs_rule, cs1, cs2, cs_and, cs_criteria;
+  wstring cs_rule, cs1, cs2, cs_and, cs_criteria;
   LoadAString(cs_rule, PWSMatch::GetRule(st_fldata.rule));
-  TrimRight(cs_rule, _T("\t"));
+  TrimRight(cs_rule, L"\t");
   PWSMatch::GetMatchType(st_fldata.mtype,
                          st_fldata.fnum1, st_fldata.fnum2,
                          st_fldata.fdate1, st_fldata.fdate2,
@@ -584,22 +576,22 @@ stringT PWSFilters::GetFilterDescription(const st_FilterRow &st_fldata)
   switch (st_fldata.mtype) {
     case PWSMatch::MT_PASSWORD:
       if (st_fldata.rule == PWSMatch::MR_EXPIRED) {
-        Format(cs_criteria, _T("%s"), cs_rule.c_str());
+        Format(cs_criteria, L"%s", cs_rule.c_str());
         break;
       } else if (st_fldata.rule == PWSMatch::MR_WILLEXPIRE) {
-        Format(cs_criteria, _T("%s %s"), cs_rule.c_str(), cs1.c_str());
+        Format(cs_criteria, L"%s %s", cs_rule.c_str(), cs1.c_str());
         break;
       }
       // Note: purpose drop through to standard 'string' processing
     case PWSMatch::MT_STRING:
       if (st_fldata.rule == PWSMatch::MR_PRESENT ||
           st_fldata.rule == PWSMatch::MR_NOTPRESENT)
-        Format(cs_criteria, _T("%s"), cs_rule.c_str());
+        Format(cs_criteria, L"%s", cs_rule.c_str());
       else {
-        stringT cs_delim(_T(""));
-        if (cs1.find(_T(" ")) != stringT::npos)
-          cs_delim = _T("'");
-        Format(cs_criteria, _T("%s %s%s%s %s"), 
+        wstring cs_delim(L"");
+        if (cs1.find(L" ") != wstring::npos)
+          cs_delim = L"'";
+        Format(cs_criteria, L"%s %s%s%s %s", 
                cs_rule.c_str(), cs_delim.c_str(), 
                cs1.c_str(), cs_delim.c_str(), cs2.c_str());
       }
@@ -608,14 +600,14 @@ stringT PWSFilters::GetFilterDescription(const st_FilterRow &st_fldata)
     case PWSMatch::MT_DATE:
       if (st_fldata.rule == PWSMatch::MR_PRESENT ||
           st_fldata.rule == PWSMatch::MR_NOTPRESENT)
-        Format(cs_criteria, _T("%s"), cs_rule.c_str());
+        Format(cs_criteria, L"%s", cs_rule.c_str());
       else
       if (st_fldata.rule == PWSMatch::MR_BETWEEN) {  // Date or Integer only
         LoadAString(cs_and, IDSC_AND);
-        Format(cs_criteria, _T("%s %s %s %s"), 
+        Format(cs_criteria, L"%s %s %s %s", 
                cs_rule.c_str(), cs1.c_str(), cs_and.c_str(), cs2.c_str());
       } else
-        Format(cs_criteria, _T("%s %s"), cs_rule.c_str(), cs1.c_str());
+        Format(cs_criteria, L"%s %s", cs_rule.c_str(), cs1.c_str());
       break;
     case PWSMatch::MT_PWHIST:
       LoadAString(cs_criteria, IDSC_SEEPWHISTORYFILTERS);
@@ -627,7 +619,7 @@ stringT PWSFilters::GetFilterDescription(const st_FilterRow &st_fldata)
       cs_criteria = cs_rule;
       break;
     case PWSMatch::MT_ENTRYTYPE:
-      Format(cs_criteria, _T("%s %s"), cs_rule.c_str(), cs1.c_str());
+      Format(cs_criteria, L"%s %s", cs_rule.c_str(), cs1.c_str());
       break;
     default:
       ASSERT(0);

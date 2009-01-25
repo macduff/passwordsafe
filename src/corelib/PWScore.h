@@ -22,17 +22,19 @@
 #include "Report.h"
 #include "Proxy.h"
 
+using namespace std;
+
 #define MAXDEMO 10
 
-typedef std::map<CUUIDGen, CItemData, CUUIDGen::ltuuid> ItemList;
+typedef map<CUUIDGen, CItemData, CUUIDGen::ltuuid> ItemList;
 typedef ItemList::iterator ItemListIter;
 typedef ItemList::const_iterator ItemListConstIter;
 
-typedef std::vector<CItemData> OrderedItemList;
+typedef vector<CItemData> OrderedItemList;
 
-typedef std::multimap<CUUIDGen, CUUIDGen, CUUIDGen::ltuuid> ItemMMap;
+typedef multimap<CUUIDGen, CUUIDGen, CUUIDGen::ltuuid> ItemMMap;
 
-typedef std::map<CUUIDGen, CUUIDGen, CUUIDGen::ltuuid> ItemMap;
+typedef map<CUUIDGen, CUUIDGen, CUUIDGen::ltuuid> ItemMap;
 
 // Parameter list for GetBaseEntry
 struct GetBaseEntryPL {
@@ -109,24 +111,24 @@ public:
   {return WriteFile(filename, PWSfile::V20);}
   int WritePlaintextFile(const StringX &filename,
                          const CItemData::FieldBits &bsExport,
-                         const stringT &subgroup, const int &iObject,
-                         const int &iFunction, TCHAR &delimiter,
+                         const wstring &subgroup, const int &iObject,
+                         const int &iFunction, wchar_t &delimiter,
                          const OrderedItemList *il = NULL);
   int WriteXMLFile(const StringX &filename,
                    const CItemData::FieldBits &bsExport,
-                   const stringT &subgroup, const int &iObject,
-                   const int &iFunction, const TCHAR delimiter,
+                   const wstring &subgroup, const int &iObject,
+                   const int &iFunction, const wchar_t delimiter,
                    const OrderedItemList *il = NULL);
   int ImportPlaintextFile(const StringX &ImportedPrefix,
-                          const StringX &filename, stringT &strErrors,
-                          TCHAR fieldSeparator, TCHAR delimiter,
+                          const StringX &filename, wstring &strErrors,
+                          wchar_t fieldSeparator, wchar_t delimiter,
                           int &numImported, int &numSkipped,
                           CReport &rpt);
   int ImportKeePassTextFile(const StringX &filename);
-  int ImportXMLFile(const stringT &ImportedPrefix,
-                    const stringT &strXMLFileName,
-                    const stringT &strXSDFileName,
-                    stringT &strErrors, int &numValidated, int &numImported,
+  int ImportXMLFile(const wstring &ImportedPrefix,
+                    const wstring &strXMLFileName,
+                    const wstring &strXSDFileName,
+                    wstring &strErrors, int &numValidated, int &numImported,
                     bool &bBadUnknownFileFields,
                     bool &bBadUnknownRecordFields, CReport &rpt);
   int ReadCurFile(const StringX &passkey)
@@ -134,27 +136,27 @@ public:
   int ReadFile(const StringX &filename, const StringX &passkey);
   PWSfile::VERSION GetReadFileVersion() const {return m_ReadFileVersion;}
   bool BackupCurFile(int maxNumIncBackups, int backupSuffix,
-                     const stringT &userBackupPrefix,
-                     const stringT &userBackupDir);
+                     const wstring &userBackupPrefix,
+                     const wstring &userBackupDir);
   int CheckPassword(const StringX &filename, const StringX &passkey);
   void ChangePassword(const StringX &newPassword);
   
-  bool LockFile(const stringT &filename, stringT &locker);
-  bool IsLockedFile(const stringT &filename) const;
-  void UnlockFile(const stringT &filename);
+  bool LockFile(const wstring &filename, wstring &locker);
+  bool IsLockedFile(const wstring &filename) const;
+  void UnlockFile(const wstring &filename);
   // Following 3 routines only for SaveAs to use a temporary lock handle
   // LockFile2, UnLockFile2 & MoveLock
-  bool LockFile2(const stringT &filename, stringT &locker);
-  void UnlockFile2(const stringT &filename);
+  bool LockFile2(const wstring &filename, wstring &locker);
+  void UnlockFile2(const wstring &filename);
   void MoveLock()
   {m_lockFileHandle = m_lockFileHandle2; m_lockFileHandle2 = INVALID_HANDLE_VALUE;}
   
-  void SetApplicationNameAndVersion(const stringT &appName, DWORD dwMajorMinor);
+  void SetApplicationNameAndVersion(const wstring &appName, DWORD dwMajorMinor);
   void SetReadOnly(bool state) { m_IsReadOnly = state;}
   bool IsReadOnly() const {return m_IsReadOnly;};
 
   // Return list of unique groups
-  void GetUniqueGroups(std::vector<stringT> &ary) const;
+  void GetUniqueGroups(vector<wstring> &ary) const;
   StringX GetUniqueTitle(const StringX &path, const StringX &title,
                          const StringX &user, const int IDS_MESSAGE);
 
@@ -233,7 +235,7 @@ public:
   bool HaveDBPrefsChanged() const {return m_DBPrefsChanged;}
   void SetDBPrefsChanged(bool changed) {m_DBPrefsChanged = changed;}
   bool HaveHeaderPreferencesChanged(const StringX prefString)
-  {return _tcscmp(prefString.c_str(), m_hdr.m_prefString.c_str()) != 0;}
+  {return wcscmp(prefString.c_str(), m_hdr.m_prefString.c_str()) != 0;}
 
   // (Un)Register to be notified if the password list changes
   bool RegisterOnListModified(void (*pfcn) (LPARAM), LPARAM);
@@ -246,12 +248,12 @@ public:
 
   void SetPassKey(const StringX &new_passkey);
 
-  void SetDisplayStatus(const std::vector<bool> &s);
-  const std::vector<bool> &GetDisplayStatus() const;
+  void SetDisplayStatus(const vector<bool> &s);
+  const vector<bool> &GetDisplayStatus() const;
   bool WasDisplayStatusChanged() const;
   void CopyPWList(const ItemList &in);
   // Validate() returns true if data modified, false if all OK
-  bool Validate(stringT &status);
+  bool Validate(wstring &status);
   const PWSfile::HeaderRecord &GetHeader() const {return m_hdr;}
   
   // Filters
@@ -274,13 +276,13 @@ private:
   int m_LockCount;
   bool m_usedefuser;
   StringX m_defusername;
-  stringT m_AppNameAndVersion;
+  wstring m_AppNameAndVersion;
   PWSfile::VERSION m_ReadFileVersion;
   bool m_changed;
   bool m_DBPrefsChanged;
   bool m_IsReadOnly;
   PWSfile::HeaderRecord m_hdr;
-  std::vector<bool> m_OrigDisplayStatus;
+  vector<bool> m_OrigDisplayStatus;
 
   // THE password database
   //  Key = entry's uuid; Value = entry's CItemData

@@ -15,6 +15,8 @@
 #include "corelib/util.h"
 #include "DboxMain.h"
 
+using namespace std;
+
 // CViewReport dialog
 
 IMPLEMENT_DYNAMIC(CViewReport, CPWResizeDialog)
@@ -27,7 +29,7 @@ CViewReport::CViewReport(CWnd* pParent /*=NULL*/,
   m_pDbx = static_cast<DboxMain *>(pParent);
 
   m_pString = m_pRpt->GetString(); 
-  m_dwDatasize = m_pString.length() * sizeof(TCHAR);
+  m_dwDatasize = m_pString.length() * sizeof(wchar_t);
 
   m_backgroundcolour = RGB(255, 255, 255);
   m_backgroundbrush.CreateSolidBrush(m_backgroundcolour);
@@ -56,7 +58,7 @@ END_MESSAGE_MAP()
 
 BOOL CViewReport::OnInitDialog()
 {
-  std::vector<UINT> vibottombtns;
+  vector<UINT> vibottombtns;
   vibottombtns.push_back(IDOK);
   vibottombtns.push_back(IDC_REPORT2CLIPBOARD);
   vibottombtns.push_back(IDCANCEL);
@@ -73,15 +75,15 @@ BOOL CViewReport::OnInitDialog()
     GetDlgItem(IDC_REPORT2CLIPBOARD)->EnableWindow(FALSE);
 
   // Get new edit string (as per MS doc.)
-  HLOCAL h = ::LocalAlloc(LHND, m_dwDatasize + sizeof(TCHAR));
+  HLOCAL h = ::LocalAlloc(LHND, m_dwDatasize + sizeof(wchar_t));
   if (h == NULL) {
-    TRACE(_T("ViewReport: Unable to allocate memory.  Can't do this properly!\n"));
+    TRACE(L"ViewReport: Unable to allocate memory.  Can't do this properly!\n");
     m_editreport.SetWindowText(m_pString.c_str());
     return FALSE;
   }
   m_bMemoryAllocOK = true;
 
-  LPCTSTR lpszText = (LPCTSTR)::LocalLock(h);
+  LPCWSTR lpszText = (LPCWSTR)::LocalLock(h);
   memcpy((void *)lpszText, m_pString.c_str(), m_dwDatasize);
 
   // Now work out maximum size of dialog
@@ -96,26 +98,26 @@ BOOL CViewReport::OnInitDialog()
 
   // Get width of longest line - ignores tabs - but no issue as edit control has
   // horizontal scroll bars
-  TCHAR pSeps[] = _T("\r\n");
+  wchar_t pSeps[] = L"\r\n";
   int iMaxWidth(-1);
 #if _MSC_VER >= 1400
   // Capture individual lines:
-  TCHAR *next_token;
-  TCHAR *token = _tcstok_s((LPTSTR)lpszText, pSeps, &next_token);
+  wchar_t *next_token;
+  wchar_t *token = wcstok_s((LPWSTR)lpszText, pSeps, &next_token);
   while(token) {
-    CSize sz = dc.GetTextExtent(token, (int)_tcslen(token));
+    CSize sz = dc.GetTextExtent(token, (int)wcslen(token));
     if (sz.cx > iMaxWidth)
       iMaxWidth = sz.cx;
-    token = _tcstok_s(NULL, pSeps, &next_token);
+    token = wcstok_s(NULL, pSeps, &next_token);
   }
 #else
   // Capture individual lines:
-  TCHAR *token = _tcstok(pTemp, pSeps);
+  wchar_t *token = wcstok(pTemp, pSeps);
   while(token) {
-    CSize sz = dc.GetTextExtent(token, (int)_tcslen(token));
+    CSize sz = dc.GetTextExtent(token, (int)wcslen(token));
     if (sz.cx > iMaxWidth)
       iMaxWidth = sz.cx;
-    token = _tcstok(NULL, pSeps);
+    token = wcstok(NULL, pSeps);
   }
 #endif
 
@@ -141,7 +143,7 @@ BOOL CViewReport::OnInitDialog()
   SetMaxHeightWidth(dlgRect.Height() + iAdditionalHeight, 
                     dlgRect.Width()  + iAdditionalWidth);
 
-  // Refresh data as _tcstok trashes it!
+  // Refresh data as wcstok trashes it!
   memcpy((void *)lpszText, m_pString.c_str(), m_dwDatasize);
   ::LocalUnlock(h);
 
@@ -168,7 +170,7 @@ void CViewReport::Finish()
 {
   if (m_bMemoryAllocOK) {
     HLOCAL h = m_editreport.GetHandle();
-    LPCTSTR lpszText = (LPCTSTR)::LocalLock(h);
+    LPCWSTR lpszText = (LPCWSTR)::LocalLock(h);
 
     if (m_dwDatasize > 0) {
       trashMemory((void *)lpszText, m_dwDatasize);

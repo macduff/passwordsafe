@@ -28,29 +28,29 @@
 *                U3_HOST_EXEC_PATH
 */
 
-stringT PWSdirs::execdir;
+wstring PWSdirs::execdir;
 //-----------------------------------------------------------------------------
 
-stringT PWSdirs::GetOurExecDir()
+wstring PWSdirs::GetOurExecDir()
 {
   if (execdir.empty())
     execdir = pws_os::getexecdir();
   return execdir;
 }
 
-stringT PWSdirs::GetSafeDir()
+wstring PWSdirs::GetSafeDir()
 {
   // returns empty string unless U3 environment detected
-  stringT retval(pws_os::getenv("U3_DEVICE_DOCUMENT_PATH", true));
+  wstring retval(pws_os::getenv("U3_DEVICE_DOCUMENT_PATH", true));
   if (!retval.empty())
-    retval += _S("My Safes\\");
+    retval += L"My Safes\\";
   return retval;
 }
 
-stringT PWSdirs::GetConfigDir()
+wstring PWSdirs::GetConfigDir()
 {
   // PWS_PREFSDIR overrides all:
-  stringT retval(pws_os::getenv("PWS_PREFSDIR", true));
+  wstring retval(pws_os::getenv("PWS_PREFSDIR", true));
   if (retval.empty()) {
     // returns directory of executable unless U3 environment detected
     retval = pws_os::getenv("U3_APP_DATA_PATH", true);
@@ -60,38 +60,38 @@ stringT PWSdirs::GetConfigDir()
   return retval;
 }
 
-stringT PWSdirs::GetXMLDir()
+wstring PWSdirs::GetXMLDir()
 {
-  stringT retval(pws_os::getenv("U3_APP_DATA_PATH", true));
+  wstring retval(pws_os::getenv("U3_APP_DATA_PATH", true));
   if (!retval.empty())
-    retval += _S("\\xml\\");
+    retval += L"\\xml\\";
   else {
     retval = GetOurExecDir();
   }
   return retval;
 }
 
-stringT PWSdirs::GetHelpDir()
+wstring PWSdirs::GetHelpDir()
 {
-  stringT retval(pws_os::getenv("U3_DEVICE_EXEC_PATH", true));
+  wstring retval(pws_os::getenv("U3_DEVICE_EXEC_PATH", true));
   if (retval.empty()) {
     retval = GetOurExecDir();
   }
   return retval;
 }
 
-stringT PWSdirs::GetExeDir()
+wstring PWSdirs::GetExeDir()
 {
-  stringT retval(pws_os::getenv("U3_HOST_EXEC_PATH", true));
+  wstring retval(pws_os::getenv("U3_HOST_EXEC_PATH", true));
   if (retval.empty()) {
     retval = GetOurExecDir();
   }
   return retval;
 }
 
-void PWSdirs::Push(const stringT &dir)
+void PWSdirs::Push(const wstring &dir)
 {
-  const stringT CurDir(pws_os::getcwd());
+  const wstring CurDir(pws_os::getcwd());
   if (CurDir != dir) { // minor optimization
     dirs.push(CurDir);
     pws_os::chdir(dir);

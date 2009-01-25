@@ -17,6 +17,8 @@
 #include "corelib/Report.h"
 #include "corelib/uuidgen.h"
 
+using namespace std;
+
 #ifdef _DEBUG
 #include <bitset>
 #include <string>
@@ -40,7 +42,7 @@ struct st_CompareData {
   bool unknflds1;  // comparison DB
 
   st_CompareData()
-    : bsDiffs(0), group(_T("")), title(_T("")), user(_T("")),
+    : bsDiffs(0), group(L""), title(L""), user(L""),
     id(0), indatabase(0), listindex(0),
     unknflds0(false), unknflds1(false)
   {
@@ -90,7 +92,7 @@ struct equal_id
 // Vector of entries passed from DboxMain::Compare to CompareResultsDlg
 // Used for "Only in Original DB", "Only in Comparison DB" and
 // in "Both with Differences"
-typedef std::vector<st_CompareData> CompareData;
+typedef vector<st_CompareData> CompareData;
 
 // The following structure is needed for compare to send back data
 // to allow copying, viewing and editing of entries

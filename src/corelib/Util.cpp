@@ -56,7 +56,7 @@ void trashMemory(void* buffer, size_t length)
 #ifdef _WIN32
 #pragma optimize("",on)
 #endif
-void trashMemory(LPTSTR buffer, size_t length)
+void trashMemory(LPWSTR buffer, size_t length)
 {
   trashMemory((unsigned char *) buffer, length * sizeof(buffer[0]));
 }
@@ -78,12 +78,9 @@ void ConvertString(const StringX &text,
                    unsigned char *&txt,
                    int &txtlen)
 {
-  LPCTSTR txtstr = text.c_str(); 
+  LPCWSTR txtstr = text.c_str(); 
   txtlen = text.length();
 
-#ifndef UNICODE
-  txt = (unsigned char *)txtstr; // don't delete[] (ugh)!!!
-#else
 #ifdef _WIN32
   txt = new unsigned char[3*txtlen]; // safe upper limit
   int len = WideCharToMultiByte(CP_ACP, 0, txtstr, txtlen,
@@ -98,7 +95,6 @@ void ConvertString(const StringX &text,
 #endif
   txtlen = len;
   txt[len] = '\0';
-#endif /* UNICODE */
 }
 
 //Generates a passkey-based hash from stuff - used to validate the passkey
@@ -118,10 +114,8 @@ void GenRandhash(const StringX &a_passkey,
   keyHash.Update(a_randstuff, StuffSize);
   keyHash.Update(pstr, pkeyLen);
 
-#ifdef UNICODE
   trashMemory(pstr, pkeyLen);
   delete[] pstr;
-#endif
 
   unsigned char tempSalt[20]; // HashSize
   keyHash.Final(tempSalt);
@@ -333,30 +327,30 @@ size_t _readcbc(FILE *fp,
 
 // PWSUtil implementations
 
-void PWSUtil::strCopy(LPTSTR target, size_t tcount, const LPCTSTR source, size_t scount)
+void PWSUtil::strCopy(LPWSTR target, size_t tcount, const LPCWSTR source, size_t scount)
 {
 #if (_MSC_VER >= 1400)
-  (void) _tcsncpy_s(target, tcount, source, scount);
+  (void) wcsncpy_s(target, tcount, source, scount);
 #else
   tcount = 0; // shut up warning;
-  (void)_tcsncpy(target, source, scount);
+  (void)wcsncpy(target, source, scount);
 #endif
 }
 
-size_t PWSUtil::strLength(const LPCTSTR str)
+size_t PWSUtil::strLength(const LPCWSTR str)
 {
-  return _tcslen(str);
+  return wcslen(str);
 }
 
-const TCHAR *PWSUtil::UNKNOWN_XML_TIME_STR = _T("1970-01-01 00:00:00");
-const TCHAR *PWSUtil::UNKNOWN_ASC_TIME_STR = _T("Unknown");
+const wchar_t *PWSUtil::UNKNOWN_XML_TIME_STR = L"1970-01-01 00:00:00";
+const wchar_t *PWSUtil::UNKNOWN_ASC_TIME_STR = L"Unknown";
 
 StringX PWSUtil::ConvertToDateTimeString(const time_t &t,
                                          const int result_format)
 {
   StringX ret;
   if (t != 0) {
-    TCHAR datetime_str[80];
+    wchar_t datetime_str[80];
     struct tm *st;
 #if _MSC_VER >= 1400
     struct tm st_s;
@@ -371,17 +365,17 @@ StringX PWSUtil::ConvertToDateTimeString(const time_t &t,
       return ConvertToDateTimeString(0, result_format);
 #endif
     if ((result_format & TMC_EXPORT_IMPORT) == TMC_EXPORT_IMPORT)
-      _tcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
-                _T("%Y/%m/%d %H:%M:%S"), st);
+      wcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
+                L"%Y/%m/%d %H:%M:%S", st);
     else if ((result_format & TMC_XML) == TMC_XML)
-      _tcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
-                _T("%Y-%m-%dT%H:%M:%S"), st);
+      wcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
+                L"%Y-%m-%dT%H:%M:%S", st);
     else if ((result_format & TMC_LOCALE) == TMC_LOCALE) {
       setlocale(LC_TIME, "");
-      _tcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
-                _T("%c"), st);
+      wcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
+                L"%c", st);
     } else {
-      int terr = _tasctime_s(datetime_str, 32, st);  // secure version
+      int terr = _wasctime_s(datetime_str, 32, st);  // secure version
       if (terr != 0)
         return ConvertToDateTimeString(0, result_format);
     }
@@ -395,7 +389,7 @@ StringX PWSUtil::ConvertToDateTimeString(const time_t &t,
         ret = UNKNOWN_XML_TIME_STR;
         break;
       default:
-        ret = _T("");
+        ret = L"";
     }
   }
   // remove the trailing EOL char.
@@ -403,12 +397,12 @@ StringX PWSUtil::ConvertToDateTimeString(const time_t &t,
   return ret;
 }
 
-stringT PWSUtil::GetNewFileName(const stringT &oldfilename,
-                                const stringT &newExtn)
+wstring PWSUtil::GetNewFileName(const wstring &oldfilename,
+                                const wstring &newExtn)
 {
-  stringT inpath(oldfilename);
-  stringT drive, dir, fname, ext;
-  stringT outpath;
+  wstring inpath(oldfilename);
+  wstring drive, dir, fname, ext;
+  wstring outpath;
 
   if (pws_os::splitpath(inpath, drive, dir, fname, ext)) {
     ext = newExtn;
@@ -418,7 +412,7 @@ stringT PWSUtil::GetNewFileName(const stringT &oldfilename,
   return outpath;
 }
 
-const TCHAR *PWSUtil::GetTimeStamp()
+const wchar_t *PWSUtil::GetTimeStamp()
 {
   // not re-entrant - is this a problem?
 #ifdef _WIN32
@@ -434,18 +428,18 @@ const TCHAR *PWSUtil::GetTimeStamp()
 #endif
   StringX cmys_now = ConvertToDateTimeString(timebuffer.time, TMC_EXPORT_IMPORT);
 
-  ostringstreamT os;
-  os << cmys_now << TCHAR('.') << setw(3) << setfill(TCHAR('0'))
+  wostringstream os;
+  os << cmys_now << L'.' << setw(3) << setfill(L'0')
      << (unsigned int)timebuffer.millitm;
-  static stringT retval = os.str();
+  static wstring retval = os.str();
   return retval.c_str();
 }
 
-stringT PWSUtil::Base64Encode(const BYTE *strIn, size_t len)
+wstring PWSUtil::Base64Encode(const BYTE *strIn, size_t len)
 {
-  stringT cs_Out;
-  static const TCHAR base64ABC[] = 
-    _S("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
+  wstring cs_Out;
+  static const wchar_t base64ABC[] = 
+    L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
   for (size_t i = 0; i < len; i += 3) {
     long l = ( ((long)strIn[i]) << 16 ) | 
@@ -460,9 +454,9 @@ stringT PWSUtil::Base64Encode(const BYTE *strIn, size_t len)
 
   switch (len % 3) {
     case 1:
-      cs_Out += TCHAR('=');
+      cs_Out += L'=';
     case 2:
-      cs_Out += TCHAR('=');
+      cs_Out += L'=';
   }
   return cs_Out;
 }
@@ -517,7 +511,7 @@ StringX PWSUtil::NormalizeTTT(const StringX &in)
   StringX ttt;
   if (in.length() >= MAX_TTT_LEN) {
     ttt = in.substr(0, MAX_TTT_LEN/2-6) + 
-      _T(" ... ") + in.substr(in.length() - MAX_TTT_LEN/2);
+      L" ... " + in.substr(in.length() - MAX_TTT_LEN/2);
   } else {
     ttt = in;
   }
@@ -530,7 +524,7 @@ void PWSUtil::WriteXMLField(ostream &os, const char *fname,
 {
   const unsigned char * utf8 = NULL;
   int utf8Len = 0;
-  string::size_type p = value.find(_T("]]>")); // special handling required
+  string::size_type p = value.find(L"]]>"); // special handling required
   if (p == string::npos) {
     // common case
     os << tabs << "<" << fname << "><![CDATA[";
@@ -554,7 +548,7 @@ void PWSUtil::WriteXMLField(ostream &os, const char *fname,
         os << "Internal error - unable to convert field to utf-8";
       os << "]]><![CDATA[";
       from = to;
-      p = value.find(_T("]]>"), from); // are there more?
+      p = value.find(L"]]>", from); // are there more?
       if (p == string::npos) {
         to = value.length();
         slice = value.substr(from, (to - from));

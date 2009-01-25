@@ -58,14 +58,14 @@ public:
 
   bool getIfErrors() {return m_bErrors;}
   int getErrorCode() {return m_iErrorCode;}
-  stringT getErrorMessage() {return m_strErrorMessage;}
+  wstring getErrorMessage() {return m_strErrorMessage;}
 
 private:
   // Local variables
   EFilterValidator *m_pValidator;
 
   // To ensure filtername is unique
-  std::set<const stringT> m_unique_filternames;
+  set<const wstring> m_unique_filternames;
 
   // Local variables
   st_filters *cur_filter;
@@ -74,7 +74,7 @@ private:
   StringX m_strElemContent;
   bool m_bValidation;
 
-  stringT m_strErrorMessage;
+  wstring m_strErrorMessage;
   int m_iErrorCode;
   int m_fieldlen;
   int m_iXMLVersion;

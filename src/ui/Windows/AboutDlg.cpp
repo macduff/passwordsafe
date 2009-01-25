@@ -39,7 +39,7 @@ CAboutDlg::CAboutDlg(CWnd* pParent)
 {
   CString verstat;
   // Following since text in quotes is not to be translated
-  verstat.Format(IDS_LATEST_VERSION, _T("[check_version]"));
+  verstat.Format(IDS_LATEST_VERSION, L"[check_version]");
   m_newVerStatus = verstat;
 }
 
@@ -71,26 +71,26 @@ BOOL CAboutDlg::OnInitDialog()
   // which is of the form "MM, NN, BB, rev"
   CString csFileVersionString, csRevision;
   csFileVersionString = app.GetFileVersionString();
-  int revIndex = csFileVersionString.ReverseFind(TCHAR(','));
+  int revIndex = csFileVersionString.ReverseFind(L',');
   if (revIndex >= 0) {
     int len = csFileVersionString.GetLength();
     csRevision = csFileVersionString.Right(len - revIndex - 1);
     csRevision.Trim();
   }
   if (m_nBuild == 0) { // hide build # if zero (formal release)
-    m_appversion.Format(_T("%s V%d.%02d (%s)%s"), AfxGetAppName(), 
+    m_appversion.Format(L"%s V%d.%02d (%s)%s", AfxGetAppName(), 
                         m_nMajor, m_nMinor, csRevision, SPECIAL_BUILD);
   } else {
-    m_appversion.Format(_T("%s V%d.%02d.%02d (%s)%s"), AfxGetAppName(), 
+    m_appversion.Format(L"%s V%d.%02d.%02d (%s)%s", AfxGetAppName(), 
                         m_nMajor, m_nMinor, m_nBuild, csRevision, SPECIAL_BUILD);
   }
 #ifdef _DEBUG
-  m_appversion += _T(" [Debug]");
+  m_appversion += L" [Debug]";
 #endif
   m_appcopyright = app.GetCopyrightString();
 
 #ifdef DEMO
-  m_appversion += _T(" ") + CString(MAKEINTRESOURCE(IDS_DEMO));
+  m_appversion += L" " + CString(MAKEINTRESOURCE(IDS_DEMO));
 #endif
 
   GetDlgItem(IDC_APPVERSION)->SetWindowText(m_appversion);
@@ -106,7 +106,7 @@ BOOL CAboutDlg::OnInitDialog()
 
 bool CAboutDlg::OnCheckVersion(const CString &URL, const CString & /* lpszFName */, LPARAM instance)
 {
-  if (URL == _T("[check_version]")) {
+  if (URL == L"[check_version]") {
     CAboutDlg *self = (CAboutDlg *)instance;
     self->CheckNewVer();
     return true;
@@ -171,7 +171,7 @@ void CAboutDlg::CheckNewVer()
   GetDlgItem(IDOK)->SetFocus();
 }
 
-static bool SafeCompare(const TCHAR *v1, const TCHAR *v2)
+static bool SafeCompare(const wchar_t *v1, const wchar_t *v2)
 {
   ASSERT(v2 != NULL);
   return (v1 != NULL && CString(v1) == v2);
@@ -198,13 +198,13 @@ static bool SafeCompare(const TCHAR *v1, const TCHAR *v2)
 
 CAboutDlg::CheckStatus CAboutDlg::CheckLatestVersion(CString &latest)
 {
-  CInternetSession session(_T("PasswordSafe Version Check"));
+  CInternetSession session(L"PasswordSafe Version Check");
   CStdioFile *fh;
   // Put up hourglass...this might take a while
   CWaitCursor waitCursor;
   try {
     // Loading the file as binary since we're treating it as UTF-8
-    fh = session.OpenURL(_T("http://passwordsafe.sourceforge.net/latest.xml"),
+    fh = session.OpenURL(L"http://passwordsafe.sourceforge.net/latest.xml",
                          1, (INTERNET_FLAG_TRANSFER_BINARY | INTERNET_FLAG_RELOAD));
   } catch (CInternetException *) {
     // throw;
@@ -212,11 +212,6 @@ CAboutDlg::CheckStatus CAboutDlg::CheckLatestVersion(CString &latest)
   }
   ASSERT(fh != NULL);
   CString latest_xml;
-#ifndef UNICODE
-  CString line;
-  while (fh->ReadString(line) == TRUE)
-    latest_xml += line;
-#else
   unsigned char buff[BUFSIZ+1];
   StringX chunk;
   UINT nRead;
@@ -232,7 +227,6 @@ CAboutDlg::CheckStatus CAboutDlg::CheckLatestVersion(CString &latest)
     } else
       latest_xml += chunk.c_str();
   }
-#endif /* UNICODE */
   fh->Close();
   delete fh;
   session.Close();
@@ -243,28 +237,28 @@ CAboutDlg::CheckStatus CAboutDlg::CheckLatestVersion(CString &latest)
     return CANT_READ;
   TiXmlNode *pRoot = doc.FirstChildElement();
 
-  if (!pRoot || !SafeCompare(pRoot->Value(), _T("VersionInfo")))
+  if (!pRoot || !SafeCompare(pRoot->Value(), L"VersionInfo"))
     return CANT_READ;
 
   TiXmlNode *pProduct = 0;
   while((pProduct = pRoot->IterateChildren(pProduct)) != NULL) {
-    if (SafeCompare(pProduct->Value(), _T("Product"))) {
+    if (SafeCompare(pProduct->Value(), L"Product")) {
       TiXmlElement *pElem = pProduct->ToElement();
       if (pElem == NULL)
         return CANT_READ;
-      const TCHAR *prodName = pElem->Attribute(_T("name"));
-      if (SafeCompare(prodName, _T("PasswordSafe"))) {
-        const TCHAR *pVariant = pElem->Attribute(_T("variant"));
+      const wchar_t *prodName = pElem->Attribute(L"name");
+      if (SafeCompare(prodName, L"PasswordSafe")) {
+        const wchar_t *pVariant = pElem->Attribute(L"variant");
         if (pVariant == NULL) continue;
         const CString variant(pVariant);
         // Determine which variant is relevant for us
-        if ((SysInfo::IsUnderU3() && variant == _T("U3")) ||
-          variant == _T("PC")) {
+        if ((SysInfo::IsUnderU3() && variant == L"U3") ||
+          variant == L"PC") {
             int major(0), minor(0), build(0), revision(0);
-            pElem->QueryIntAttribute(_T("major"), &major);
-            pElem->QueryIntAttribute(_T("minor"), &minor);
-            pElem->QueryIntAttribute(_T("build"), &build);
-            pElem->QueryIntAttribute(_T("rev"), &revision);
+            pElem->QueryIntAttribute(L"major", &major);
+            pElem->QueryIntAttribute(L"minor", &minor);
+            pElem->QueryIntAttribute(L"build", &build);
+            pElem->QueryIntAttribute(L"rev", &revision);
             // Not using svn rev info - too volatile
             if ((major > m_nMajor) ||
               (major == m_nMajor && minor > m_nMinor) ||
@@ -272,10 +266,10 @@ CAboutDlg::CheckStatus CAboutDlg::CheckLatestVersion(CString &latest)
               build > m_nBuild)
               ) {
                 if (build == 0) { // hide build # if zero (formal release)
-                  latest.Format(_T("%s V%d.%02d (%d)"), AfxGetAppName(), 
+                  latest.Format(L"%s V%d.%02d (%d)", AfxGetAppName(), 
                     major, minor, revision);
                 } else {
-                  latest.Format(_T("%s V%d.%02d.%02d (%d)"), AfxGetAppName(), 
+                  latest.Format(L"%s V%d.%02d.%02d (%d)", AfxGetAppName(), 
                     major, minor, build, revision);
                 }
                 return NEWER_AVAILABLE;

@@ -21,7 +21,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-static TCHAR PSSWDCHAR = TCHAR('*');
+static wchar_t PSSWDCHAR = L'*';
 
 /////////////////////////////////////////////////////////////////////////////
 // CExportXMLDlg dialog
@@ -30,11 +30,11 @@ static TCHAR PSSWDCHAR = TCHAR('*');
 CExportXMLDlg::CExportXMLDlg(CWnd* pParent /*=NULL*/)
   : CPWDialog(CExportXMLDlg::IDD, pParent),
   m_subgroup_set(BST_UNCHECKED),
-  m_subgroup_name(_T("")), m_subgroup_object(0), m_subgroup_function(0)
+  m_subgroup_name(L""), m_subgroup_object(0), m_subgroup_function(0)
 {
   //{{AFX_DATA_INIT(CExportXMLDlg)
-  m_ExportXMLPassword = _T("");
-  m_defexpdelim = _T("\xbb");
+  m_ExportXMLPassword = L"";
+  m_defexpdelim = L"\xbb";
   //}}AFX_DATA_INIT
 }
 
@@ -91,8 +91,8 @@ void AFXAPI CExportXMLDlg::DDV_CheckExpDelimiter(CDataExchange* pDX, const CStri
 void CExportXMLDlg::OnHelp()
 {
   CString cs_HelpTopic;
-  cs_HelpTopic = app.GetHelpFileName() + _T("::/html/export.html");
-  HtmlHelp(DWORD_PTR((LPCTSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+  cs_HelpTopic = app.GetHelpFileName() + L"::/html/export.html";
+  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 }
 
 void CExportXMLDlg::OnOK() 
