@@ -53,11 +53,11 @@ typedef int              errno_t;
 
 // mimic Microsoft conventional typdefs:
 typedef wchar_t         *LPWSTR;
-typedef const wchar_t   *LPWTSTR;
+typedef const wchar_t   *LPCWSTR;
 typedef bool             BOOL;
 typedef unsigned char    BYTE;
 typedef unsigned short   WORD;
-typedef unsigned long    WORD;
+typedef unsigned int     DWORD;
 typedef long             LPARAM;
 typedef unsigned int     UINT;
 typedef int              HANDLE;
