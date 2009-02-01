@@ -13,8 +13,6 @@
 #include <iomanip>
 #include "StringXStream.h"
 
-using namespace std;
-
 bool CreatePWHistoryList(const StringX &pwh_str,
                          size_t &pwh_max, size_t &num_err,
                          PWHistList &pwhl, int time_format)
@@ -97,7 +95,7 @@ StringX MakePWHistoryHeader(BOOL status, size_t pwh_max, size_t pwh_num)
     throw L"Internal error: max history exceeded";
   if (pwh_num > MAX_PWHISTORY)
     throw L"Internal error: history list too large";
-  wostringstream os;
+  std::wostringstream os;
   os.fill(L'0');
   os << hex << setw(1) << status
      << setw(2) << pwh_max << setw(2) << pwh_num << ends;

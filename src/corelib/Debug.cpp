@@ -11,15 +11,15 @@
 #include "Debug.h"
 
 #ifndef DEBUG
-void PWSDebug::IssueError(const wstring &)
+void PWSDebug::IssueError(const std::wstring &)
 {
 }
 void PWSDebug::HexDump(unsigned char *, const int, 
-                       const wstring &, const int)
+                       const std::wstring &, const int)
 {
 }
 #else
-void PWSDebug::IssueError(const wstring &csFunction)
+void PWSDebug::IssueError(const std::wstring &csFunction)
 {
   LPVOID lpMsgBuf;
   LPVOID lpDisplayBuf;
@@ -44,7 +44,7 @@ void PWSDebug::IssueError(const wstring &csFunction)
 }
 
 void PWSDebug::HexDump(unsigned char *pmemory, const int length, 
-                       const wstring &cs_prefix, const int maxnum)
+                       const std::wstring &cs_prefix, const int maxnum)
 {
   unsigned char *pmem;
   wstring cs_outbuff, cs_hexbuff, cs_charbuff;

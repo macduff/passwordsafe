@@ -19,8 +19,6 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
-
 // Following macro get length of std_*_chars less the trailing \0
 // compile time equivalent of strlen()
 #define LENGTH(s) (sizeof(s)/sizeof(s[0]) - 1)
@@ -258,7 +256,7 @@ class FillSC {
   // for "leet" alphabet for pronounceable passwords
   // with usesymbols and/or usedigits specified
 public:
-  FillSC(vector<int> &sc, bool digits, bool symbols)
+  FillSC(std::vector<int> &sc, bool digits, bool symbols)
     : m_sc(sc), m_digits(digits), m_symbols(symbols), m_i(0) {}
   void operator()(wchar_t t) {
     if ((m_digits && leets[t - L'a'].num != 0) ||
@@ -267,7 +265,7 @@ public:
     m_i++;
   }
 private:
-  vector<int> &m_sc;
+  std::vector<int> &m_sc;
   bool m_digits, m_symbols;
   int m_i;
 };
@@ -277,7 +275,7 @@ struct RandomWrapper {
   {return PWSrand::GetInstance()->RangeRand(i);}
 };
 
-static void leet_replace(wstring &password, unsigned int i,
+static void leet_replace(std::wstring &password, unsigned int i,
                          bool usedigits, bool usesymbols)
 {
   ASSERT(i < password.size());
@@ -306,7 +304,7 @@ StringX CPasswordCharPool::MakePronounceable() const
   long sum;          /* running total of frequencies */
   uint nchar;        /* number of chars in password so far */
   PWSrand *pwsrnd = PWSrand::GetInstance();
-  wstring password(m_pwlen, 0);
+  std::wstring password(m_pwlen, 0);
 
   /* Pick a random starting point. */
   /* (This cheats a little; the statistics for three-letter
@@ -366,7 +364,7 @@ StringX CPasswordCharPool::MakePronounceable() const
 
   if (m_usesymbols || m_usedigits) {
     // fill a vector with indices of substitution candidates
-    vector<int> sc;
+    std::vector<int> sc;
     FillSC fill_sc(sc, (m_usedigits == TRUE), (m_usesymbols == TRUE));
     for_each(password.begin(), password.end(), fill_sc);
     if (!sc.empty()) {

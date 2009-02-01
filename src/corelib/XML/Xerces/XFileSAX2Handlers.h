@@ -45,7 +45,6 @@
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/sax2/DefaultHandler.hpp>
 
-
 XERCES_CPP_NAMESPACE_USE
 
 class XFileSAX2Handlers : public DefaultHandler, public XMLFileHandlers
@@ -74,7 +73,7 @@ public:
   void error(const SAXParseException& exc);
   void fatalError(const SAXParseException& exc);
 
-  wstring getValidationResult() {return m_strValidationResult;}
+  std::wstring getValidationResult() {return m_strValidationResult;}
 
 private:
   void FormatError(const SAXParseException& e, const int type);
@@ -84,7 +83,7 @@ private:
 
   const Locator *m_pLocator;
 
-  wstring m_strValidationResult;
+  std:: wstring m_strValidationResult;
   bool m_bErrorsFound;
 };
 

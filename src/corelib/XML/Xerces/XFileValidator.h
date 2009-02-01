@@ -20,16 +20,8 @@
 // XML File Import constants - used by Expat and Xerces and will be by MSXML
 #include "../XMLFileValidation.h"
 
-// PWS includes
-#include "../../StringX.h"
-
-#include <vector>
-#include <map>
-
 // Xerces includes
 #include <xercesc/util/XercesDefs.hpp>
-
-using namespace std;
 
 XERCES_CPP_NAMESPACE_USE
 

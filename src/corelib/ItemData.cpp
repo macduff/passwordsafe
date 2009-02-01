@@ -26,8 +26,6 @@
 #include <sstream>
 #include <iomanip>
 
-using namespace std;
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -209,7 +207,7 @@ void CItemData::GetUUID(uuid_array_t &uuid_array) const
   GetField(m_UUID, (unsigned char *)uuid_array, length);
 }
 
-static void String2PWPolicy(const wstring &cs_pwp, PWPolicy &pwp)
+static void String2PWPolicy(const std::wstring &cs_pwp, PWPolicy &pwp)
 {
   // should really be a c'tor of PWPolicy - later...
 
@@ -219,12 +217,12 @@ static void String2PWPolicy(const wstring &cs_pwp, PWPolicy &pwp)
   // Later releases must support these as a minimum.  Any fields added
   // by these releases will be lost if the user changes these field.
   ASSERT(cs_pwp.length() == 19);
-  wistringstream is_flags(wstring(cs_pwp, 0, 4));
-  wistringstream is_length(wstring(cs_pwp, 4, 3));
-  wistringstream is_digitminlength(wstring(cs_pwp, 7, 3));
-  wistringstream is_lowreminlength(wstring(cs_pwp, 10, 3));
-  wistringstream is_symbolminlength(wstring(cs_pwp, 13, 3));
-  wistringstream is_upperminlength(wstring(cs_pwp, 16, 3));
+  wistringstream is_flags(std::wstring(cs_pwp, 0, 4));
+  wistringstream is_length(std::wstring(cs_pwp, 4, 3));
+  wistringstream is_digitminlength(std::wstring(cs_pwp, 7, 3));
+  wistringstream is_lowreminlength(std::wstring(cs_pwp, 10, 3));
+  wistringstream is_symbolminlength(std::wstring(cs_pwp, 13, 3));
+  wistringstream is_upperminlength(std::wstring(cs_pwp, 16, 3));
   unsigned int f; // dain bramaged istringstream requires this runaround
   is_flags >> hex >> f;
   pwp.flags = static_cast<WORD>(f);
@@ -859,7 +857,7 @@ void CItemData::SetTime(int whichtime, time_t t)
   }
 }
 
-bool CItemData::SetTime(int whichtime, const wstring &time_str)
+bool CItemData::SetTime(int whichtime, const std::wstring &time_str)
 {
   time_t t(0);
 
@@ -888,7 +886,7 @@ void CItemData::SetXTimeInt(int &xint)
    SetField(m_XTimeInterval, (const unsigned char *)&xint, sizeof(int));
 }
 
-bool CItemData::SetXTimeInt(const wstring &xint_str)
+bool CItemData::SetXTimeInt(const std::wstring &xint_str)
 {
   int xint(0);
 
@@ -897,7 +895,7 @@ bool CItemData::SetXTimeInt(const wstring &xint_str)
     return true;
   }
 
-  if (xint_str.find_first_not_of(L"0123456789") == wstring::npos) {
+  if (xint_str.find_first_not_of(L"0123456789") == std::wstring::npos) {
     wistringstream is(xint_str);
     is >> xint;
     if (xint >= 0 && xint <= 3650) {
@@ -941,7 +939,7 @@ void CItemData::SetPWPolicy(const PWPolicy &pwp)
   SetField(m_PWPolicy, cs_pwp);
 }
 
-bool CItemData::SetPWPolicy(const wstring &cs_pwp)
+bool CItemData::SetPWPolicy(const std::wstring &cs_pwp)
 {
   // Basic sanity checks
   if (cs_pwp.empty()) {
@@ -954,7 +952,7 @@ bool CItemData::SetPWPolicy(const wstring &cs_pwp)
   // Parse policy string, more sanity checks
   // See String2PWPolicy for valid format
   PWPolicy pwp;
-  String2PWPolicy(wstring(cs_pwp), pwp);
+  String2PWPolicy(std::wstring(cs_pwp), pwp);
   StringX cs_pwpolicy(cs_pwp.c_str());
 
   // Must be some flags; however hex incompatible with other flags
@@ -1117,7 +1115,7 @@ bool CItemData::ValidatePWHistory()
   return false;
 }
 
-bool CItemData::Matches(const wstring &string1, int iObject,
+bool CItemData::Matches(const std::wstring &string1, int iObject,
                         int iFunction) const
 {
   ASSERT(iFunction != 0); // must be positive or negative!
@@ -1273,6 +1271,7 @@ bool CItemData::WillExpire(const int numdays)
   ASSERT(err == 0);
 #else
   st = *localtime(&now);
+  ASSERT(st != NULL);
 #endif
   st.tm_mday += numdays;
   exptime = mktime(&st);

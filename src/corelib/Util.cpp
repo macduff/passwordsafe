@@ -24,8 +24,6 @@
 #include <iomanip>
 #include "StringXStream.h"
 
-using namespace std;
-
 // used by CBC routines...
 static void xormem(unsigned char* mem1, const unsigned char* mem2, int length)
 {
@@ -397,12 +395,12 @@ StringX PWSUtil::ConvertToDateTimeString(const time_t &t,
   return ret;
 }
 
-wstring PWSUtil::GetNewFileName(const wstring &oldfilename,
-                                const wstring &newExtn)
+std::wstring PWSUtil::GetNewFileName(const std::wstring &oldfilename,
+                                     const std::wstring &newExtn)
 {
-  wstring inpath(oldfilename);
-  wstring drive, dir, fname, ext;
-  wstring outpath;
+  std::wstring inpath(oldfilename);
+  std::wstring drive, dir, fname, ext;
+  std::wstring outpath;
 
   if (pws_os::splitpath(inpath, drive, dir, fname, ext)) {
     ext = newExtn;
@@ -428,16 +426,16 @@ const wchar_t *PWSUtil::GetTimeStamp()
 #endif
   StringX cmys_now = ConvertToDateTimeString(timebuffer.time, TMC_EXPORT_IMPORT);
 
-  wostringstream os;
-  os << cmys_now << L'.' << setw(3) << setfill(L'0')
+  std::wostringstream os;
+  os << cmys_now << L'.' << std::setw(3) << std::setfill(L'0')
      << (unsigned int)timebuffer.millitm;
-  static wstring retval = os.str();
+  static std::wstring retval = os.str();
   return retval.c_str();
 }
 
-wstring PWSUtil::Base64Encode(const BYTE *strIn, size_t len)
+std::wstring PWSUtil::Base64Encode(const BYTE *strIn, size_t len)
 {
-  wstring cs_Out;
+  std::wstring cs_Out;
   static const wchar_t base64ABC[] = 
     L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -518,21 +516,21 @@ StringX PWSUtil::NormalizeTTT(const StringX &in)
   return ttt;
 }
 
-void PWSUtil::WriteXMLField(ostream &os, const char *fname,
+void PWSUtil::WriteXMLField(std::ostream &os, const char *fname,
                             const StringX &value, CUTF8Conv &utf8conv,
                             const char *tabs)
 {
   const unsigned char * utf8 = NULL;
   int utf8Len = 0;
-  string::size_type p = value.find(L"]]>"); // special handling required
-  if (p == string::npos) {
+  std::wstring::size_type p = value.find(L"]]>"); // special handling required
+  if (p == std::wstring::npos) {
     // common case
     os << tabs << "<" << fname << "><![CDATA[";
     if(utf8conv.ToUTF8(value, utf8, utf8Len))
       os.write(reinterpret_cast<const char *>(utf8), utf8Len);
     else
       os << "Internal error - unable to convert field to utf-8";
-    os << "]]></" << fname << ">" << endl;
+    os << "]]></" << fname << ">" << std::endl;
   } else {
     // value has "]]>" sequence(s) that need(s) to be escaped
     // Each "]]>" splits the field into two CDATA sections, one ending with
@@ -549,7 +547,7 @@ void PWSUtil::WriteXMLField(ostream &os, const char *fname,
       os << "]]><![CDATA[";
       from = to;
       p = value.find(L"]]>", from); // are there more?
-      if (p == string::npos) {
+      if (p == std::string::npos) {
         to = value.length();
         slice = value.substr(from, (to - from));
       } else {
@@ -564,33 +562,33 @@ void PWSUtil::WriteXMLField(ostream &os, const char *fname,
         os << "Internal error - unable to convert field to utf-8";
       os << "]]>";
     } while (p != StringX::npos);
-    os << "</" << fname << ">" << endl;
+    os << "</" << fname << ">" << std::endl;
   } // special handling of "]]>" in value.
 }
 
-string PWSUtil::GetXMLTime(int indent, const char *name,
-                           time_t t, CUTF8Conv &utf8conv)
+std::string PWSUtil::GetXMLTime(int indent, const char *name,
+                                time_t t, CUTF8Conv &utf8conv)
 {
   int i;
   const StringX tmp = PWSUtil::ConvertToDateTimeString(t, TMC_XML);
-  ostringstream oss;
+  std::ostringstream oss;
   const unsigned char *utf8 = NULL;
   int utf8Len = 0;
 
 
   for (i = 0; i < indent; i++) oss << "\t";
-  oss << "<" << name << ">" << endl;
+  oss << "<" << name << ">" << std::endl;
   for (i = 0; i <= indent; i++) oss << "\t";
   utf8conv.ToUTF8(tmp.substr(0, 10), utf8, utf8Len);
   oss << "<date>";
   oss.write(reinterpret_cast<const char *>(utf8), utf8Len);
-  oss << "</date>" << endl;
+  oss << "</date>" << std::endl;
   for (i = 0; i <= indent; i++) oss << "\t";
   utf8conv.ToUTF8(tmp.substr(tmp.length() - 8), utf8, utf8Len);
   oss << "<time>";
   oss.write(reinterpret_cast<const char *>(utf8), utf8Len);
-  oss << "</time>" << endl;
+  oss << "</time>" << std::endl;
   for (i = 0; i < indent; i++) oss << "\t";
-  oss << "</" << name << ">" << endl;
+  oss << "</" << name << ">" << std::endl;
   return oss.str();
 }

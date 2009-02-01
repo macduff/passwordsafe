@@ -43,8 +43,6 @@
 #include <xercesc/sax/SAXParseException.hpp>
 #include <xercesc/sax/SAXException.hpp>
 
-using namespace std;
-
 XFileSAX2Handlers::XFileSAX2Handlers()
 {
   m_pValidator = new XFileValidator;
@@ -158,14 +156,14 @@ void XFileSAX2Handlers::endElement(const XMLCh* const /* uri */,
 
 void XFileSAX2Handlers::FormatError(const SAXParseException& e, const int type)
 {
-  wchar_t szFormatString[MAX_PATH * 2] = {0};
+  std::wstring FormatString;
   int iLineNumber, iCharacter;
 
   XMLCh *szErrorMessage = (XMLCh *)e.getMessage();
   iLineNumber = (int)e.getLineNumber();
   iCharacter = (int)e.getColumnNumber();
 
-  wstring cs_format, cs_errortype;
+  std::wstring cs_format, cs_errortype;
   LoadAString(cs_format, IDSC_XERCESSAXGENERROR);
   switch (type) {
     case SAX2_WARNING:
@@ -181,14 +179,10 @@ void XFileSAX2Handlers::FormatError(const SAXParseException& e, const int type)
       assert(0);
   }
 
-#if (_MSC_VER >= 1400)
-  _stprintf_s(szFormatString, MAX_PATH * 2, cs_format.c_str(),
-              cs_errortype.c_str(), iLineNumber, iCharacter, szErrorMessage);
-#else
-  _stprintf(szFormatString, cs_format.c_str(), iLineNumber, iCharacter, szErrorMessage);
-#endif
+  Format(FormatString, cs_format.c_str(),
+         cs_errortype.c_str(), iLineNumber, iCharacter, szErrorMessage);
 
-  m_strValidationResult += szFormatString;
+  m_strValidationResult += FormatString;
 }
 
 void XFileSAX2Handlers::error(const SAXParseException& e)

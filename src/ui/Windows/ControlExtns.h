@@ -7,11 +7,10 @@
 */
 
 #pragma once
+
 #include "SecString.h" // for CSecEditExtn
 #include "InfoDisplay.h"      // for Listbox Tooltips
 #include <vector>             // for Listbox Tooltips
-
-using namespace std;
 
 // ControlExtns.h : header file
 // Extensions to standard Static, Edit, ListBox and Combobox Controls
@@ -214,13 +213,13 @@ class CComboBoxExtn : public CComboBox
   // Construction
 public:
   CComboBoxExtn();
-  void SetToolTipStrings(vector<CSecString> vtooltips);
+  void SetToolTipStrings(std::vector<CSecString> vtooltips);
   CSecString GetToolTip(int nItem)
   {return m_vtooltips[nItem];}
 
 private:
   bool m_bUseToolTips;
-  vector<CSecString> m_vtooltips;
+  std::vector<CSecString> m_vtooltips;
 
 public:
   CEditExtn m_edit;

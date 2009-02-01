@@ -25,7 +25,7 @@
 
 #include "XSecMemMgr.h"
 
-#include <string.h>
+#include <string>
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/util/OutOfMemoryException.hpp>
@@ -33,12 +33,10 @@
 #include <iostream>
 #include <fstream>
 
-using namespace std;
-
 XERCES_CPP_NAMESPACE_BEGIN
 
-static const int header = max(sizeof(XMLSize_t), sizeof(XMLSize_t *));
-static const int offset = max((int)(header / sizeof(XMLSize_t *)), 1);
+static const int header = std::max(sizeof(XMLSize_t), sizeof(XMLSize_t *));
+static const int offset = std::max((int)(header / sizeof(XMLSize_t *)), 1);
 
 void* XSecMemMgr::allocate(XMLSize_t size)
 {

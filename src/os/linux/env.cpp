@@ -19,9 +19,9 @@
 
 #include "../env.h"
 
-static wstring towc(const char *val)
+static std::wstring towc(const char *val)
 {
-  wstring retval;
+  std::wstring retval;
   assert(val != NULL);
   int len = strlen(val);
   int wsize;
@@ -38,10 +38,10 @@ static wstring towc(const char *val)
   return retval;
 }
 
-wstring pws_os::getenv(const char *env, bool is_path)
+std::wstring pws_os::getenv(const char *env, bool is_path)
 {
   assert(env != NULL);
-  wstring retval;
+  std::wstring retval;
   char *value = getenv(env);
   if (value != NULL) {
     retval = towc(value);
@@ -54,9 +54,9 @@ wstring pws_os::getenv(const char *env, bool is_path)
   return retval;
 }
 
-wstring pws_os::getusername()
+std::wstring pws_os::getusername()
 {
-  wstring retval;
+  std::wstring retval;
   const char *user = getlogin();
   if (user == NULL)
     user = "?";
@@ -64,9 +64,9 @@ wstring pws_os::getusername()
   return retval;
 }
 
-wstring pws_os::gethostname()
+std::wstring pws_os::gethostname()
 {
-  wstring retval;
+  std::wstring retval;
   char name[HOST_NAME_MAX];
   if (::gethostname(name, HOST_NAME_MAX) != 0) {
     assert(0);
@@ -76,9 +76,9 @@ wstring pws_os::gethostname()
   return retval;
 }
 
-wstring pws_os::getprocessid()
+std::wstring pws_os::getprocessid()
 {
-  wostringstream os;
+  std::wostringstream os;
   os.width(8);
   os.fill(L'0');
   os << getpid();

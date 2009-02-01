@@ -23,9 +23,9 @@ public:
   CReport() {}
   ~CReport() {}
 
-  void StartReport(LPCWSTR tcAction, const wstring &csDataBase);
+  void StartReport(LPCWSTR tcAction, const std::wstring &csDataBase);
   void EndReport();
-  void WriteLine(const wstring &cs_line, bool bCRLF = true);
+  void WriteLine(const std::wstring &cs_line, bool bCRLF = true);
   void WriteLine(const LPWSTR &tc_line, bool bCRLF = true);
   void WriteLine();
   bool SaveToDisk();
@@ -33,10 +33,10 @@ public:
 
 private:
   woStringXStream m_osxs;
-  wstring m_cs_filename;
+  std::wstring m_cs_filename;
   int m_imode;
-  wstring m_tcAction;
-  wstring m_csDataBase;
+  std::wstring m_tcAction;
+  std::wstring m_csDataBase;
 };
 
 #endif /* __REPORT_H */

@@ -38,8 +38,6 @@
 #include "../PWSfileV3.h"
 #include "../VerifyFormat.h"
 
-using namespace std;
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -78,7 +76,7 @@ XMLFileHandlers::~XMLFileHandlers()
 }
 
 void XMLFileHandlers::SetVariables(PWScore *core, const bool &bValidation,
-                                   const wstring &ImportedPrefix, const wchar_t &delimiter,
+                                   const std::wstring &ImportedPrefix, const wchar_t &delimiter,
                                    UUIDList *possible_aliases, UUIDList *possible_shortcuts)
 {
   m_bValidation = bValidation;
@@ -535,7 +533,7 @@ void XMLFileHandlers::AddEntries()
         StringX Unique_Title;
         ItemListConstIter iter;
         int i = 0;
-        wstring s_import;
+        std::wstring s_import;
         do {
           i++;
           Format(s_import, IDSC_IMPORTNUMBER, i);
@@ -581,7 +579,7 @@ void XMLFileHandlers::AddEntries()
     }
 
     StringX newPWHistory;
-    wstring strPWHErrors;
+    std::wstring strPWHErrors;
     switch (VerifyImportPWHistoryString(cur_entry->pwhistory,
                                         newPWHistory, strPWHErrors)) {
       case PWH_OK:
@@ -598,7 +596,7 @@ void XMLFileHandlers::AddEntries()
       case PWH_TOO_LONG:
       case PWH_INVALID_CHARACTER:
       {
-        wstring buffer;
+        std::wstring buffer;
         Format(buffer, IDSC_SAXERRORPWH, cur_entry->group.c_str(),
                cur_entry->title.c_str(),
                cur_entry->username.c_str());

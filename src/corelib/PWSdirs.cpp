@@ -5,9 +5,12 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
 #include "os/env.h"
 #include "os/dir.h"
+
 #include "PWSdirs.h"
+
 /**
 * Provide directories used by application
 * The functions here return values that cause the application
@@ -28,29 +31,29 @@
 *                U3_HOST_EXEC_PATH
 */
 
-wstring PWSdirs::execdir;
+std::wstring PWSdirs::execdir;
 //-----------------------------------------------------------------------------
 
-wstring PWSdirs::GetOurExecDir()
+std::wstring PWSdirs::GetOurExecDir()
 {
   if (execdir.empty())
     execdir = pws_os::getexecdir();
   return execdir;
 }
 
-wstring PWSdirs::GetSafeDir()
+std::wstring PWSdirs::GetSafeDir()
 {
   // returns empty string unless U3 environment detected
-  wstring retval(pws_os::getenv("U3_DEVICE_DOCUMENT_PATH", true));
+  std::wstring retval(pws_os::getenv("U3_DEVICE_DOCUMENT_PATH", true));
   if (!retval.empty())
     retval += L"My Safes\\";
   return retval;
 }
 
-wstring PWSdirs::GetConfigDir()
+std::wstring PWSdirs::GetConfigDir()
 {
   // PWS_PREFSDIR overrides all:
-  wstring retval(pws_os::getenv("PWS_PREFSDIR", true));
+  std::wstring retval(pws_os::getenv("PWS_PREFSDIR", true));
   if (retval.empty()) {
     // returns directory of executable unless U3 environment detected
     retval = pws_os::getenv("U3_APP_DATA_PATH", true);
@@ -60,9 +63,9 @@ wstring PWSdirs::GetConfigDir()
   return retval;
 }
 
-wstring PWSdirs::GetXMLDir()
+std::wstring PWSdirs::GetXMLDir()
 {
-  wstring retval(pws_os::getenv("U3_APP_DATA_PATH", true));
+  std::wstring retval(pws_os::getenv("U3_APP_DATA_PATH", true));
   if (!retval.empty())
     retval += L"\\xml\\";
   else {
@@ -71,27 +74,27 @@ wstring PWSdirs::GetXMLDir()
   return retval;
 }
 
-wstring PWSdirs::GetHelpDir()
+std::wstring PWSdirs::GetHelpDir()
 {
-  wstring retval(pws_os::getenv("U3_DEVICE_EXEC_PATH", true));
+  std::wstring retval(pws_os::getenv("U3_DEVICE_EXEC_PATH", true));
   if (retval.empty()) {
     retval = GetOurExecDir();
   }
   return retval;
 }
 
-wstring PWSdirs::GetExeDir()
+std::wstring PWSdirs::GetExeDir()
 {
-  wstring retval(pws_os::getenv("U3_HOST_EXEC_PATH", true));
+  std::wstring retval(pws_os::getenv("U3_HOST_EXEC_PATH", true));
   if (retval.empty()) {
     retval = GetOurExecDir();
   }
   return retval;
 }
 
-void PWSdirs::Push(const wstring &dir)
+void PWSdirs::Push(const std::wstring &dir)
 {
-  const wstring CurDir(pws_os::getcwd());
+  const std::wstring CurDir(pws_os::getcwd());
   if (CurDir != dir) { // minor optimization
     dirs.push(CurDir);
     pws_os::chdir(dir);

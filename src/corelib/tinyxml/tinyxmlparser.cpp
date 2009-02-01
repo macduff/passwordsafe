@@ -86,7 +86,7 @@ const int TiXmlBase::utf8ByteTable[256] =
 		1,	1,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	// 0xc0 0xc2 to 0xdf 2 byte
 		2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	// 0xd0
 		3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	// 0xe0 0xe0 to 0xef 3 byte
-		4,	4,	4,	4,	4,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1	// 0xf0 0xf0 to 0xf4 4 byte, 0xf5 and higher invalid
+		4,	4,	4,	4,	4,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1	  // 0xf0 0xf0 to 0xf4 4 byte, 0xf5 and higher invalid
 };
 
 
@@ -367,7 +367,7 @@ const wchar_t* TiXmlBase::SkipWhiteSpace( const wchar_t* p, TiXmlEncoding encodi
 }
 
 #ifdef TIXML_USE_STL
-/*static*/ bool TiXmlBase::StreamWhiteSpace( istream * in, TIXML_STRING * tag )
+/*static*/ bool TiXmlBase::StreamWhiteSpace( std::istream * in, TIXML_STRING * tag )
 {
 	for( ;; )
 	{
@@ -382,7 +382,7 @@ const wchar_t* TiXmlBase::SkipWhiteSpace( const wchar_t* p, TiXmlEncoding encodi
 	}
 }
 
-/*static*/ bool TiXmlBase::StreamTo( istream * in, int character, TIXML_STRING * tag )
+/*static*/ bool TiXmlBase::StreamTo( std::istream * in, int character, TIXML_STRING * tag )
 {
 	//assert( character > 0 && character < 128 );	// else it won't work in utf-8
 	while ( in->good() )
@@ -643,7 +643,7 @@ const wchar_t* TiXmlBase::ReadText(	const wchar_t* p,
 
 #ifdef TIXML_USE_STL
 
-void TiXmlDocument::StreamIn( istream * in, TIXML_STRING * tag )
+void TiXmlDocument::StreamIn( std::istream * in, TIXML_STRING * tag )
 {
 	// The basic issue with a document is that we don't know what we're
 	// streaming. Read something presumed to be a tag (and hope), then
@@ -911,7 +911,7 @@ TiXmlNode* TiXmlNode::Identify( const wchar_t* p, TiXmlEncoding encoding )
 
 #ifdef TIXML_USE_STL
 
-void TiXmlElement::StreamIn (istream * in, TIXML_STRING * tag)
+void TiXmlElement::StreamIn (std::istream * in, TIXML_STRING * tag)
 {
 	// We're called with some amount of pre-parsing. That is, some of "this"
 	// element is in "tag". Go ahead and stream to the closing ">"
@@ -1253,7 +1253,7 @@ const wchar_t* TiXmlElement::ReadValue( const wchar_t* p, TiXmlParsingData* data
 
 
 #ifdef TIXML_USE_STL
-void TiXmlUnknown::StreamIn( istream * in, TIXML_STRING * tag )
+void TiXmlUnknown::StreamIn( std::istream * in, TIXML_STRING * tag )
 {
 	while ( in->good() )
 	{
@@ -1311,7 +1311,7 @@ const wchar_t* TiXmlUnknown::Parse( const wchar_t* p, TiXmlParsingData* data, Ti
 }
 
 #ifdef TIXML_USE_STL
-void TiXmlComment::StreamIn( istream * in, TIXML_STRING * tag )
+void TiXmlComment::StreamIn( std::istream * in, TIXML_STRING * tag )
 {
 	while ( in->good() )
 	{
@@ -1470,7 +1470,7 @@ const wchar_t* TiXmlAttribute::Parse( const wchar_t* p, TiXmlParsingData* data, 
 }
 
 #ifdef TIXML_USE_STL
-void TiXmlText::StreamIn( istream * in, TIXML_STRING * tag )
+void TiXmlText::StreamIn( std::istream * in, TIXML_STRING * tag )
 {
 	while ( in->good() )
 	{
@@ -1552,7 +1552,7 @@ const wchar_t* TiXmlText::Parse( const wchar_t* p, TiXmlParsingData* data, TiXml
 }
 
 #ifdef TIXML_USE_STL
-void TiXmlDeclaration::StreamIn( istream * in, TIXML_STRING * tag )
+void TiXmlDeclaration::StreamIn( std::istream * in, TIXML_STRING * tag )
 {
 	while ( in->good() )
 	{

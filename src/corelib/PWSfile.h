@@ -20,8 +20,6 @@
 #include "StringX.h"
 #include "Proxy.h"
 
-using namespace std;
-
 #define MIN_HASH_ITERATIONS 2048
 
 class Fish;
@@ -59,7 +57,7 @@ public:
     unsigned short m_nCurrentMajorVersion, m_nCurrentMinorVersion;
     uuid_array_t m_file_uuid_array;
     int m_nITER; // Formally not part of the header.
-    vector<bool> m_displaystatus; // tree expansion  state vector
+    std::vector<bool> m_displaystatus; // tree expansion  state vector
     StringX m_prefString; // prefererences stored in the file
     time_t m_whenlastsaved; // When last saved
     StringX m_lastsavedby; // and by whom
@@ -77,8 +75,8 @@ public:
                            const StringX &passkey, VERSION &version);
 
   // Following for 'legacy' use of pwsafe as file encryptor/decryptor
-  static bool Encrypt(const wstring &fn, const StringX &passwd, wstring &errmess);
-  static bool Decrypt(const wstring &fn, const StringX &passwd, wstring &errmess);
+  static bool Encrypt(const std::wstring &fn, const StringX &passwd, std::wstring &errmess);
+  static bool Decrypt(const std::wstring &fn, const StringX &passwd, std::wstring &errmess);
 
   virtual ~PWSfile();
 
@@ -123,4 +121,5 @@ protected:
   Asker *m_pAsker;
   Reporter *m_pReporter;
 };
+
 #endif /* __PWSFILE_H */

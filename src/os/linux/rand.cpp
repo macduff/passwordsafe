@@ -16,8 +16,6 @@
 #include <cstring>
 #include <sys/time.h>
 
-using namespace std;
-
 bool pws_os::InitRandomDataFunction()
 {
   // For starters, we won't rely on /dev/urandom, only on /dev/random for
@@ -33,7 +31,7 @@ bool pws_os::GetRandomData(void *p, unsigned long len)
   // Will not be used by PasswordSafe when InitRandomDataFunction()
   // returns false!
 
-  ifstream is("/dev/urandom");
+  std::ifstream is("/dev/urandom");
   if (!is)
     return false;
   return is.read((char *)p, len);
@@ -71,7 +69,7 @@ void pws_os::GetRandomSeed(void *p, unsigned &slen)
       delete[] data;
       data = NULL;
     }
-    ifstream ent_avail("/proc/sys/kernel/random/entropy_avail");
+    std::ifstream ent_avail("/proc/sys/kernel/random/entropy_avail");
     if (ent_avail) {
       unsigned ent_bits;
       if (ent_avail >> ent_bits && ent_bits >= 32) {

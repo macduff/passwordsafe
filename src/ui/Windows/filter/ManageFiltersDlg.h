@@ -16,8 +16,6 @@
 
 #include <vector>
 
-using namespace std;
-
 // Subitem indices for list of filters
 #define MFLC_FILTER_NAME    0
 #define MFLC_FILTER_SOURCE  1
@@ -92,7 +90,7 @@ private:
   DboxMain *m_pDbx;
 
   PWSFilters &m_MapFilters;
-  vector<st_Filterkey> m_vcs_filters;
+  std::vector<st_Filterkey> m_vcs_filters;
 
   UINT GetFieldTypeName(const FieldType &ft);
   void SetFilter();

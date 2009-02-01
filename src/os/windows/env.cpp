@@ -16,10 +16,10 @@
 #include "../env.h"
 #include <sstream>
 
-wstring pws_os::getenv(const char *env, bool is_path)
+std::wstring pws_os::getenv(const char *env, bool is_path)
 {
   ASSERT(env != NULL);
-  wstring retval;
+  std::wstring retval;
 #if _MSC_VER < 1400
   retval = getenv(env);
 #else
@@ -54,7 +54,7 @@ wstring pws_os::getenv(const char *env, bool is_path)
   return retval;
 }
 
-wstring pws_os::getusername()
+std::wstring pws_os::getusername()
 {
   wchar_t user[UNLEN + sizeof(wchar_t)];
   //  ulen INCLUDES the trailing blank
@@ -65,11 +65,11 @@ wstring pws_os::getusername()
     ulen = 2;
   }
   ulen--;
-  wstring retval(user);
+  std::wstring retval(user);
   return retval;
 }
 
-wstring pws_os::gethostname()
+std::wstring pws_os::gethostname()
 {
   //  slen EXCLUDES the trailing blank
   wchar_t sysname[MAX_COMPUTERNAME_LENGTH + sizeof(wchar_t)];
@@ -79,13 +79,13 @@ wstring pws_os::gethostname()
     sysname[1] = L'\0';
     slen = 1;
   }
-  wstring retval(sysname);
+  std::wstring retval(sysname);
   return retval;
 }
 
-wstring pws_os::getprocessid()
+std::wstring pws_os::getprocessid()
 {
-  wostringstream os;
+  std::wostringstream os;
   os.width(8);
   os.fill(L'0');
   os << GetCurrentProcessId();

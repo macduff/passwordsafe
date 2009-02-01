@@ -37,8 +37,7 @@
 #include "../../Proxy.h"
 
 #include <stdlib.h>
-#include <string.h>
-#include <vector>
+#include <string>
 
 // Xerces includes
 #include <xercesc/util/PlatformUtils.hpp>
@@ -50,8 +49,6 @@
 #include <iostream.h>
 #endif
 
-using namespace std;
-
 class XFilterXMLProcessor
 {
 public:
@@ -60,16 +57,16 @@ public:
 
   bool Process(const bool &bvalidation,
                const StringX &strXMLData,
-               const wstring &strXMLFileName, 
-               const wstring &strXSDFileName);
+               const std::wstring &strXMLFileName, 
+               const std::wstring &strXSDFileName);
 
-  wstring getResultText() {return m_strResultText;}
+  std::wstring getResultText() {return m_strResultText;}
 
 private:
   Asker *m_pAsker;
   PWSFilters &m_MapFilters;
   FilterPool m_FPool;
-  wstring m_strResultText;
+  std::wstring m_strResultText;
   bool m_bValidation;
 };
 

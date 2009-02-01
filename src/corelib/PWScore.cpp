@@ -26,7 +26,7 @@
 #include "PWSfileV3.h" // XXX cleanup with dynamic_cast
 #include "StringXStream.h"
 
-#include "XML/XMLDefs.h"
+#include "XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 
 #if USE_XML_LIBRARY == EXPAT
 #include "XML/Expat/EFileXMLProcessor.h"
@@ -43,17 +43,15 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std;
-
-typedef vector<wstring>::const_iterator vciter;
-typedef vector<wstring>::iterator viter;
+typedef std::vector<std::wstring>::const_iterator vciter;
+typedef std::vector<std::wstring>::iterator viter;
 typedef ItemMMap::iterator ItemMMapIter;
 typedef ItemMMap::const_iterator ItemMMapConstIter;
-typedef pair <CUUIDGen, CUUIDGen> ItemMMap_Pair;
+typedef std::pair <CUUIDGen, CUUIDGen> ItemMMap_Pair;
 
 typedef ItemMap::iterator ItemMapIter;
 typedef ItemMap::const_iterator ItemMapConstIter;
-typedef pair <CUUIDGen, CUUIDGen> ItemMap_Pair;
+typedef std::pair <CUUIDGen, CUUIDGen> ItemMap_Pair;
 
 unsigned char PWScore::m_session_key[20];
 unsigned char PWScore::m_session_salt[20];
@@ -97,7 +95,7 @@ PWScore::~PWScore()
   }
 }
 
-void PWScore::SetApplicationNameAndVersion(const wstring &appName,
+void PWScore::SetApplicationNameAndVersion(const std::wstring &appName,
                                            DWORD dwMajorMinor)
 {
   int nMajor = HIWORD(dwMajorMinor);
@@ -177,7 +175,7 @@ void PWScore::NewFile(const StringX &passkey)
 // functor object type for for_each:
 struct RecordWriter {
   RecordWriter(PWSfile *out, PWScore *core) : m_out(out), m_core(core) {}
-  void operator()(pair<CUUIDGen, CItemData> p)
+  void operator()(std::pair<CUUIDGen, CItemData> p)
   {
     StringX savePassword, uuid_str;
     savePassword = p.second.GetPassword();
@@ -257,16 +255,16 @@ int PWScore::WriteFile(const StringX &filename, PWSfile::VERSION version)
 }
 
 struct PutText {
-  PutText(const wstring &subgroup_name,
+  PutText(const std::wstring &subgroup_name,
           const int subgroup_object, const int subgroup_function,
           const CItemData::FieldBits &bsFields,
-          wchar_t delimiter, ofstream &ofs, PWScore *core) :
+          wchar_t delimiter, std::ofstream &ofs, PWScore *core) :
   m_subgroup_name(subgroup_name), m_subgroup_object(subgroup_object),
   m_subgroup_function(subgroup_function), m_bsFields(bsFields),
   m_delimiter(delimiter), m_ofs(ofs), m_core(core)
   {}
   // operator for ItemList
-  void operator()(pair<CUUIDGen, CItemData> p)
+  void operator()(std::pair<CUUIDGen, CItemData> p)
   {operator()(p.second);}
   // operator for OrderedItemList
   void operator()(const CItemData &item)
@@ -301,7 +299,7 @@ struct PutText {
         int utf8Len;
         if (conv.ToUTF8(line, utf8, utf8Len)) {
           m_ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
-          m_ofs << endl;
+          m_ofs << std::endl;
         } else {
           ASSERT(0);
         }
@@ -310,17 +308,18 @@ struct PutText {
   }
 
 private:
-  const wstring &m_subgroup_name;
+  const std::wstring &m_subgroup_name;
   const int m_subgroup_object;
   const int m_subgroup_function;
   const CItemData::FieldBits &m_bsFields;
-  wchar_t m_delimiter;  ofstream &m_ofs;
+  wchar_t m_delimiter;
+  std::ofstream &m_ofs;
   PWScore *m_core;
 };
 
 int PWScore::WritePlaintextFile(const StringX &filename,
                                 const CItemData::FieldBits &bsFields,
-                                const wstring &subgroup_name,
+                                const std::wstring &subgroup_name,
                                 const int &subgroup_object,
                                 const int &subgroup_function,
                                 wchar_t &delimiter, const OrderedItemList *il)
@@ -329,7 +328,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
   if (bsFields.count() == 0)
     return SUCCESS;
 
-  ofstream ofs(filename.c_str());
+  std::ofstream ofs(filename.c_str());
 
   if (!ofs)
     return CANT_OPEN_FILE;
@@ -345,7 +344,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
     LoadAString(exphdr, IDSC_EXPORTHEADER);
     conv.ToUTF8(exphdr.c_str(), utf8, utf8Len);
     ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
-    ofs << endl;
+    ofs << std::endl;
   } else {
     // user chose fields, build custom header
     StringX cs_temp;
@@ -418,7 +417,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
     hdr = hdr.substr(0, hdr_len);
     conv.ToUTF8(hdr, utf8, utf8Len);
     ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
-    ofs << endl;
+    ofs << std::endl;
   }
 
   PutText put_text(subgroup_name, subgroup_object, subgroup_function,
@@ -436,16 +435,16 @@ int PWScore::WritePlaintextFile(const StringX &filename,
 }
 
 struct XMLRecordWriter {
-  XMLRecordWriter(const wstring &subgroup_name,
+  XMLRecordWriter(const std::wstring &subgroup_name,
                   const int subgroup_object, const int subgroup_function,
                   const CItemData::FieldBits &bsFields,
-                  wchar_t delimiter, ofstream &ofs, PWScore *core) :
+                  wchar_t delimiter, std::ofstream &ofs, PWScore *core) :
   m_subgroup_name(subgroup_name), m_subgroup_object(subgroup_object),
   m_subgroup_function(subgroup_function), m_bsFields(bsFields),
   m_delimiter(delimiter), m_of(ofs), m_id(0), m_core(core)
   {}
   // operator for ItemList
-  void operator()(pair<CUUIDGen, CItemData> p)
+  void operator()(std::pair<CUUIDGen, CItemData> p)
   {operator()(p.second);}
   // operator for OrderedItemList
   void operator()(const CItemData &item)
@@ -485,45 +484,46 @@ struct XMLRecordWriter {
         if (iter != m_core->GetEntryEndIter())
           cibase = &iter->second;
       }
-      string xml = item.GetXML(m_id, m_bsFields, m_delimiter, cibase, bforce_normal_entry);
+      std::string xml = item.GetXML(m_id, m_bsFields, m_delimiter, 
+                                    cibase, bforce_normal_entry);
       m_of.write(xml.c_str(),
-                 static_cast<streamsize>(xml.length()));
+                 static_cast<std::streamsize>(xml.length()));
     }
   }
 
 private:
-  const wstring &m_subgroup_name;
+  const std::wstring &m_subgroup_name;
   const int m_subgroup_object;
   const int m_subgroup_function;
   const CItemData::FieldBits &m_bsFields;
   wchar_t m_delimiter;
-  ofstream &m_of;
+  std::ofstream &m_of;
   unsigned m_id;
   PWScore *m_core;
 };
 
 int PWScore::WriteXMLFile(const StringX &filename,
                           const CItemData::FieldBits &bsFields,
-                          const wstring &subgroup_name,
+                          const std::wstring &subgroup_name,
                           const int &subgroup_object, const int &subgroup_function,
                           const wchar_t delimiter, const OrderedItemList *il)
 {
-  ofstream of(filename.c_str());
+  std::ofstream of(filename.c_str());
 
   if (!of)
     return CANT_OPEN_FILE;
 
   StringX pwh, tmp;
-  wstring cs_tmp;
+  std::wstring cs_tmp;
   time_t time_now;
 
   time(&time_now);
   const StringX now = PWSUtil::ConvertToDateTimeString(time_now, TMC_XML);
 
-  of << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-  of << "<?xml-stylesheet type=\"text/xsl\" href=\"pwsafe.xsl\"?>" << endl;
-  of << endl;
-  of << "<passwordsafe" << endl;
+  of << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
+  of << "<?xml-stylesheet type=\"text/xsl\" href=\"pwsafe.xsl\"?>" << std::endl;
+  of << std::endl;
+  of << "<passwordsafe" << std::endl;
   tmp = m_currfile;
   Replace(tmp, StringX(L"&"), StringX(L"&amp;"));
 
@@ -535,35 +535,35 @@ int PWScore::WriteXMLFile(const StringX &filename,
   utf8conv.ToUTF8(delStr, utf8, utf8Len);
   of << "delimiter=\"";
   of.write(reinterpret_cast<const char *>(utf8), utf8Len);
-  of << "\"" << endl;
+  of << "\"" << std::endl;
   utf8conv.ToUTF8(tmp, utf8, utf8Len);
   of << "Database=\"";
   of.write(reinterpret_cast<const char *>(utf8), utf8Len);
-  of << "\"" << endl;
+  of << "\"" << std::endl;
   utf8conv.ToUTF8(now, utf8, utf8Len);
   of << "ExportTimeStamp=\"";
   of.write(reinterpret_cast<const char *>(utf8), utf8Len);
-  of << "\"" << endl;
+  of << "\"" << std::endl;
   of << "FromDatabaseFormat=\"";
-  ostringstream osv; // take advantage of UTF-8 == ascii for version string
+  std::ostringstream osv; // take advantage of UTF-8 == ascii for version string
   osv << m_hdr.m_nCurrentMajorVersion
-      << "." << setw(2) << setfill('0')
+      << "." << std::setw(2) << std::setfill('0')
       << m_hdr.m_nCurrentMinorVersion;
   of.write(osv.str().c_str(), osv.str().length());
-  of << "\"" << endl;
+  of << "\"" << std::endl;
   if (!m_hdr.m_lastsavedby.empty() || !m_hdr.m_lastsavedon.empty()) {
     woStringXStream oss;
     oss << m_hdr.m_lastsavedby << L" on " << m_hdr.m_lastsavedon;
     utf8conv.ToUTF8(oss.str(), utf8, utf8Len);
     of << "WhoSaved=\"";
     of.write(reinterpret_cast<const char *>(utf8), utf8Len);
-    of << "\"" << endl;
+    of << "\"" << std::endl;
   }
   if (!m_hdr.m_whatlastsaved.empty()) {
     utf8conv.ToUTF8(m_hdr.m_whatlastsaved, utf8, utf8Len);
     of << "WhatSaved=\"";
     of.write(reinterpret_cast<const char *>(utf8), utf8Len);
-    of << "\"" << endl;
+    of << "\"" << std::endl;
   }
   if (m_hdr.m_whenlastsaved != 0) {
     StringX wls = PWSUtil::ConvertToDateTimeString(m_hdr.m_whenlastsaved,
@@ -571,28 +571,28 @@ int PWScore::WriteXMLFile(const StringX &filename,
     utf8conv.ToUTF8(wls.c_str(), utf8, utf8Len);
     of << "WhenLastSaved=\"";
     of.write(reinterpret_cast<const char *>(utf8), utf8Len);
-    of << "\"" << endl;
+    of << "\"" << std::endl;
   }
 
   CUUIDGen huuid(m_hdr.m_file_uuid_array, true); // true to print canoncally
 
-  of << "Database_uuid=\"" << huuid << "\"" << endl;
-  of << "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" << endl;
-  of << "xsi:noNamespaceSchemaLocation=\"pwsafe.xsd\">" << endl;
-  of << endl;
+  of << "Database_uuid=\"" << huuid << "\"" << std::endl;
+  of << "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" << std::endl;
+  of << "xsi:noNamespaceSchemaLocation=\"pwsafe.xsd\">" << std::endl;
+  of << std::endl;
 
   if (m_hdr.m_nITER > MIN_HASH_ITERATIONS) {
     of << "\t<NumberHashIterations>" << m_hdr.m_nITER << "</NumberHashIterations>";
-    of << endl;
+    of << std::endl;
   }
 
   // write out preferences stored in database
-  wstring prefs = PWSprefs::GetInstance()->GetXMLPreferences();
+  std::wstring prefs = PWSprefs::GetInstance()->GetXMLPreferences();
   utf8conv.ToUTF8(prefs.c_str(), utf8, utf8Len);
   of.write(reinterpret_cast<const char *>(utf8), utf8Len);
 
   if (m_UHFL.size() > 0) {
-    of << "\t<unknownheaderfields>" << endl;
+    of << "\t<unknownheaderfields>" << std::endl;
     UnknownFieldList::const_iterator vi_IterUHFE;
     for (vi_IterUHFE = m_UHFL.begin();
          vi_IterUHFE != m_UHFL.end();
@@ -620,16 +620,16 @@ int PWScore::WriteXMLFile(const StringX &filename,
       utf8conv.ToUTF8(tmp, utf8, utf8Len);
       of << "\t\t<field ftype=\"" << int(unkhfe.uc_Type) << "\">";
       of.write(reinterpret_cast<const char *>(utf8), utf8Len);
-      of << "</field>" << endl;
+      of << "</field>" << std::endl;
     }
-    of << "\t</unknownheaderfields>" << endl;  
+    of << "\t</unknownheaderfields>" << std::endl;  
   }
 
   if (bsFields.count() != bsFields.size()) {
     // Some restrictions - put in a comment to that effect
     of << "<!-- Export of data was restricted to certain fields by the user -->"
-      << endl;
-    of << endl;
+      << std::endl;
+    of << std::endl;
   }
 
   XMLRecordWriter put_xml(subgroup_name, subgroup_object, subgroup_function,
@@ -641,7 +641,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
     for_each(m_pwlist.begin(), m_pwlist.end(), put_xml);
   }
 
-  of << "</passwordsafe>" << endl;
+  of << "</passwordsafe>" << std::endl;
   of.close();
 
   return SUCCESS;
@@ -649,14 +649,14 @@ int PWScore::WriteXMLFile(const StringX &filename,
 
 #if !defined(USE_XML_LIBRARY) || (!defined(_WIN32) && USE_XML_LIBRARY == MSXML)
 // Don't support importing XML on non-Windows platforms using Microsoft XML libraries
-int PWScore::ImportXMLFile(const wstring &, const wstring &, const wstring &, wstring &,
+int PWScore::ImportXMLFile(const std::wstring &, const std::wstring &, const std::wstring &, std::wstring &,
                            int &, int &, bool &, bool &,CReport &)
 {
   return UNIMPLEMENTED;
 }
 #else
-int PWScore::ImportXMLFile(const wstring &ImportedPrefix, const wstring &strXMLFileName,
-                           const wstring &strXSDFileName, wstring &strErrors,
+int PWScore::ImportXMLFile(const std::wstring &ImportedPrefix, const std::wstring &strXMLFileName,
+                           const std::wstring &strXSDFileName, std::wstring &strErrors,
                            int &numValidated, int &numImported,
                            bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields,
                            CReport &rpt)
@@ -724,13 +724,13 @@ int PWScore::ImportXMLFile(const wstring &ImportedPrefix, const wstring &strXMLF
 #endif
 
 int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
-                                 const StringX &filename, wstring &strError,
+                                 const StringX &filename, std::wstring &strError,
                                  wchar_t fieldSeparator, wchar_t delimiter,
                                  int &numImported, int &numSkipped,
                                  CReport &rpt)
 {
-  wstring csError;
-  wifstream ifs(filename.c_str());
+  std::wstring csError;
+  std::wifstream ifs(filename.c_str());
 
   if (!ifs)
     return CANT_OPEN_FILE;
@@ -740,10 +740,10 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
   int numlines = 0;
 
   CItemData temp;
-  vector<wstring> vs_Header;
-  wstring cs_hdr;
+  std::vector<std::wstring> vs_Header;
+  std::wstring cs_hdr;
   LoadAString(cs_hdr, IDSC_EXPORTHEADER);
-  const wstring s_hdr(cs_hdr);
+  const std::wstring s_hdr(cs_hdr);
   const wchar_t pTab[] = L"\t";
   wchar_t pSeps[] = L" ";
 
@@ -759,23 +759,23 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
   pSeps[0] = fieldSeparator;
 
   // Capture individual column titles:
-  wstring::size_type to = 0, from;
+  std::wstring::size_type to = 0, from;
   do {
     from = s_hdr.find_first_not_of(pTab, to);
-    if (from == wstring::npos)
+    if (from == std::wstring::npos)
       break;
     to = s_hdr.find_first_of(pTab, from);
     vs_Header.push_back(s_hdr.substr(from,
-                                     ((to == wstring::npos) ?
-                                      wstring::npos : to - from)));
-  } while (to != string::npos);
+                                     ((to == std::wstring::npos) ?
+                                      std::wstring::npos : to - from)));
+  } while (to != std::string::npos);
 
 
   // Following fails if a field was added in enum but not in
   // IDSC_EXPORTHEADER, or vice versa.
   ASSERT(vs_Header.size() == NUMFIELDS);
 
-  wstring s_title, linebuf;
+  std::wstring s_title, linebuf;
 
   // Get title record
   if (!getline(ifs, s_title, L'\n')) {
@@ -794,19 +794,19 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
   to = 0;
   do {
     from = s_title.find_first_not_of(pSeps, to);
-    if (from == wstring::npos)
+    if (from == std::wstring::npos)
       break;
     to = s_title.find_first_of(pSeps, from);
-    wstring token = s_title.substr(from,
-                                   ((to == wstring::npos) ?
-                                    wstring::npos : to - from));
-    vciter it(find(vs_Header.begin(), vs_Header.end(), token));
+    std::wstring token = s_title.substr(from,
+                                   ((to == std::wstring::npos) ?
+                                    std::wstring::npos : to - from));
+    vciter it(std::find(vs_Header.begin(), vs_Header.end(), token));
     if (it != vs_Header.end()) {
       i_Offset[it - vs_Header.begin()] = itoken;
       num_found++;
     }
     itoken++;
-  } while (to != string::npos);
+  } while (to != std::string::npos);
 
   if (num_found == 0) {
     LoadAString(strError, IDSC_IMPORTNOCOLS);
@@ -828,7 +828,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
     rpt.WriteLine(csError, false);
     for (int i = 0; i < NUMFIELDS; i++) {
       if (i_Offset[i] >= 0) {
-        const wstring &sHdr = vs_Header.at(i);
+        const std::wstring &sHdr = vs_Header.at(i);
         Format(csError, L" %s,", sHdr.c_str());
         rpt.WriteLine(csError, false);
       }
@@ -859,12 +859,12 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
 
     // tokenize into separate elements
     itoken = 0;
-    vector<wstring> tokens;
+    std::vector<std::wstring> tokens;
     for (size_t startpos = 0;
          startpos < linebuf.size(); 
          /* startpos advanced in body */) {
       size_t nextchar = linebuf.find_first_of(fieldSeparator, startpos);
-      if (nextchar == string::npos)
+      if (nextchar == std::string::npos)
         nextchar = linebuf.size();
       if (nextchar > 0) {
         if (itoken != i_Offset[NOTES]) {
@@ -872,10 +872,10 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
         } else { // Notes field
           // Notes may be double-quoted, and
           // if they are, they may span more than one line.
-          wstring note(linebuf.substr(startpos));
+          std::wstring note(linebuf.substr(startpos));
           size_t first_quote = note.find_first_of('\"');
           size_t last_quote = note.find_last_of('\"');
-          if (first_quote == last_quote && first_quote != string::npos) {
+          if (first_quote == last_quote && first_quote != std::string::npos) {
             //there was exactly one quote, meaning that we've a multi-line Note
             bool noteClosed = false;
             do {
@@ -894,7 +894,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
               note += linebuf;
               size_t fq = linebuf.find_first_of(L'\"');
               size_t lq = linebuf.find_last_of(L'\"');
-              noteClosed = (fq == lq && fq != string::npos);
+              noteClosed = (fq == lq && fq != std::string::npos);
             } while (!noteClosed);
           } // multiline note processed
           tokens.push_back(note);
@@ -917,7 +917,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
     // Make fields that are *only* whitespace = empty
     viter tokenIter;
     for (tokenIter = tokens.begin(); tokenIter != tokens.end(); tokenIter++) {
-      const vector<wstring>::size_type len = tokenIter->length();
+      const std::vector<std::wstring>::size_type len = tokenIter->length();
 
       // Don't bother if already empty
       if (len == 0)
@@ -927,13 +927,13 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
       // (len >=2) and the first and last characters are doublequotes.
       // UNLESS there's at least one quote in the text itself
       if (len > 1 && (*tokenIter)[0] == L'\"' && (*tokenIter)[len - 1] == L'\"') {
-        const wstring dequoted = tokenIter->substr(1, len - 2);
-        if (dequoted.find_first_of(L'\"') == wstring::npos)
+        const std::wstring dequoted = tokenIter->substr(1, len - 2);
+        if (dequoted.find_first_of(L'\"') == std::wstring::npos)
           tokenIter->assign(dequoted);
       }
 
       // Empty field if purely whitespace
-      if (tokenIter->find_first_not_of(tc_whitespace) == wstring::npos) {
+      if (tokenIter->find_first_not_of(tc_whitespace) == std::wstring::npos) {
         tokenIter->clear();
       }
     } // loop over tokens
@@ -957,10 +957,10 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
 
     // The group and title field are concatenated.
     // If the title field has periods, then they have been changed to the delimiter
-    const wstring &grouptitle = tokens[i_Offset[GROUPTITLE]];
-    wstring entrytitle;
+    const std::wstring &grouptitle = tokens[i_Offset[GROUPTITLE]];
+    std::wstring entrytitle;
     size_t lastdot = grouptitle.find_last_of(L'.');
-    if (lastdot != string::npos) {
+    if (lastdot != std::string::npos) {
       StringX newgroup(ImportedPrefix.empty() ?
                          L"" : ImportedPrefix + L".");
       newgroup += grouptitle.substr(0, lastdot).c_str();
@@ -1003,49 +1003,49 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
       temp.SetAutoType(tokens[i_Offset[AUTOTYPE]].c_str());
     if (i_Offset[CTIME] >= 0 && tokens.size() > (size_t)i_Offset[CTIME])
       if (!temp.SetCTime(tokens[i_Offset[CTIME]].c_str())) {
-        const wstring &time_value = vs_Header.at(CTIME);
+        const std::wstring &time_value = vs_Header.at(CTIME);
         Format(csError, IDSC_IMPORTINVALIDFIELD, numlines, time_value.c_str());
         rpt.WriteLine(csError);
       }
     if (i_Offset[PMTIME] >= 0 && tokens.size() > (size_t)i_Offset[PMTIME])
       if (!temp.SetPMTime(tokens[i_Offset[PMTIME]].c_str())) {
-        const wstring &time_value = vs_Header.at(PMTIME);
+        const std::wstring &time_value = vs_Header.at(PMTIME);
         Format(csError, IDSC_IMPORTINVALIDFIELD, numlines, time_value.c_str());
         rpt.WriteLine(csError);
       }
     if (i_Offset[ATIME] >= 0 && tokens.size() > (size_t)i_Offset[ATIME])
       if (!temp.SetATime(tokens[i_Offset[ATIME]].c_str())) {
-        const wstring &time_value = vs_Header.at(ATIME);
+        const std::wstring &time_value = vs_Header.at(ATIME);
         Format(csError, IDSC_IMPORTINVALIDFIELD, numlines, time_value.c_str());
         rpt.WriteLine(csError);
       }
     if (i_Offset[XTIME] >= 0 && tokens.size() > (size_t)i_Offset[XTIME])
       if (!temp.SetXTime(tokens[i_Offset[XTIME]].c_str())) {
-        const wstring &time_value = vs_Header.at(XTIME);
+        const std::wstring &time_value = vs_Header.at(XTIME);
         Format(csError, IDSC_IMPORTINVALIDFIELD, numlines, time_value.c_str());
         rpt.WriteLine(csError);
       }
     if (i_Offset[XTIME_INT] >= 0 && tokens.size() > (size_t)i_Offset[XTIME_INT])
       if (!temp.SetXTimeInt(tokens[i_Offset[XTIME_INT]].c_str())) {
-        const wstring &int_value = vs_Header.at(XTIME_INT);
+        const std::wstring &int_value = vs_Header.at(XTIME_INT);
         Format(csError, IDSC_IMPORTINVALIDFIELD, numlines, int_value.c_str());
         rpt.WriteLine(csError);
       }
     if (i_Offset[RMTIME] >= 0 && tokens.size() > (size_t)i_Offset[RMTIME])
       if (!temp.SetRMTime(tokens[i_Offset[RMTIME]].c_str())) {
-        const wstring &time_value = vs_Header.at(RMTIME);
+        const std::wstring &time_value = vs_Header.at(RMTIME);
         Format(csError, IDSC_IMPORTINVALIDFIELD, numlines, time_value.c_str());
         rpt.WriteLine(csError);
       }
     if (i_Offset[POLICY] >= 0 && tokens.size() > (size_t)i_Offset[POLICY])
       if (!temp.SetPWPolicy(tokens[i_Offset[POLICY]].c_str())) {
-        const wstring &dword_value = vs_Header.at(POLICY);
+        const std::wstring &dword_value = vs_Header.at(POLICY);
         Format(csError, IDSC_IMPORTINVALIDFIELD, numlines, dword_value.c_str());
         rpt.WriteLine(csError);
       }
     if (i_Offset[HISTORY] >= 0 && tokens.size() > (size_t)i_Offset[HISTORY]) {
       StringX newPWHistory;
-      wstring strPWHErrors;
+      std::wstring strPWHErrors;
       Format(csError, IDSC_IMPINVALIDPWH, numlines);
       switch (VerifyImportPWHistoryString(tokens[i_Offset[HISTORY]].c_str(),
                                           newPWHistory, strPWHErrors)) {
@@ -1074,15 +1074,15 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
     // The notes field begins and ends with a double-quote, with
     // replacement of delimiter by CR-LF.
     if (i_Offset[NOTES] >= 0 && tokens.size() > (size_t)i_Offset[NOTES]) {
-      wstring quotedNotes = tokens[i_Offset[NOTES]];
+      std::wstring quotedNotes = tokens[i_Offset[NOTES]];
       if (!quotedNotes.empty()) {
         if (*quotedNotes.begin() == L'\"' &&
             *(quotedNotes.end() - 1) == L'\"') {
           quotedNotes = quotedNotes.substr(1, quotedNotes.size() - 2);
         }
         size_t from = 0, pos;
-        wstring fixedNotes;
-        while (string::npos != (pos = quotedNotes.find(delimiter, from))) {
+        std::wstring fixedNotes;
+        while (std::string::npos != (pos = quotedNotes.find(delimiter, from))) {
           fixedNotes += quotedNotes.substr(from, (pos - from));
           fixedNotes += L"\r\n";
           from = pos + 1;
@@ -1233,8 +1233,8 @@ int PWScore::ReadFile(const StringX &a_filename,
         // silently losing data (but not by much)
         // Best if title intact. What to do if not?
 
-        wstring cs_msg;
-        wstring cs_caption;
+        std::wstring cs_msg;
+        std::wstring cs_caption;
         LoadAString(cs_caption, IDSC_READ_ERROR);
         Format(cs_msg, IDSC_ENCODING_PROBLEM, temp.GetTitle().c_str());
         cs_msg = cs_caption + L": " + cs_caption;
@@ -1319,27 +1319,27 @@ int PWScore::ReadFile(const StringX &a_filename,
   return closeStatus;
 }
 
-static void ManageIncBackupFiles(const wstring &cs_filenamebase,
-                                 size_t maxnumincbackups, wstring &cs_newname)
+static void ManageIncBackupFiles(const std::wstring &cs_filenamebase,
+                                 size_t maxnumincbackups, std::wstring &cs_newname)
 {
   // make sure we've no more than maxnumincbackups backup files,
   // and return the base name of the next backup file
   // (sans the suffix, which will be added by caller)
 
-  wstring cs_filenamemask(cs_filenamebase);
-  vector<wstring> files;
-  vector<int> file_nums;
+  std::wstring cs_filenamemask(cs_filenamebase);
+  std::vector<std::wstring> files;
+  std::vector<int> file_nums;
 
   cs_filenamemask += L"_???.ibak";
 
   pws_os::FindFiles(cs_filenamemask, files);
 
-  for (vector<wstring>::iterator iter = files.begin();
+  for (std::vector<std::wstring>::iterator iter = files.begin();
        iter != files.end(); iter++) {
-    wstring ibak_number_str = iter->substr(iter->length() - 8, 3);
-    if (ibak_number_str.find_first_not_of(L"0123456789") != wstring::npos)
+    std::wstring ibak_number_str = iter->substr(iter->length() - 8, 3);
+    if (ibak_number_str.find_first_not_of(L"0123456789") != std::wstring::npos)
       continue;
-    wistringstream is(ibak_number_str);
+    std::wistringstream is(ibak_number_str);
     int n;
     is >> n;
     file_nums.push_back(n);
@@ -1361,7 +1361,7 @@ static void ManageIncBackupFiles(const wstring &cs_filenamebase,
 
   int i = 0;
   size_t num_found = file_nums.size();
-  wstring excess_file;
+  std::wstring excess_file;
   while (num_found >= maxnumincbackups) {
     nnn = file_nums[i];
     Format(excess_file, L"%s_%03d.ibak", cs_filenamebase.c_str(), nnn);
@@ -1375,12 +1375,12 @@ static void ManageIncBackupFiles(const wstring &cs_filenamebase,
 }
 
 bool PWScore::BackupCurFile(int maxNumIncBackups, int backupSuffix,
-                            const wstring &userBackupPrefix,
-                            const wstring &userBackupDir)
+                            const std::wstring &userBackupPrefix,
+                            const std::wstring &userBackupDir)
 {
-  wstring cs_temp, cs_newfile;
-  const wstring path(m_currfile.c_str());
-  wstring drv, dir, name, ext;
+  std::wstring cs_temp, cs_newfile;
+  const std::wstring path(m_currfile.c_str());
+  std::wstring drv, dir, name, ext;
 
   pws_os::splitpath(path, drv, dir, name, ext);
   // Get location for intermediate backup
@@ -1442,7 +1442,7 @@ void PWScore::ChangePassword(const StringX &newPassword)
 // functor object type for find_if:
 
 struct FieldsMatch {
-  bool operator()(pair<CUUIDGen, CItemData> p) {
+  bool operator()(std::pair<CUUIDGen, CItemData> p) {
     const CItemData &item = p.second;
     return (m_group == item.GetGroup() &&
             m_title == item.GetTitle() &&
@@ -1470,7 +1470,7 @@ ItemListIter PWScore::Find(const StringX &a_group,const StringX &a_title,
 }
 
 struct TitleMatch {
-  bool operator()(pair<CUUIDGen, CItemData> p) {
+  bool operator()(std::pair<CUUIDGen, CItemData> p) {
     const CItemData &item = p.second;
     return (m_title == item.GetTitle());
   }
@@ -1511,7 +1511,7 @@ ItemListIter PWScore::GetUniqueBase(const StringX &a_title, bool &bMultiple)
 }
 
 struct GroupTitle_TitleUserMatch {
-  bool operator()(pair<CUUIDGen, CItemData> p) {
+  bool operator()(std::pair<CUUIDGen, CItemData> p) {
     const CItemData &item = p.second;
     return ((m_gt == item.GetGroup() && m_tu == item.GetTitle()) ||
             (m_gt == item.GetTitle() && m_tu == item.GetUser()));
@@ -1628,7 +1628,7 @@ StringX PWScore::GetPassKey() const
   return retval;
 }
 
-void PWScore::SetDisplayStatus(const vector<bool> &s)
+void PWScore::SetDisplayStatus(const std::vector<bool> &s)
 { 
   // DON'T set m_changed!
   // Application should use WasDisplayStatusChanged()
@@ -1637,7 +1637,7 @@ void PWScore::SetDisplayStatus(const vector<bool> &s)
   m_hdr.m_displaystatus = s;
 }
 
-const vector<bool> &PWScore::GetDisplayStatus() const
+const std::vector<bool> &PWScore::GetDisplayStatus() const
 {
   return m_hdr.m_displaystatus;
 }
@@ -1664,18 +1664,17 @@ that is imports.  Both are pretty easy things to live with.
 --jah
 */
 
-int
-PWScore::ImportKeePassTextFile(const StringX &filename)
+int PWScore::ImportKeePassTextFile(const StringX &filename)
 {
   static const wchar_t *ImportedPrefix = { L"ImportedKeePass" };
-  wifstream ifs(filename.c_str());
+  std::wifstream ifs(filename.c_str());
 
   if (!ifs) {
     return CANT_OPEN_FILE;
   }
 
-  wstring linebuf;
-  wstring group, title, user, passwd, notes;
+  std::wstring linebuf;
+  std::wstring group, title, user, passwd, notes;
 
   // read a single line.
   if (!getline(ifs, linebuf, L'\n') || linebuf.empty()) {
@@ -1685,7 +1684,7 @@ PWScore::ImportKeePassTextFile(const StringX &filename)
   // the first line of the keepass text file contains a few garbage characters
   linebuf = linebuf.erase(0, linebuf.find(L"["));
 
-  wstring::size_type pos = wstring::npos;
+  std::wstring::size_type pos = std::wstring::npos;
   for (;;) {
     if (!ifs)
       break;
@@ -1701,7 +1700,7 @@ PWScore::ImportKeePassTextFile(const StringX &filename)
 
     // set the group: line pattern: Group: <user>
     if (!getline(ifs, linebuf, L'\n') ||
-        (pos = linebuf.find(L"Group: ")) == wstring::npos) {
+        (pos = linebuf.find(L"Group: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
     group = ImportedPrefix;
@@ -1712,14 +1711,14 @@ PWScore::ImportKeePassTextFile(const StringX &filename)
 
     // set the user: line pattern: UserName: <user>
     if (!getline(ifs, linebuf, L'\n') ||
-        (pos = linebuf.find(L"UserName: ")) == wstring::npos) {
+        (pos = linebuf.find(L"UserName: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
     user = linebuf.substr(pos + 10);
 
     // set the url: line pattern: URL: <url>
     if (!getline(ifs, linebuf, L'\n') ||
-        (pos = linebuf.find(L"URL: ")) == wstring::npos) {
+        (pos = linebuf.find(L"URL: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
     if (!linebuf.substr(pos + 5).empty()) {
@@ -1729,14 +1728,14 @@ PWScore::ImportKeePassTextFile(const StringX &filename)
 
     // set the password: line pattern: Password: <passwd>
     if (!getline(ifs, linebuf, L'\n') ||
-        (pos = linebuf.find(L"Password: ")) == wstring::npos) {
+        (pos = linebuf.find(L"Password: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
     passwd = linebuf.substr(pos + 10);
 
     // set the first line of notes: line pattern: Notes: <notes>
     if (!getline(ifs, linebuf, L'\n') ||
-        (pos = linebuf.find(L"Notes: ")) == wstring::npos) {
+        (pos = linebuf.find(L"Notes: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
     notes.append(linebuf.substr(pos + 7));
@@ -1777,7 +1776,7 @@ PWScore::ImportKeePassTextFile(const StringX &filename)
 }
 
 // GetUniqueGroups - Creates an array of all group names, with no duplicates.
-void PWScore::GetUniqueGroups(vector<wstring> &aryGroups) const
+void PWScore::GetUniqueGroups(std::vector<std::wstring> &aryGroups) const
 {
   aryGroups.clear();
 
@@ -1785,7 +1784,7 @@ void PWScore::GetUniqueGroups(vector<wstring> &aryGroups) const
 
   for (iter = m_pwlist.begin(); iter != m_pwlist.end(); iter++ ) {
     const CItemData &ci = iter->second;
-    const wstring strThisGroup = ci.GetGroup().c_str();
+    const std::wstring strThisGroup = ci.GetGroup().c_str();
     // Is this group already in the list?
     bool bAlreadyInList=false;
     for (size_t igrp = 0; igrp < aryGroups.size(); igrp++) {
@@ -1805,7 +1804,7 @@ void PWScore::CopyPWList(const ItemList &in)
 }
 
 bool
-PWScore::Validate(wstring &status)
+PWScore::Validate(std::wstring &status)
 {
   // Check uuid is valid
   // Check PWH is valid
@@ -1823,7 +1822,7 @@ PWScore::Validate(wstring &status)
   unsigned num_alias_warnings, num_shortcuts_warnings;
 
   CReport rpt;
-  wstring cs_Error, cs_temp;
+  std::wstring cs_Error, cs_temp;
   LoadAString(cs_temp, IDSC_RPTVALIDATE);
   rpt.StartReport(cs_temp.c_str(), GetCurFile().c_str());
 
@@ -2117,7 +2116,7 @@ int PWScore::AddDependentEntries(UUIDList &dependentlist, CReport *rpt,
     StringX csPwdGroup, csPwdTitle, csPwdUser, tmp;
     uuid_array_t base_uuid, entry_uuid;
     bool bwarnings(false);
-    wstring strError;
+    std::wstring strError;
 
     for (paiter = dependentlist.begin();
          paiter != dependentlist.end(); paiter++) {
@@ -2159,7 +2158,7 @@ int PWScore::AddDependentEntries(UUIDList &dependentlist, CReport *rpt,
                 LoadAString(strError, IDSC_IMPORTWARNINGHDR);
                 rpt->WriteLine(strError);
               }
-              wstring cs_type;
+              std::wstring cs_type;
               LoadAString(cs_type, IDSC_SHORTCUT);
               Format(strError, IDSC_IMPORTWARNING3, cs_type.c_str(),
                      curitem->GetGroup().c_str(), curitem->GetTitle().c_str(), 
@@ -2181,7 +2180,7 @@ int PWScore::AddDependentEntries(UUIDList &dependentlist, CReport *rpt,
                 LoadAString(strError, IDSC_IMPORTWARNINGHDR);
                 rpt->WriteLine(strError);
               }
-              wstring cs_type;
+              std::wstring cs_type;
               LoadAString(cs_type, IDSC_ALIAS);
               Format(strError, IDSC_IMPORTWARNING3, cs_type.c_str(),
                      curitem->GetGroup().c_str(), curitem->GetTitle().c_str(), 
@@ -2449,30 +2448,30 @@ void PWScore::NotifyListModified()
   m_pfcnNotifyListModified(m_NotifyInstance);
 }
 
-bool PWScore::LockFile(const wstring &filename, wstring &locker)
+bool PWScore::LockFile(const std::wstring &filename, std::wstring &locker)
 {
   return pws_os::LockFile(filename, locker,
                           m_lockFileHandle, m_LockCount);
 }
 
-bool PWScore::IsLockedFile(const wstring &filename) const
+bool PWScore::IsLockedFile(const std::wstring &filename) const
 {
   return pws_os::IsLockedFile(filename);
 }
 
-void PWScore::UnlockFile(const wstring &filename)
+void PWScore::UnlockFile(const std::wstring &filename)
 {
   return pws_os::UnlockFile(filename, 
                             m_lockFileHandle, m_LockCount);
 }
 
-bool PWScore::LockFile2(const wstring &filename, wstring &locker)
+bool PWScore::LockFile2(const std::wstring &filename, std::wstring &locker)
 {
   return pws_os::LockFile(filename, locker,
                           m_lockFileHandle2, m_LockCount);
 }
 
-void PWScore::UnlockFile2(const wstring &filename)
+void PWScore::UnlockFile2(const std::wstring &filename)
 {
   return pws_os::UnlockFile(filename, 
                             m_lockFileHandle2, m_LockCount);

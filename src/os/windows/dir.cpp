@@ -15,38 +15,38 @@
 #include "../dir.h"
 #include <direct.h>
 
-wstring pws_os::getexecdir()
+std::wstring pws_os::getexecdir()
 {
   // returns the directory part of ::GetModuleFileName()
   wchar_t acPath[MAX_PATH + 1];
 
-  if (GetModuleFileName( NULL, acPath, MAX_PATH + 1) != 0) {
+  if (GetModuleFileName(NULL, acPath, MAX_PATH + 1) != 0) {
     // guaranteed file name of at least one character after path '\'
-    *(_tcsrchr(acPath, L'\\') + 1) = L'\0';
+    *(wcsrchr(acPath, L'\\') + 1) = L'\0';
   } else {
     acPath[0] = L'\\'; acPath[1] = L'\0';
   }
-  return wstring(acPath);
+  return std::wstring(acPath);
 }
 
-wstring pws_os::getcwd()
+std::wstring pws_os::getcwd()
 {
   wchar_t *curdir = _wgetcwd(NULL, 512); // NULL means 512 doesn't matter
-  wstring CurDir(curdir);
+  std::wstring CurDir(curdir);
   free(curdir);
   return CurDir;
 }
 
-bool pws_os::chdir(const wstring &dir)
+bool pws_os::chdir(const std::wstring &dir)
 {
   ASSERT(!dir.empty());
   return (_tchdir(dir.c_str()) == 0);
 }
 
   // In following, drive will be empty on non-Windows platforms
-bool pws_os::splitpath(const wstring &path,
-                       wstring &drive, wstring &dir,
-                       wstring &file, wstring &ext)
+bool pws_os::splitpath(const std::wstring &path,
+                       std::wstring &drive, std::wstring &dir,
+                       std::wstring &file, std::wstring &ext)
 {
   wchar_t tdrv[_MAX_DRIVE];
   wchar_t tdir[_MAX_DIR];
@@ -68,14 +68,14 @@ bool pws_os::splitpath(const wstring &path,
     return false;
 }
 
-wstring pws_os::makepath(const wstring &drive, const wstring &dir,
-                         const wstring &file, const wstring &ext)
+std::wstring pws_os::makepath(const std::wstring &drive, const std::wstring &dir,
+                              const std::wstring &file, const std::wstring &ext)
 {
-  wstring retval;
+  std::wstring retval;
   wchar_t path[_MAX_PATH];
 
   memset(path, 0, sizeof(path));
-  if (_tmakepath_s(path, drive.c_str(), dir.c_str(),
+  if (_wmakepath_s(path, drive.c_str(), dir.c_str(),
                    file.c_str(), ext.c_str()) == 0)
     retval = path;
   return retval;

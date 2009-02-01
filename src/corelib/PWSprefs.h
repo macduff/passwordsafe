@@ -43,7 +43,7 @@ class PWSprefs
 public:
   static PWSprefs *GetInstance(); // singleton
   static void DeleteInstance();
-  static void SetConfigFile(const wstring &fn) {m_configfilename = fn;}
+  static void SetConfigFile(const std::wstring &fn) {m_configfilename = fn;}
   static void SetReporter(Reporter *reporter) {m_Reporter = reporter;}
   
   // prefString is stored in database file, format described in PWSprefs.cpp
@@ -134,8 +134,8 @@ public:
   // Special cases
   void GetPrefRect(long &top, long &bottom, long &left, long &right) const;
   void SetPrefRect(long top, long bottom, long left, long right);
-  int GetMRUList(wstring *MRUFiles);
-  int SetMRUList(const wstring *MRUFiles, int n, int max_MRU);
+  int GetMRUList(std::wstring *MRUFiles);
+  int SetMRUList(const std::wstring *MRUFiles, int n, int max_MRU);
 
   void SetPref(BoolPrefs pref_enum, bool value);
   void SetPref(IntPrefs pref_enum, unsigned int value);
@@ -145,7 +145,7 @@ public:
   bool IsUsingRegistry() const {return m_ConfigOptions == CF_REGISTRY;}
 
   // Get database preferences in XML format for export
-  wstring GetXMLPreferences();
+  std::wstring GetXMLPreferences();
 
   // for display in status bar (debug)
   int GetConfigIndicator() const;
@@ -154,9 +154,9 @@ public:
   bool OfferDeleteRegistry() const;
   void DeleteRegistryEntries();  
 
-  static bool LockCFGFile(const wstring &filename, wstring &locker);
-  static void UnlockCFGFile(const wstring &filename);
-  static bool IsLockedCFGFile(const wstring &filename);
+  static bool LockCFGFile(const std::wstring &filename, std::wstring &locker);
+  static void UnlockCFGFile(const std::wstring &filename);
+  static bool IsLockedCFGFile(const std::wstring &filename);
 
 private:
   PWSprefs();
@@ -182,14 +182,14 @@ private:
   void DeleteOldPrefs();
 
   static PWSprefs *self; // singleton
-  static wstring m_configfilename; // may be set before singleton created
+  static std::wstring m_configfilename; // may be set before singleton created
   static Reporter *m_Reporter; // set as soon as possible to show errors
   CXMLprefs *m_XML_Config;
 
   bool m_bRegistryKeyExists;
   enum {CF_NONE, CF_REGISTRY, CF_FILE_RO,
-    CF_FILE_RW, CF_FILE_RW_NEW} m_ConfigOptions;
-  wstring m_csHKCU, m_csHKCU_MRU, m_csHKCU_POS, m_csHKCU_PREF;
+        CF_FILE_RW, CF_FILE_RW_NEW} m_ConfigOptions;
+  std::wstring m_csHKCU, m_csHKCU_MRU, m_csHKCU_POS, m_csHKCU_PREF;
 
   bool m_prefs_changed[2];  // 0 - DB stored pref; 1 - App related pref
 
@@ -210,6 +210,6 @@ private:
   bool m_intChanged[NumIntPrefs];
   bool m_stringChanged[NumStringPrefs];
 
-  wstring *m_MRUitems;
+  std::wstring *m_MRUitems;
 };
 #endif /*  __PWSPREFS_H */

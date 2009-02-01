@@ -21,8 +21,6 @@
 #include <vector>
 #include <string>
 
-using namespace std;
-
 struct PWPolicy {
   unsigned short flags;
   int length;
@@ -64,7 +62,7 @@ struct PWPolicy {
   }
 };
 
-typedef vector<CItemField> UnknownFields;
+typedef std::vector<CItemField> UnknownFields;
 typedef UnknownFields::const_iterator UnknownFieldsConstIter;
 
 //-----------------------------------------------------------------------------
@@ -112,7 +110,7 @@ public:
       ET_LAST};
 
     // a bitset for indicating a subset of an item's fields: 
-    typedef bitset<LAST> FieldBits;
+    typedef std::bitset<LAST> FieldBits;
 
     static void SetSessionKey(); // call exactly once per session
 
@@ -174,8 +172,8 @@ public:
     // GetPlaintext returns all fields separated by separator, if delimiter is != 0, then
     // it's used for multi-line notes and to replace '.' within the Title field.
     StringX GetPlaintext(const wchar_t &separator, const FieldBits &bsExport,
-      const wchar_t &delimiter, const CItemData *cibase) const;
-    string GetXML(unsigned id, const FieldBits &bsExport, wchar_t m_delimiter,
+                         const wchar_t &delimiter, const CItemData *cibase) const;
+    std::string GetXML(unsigned id, const FieldBits &bsExport, wchar_t m_delimiter,
                        const CItemData *cibase, bool bforce_normal_entry) const;
     void GetUnknownField(unsigned char &type, unsigned int &length,
                          unsigned char * &pdata,
@@ -187,9 +185,9 @@ public:
                          const unsigned int length,
                          const unsigned char * ufield);
     unsigned int NumberUnknownFields() const
-    {return (unsigned int)m_URFL.size();}
+      {return (unsigned int)m_URFL.size();}
     void ClearUnknownFields()
-    {return m_URFL.clear();}
+      {return m_URFL.clear();}
     UnknownFieldsConstIter GetURFIterBegin() const {return m_URFL.begin();}
     UnknownFieldsConstIter GetURFIterEnd() const {return m_URFL.end();}
 
@@ -206,24 +204,24 @@ public:
     void SetAutoType(const StringX &autotype); // V30
     void SetATime() {SetTime(ATIME);}  // V30
     void SetATime(time_t t) {SetTime(ATIME, t);}  // V30
-    bool SetATime(const wstring &time_str) {return SetTime(ATIME, time_str);}  // V30
+    bool SetATime(const std::wstring &time_str) {return SetTime(ATIME, time_str);}  // V30
     void SetCTime() {SetTime(CTIME);}  // V30
     void SetCTime(time_t t) {SetTime(CTIME, t);}  // V30
-    bool SetCTime(const wstring &time_str) {return SetTime(CTIME, time_str);}  // V30
+    bool SetCTime(const std::wstring &time_str) {return SetTime(CTIME, time_str);}  // V30
     void SetXTime() {SetTime(XTIME);}  // V30
     void SetXTime(time_t t) {SetTime(XTIME, t);}  // V30
-    bool SetXTime(const wstring &time_str) {return SetTime(XTIME, time_str);}  // V30
+    bool SetXTime(const std::wstring &time_str) {return SetTime(XTIME, time_str);}  // V30
     void SetPMTime() {SetTime(PMTIME);}  // V30
     void SetPMTime(time_t t) {SetTime(PMTIME, t);}  // V30
-    bool SetPMTime(const wstring &time_str) {return SetTime(PMTIME, time_str);}  // V30
+    bool SetPMTime(const std::wstring &time_str) {return SetTime(PMTIME, time_str);}  // V30
     void SetRMTime() {SetTime(RMTIME);}  // V30
     void SetRMTime(time_t t) {SetTime(RMTIME, t);}  // V30
-    bool SetRMTime(const wstring &time_str) {return SetTime(RMTIME, time_str);}  // V30
+    bool SetRMTime(const std::wstring &time_str) {return SetTime(RMTIME, time_str);}  // V30
     void SetXTimeInt(int &xint); // V30
-    bool SetXTimeInt(const wstring &xint_str); // V30
+    bool SetXTimeInt(const std::wstring &xint_str); // V30
     void SetPWHistory(const StringX &PWHistory);  // V30
     void SetPWPolicy(const PWPolicy &pwp);
-    bool SetPWPolicy(const wstring &cs_pwp);
+    bool SetPWPolicy(const std::wstring &cs_pwp);
     CItemData& operator=(const CItemData& second);
     // Following used by display methods - we just keep it handy
     void *GetDisplayInfo() const {return m_display_info;}
@@ -231,13 +229,13 @@ public:
     void Clear();
     // check record for mandatory fields, silently fix if missing
     int ValidateUUID(const unsigned short &nMajor, const unsigned short &nMinor,
-      uuid_array_t &uuid_array);
+                     uuid_array_t &uuid_array);
     bool ValidatePWHistory(); // return true if OK, false if there's a problem
     bool IsExpired();
     bool WillExpire(const int numdays);
 
     // Predicate to determine if item matches given criteria
-    bool Matches(const wstring &string1, int iObject, 
+    bool Matches(const std::wstring &string1, int iObject, 
                  int iFunction) const;  // string values
     bool Matches(int num1, int num2, int iObject,
                  int iFunction) const;  // intger values
@@ -249,37 +247,37 @@ public:
     BOOL IsUserEmpty() const {return m_User.IsEmpty();}
     BOOL IsNotesEmpty() const {return m_Notes.IsEmpty();}
     BOOL IsURLEmpty() const {return m_URL.IsEmpty();}
-    void SerializePlainText(vector<char> &v, CItemData *cibase = NULL) const;
-    bool DeserializePlainText(const vector<char> &v);
+    void SerializePlainText(std::vector<char> &v, CItemData *cibase = NULL) const;
+    bool DeserializePlainText(const std::vector<char> &v);
     bool SetField(int type, unsigned char *data, int len);
 
     EntryType GetEntryType() const
     {return m_entrytype;}
 
     bool IsNormal() const
-    {return (m_entrytype == ET_NORMAL);}
+      {return (m_entrytype == ET_NORMAL);}
     bool IsAliasBase() const
-    {return (m_entrytype == ET_ALIASBASE);}
+      {return (m_entrytype == ET_ALIASBASE);}
     bool IsShortcutBase() const
-    {return (m_entrytype == ET_SHORTCUTBASE);}
+      {return (m_entrytype == ET_SHORTCUTBASE);}
     bool IsAlias() const
-    {return (m_entrytype == ET_ALIAS);}
+      {return (m_entrytype == ET_ALIAS);}
     bool IsShortcut() const
-    {return (m_entrytype == ET_SHORTCUT);}
+      {return (m_entrytype == ET_SHORTCUT);}
 
     void SetNormal()
-    {m_entrytype = ET_NORMAL;}
+      {m_entrytype = ET_NORMAL;}
     void SetAliasBase()
-    {m_entrytype = ET_ALIASBASE;}
+      {m_entrytype = ET_ALIASBASE;}
     void SetShortcutBase()
-    {m_entrytype = ET_SHORTCUTBASE;}
+      {m_entrytype = ET_SHORTCUTBASE;}
     void SetAlias()
-    {m_entrytype = ET_ALIAS;}
+      {m_entrytype = ET_ALIAS;}
     void SetShortcut()
-    {m_entrytype = ET_SHORTCUT;}
+      {m_entrytype = ET_SHORTCUT;}
 
     bool IsURLEmail() const
-    {return GetURL().find(L"mailto:") != StringX::npos;}
+      {return GetURL().find(L"mailto:") != StringX::npos;}
 
 private:
   CItemField m_Name;
@@ -321,19 +319,19 @@ private:
   void GetTime(int whichtime, time_t &t) const; // V30
   void SetTime(const int whichtime); // V30
   void SetTime(const int whichtime, time_t t); // V30
-  bool SetTime(const int whichtime, const wstring &time_str); // V30
+  bool SetTime(const int whichtime, const std::wstring &time_str); // V30
 
   // Create local Encryption/Decryption object
   BlowFish *MakeBlowFish() const;
   // Laziness is a Virtue:
   StringX GetField(const CItemField &field) const;
   void GetField(const CItemField &field, unsigned char *value,
-    unsigned int &length) const;
+                unsigned int &length) const;
   void GetUnknownField(unsigned char &type, unsigned int &length,
-    unsigned char * &pdata, const CItemField &item) const;
+                       unsigned char * &pdata, const CItemField &item) const;
   void SetField(CItemField &field, const StringX &value);
   void SetField(CItemField &field, const unsigned char *value,
-    unsigned int length);
+                unsigned int length);
 };
 
 inline bool CItemData::IsTextField(unsigned char t)

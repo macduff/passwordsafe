@@ -22,26 +22,20 @@
 #include "StringX.h"
 #include <sstream>
 
-using namespace std;
-
 // stringstream typedefs for StringX 
-typedef basic_stringbuf<wchar_t,
-                             char_traits<wchar_t>,
+typedef std::basic_stringbuf<wchar_t, std::char_traits<wchar_t>,
                              S_Alloc::SecureAlloc<wchar_t> > wStringXBuf;
 
-typedef basic_istringstream<wchar_t,
-                                 char_traits<wchar_t>,
+typedef std::basic_istringstream<wchar_t, std::char_traits<wchar_t>,
                                  S_Alloc::SecureAlloc<wchar_t> > wiStringXStream;
 
-typedef basic_ostringstream<wchar_t,
-                                 char_traits<wchar_t>,
+typedef std::basic_ostringstream<wchar_t, std::char_traits<wchar_t>,
                                  S_Alloc::SecureAlloc<wchar_t> > woStringXStream;
 
-typedef basic_stringstream<wchar_t,
-                                char_traits<wchar_t>,
+typedef std::basic_stringstream<wchar_t, std::char_traits<wchar_t>,
                                 S_Alloc::SecureAlloc<wchar_t> > wStringXStream;
 
-#endif
+#endif /* _STRINGXSTREAM_H_ */
 //-----------------------------------------------------------------------------
 // Local variables:
 // mode: c++

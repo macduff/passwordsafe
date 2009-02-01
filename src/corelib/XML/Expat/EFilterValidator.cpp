@@ -42,8 +42,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
-
 /*
  * st_filter_elements:
  * 1. Element Name, as expected in the XML file
@@ -70,7 +68,7 @@ const EFilterValidator::st_filter_elements EFilterValidator::m_filter_elements[X
     {XTE_GROUPTITLE, XTR_STRINGRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_GROUPTITLE}},
   {L"title",
     {XTE_TITLE, XTR_STRINGRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_TITLE}},
-  {L"username",
+  {L"user",
     {XTE_USERNAME, XTR_STRINGPRESENTRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_USER}},
   {L"notes",
     {XTE_NOTES, XTR_STRINGPRESENTRULE, 1, DFTYPE_MAIN, PWSMatch::MT_STRING, FT_NOTES}},
@@ -195,14 +193,14 @@ EFilterValidator::EFilterValidator()
   // Populate Element Map - provides, amongst other things,
   // the equivalent of a 'switch' statement on a string value
   for (int i = 0; i < XTE_LAST_ELEMENT; i++) {
-    m_element_map.insert(Filter_Element_Pair(wstring(m_filter_elements[i].name),
+    m_element_map.insert(Filter_Element_Pair(std::wstring(m_filter_elements[i].name),
                                       m_filter_elements[i].filter_element_data));
   }
 
   // Populate Rules Map - provides, amongst other things, 
   // the equivalent of a 'switch' statement on a string value
   for (int i = 0; i < PWSMatch::MR_LAST; i++) {
-    m_rulecode_map.insert(Filter_Rules_Pair(wstring(m_filter_rulecodes[i].name),
+    m_rulecode_map.insert(Filter_Rules_Pair(std::wstring(m_filter_rulecodes[i].name),
                                       m_filter_rulecodes[i].filter_rulecode_data));
   }
 
@@ -227,7 +225,7 @@ EFilterValidator::~EFilterValidator()
   m_rulecode_map.clear();
 }
 
-bool EFilterValidator::startElement(wstring & strStartElement)
+bool EFilterValidator::startElement(std::wstring & strStartElement)
 {
   if (strStartElement == L"filters") {
     if (!m_element_code_stack.empty() || m_ielement_occurs[XTE_FILTERS] > 0) {
@@ -330,7 +328,7 @@ bool EFilterValidator::startElement(wstring & strStartElement)
   return true;
 }
 
-bool EFilterValidator::endElement(wstring &strEndElement,
+bool EFilterValidator::endElement(std::wstring &strEndElement,
                                   StringX &strValue)
 {
   if (strEndElement == L"filters")
@@ -351,7 +349,7 @@ bool EFilterValidator::endElement(wstring &strEndElement,
   }
 
   XTE_Codes &icurrent_element = m_element_code_stack.top();
-  wstring cs_missing_element(L"");
+  std::wstring cs_missing_element(L"");
   switch (icurrent_element) {
     case XTE_FILTER_ENTRY:
       m_bfiltergroup = false;
@@ -647,7 +645,7 @@ bool EFilterValidator::VerifyStartElement(cFilter_Element_iter e_iter)
 
 bool EFilterValidator::VerifyXMLRule(const StringX &strElemContent, const XTR_Codes &rule_code)
 {
-  wstring strValue = wstring(strElemContent.c_str());
+  std::wstring strValue = std::wstring(strElemContent.c_str());
   m_matchrule = PWSMatch::MR_INVALID;
 
   if (strValue.length() == 0)
@@ -665,7 +663,7 @@ bool EFilterValidator::VerifyXMLRule(const StringX &strElemContent, const XTR_Co
 
 PWSMatch::MatchRule EFilterValidator::GetMatchRule(const wchar_t *cs_rule)
 {
-  const wstring strValue(cs_rule);
+  const std::wstring strValue(cs_rule);
 
   if (strValue.length() == 0)
     return PWSMatch::MR_INVALID;
@@ -681,7 +679,7 @@ PWSMatch::MatchRule EFilterValidator::GetMatchRule(const wchar_t *cs_rule)
 
 bool EFilterValidator::GetElementInfo(const XML_Char *name, st_filter_element_data &edata)
 {
-  const wstring strValue(name);
+  const std::wstring strValue(name);
 
   if (strValue.length() == 0)
     return false;

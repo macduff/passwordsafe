@@ -12,6 +12,8 @@
 #include "corelib/PWSprefs.h"
 #include "resource2.h" // for ID_FILE_MRU_*
 
+using namespace std;
+
 /*
   PasswordSafe uses a config file instead of registry when possible.
   This means that ReadList/WriteList need to use our config mechanism,

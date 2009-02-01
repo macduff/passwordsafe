@@ -162,8 +162,8 @@ public:
 #endif
 
 private:
-  map<wstring, st_file_element_data> m_element_map;
-  typedef pair<wstring, st_file_element_data> file_element_pair;
+  std::map<std::wstring, st_file_element_data> m_element_map;
+  typedef std::pair<std::wstring, st_file_element_data> file_element_pair;
 
   static const struct st_file_elements {
     wchar_t *name; st_file_element_data file_element_data;

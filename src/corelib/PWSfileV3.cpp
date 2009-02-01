@@ -16,7 +16,7 @@
 #include "corelib.h"
 #include "os/file.h"
 
-#include "XML/XMLDefs.h"
+#include "XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 
 #ifdef _WIN32
 #include <io.h>
@@ -26,8 +26,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <iomanip>
-
-using namespace std;
 
 static unsigned char TERMINAL_BLOCK[TwoFish::BLOCKSIZE] = {
   'P', 'W', 'S', '3', '-', 'E', 'O', 'F',
@@ -285,7 +283,7 @@ int PWSfileV3::ReadRecord(CItemData &item)
     unsigned char *utf8 = NULL;
     int utf8Len = 0;
     fieldLen = static_cast<signed long>(ReadCBC(type, utf8,
-      (unsigned int &)utf8Len));
+                                                (unsigned int &)utf8Len));
 
     if (fieldLen > 0) {
       numread += fieldLen;
@@ -440,7 +438,7 @@ int PWSfileV3::WriteHeader()
   }
 
   numWritten = WriteCBC(HDR_UUID, m_hdr.m_file_uuid_array,
-    sizeof(m_hdr.m_file_uuid_array));
+                        sizeof(m_hdr.m_file_uuid_array));
   if (numWritten <= 0) { status = FAILURE; goto end; }
 
   // Write (non default) user preferences
@@ -450,7 +448,7 @@ int PWSfileV3::WriteHeader()
   // Write out display status
   if (!m_hdr.m_displaystatus.empty()) {
     StringX ds(L"");
-    vector<bool>::const_iterator iter;
+    std::vector<bool>::const_iterator iter;
     for (iter = m_hdr.m_displaystatus.begin();
       iter != m_hdr.m_displaystatus.end(); iter++)
       ds += (*iter) ? L"1" : L"0";
@@ -462,20 +460,20 @@ int PWSfileV3::WriteHeader()
   time_t time_now;
   time(&time_now);
 #if 0  // BUGBUGBUG
-  wstring cs_update_time;
+  std::wstring cs_update_time;
   cs_update_time.Format(L"%08x", time_now);
   numWritten = WriteCBC(HDR_LASTUPDATETIME, cs_update_time);
 #endif
   numWritten = WriteCBC(HDR_LASTUPDATETIME,
-    (unsigned char *)&time_now, sizeof(time_now));
+                        (unsigned char *)&time_now, sizeof(time_now));
   if (numWritten <= 0) { status = FAILURE; goto end; }
   m_hdr.m_whenlastsaved = time_now;
 
   // Write out who saved it!
   {
     const SysInfo *si = SysInfo::GetInstance();
-    wstring user = si->GetRealUser();
-    wstring sysname = si->GetRealHost();
+    std::wstring user = si->GetRealUser();
+    std::wstring sysname = si->GetRealHost();
     numWritten = WriteCBC(HDR_LASTUPDATEUSER, user.c_str());
     if (numWritten > 0)
       numWritten = WriteCBC(HDR_LASTUPDATEHOST, sysname.c_str());
@@ -498,7 +496,7 @@ int PWSfileV3::WriteHeader()
     if (numWritten <= 0) { status = FAILURE; goto end; }
   }
   if (!m_MapFilters.empty()) {
-    ostringstream oss;
+    std::ostringstream oss;
     m_MapFilters.WriteFilterXMLFile(oss, m_hdr, L"");
     numWritten = WriteCBC(HDR_FILTERS,
                           reinterpret_cast<const unsigned char *>(oss.str().c_str()),
@@ -530,7 +528,7 @@ int PWSfileV3::ReadHeader()
 {
   unsigned char Ptag[SHA256::HASHLEN];
   int status = CheckPassword(m_filename, m_passkey, m_fd,
-    Ptag, &m_hdr.m_nITER);
+                             Ptag, &m_hdr.m_nITER);
 
   if (status != SUCCESS) {
     Close();
@@ -638,7 +636,7 @@ int PWSfileV3::ReadHeader()
             if (!utf8status)
               TRACE(L"FromUTF8(m_whenlastsaved) failed\n");
             wiStringXStream is(text);
-            is >> hex >> m_hdr.m_whenlastsaved;
+            is >> std::hex >> m_hdr.m_whenlastsaved;
         } else if (utf8Len == 4) {
           // retrieve time_t
           m_hdr.m_whenlastsaved = *reinterpret_cast<time_t*>(utf8);
@@ -655,9 +653,9 @@ int PWSfileV3::ReadHeader()
           if (utf8status) {
             wiStringXStream is(text);
             int ulen = 0;
-            is >> setw(4) >> hex >> ulen;
+            is >> std::setw(4) >> std::hex >> ulen;
             StringX uh;
-            is >> setw(text.length() - ulen + 1) >> uh;
+            is >> std::setw(text.length() - ulen + 1) >> uh;
             m_hdr.m_lastsavedby = uh.substr(0,ulen);
             m_hdr.m_lastsavedon = uh.substr(ulen);
           } else
@@ -708,16 +706,16 @@ int PWSfileV3::ReadHeader()
         if (utf8 != NULL) utf8[utf8Len] = '\0';
         utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
         if (utf8Len > 0) {
-          wstring strErrors;
-          wstring XSDFilename = PWSdirs::GetXMLDir() + L"pwsafe_filter.xsd";
+          std::wstring strErrors;
+          std::wstring XSDFilename = PWSdirs::GetXMLDir() + L"pwsafe_filter.xsd";
 #if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
           // Expat is a non-validating parser - no use for Schema!
           if (!pws_os::FileExists(XSDFilename)) {
             // Ask user whether to keep as unknown field or delete!
-              wstring message, message2;
+              std::wstring message, message2;
               Format(message, IDSC_MISSINGXSD, L"pwsafe_filter.xsd");
               LoadAString(message2, IDSC_FILTERSKEPT);
-              message += wstring(L"\n\n") + message2;
+              message += std::wstring(L"\n\n") + message2;
               if (m_pReporter != NULL)
                 (*m_pReporter)(message);
 
@@ -734,7 +732,7 @@ int PWSfileV3::ReadHeader()
                                                     strErrors, m_pAsker);
           if (rc != PWScore::SUCCESS) {
             // Ask user whether to keep as unknown field or delete!
-            wstring question;
+            std::wstring question;
             LoadAString(question, IDSC_CANTPROCESSDBFILTERS);
             bool keep = (m_pAsker == NULL) || (!(*m_pAsker)(question));
             if (keep) {
@@ -759,7 +757,7 @@ int PWSfileV3::ReadHeader()
         m_UHFL.push_back(unkhfe);
 #if 0
 #ifdef _DEBUG
-        wstring cs_timestamp;
+        std::wstring cs_timestamp;
         cs_timestamp = PWSUtil::GetTimeStamp();
         TRACE(L"%s: Header has unknown field: %02x, length %d/0x%04x, value:\n", 
         cs_timestamp.c_str(), fieldType, utf8Len, utf8Len);

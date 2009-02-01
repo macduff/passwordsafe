@@ -25,8 +25,6 @@
 #include <asm/byteorder.h> /* for htonl, htons */
 #endif
 
-using namespace std;
-
 CUUIDGen::CUUIDGen() : m_canonic(false)
 {
 #ifdef _WIN32
@@ -83,7 +81,7 @@ CUUIDGen::CUUIDGen(const StringX &s) // s is a hex string as returned by GetHexS
   int x;
   for (int i = 0; i < 16; i++) {
     wiStringXStream is(s.substr(i*2, 2));
-    is >> hex >> x;
+    is >> std::hex >> x;
     uu[i] = (unsigned char)x;
   }
 #ifdef _WIN32
@@ -106,24 +104,24 @@ void CUUIDGen::GetUUID(uuid_array_t &uuid_array) const
 }
 
 
-ostream &operator<<(ostream &os, const CUUIDGen &uuid)
+std::ostream &operator<<(std::ostream &os, const CUUIDGen &uuid)
 {
  uuid_array_t uuid_a;
   uuid.GetUUID(uuid_a);
   for (size_t i = 0; i < sizeof(uuid_a); i++) {
-    os << setw(2) << setfill('0') << hex << int(uuid_a[i]);
+    os << std::setw(2) << std::setfill('0') << std::hex << int(uuid_a[i]);
     if (uuid.m_canonic && (i == 3 || i == 5 || i == 7 || i == 9))
       os << "-";
   }
   return os;
 }
 
-wostream &operator<<(wostream &os, const CUUIDGen &uuid)
+std::wostream &operator<<(std::wostream &os, const CUUIDGen &uuid)
 {
  uuid_array_t uuid_a;
   uuid.GetUUID(uuid_a);
   for (size_t i = 0; i < sizeof(uuid_a); i++) {
-    os << setw(2) << setfill(L'0') << hex << int(uuid_a[i]);
+    os << std::setw(2) << std::setfill(L'0') << std::hex << int(uuid_a[i]);
     if (uuid.m_canonic && (i == 3 || i == 5 || i == 7 || i == 9))
       os << L"-";
   }
@@ -139,7 +137,6 @@ StringX CUUIDGen::GetHexStr() const
   m_canonic = sc;
   return os.str();
 }
-
 
 #ifdef TEST
 #include <stdio.h>

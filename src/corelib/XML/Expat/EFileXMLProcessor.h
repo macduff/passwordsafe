@@ -31,15 +31,13 @@
 #include "os/typedefs.h"
 
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <vector>
 
 // Expat includes
 #include <expat.h>
 
-using namespace std;
-
-typedef vector<CUUIDGen> UUIDList;
+typedef std::vector<CUUIDGen> UUIDList;
 
 class PWScore;
 
@@ -49,11 +47,11 @@ public:
   EFileXMLProcessor(PWScore *core, UUIDList *possible_aliases, UUIDList *possible_shortcuts);
   ~EFileXMLProcessor();
 
-  bool Process(const bool &bvalidation, const wstring &ImportedPrefix,
-               const wstring &strXMLFileName, const wstring & /* XML Schema */,
+  bool Process(const bool &bvalidation, const std::wstring &ImportedPrefix,
+               const std::wstring &strXMLFileName, const std::wstring & /* XML Schema */,
                int &nITER, int &nRecordsWithUnknownFields, UnknownFieldList &uhfl);
 
-  wstring getResultText() {return m_strResultText;}
+  std::wstring getResultText() {return m_strResultText;}
   int getNumEntriesValidated() {return m_numEntriesValidated;}
   int getNnumEntriesImported() {return m_numEntriesImported;}
   bool getIfDatabaseHeaderErrors() {return m_bDatabaseHeaderErrors;}
@@ -63,7 +61,7 @@ private:
   PWScore *m_xmlcore;
   UUIDList *m_possible_aliases;
   UUIDList *m_possible_shortcuts;
-  wstring m_strResultText;
+  std::wstring m_strResultText;
   int m_numEntriesValidated, m_numEntriesImported;
   wchar_t m_delimiter;
   bool m_bDatabaseHeaderErrors, m_bRecordHeaderErrors;

@@ -17,7 +17,7 @@
 #include "corelib/Report.h"
 #include "corelib/uuidgen.h"
 
-using namespace std;
+#include <vector>
 
 #ifdef _DEBUG
 #include <bitset>
@@ -92,7 +92,7 @@ struct equal_id
 // Vector of entries passed from DboxMain::Compare to CompareResultsDlg
 // Used for "Only in Original DB", "Only in Comparison DB" and
 // in "Both with Differences"
-typedef vector<st_CompareData> CompareData;
+typedef std::vector<st_CompareData> CompareData;
 
 // The following structure is needed for compare to send back data
 // to allow copying, viewing and editing of entries

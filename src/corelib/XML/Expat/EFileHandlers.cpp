@@ -42,8 +42,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
-
 EFileHandlers::EFileHandlers()
 {
   m_pValidator = new EFileValidator;
@@ -61,7 +59,7 @@ void XMLCALL EFileHandlers::startElement(void *userdata, const XML_Char *name,
   m_strElemContent = L"";
 
   if (m_bValidation) {
-    wstring element_name(name);
+    std::wstring element_name(name);
     if (!m_pValidator->startElement(element_name)) {
       m_bErrors = true;
       m_iErrorCode = m_pValidator->getErrorCode();
@@ -283,7 +281,7 @@ void XMLCALL EFileHandlers::endElement(void * userdata, const XML_Char *name)
 
   if (m_bValidation) {
     int &element_datatype = m_element_datatype.top();
-    wstring element_name(name);
+    std::wstring element_name(name);
     if (!m_pValidator->endElement(element_name, m_strElemContent, element_datatype)) {
       m_bErrors = true;
       m_iErrorCode = m_pValidator->getErrorCode();

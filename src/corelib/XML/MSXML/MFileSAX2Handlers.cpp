@@ -84,7 +84,7 @@ HRESULT STDMETHODCALLTYPE MFileSAX2ErrorHandler::error(struct ISAXLocator * pLoc
   pLocator->getLineNumber(&iLineNumber);
   pLocator->getColumnNumber(&iCharacter);
 
-  wstring cs_format;
+  std::wstring cs_format;
   LoadAString(cs_format, IDSC_MSXMLSAXGENERROR);
 
 #if (_MSC_VER >= 1400)

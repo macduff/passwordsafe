@@ -18,15 +18,13 @@
 
 #ifndef _STRINGX_H_
 #define _STRINGX_H_
-#include <string>
 
+#include <string>
 #include <memory>
 #include <limits>
 #include <cstdlib> // for malloc
 #include <cstring> // for memset
 #include "os/typedefs.h"
-
-using namespace std;
 
 namespace S_Alloc
 {
@@ -69,7 +67,7 @@ namespace S_Alloc
       }
 
       size_type max_size() const {
-        return (numeric_limits<size_t>::max)() / sizeof(T);
+        return (std::numeric_limits<size_t>::max)() / sizeof(T);
       }
 
       // In-place construction
@@ -92,10 +90,10 @@ namespace S_Alloc
 
       // Allocate raw memory
       pointer allocate(size_type n, const void* = NULL) {
-        void* p = malloc(n * sizeof(T));
+        void* p = std::malloc(n * sizeof(T));
         // TRACE(L"Securely Allocated %d bytes at %p\n", n * sizeof(T), p);
         if(p == NULL)
-          throw bad_alloc();
+          throw std::bad_alloc();
         return pointer(p);
       }
 
@@ -112,11 +110,11 @@ namespace S_Alloc
 
         if (n > 0) {
           const size_type N = n * sizeof(T);
-          memset(p, 0x55, N);
-          memset(p, 0xAA, N);
-          memset(p, 0x00, N);
+          std::memset(p, 0x55, N);
+          std::memset(p, 0xAA, N);
+          std::memset(p, 0x00, N);
         }
-        free(p);
+        std::free(p);
       }
 
     private:
@@ -139,8 +137,7 @@ namespace S_Alloc
 
 } // end namespace S_Alloc
 
-typedef basic_string<wchar_t,
-                          char_traits<wchar_t>,
+typedef std::basic_string<wchar_t, std::char_traits<wchar_t>,
                           S_Alloc::SecureAlloc<wchar_t> > StringX;
 
 // Following should really be StringX member functions, but there's no 

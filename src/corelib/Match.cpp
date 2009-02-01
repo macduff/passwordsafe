@@ -190,9 +190,9 @@ UINT PWSMatch::GetRule(MatchRule rule)
 void PWSMatch::GetMatchType(MatchType mtype,
                             int fnum1, int fnum2,
                             time_t fdate1, time_t fdate2,
-                            const wstring &fstring, bool fcase,
+                            const std::wstring &fstring, bool fcase,
                             int etype, bool bBetween,
-                            wstring &cs1, wstring &cs2)
+                            std::wstring &cs1, std::wstring &cs2)
 {
   cs1 = cs2 = L"";
   UINT id(0);
@@ -219,18 +219,28 @@ void PWSMatch::GetMatchType(MatchType mtype,
       break;
     case MT_DATE:
       {
-        struct tm st_s;
+        struct tm st;
+#if _MSC_VER >= 1400
         errno_t err;
-        err = _localtime32_s(&st_s, &fdate1);
+        err = localtime_s(&st, &fdate1);
         ASSERT(err == 0);
+#else
+        st = *localtime(&fdate1);
+        ASSERT(st != NULL);
+#endif
         wchar_t tc_buf1[80];
-        wcsftime(tc_buf1, sizeof(tc_buf1) / sizeof(tc_buf1[0]), L"%x", &st_s);
+        wcsftime(tc_buf1, sizeof(tc_buf1) / sizeof(tc_buf1[0]), L"%x", &st);
         cs1 = tc_buf1;
         if (bBetween) {
-          err = _localtime32_s(&st_s, &fdate2);
+#if _MSC_VER >= 1400
+          err = localtime_s(&st, &fdate2);
           ASSERT(err == 0);
+#else
+          st = *localtime(&fdate2);
+          ASSERT(st != NULL);
+#endif
           wchar_t tc_buf2[80];
-          wcsftime(tc_buf2, sizeof(tc_buf2) / sizeof(tc_buf2[0]), L"%x", &st_s);
+          wcsftime(tc_buf2, sizeof(tc_buf2) / sizeof(tc_buf2[0]), L"%x", &st);
           cs2 = tc_buf2;
         }
       }

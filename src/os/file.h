@@ -10,24 +10,24 @@
 
 #include "typedefs.h"
 #include <cstdio>
+
+#include <string>
 #include <vector>
 
-using namespace std;
-
 namespace pws_os {
-  extern bool FileExists(const wstring &filename);
-  extern bool FileExists(const wstring &filename, bool &bReadOnly);
-  extern bool RenameFile(const wstring &oldname, const wstring &newname);
-  extern bool CopyAFile(const wstring &from, const wstring &to); // creates dirs as needed!
-  extern bool DeleteAFile(const wstring &filename);
-  extern void FindFiles(const wstring &filter, vector<wstring> &res);
-  extern bool LockFile(const wstring &filename, wstring &locker,
+  extern bool FileExists(const std::wstring &filename);
+  extern bool FileExists(const std::wstring &filename, bool &bReadOnly);
+  extern bool RenameFile(const std::wstring &oldname, const std::wstring &newname);
+  extern bool CopyAFile(const std::wstring &from, const std::wstring &to); // creates dirs as needed!
+  extern bool DeleteAFile(const std::wstring &filename);
+  extern void FindFiles(const std::wstring &filter, std::vector<std::wstring> &res);
+  extern bool LockFile(const std::wstring &filename, std::wstring &locker,
                        HANDLE &lockFileHandle, int &LockCount);
-  extern bool IsLockedFile(const wstring &filename);
-  extern void UnlockFile(const wstring &filename,
+  extern bool IsLockedFile(const std::wstring &filename);
+  extern void UnlockFile(const std::wstring &filename,
                          HANDLE &lockFileHandle, int &LockCount);
 
-  extern FILE *FOpen(const wstring &filename, const wchar_t *mode);
+  extern FILE *FOpen(const std::wstring &filename, const wchar_t *mode);
   extern long fileLength(FILE *fp);
   extern const wchar_t *PathSeparator; // slash for Unix, backslash for Windows
 };

@@ -15,8 +15,6 @@
 
 #include <vector>
 
-using namespace std;
-
 //-----------------------------------------------------------------------------
 class PasswordDb
 {
@@ -37,8 +35,8 @@ public:
   short Version();
 
 private:
-  vector<CItemData> m_db;
-  string m_defaultUsername;
+  std::vector<CItemData> m_db;
+  std::wstring m_defaultUsername;
 };
 
 //-----------------------------------------------------------------------------

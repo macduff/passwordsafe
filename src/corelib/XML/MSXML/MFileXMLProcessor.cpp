@@ -44,16 +44,18 @@ MFileXMLProcessor::~MFileXMLProcessor()
 }
 
 // ---------------------------------------------------------------------------
-bool MFileXMLProcessor::Process(const bool &bvalidation, const wstring &ImportedPrefix,
-                                const wstring &strXMLFileName, const wstring &strXSDFileName,
+bool MFileXMLProcessor::Process(const bool &bvalidation, 
+                                const std::wstring &ImportedPrefix,
+                                const std::wstring &strXMLFileName, 
+								const std::wstring &strXSDFileName,
                                 int &nITER, int &nRecordsWithUnknownFields, UnknownFieldList &uhfl)
 {
   HRESULT hr, hr0, hr60, hr40, hr30;
   bool b_ok = false;
   bool b_into_empty;
-  wstring cs_validation;
+  std::wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  wstring cs_import;
+  std::wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
 
   m_strResultText = L"";

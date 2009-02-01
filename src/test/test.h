@@ -7,13 +7,11 @@
 */
 // test.h
 
-#ifndef TEST_H
-#define TEST_H
+#ifndef _TEST_H
+#define _TEST_H
 
 #include <string>
 #include <iosfwd>
-
-using namespace std;
 
 // The following have underscores because they are macros
 // (and it's impolite to usurp other users' functions!).
@@ -24,27 +22,27 @@ using namespace std;
 class Test
 {
 public:
-  Test(ostream* osptr = 0);
+  Test(std::ostream* osptr = 0);
   virtual ~Test(){}
   virtual void run() = 0;
 
   long getNumPassed() const;
   long getNumFailed() const;
-  const ostream* getStream() const;
-  void setStream(ostream* osptr);
+  const std::ostream* getStream() const;
+  void setStream(std::ostream* osptr);
 
   void _succeed();
   long report() const;
   virtual void reset();
 
 protected:
-  void do_test(bool cond, const string& lbl,
+  void do_test(bool cond, const std::string& lbl,
     const char* fname, long lineno);
   void do_fail(const string& lbl,
     const char* fname, long lineno);
 
 private:
-  ostream* m_osptr;
+  std::ostream* m_osptr;
   long m_nPass;
   long m_nFail;
 
@@ -54,7 +52,7 @@ private:
 };
 
 inline
-Test::Test(ostream* osptr)
+Test::Test(std::ostream* osptr)
 {
   m_osptr = osptr;
   m_nPass = m_nFail = 0;
@@ -73,13 +71,13 @@ long Test::getNumFailed() const
 }
 
 inline
-const ostream* Test::getStream() const
+const std::ostream* Test::getStream() const
 {
   return m_osptr;
 }
 
 inline
-void Test::setStream(ostream* osptr)
+void Test::setStream(std::ostream* osptr)
 {
   m_osptr = osptr;
 }
@@ -95,5 +93,6 @@ void Test::reset()
 {
   m_nPass = m_nFail = 0;
 }
-#endif
+
+#endif /* _TEST_H */
 

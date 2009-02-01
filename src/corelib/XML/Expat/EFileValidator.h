@@ -30,13 +30,11 @@
 // PWS includes
 #include "../../StringX.h"
 
+#include <string>
 #include <vector>
-#include <map>
 
 // Expat includes
 #include <expat.h>
-
-using namespace std;
 
 class EFileValidator : public XMLFileValidation
 {
@@ -44,21 +42,21 @@ public:
   EFileValidator();
   ~EFileValidator();
 
-  bool startElement(wstring &startElement);
-  bool endElement(wstring &endElement, StringX &strElemContent, int &datatype);
+  bool startElement(std::wstring &startElement);
+  bool endElement(std::wstring &endElement, StringX &strElemContent, int &datatype);
   bool VerifyXMLDataType(const StringX &strElemContent, const int &datatype);
 
   int getErrorCode() {return m_iErrorCode;}
-  wstring getErrorMsg() {return m_sErrorMsg;}
+  std::wstring getErrorMsg() {return m_sErrorMsg;}
 
 private:
   bool VerifyXMLDate(const StringX &strElemContent);
   bool VerifyXMLTime(const StringX &strElemContent);
   StringX Trim(const StringX &s, const wchar_t *set = NULL);
 
-  vector<int> m_element_stack;
+  std::vector<int> m_element_stack;
 
-  wstring m_sErrorMsg;
+  std::wstring m_sErrorMsg;
   int m_ielement_occurs[XLE_LAST_ELEMENT];
   int m_iprevious_element;
   int m_idatetime_element;

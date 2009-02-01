@@ -12,9 +12,7 @@
 
 #include <map>
 
-using namespace std;
-
-typedef map<UINT, UINT> ID2ImageMap;
+typedef std::map<UINT, UINT> ID2ImageMap;
 typedef ID2ImageMap::iterator ID2ImageMapIter;
 
 class CPWToolBar : public CToolBar
@@ -36,7 +34,7 @@ public:
   int GetSendEmailImageIndex() {return m_iSendEmail_BM_offset;}
   void MapControlIDtoImage(ID2ImageMap &IDtoImages);
   void SetupImageList(const UINT *pBM_IDs, const UINT *pDisBM_IDs, 
-    const int numBMs, const int nImageList);
+                      const int numBMs, const int nImageList);
   void SetBitmapBackground(CBitmap &bm, const COLORREF newbkgrndColour);
   void RefreshImages();
 

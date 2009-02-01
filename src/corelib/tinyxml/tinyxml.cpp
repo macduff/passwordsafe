@@ -697,7 +697,7 @@ void TiXmlElement::SetAttribute( const wchar_t * name, int val )
 #ifdef TIXML_USE_STL
 void TiXmlElement::SetAttribute( const TIXML_STRING& name, int val )
 {	
-   wostringstream oss;
+   std::wostringstream oss;
    oss << val;
    SetAttribute( name, oss.str() );
 }
@@ -952,8 +952,8 @@ bool TiXmlDocument::LoadFile( const wchar_t* _filename, TiXmlEncoding encoding )
 {
 	// There was a really terrifying little bug here. The code:
 	//		value = filename
-	// in the STL case, cause the assignment method of the string to
-	// be called. What is strange, is that the string had the same
+	// in the STL case, cause the assignment method of the std::string to
+	// be called. What is strange, is that the std::string had the same
 	// address as it's c_str() method, and so bad things happen. Looks
 	// like a bug in the Microsoft STL implementation.
 	// Add an extra string to avoid the crash.
@@ -1029,11 +1029,15 @@ bool TiXmlDocument::LoadFile( FILE* file, TiXmlEncoding encoding )
 
 	char* buf = new char[ length + 1 ];
 	buf[0] = 0;
-  wchar_t *wbuf = new wchar_t[length+1];
+#ifdef UNICODE
+    wchar_t *wbuf = new wchar_t[length+1];
+#endif
 
 	if ( fread( buf, length, 1, file ) != 1 ) {
 		delete [] buf;
-    delete [] wbuf;
+#ifdef UNICODE
+        delete [] wbuf;
+#endif
 		SetError( TIXML_ERROR_OPENING_FILE, 0, 0, TIXML_ENCODING_UNKNOWN );
 		return false;
 	}
@@ -1041,17 +1045,19 @@ bool TiXmlDocument::LoadFile( FILE* file, TiXmlEncoding encoding )
 	const char* lastPos = buf;
 	const char* p = buf;
 
-  // Gross hack - need to handle Unicode BOM
-  // here instead of in parser.
-	const unsigned char* pU = (const unsigned char*)p;
-	if ( *(pU+0) && *(pU+0) == TIXML_UTF_LEAD_0
-		 && *(pU+1) && *(pU+1) == TIXML_UTF_LEAD_1
-		 && *(pU+2) && *(pU+2) == TIXML_UTF_LEAD_2 ) {
-		encoding = TIXML_ENCODING_UTF8;
-		useMicrosoftBOM = true;
-    p += 3; lastPos += 3;
-	}
+#ifdef UNICODE
+    // Gross hack - need to handle Unicode BOM
+    // here instead of in parser.
+		const unsigned char* pU = (const unsigned char*)p;
+		if ( *(pU+0) && *(pU+0) == TIXML_UTF_LEAD_0
+			 && *(pU+1) && *(pU+1) == TIXML_UTF_LEAD_1
+			 && *(pU+2) && *(pU+2) == TIXML_UTF_LEAD_2 ) {
+			encoding = TIXML_ENCODING_UTF8;
+			useMicrosoftBOM = true;
+            p += 3; lastPos += 3;
+		}
 
+#endif
 
 	buf[length] = 0;
 	while( *p ) {
@@ -1059,10 +1065,13 @@ bool TiXmlDocument::LoadFile( FILE* file, TiXmlEncoding encoding )
 		if ( *p == 0xa ) {
 			// Newline character. No special rules for this. Append all the characters
 			// since the last string, and include the newline.
-      // translate from lastpos to (p-lastPos+1) to wchar_t
-      pws_os::mbstowcs(wbuf, length + 1, lastPos, (p - lastPos + 1));
-      data.append(wbuf, (p-lastPos+1));
-
+#ifdef UNICODE
+            // translate from lastpos to (p-lastPos+1) to wchar_t
+            pws_os::mbstowcs(wbuf, length + 1, lastPos, (p - lastPos + 1));
+            data.append(wbuf, (p-lastPos+1));
+#else
+			data.append( lastPos, (p-lastPos+1) );  // append, include the newline
+#endif
 			++p;									// move past the newline
 			lastPos = p;							// and point to the new buffer (may be 0)
 			assert( p <= (buf+length) );
@@ -1071,10 +1080,14 @@ bool TiXmlDocument::LoadFile( FILE* file, TiXmlEncoding encoding )
 			// Carriage return. Append what we have so far, then
 			// handle moving forward in the buffer.
 			if ( (p-lastPos) > 0 ) {
-         // translate from lastpos to (p-lastPos) to wchar_t
-         int nw = pws_os::mbstowcs(wbuf, length + 1, lastPos, (p - lastPos));
-         assert(nw > 0 && nw <= p-lastPos);
-         data.append(wbuf, nw);
+#ifdef UNICODE
+                // translate from lastpos to (p-lastPos) to wchar_t
+                int nw = pws_os::mbstowcs(wbuf, length + 1, lastPos, (p - lastPos));
+                assert(nw > 0 && nw <= p-lastPos);
+                data.append(wbuf, nw);
+#else
+                data.append( lastPos, (p-lastPos) );	// do not add the CR
+#endif
 			}
 			data += (char)0xa;						// a proper newline
 
@@ -1097,12 +1110,18 @@ bool TiXmlDocument::LoadFile( FILE* file, TiXmlEncoding encoding )
 	}
 	// Handle any left over characters.
 	if ( p-lastPos ) {
+#ifdef UNICODE
     // translate from lastpos to (p-lastPos) to wchar_t
     pws_os::mbstowcs(wbuf, length + 1, lastPos, (p - lastPos));
     data.append(wbuf, (p-lastPos));
+#else
+data.append( lastPos, (p-lastPos) );
+#endif
 	}		
 	delete [] buf;
-  delete [] wbuf;
+#ifdef UNICODE
+    delete [] wbuf;
+#endif
 	buf = 0;
 
 	Parse( data.c_str(), 0, encoding );
@@ -1373,12 +1392,16 @@ void TiXmlText::Print( FILE* cfile, int depth ) const
 	{
 		TIXML_STRING buffer;
 		EncodeString( value, &buffer );
-    size_t utf8bufsize = 3 * buffer.length(); // upper limit
-    char *utf8buf = new char[utf8bufsize];
-    utf8bufsize = pws_os::wcstombs(utf8buf, utf8bufsize, buffer.c_str(), buffer.length());
-    assert(utf8bufsize != 0);
-    fwrite(utf8buf, utf8bufsize, 1, cfile);
-    delete[] utf8buf;
+#ifndef UNICODE
+        fwrite(buffer.c_str(), buffer.length()*sizeof(wchar_t), 1, cfile);
+#else
+        size_t utf8bufsize = 3 * buffer.length(); // upper limit
+        char *utf8buf = new char[utf8bufsize];
+        utf8bufsize = pws_os::wcstombs(utf8buf, utf8bufsize, buffer.c_str(), buffer.length());
+        assert(utf8bufsize != 0);
+        fwrite(utf8buf, utf8bufsize, 1, cfile);
+        delete[] utf8buf;
+#endif
 	}
 }
 
@@ -1589,7 +1612,7 @@ const TiXmlAttribute* TiXmlAttributeSet::Find( const TIXML_STRING& name ) const
 }
 
 /*
-TiXmlAttribute*	TiXmlAttributeSet::Find( const string& name )
+TiXmlAttribute*	TiXmlAttributeSet::Find( const std::string& name )
 {
 	for( TiXmlAttribute* node = sentinel.next; node != &sentinel; node = node->next )
 	{
@@ -1617,7 +1640,7 @@ TiXmlAttribute*	TiXmlAttributeSet::Find( const wchar_t* name )
 {
 	for( TiXmlAttribute* node = sentinel.next; node != &sentinel; node = node->next )
 	{
-		if ( wcscmp( node->name.c_str(), name ) == 0 )
+		if ( _tcscmp( node->name.c_str(), name ) == 0 )
 			return node;
 	}
 	return 0;
@@ -1625,7 +1648,7 @@ TiXmlAttribute*	TiXmlAttributeSet::Find( const wchar_t* name )
 */
 
 #ifdef TIXML_USE_STL	
-istream& operator>> (istream & in, TiXmlNode & base)
+std::istream& operator>> (std::istream & in, TiXmlNode & base)
 {
 	TIXML_STRING tag;
 	tag.reserve( 8 * 1000 );

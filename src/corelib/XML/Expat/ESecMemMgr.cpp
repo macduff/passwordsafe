@@ -30,8 +30,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
-
 static const int header = max(sizeof(size_t), sizeof(size_t *));
 static const int offset = max((int)(header / sizeof(size_t *)), 1);
 

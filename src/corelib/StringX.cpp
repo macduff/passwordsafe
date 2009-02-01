@@ -7,13 +7,15 @@
 */
 
 #include <ctype.h>
-#include <string.h>
+#include <string>
 #include <cstdarg>
 #include "StringX.h"
 #include "os/pws_tchar.h"
+
 #ifdef _WIN32
   #include <afx.h>
 #endif
+
 // A few convenience functions for StringX & wstring
 
 template<class T> int CompareNoCase(const T &s1, const T &s2)
@@ -176,32 +178,43 @@ template<class T> void Format(T &s, int fmt, ...)
 
 // instantiations for StringX & wstring
 template int CompareNoCase(const StringX &s1, const StringX &s2);
-template int CompareNoCase(const wstring &s1, const wstring &s2);
-template void ToLower(StringX &s);
-template void ToLower(wstring &s);
-template void ToUpper(StringX &s);
-template void ToUpper(wstring &s);
-template StringX &Trim(StringX &s, const wchar_t *set);
-template wstring &Trim(wstring &s, const wchar_t *set);
-template StringX &TrimRight(StringX &s, const wchar_t *set);
-template wstring &TrimRight(wstring &s, const wchar_t *set);
-template StringX &TrimLeft(StringX &s, const wchar_t *set);
-template wstring &TrimLeft(wstring &s, const wchar_t *set);
-template void EmptyIfOnlyWhiteSpace(StringX &s);
-template void EmptyIfOnlyWhiteSpace(wstring &s);
-template int Replace(StringX &s, wchar_t from, wchar_t to);
-template int Replace(wstring &s, wchar_t from, wchar_t to);
-template int Replace(StringX &s, const StringX &from, const StringX &to);
-template int Replace(wstring &s, const wstring &from, const wstring &to);
-template int Remove(StringX &s, wchar_t c);
-template int Remove(wstring &s, wchar_t c);
-template void LoadAString(wstring &s, int id);
-template void LoadAString(StringX &s, int id);
-template void Format(wstring &s, int fmt, ...);
-template void Format(StringX &s, int fmt, ...);
-template void Format(wstring &s, const wchar_t *fmt, ...);
-template void Format(StringX &s, const wchar_t *fmt, ...);
+template int CompareNoCase(const std::wstring &s1, const std::wstring &s2);
 
+template void ToLower(StringX &s);
+template void ToLower(std::wstring &s);
+
+template void ToUpper(StringX &s);
+template void ToUpper(std::wstring &s);
+
+template StringX &Trim(StringX &s, const wchar_t *set);
+template std::wstring &Trim(std::wstring &s, const wchar_t *set);
+
+template StringX &TrimRight(StringX &s, const wchar_t *set);
+template std::wstring &TrimRight(std::wstring &s, const wchar_t *set);
+
+template StringX &TrimLeft(StringX &s, const wchar_t *set);
+template std::wstring &TrimLeft(std::wstring &s, const wchar_t *set);
+
+template void EmptyIfOnlyWhiteSpace(StringX &s);
+template void EmptyIfOnlyWhiteSpace(std::wstring &s);
+
+template int Replace(StringX &s, wchar_t from, wchar_t to);
+template int Replace(std::wstring &s, wchar_t from, wchar_t to);
+
+template int Replace(StringX &s, const StringX &from, const StringX &to);
+template int Replace(std::wstring &s, const std::wstring &from, const std::wstring &to);
+
+template int Remove(StringX &s, wchar_t c);
+template int Remove(std::wstring &s, wchar_t c);
+
+template void LoadAString(StringX &s, int id);
+template void LoadAString(std::wstring &s, int id);
+
+template void Format(StringX &s, int fmt, ...);
+template void Format(std::wstring &s, int fmt, ...);
+
+template void Format(StringX &s, const wchar_t *fmt, ...);
+template void Format(std::wstring &s, const wchar_t *fmt, ...);
 
 #ifdef TEST_TRIM
 int main(int argc, char *argv[])

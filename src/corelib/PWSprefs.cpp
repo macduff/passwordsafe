@@ -17,12 +17,11 @@
 #include "PWSdirs.h"
 #include "VerifyFormat.h"
 #include "StringXStream.h"
+
 #ifdef _WIN32
 #include <AfxWin.h> // for AfxGetApp()
 #include <LMCons.h> // for UNLEN
 #endif
-
-using namespace std;
 
 #if defined(POCKET_PC)
 const LPCWSTR PWS_REG_POSITION = L"Position";
@@ -36,7 +35,7 @@ HANDLE s_cfglockFileHandle = INVALID_HANDLE_VALUE;
 int s_cfgLockCount = 0;
 
 PWSprefs *PWSprefs::self = NULL;
-wstring PWSprefs::m_configfilename; // may be set before singleton created
+std::wstring PWSprefs::m_configfilename; // may be set before singleton created
 Reporter *PWSprefs::m_Reporter = NULL;
 
 // 1st parameter = name of preference
@@ -179,7 +178,7 @@ PWSprefs::PWSprefs() : m_XML_Config(NULL)
   m_rect.top = m_rect.bottom = m_rect.left = m_rect.right = -1;
   m_rect.changed = false;
 
-  m_MRUitems = new wstring[m_int_prefs[MaxMRUItems].maxVal];
+  m_MRUitems = new std::wstring[m_int_prefs[MaxMRUItems].maxVal];
   InitializePreferences();
 }
 
@@ -194,7 +193,7 @@ bool PWSprefs::CheckRegistryExists() const
   bool bExists = false;
 #ifdef _WIN32
   HKEY hSubkey;
-  const wstring csSubkey = L"Software\\" + wstring(::AfxGetApp()->m_pszRegistryKey);
+  const std::wstring csSubkey = L"Software\\" + std::wstring(::AfxGetApp()->m_pszRegistryKey);
   bExists = (::RegOpenKeyEx(HKEY_CURRENT_USER,
                             csSubkey.c_str(),
                             0L,
@@ -236,7 +235,7 @@ void PWSprefs::GetPrefRect(long &top, long &bottom,
   right = m_rect.right;
 }
 
-int PWSprefs::GetMRUList(wstring *MRUFiles)
+int PWSprefs::GetMRUList(std::wstring *MRUFiles)
 {
   ASSERT(MRUFiles != NULL);
 
@@ -250,7 +249,7 @@ int PWSprefs::GetMRUList(wstring *MRUFiles)
   return n;
 }
 
-int PWSprefs::SetMRUList(const wstring *MRUFiles, int n, int max_MRU)
+int PWSprefs::SetMRUList(const std::wstring *MRUFiles, int n, int max_MRU)
 {
   ASSERT(MRUFiles != NULL);
 
@@ -485,7 +484,7 @@ StringX PWSprefs::Store()
     }
   }
 
-  os << ends;
+  os << std::ends;
   return os.str();
 }
 
@@ -573,7 +572,7 @@ void PWSprefs::UpdateTimeStamp()
   }
 }
 
-static void xmlify(wchar_t t, wstring &name)
+static void xmlify(wchar_t t, std::wstring &name)
 {
   if (!iswalpha(name[0]))
     name = t + name;
@@ -633,9 +632,9 @@ void PWSprefs::InitializePreferences()
   // ensure that they start with letter,
   // and otherwise conforms with
   // http://www.w3.org/TR/2000/REC-xml-20001006#NT-Name
-  wstring hn = si->GetEffectiveHost();
+  std::wstring hn = si->GetEffectiveHost();
   xmlify(L'H', hn);
-  wstring un = si->GetEffectiveUser();
+  std::wstring un = si->GetEffectiveUser();
   xmlify(L'u', un);
   m_csHKCU =  hn.c_str(); m_csHKCU += L"\\";
   m_csHKCU += un.c_str();
@@ -671,7 +670,7 @@ void PWSprefs::InitializePreferences()
     // can we create one? If not, fallback to registry
     // We assume that if we can create a lock file, we can create
     // a config file in the same directory
-    wstring locker;
+    std::wstring locker;
     if (LockCFGFile(m_configfilename, locker)) {
       UnlockCFGFile(m_configfilename);
     } else {
@@ -679,7 +678,7 @@ void PWSprefs::InitializePreferences()
     }
   }
 
-  wstring cs_msg;
+  std::wstring cs_msg;
   switch (m_ConfigOptions) {
     case CF_REGISTRY:
       LoadAString(cs_msg, IDSC_CANTCREATEXMLCFG);
@@ -857,7 +856,7 @@ bool PWSprefs::LoadProfileFromFile()
   * found.
   */
   bool retval;
-  wstring ts, csSubkey;
+  std::wstring ts, csSubkey;
 
   m_XML_Config = new CXMLprefs(m_configfilename.c_str());
   if (!m_XML_Config->Load()) {
@@ -1042,7 +1041,7 @@ void PWSprefs::SaveApplicationPreferences()
       case CF_FILE_RW:
       case CF_FILE_RW_NEW:
       {
-        wstring obuff;
+        std::wstring obuff;
         Format(obuff, L"%d", m_rect.top);
          VERIFY(m_XML_Config->Set(m_csHKCU_POS, L"top", obuff) == 0);
         Format(obuff, L"%d", m_rect.bottom);
@@ -1068,7 +1067,7 @@ void PWSprefs::SaveApplicationPreferences()
     // Delete ALL entries
     m_XML_Config->DeleteSetting(m_csHKCU_MRU, L"");
     // Now put back the ones we want
-    wstring csSubkey;
+    std::wstring csSubkey;
     for (i = 0; i < n; i++)
       if (!m_MRUitems[i].empty()) {
         Format(csSubkey, L"Safe%02d", i+1);
@@ -1106,7 +1105,7 @@ void PWSprefs::DeleteRegistryEntries()
 #ifdef _WIN32
   DeleteOldPrefs();
   HKEY hSubkey;
-  const wstring csSubkey = L"Software\\" + wstring(::AfxGetApp()->m_pszRegistryKey);
+  const std::wstring csSubkey = L"Software\\" + std::wstring(::AfxGetApp()->m_pszRegistryKey);
 
   LONG dw = RegOpenKeyEx(HKEY_CURRENT_USER,
                          csSubkey.c_str(),
@@ -1145,15 +1144,15 @@ int PWSprefs::GetConfigIndicator() const
 }
 
 // Old registry handling code:
-const wstring OldSubKey(L"Counterpane Systems");
-const wstring Software(L"Software");
+const std::wstring OldSubKey(L"Counterpane Systems");
+const std::wstring Software(L"Software");
 
 bool PWSprefs::OldPrefsExist() const
 {
   bool bExists = false;
 #ifdef _WIN32
   HKEY hSubkey;
-  wstring key = Software + L"\\" + OldSubKey;
+  std::wstring key = Software + L"\\" + OldSubKey;
   bExists = (::RegOpenKeyEx(HKEY_CURRENT_USER,
                             key.c_str(),
                             0L,
@@ -1169,7 +1168,7 @@ void PWSprefs::ImportOldPrefs()
 {
 #ifdef _WIN32
   HKEY hSubkey;
-  wstring OldAppKey = Software + L"\\" + OldSubKey + L"\\Password Safe";
+  std::wstring OldAppKey = Software + L"\\" + OldSubKey + L"\\Password Safe";
   LONG dw = ::RegOpenKeyEx(HKEY_CURRENT_USER,
                            OldAppKey.c_str(),
                            NULL,
@@ -1293,18 +1292,18 @@ void PWSprefs::DeleteOldPrefs()
 #endif /* _WIN32 */
 }
 
-wstring PWSprefs::GetXMLPreferences()
+std::wstring PWSprefs::GetXMLPreferences()
 {
-  wstring retval(L"");
-  wostringstream os;
+  std::wstring retval(L"");
+  std::wostringstream os;
 
-  os << L"\t<Preferences>" << endl;
+  os << L"\t<Preferences>" << std::endl;
   int i;
   for (i = 0; i < NumBoolPrefs; i++) {
     if (m_boolValues[i] != m_bool_prefs[i].defVal &&
         m_bool_prefs[i].pt == ptDatabase)
       os << "\t\t<" << m_bool_prefs[i].name << ">" << (m_boolValues[i] ? "1</" : "0</") << 
-      m_bool_prefs[i].name << ">" << endl;
+      m_bool_prefs[i].name << ">" << std::endl;
   }
 
   for (i = 0; i < NumIntPrefs; i++) {
@@ -1327,7 +1326,7 @@ wstring PWSprefs::GetXMLPreferences()
       } else
         os << m_intValues[i];
 
-      os << "</" << m_int_prefs[i].name << ">" << endl;
+      os << "</" << m_int_prefs[i].name << ">" << std::endl;
     }
   }
 
@@ -1339,7 +1338,7 @@ wstring PWSprefs::GetXMLPreferences()
         // common case
         os << "\t\t<" << m_string_prefs[i].name << "><![CDATA[" <<
           m_stringValues[i] << "]]></" << 
-          m_string_prefs[i].name << ">" << endl;
+          m_string_prefs[i].name << ">" << std::endl;
       } else {
         // value has "]]>" sequence(s) that need(s) to be escaped
         // Each "]]>" splits the field into two CDATA sections, one ending with
@@ -1363,29 +1362,29 @@ wstring PWSprefs::GetXMLPreferences()
           }
           os <<  slice << "]]>";
         } while (p != StringX::npos);
-        os << "</" << m_string_prefs[i].name << ">" << endl;      
+        os << "</" << m_string_prefs[i].name << ">" << std::endl;      
       }
     }
   }
-  os << "\t</Preferences>" << endl << endl;
-  os << ends;
+  os << "\t</Preferences>" << std::endl << std::endl;
+  os << std::ends;
   retval = os.str().c_str();
   return retval;
 }
 
-bool PWSprefs::LockCFGFile(const wstring &filename, wstring &locker)
+bool PWSprefs::LockCFGFile(const std::wstring &filename, std::wstring &locker)
 {
   return pws_os::LockFile(filename, locker, 
                           s_cfglockFileHandle, s_cfgLockCount);
 }
 
-void PWSprefs::UnlockCFGFile(const wstring &filename)
+void PWSprefs::UnlockCFGFile(const std::wstring &filename)
 {
   return pws_os::UnlockFile(filename,
                             s_cfglockFileHandle, s_cfgLockCount);
 }
 
-bool PWSprefs::IsLockedCFGFile(const wstring &filename)
+bool PWSprefs::IsLockedCFGFile(const std::wstring &filename)
 {
   return pws_os::IsLockedFile(filename);
 }

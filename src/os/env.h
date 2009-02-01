@@ -16,10 +16,10 @@ namespace pws_os {
    * not defined. if is_path is true, the returned value will end with a path
    * separator ('/' or '\') if found
    */
-  extern wstring getenv(const char *env, bool is_path);
-  extern wstring getusername(); // returns name of current user
-  extern wstring gethostname(); // returns name of current machine
-  extern wstring getprocessid();
+  extern std::wstring getenv(const char *env, bool is_path);
+  extern std::wstring getusername(); // returns name of current user
+  extern std::wstring gethostname(); // returns name of current machine
+  extern std::wstring getprocessid();
 };
 
 #endif /* __ENV_H */

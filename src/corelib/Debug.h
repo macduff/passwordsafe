@@ -16,7 +16,7 @@
 namespace PWSDebug {
   // Opens a messagebox with text of last system error, titlebar
   // is csFunction
-  void IssueError(const wstring &csFunction);
+  void IssueError(const std::wstring &csFunction);
 /*
   Produce a printable version of memory dump (hex + ascii)
 
@@ -30,7 +30,7 @@ namespace PWSDebug {
     wstring containing output buffer
 */
   void HexDump(unsigned char *pmemory, const int length,
-               const wstring &cs_prefix = L"", const int maxnum = 16);
+               const std::wstring &cs_prefix = L"", const int maxnum = 16);
 };
 #endif /* __DEBUG_H */
 //-----------------------------------------------------------------------------

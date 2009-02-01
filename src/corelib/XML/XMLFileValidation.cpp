@@ -95,7 +95,7 @@ const XMLFileValidation::st_file_elements XMLFileValidation::m_file_elements[XLE
 XMLFileValidation::XMLFileValidation()
 {
   for (int i = 0; i < XLE_ELEMENTS; i++) {
-    m_element_map.insert(file_element_pair(wstring(m_file_elements[i].name),
+    m_element_map.insert(file_element_pair(std::wstring(m_file_elements[i].name),
                                            m_file_elements[i].file_element_data));
   }
 }
@@ -113,12 +113,12 @@ bool XMLFileValidation::GetElementInfo(const wchar_t *name, st_file_element_data
 bool XMLFileValidation::GetElementInfo(const XMLCh *name, st_file_element_data &edata)
 #endif
 {
-  const wstring strValue(name);
+  const std::wstring strValue(name);
 
   if (strValue.length() == 0)
     return false;
 
-  map<wstring, st_file_element_data> :: const_iterator e_iter;
+  std::map<std::wstring, st_file_element_data> :: const_iterator e_iter;
   e_iter = m_element_map.find(strValue);
   if (e_iter != m_element_map.end()) {
     edata = e_iter->second;

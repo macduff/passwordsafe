@@ -5,7 +5,10 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
 #ifndef __PROXY_H
+#define __PROXY_H
+
 /**
  * Abstract base classes used by corelib to interface with the user.
  * UI-specific code should derive concrete classes and pass pointers
@@ -16,7 +19,7 @@
 // and getting a yes/no reply
 class Asker {
  public:
-  virtual bool operator()(const wstring &question) = 0;
+  virtual bool operator()(const std::wstring &question) = 0;
   virtual ~Asker() {} // keep compiler happy
 };
 
@@ -24,9 +27,8 @@ class Asker {
 // interest to the user
 class Reporter {
  public:
-  virtual void operator()(const wstring &message) = 0;
+   virtual void operator()(const std::wstring &message) = 0;
   virtual ~Reporter() {} // keep compiler happy
 };
 
-#define __PROXY_H
 #endif /* __PROXY_H */

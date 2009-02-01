@@ -37,8 +37,6 @@
 // Expat includes
 #include <expat.h>
 
-using namespace std;
-
 EFilterHandlers::EFilterHandlers()
 {
   m_pValidator = new EFilterValidator;
@@ -59,7 +57,7 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
   m_strElemContent = L"";
 
   if (m_bValidation) {
-    wstring element_name(name);
+    std::wstring element_name(name);
     if (!m_pValidator->startElement(element_name)) {
       m_bErrors = true;
       m_iErrorCode = m_pValidator->getErrorCode();
@@ -86,7 +84,7 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
 
     if (wcscmp(name, L"filter") == 0) {
       bool bfiltername(false);
-      wstring filtername;
+      std::wstring filtername;
       for (int i = 0; attrs[i]; i += 2) {
         if (wcscmp(attrs[i], L"filtername") == 0) {
           filtername = attrs[i + 1];
@@ -98,7 +96,7 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
         m_iErrorCode = XTPEC_FILTERNAME_MISSING;
         XML_StopParser((XML_Parser)userdata, XML_FALSE);
       } else {
-        pair<set<const wstring>::iterator, bool> ret;
+        std::pair<std::set<const std::wstring>::iterator, bool> ret;
         ret = m_unique_filternames.insert(filtername);
         if (ret.second == false) {
           // error - not unique
@@ -129,7 +127,7 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
     // Process the attributes we need.
     for (int i = 0; attrs[i]; i += 2) {
       if (wcscmp(attrs[i], L"filtername") == 0) {
-        cur_filter->fname = wstring(attrs[i + 1]);
+        cur_filter->fname = std::wstring(attrs[i + 1]);
       }
     }
   }
@@ -172,7 +170,7 @@ void XMLCALL EFilterHandlers::characterData(void * /* userdata */, const XML_Cha
 void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
 {
   if (m_bValidation) {
-    wstring element_name(name);
+    std::wstring element_name(name);
     if (!m_pValidator->endElement(element_name, m_strElemContent)) {
       m_bErrors = true;
       m_iErrorCode = m_pValidator->getErrorCode();
@@ -212,7 +210,7 @@ void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
     fk.fpool = m_FPool;
     fk.cs_filtername = cur_filter->fname;
     if (m_MapFilters->find(fk) != m_MapFilters->end()) {
-      wstring question;
+      std::wstring question;
       Format(question, IDSC_FILTEREXISTS, cur_filter->fname.c_str());
       if (m_pAsker == NULL || !(*m_pAsker)(question)) {
         m_MapFilters->erase(fk);

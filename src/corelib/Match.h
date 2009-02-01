@@ -74,10 +74,11 @@ namespace PWSMatch {
   void GetMatchType(MatchType mtype,
                     int fnum1, int fnum2,
                     time_t fdate1, time_t fdate2,
-                    const wstring &fstring, bool fcase,
+                    const std::wstring &fstring, bool fcase,
                     int etype, bool bBetween,
-                    wstring &cs1, wstring &cs2);
+                    std::wstring &cs1, std::wstring &cs2);
 };
+
 #endif /* __MATCH_H */
 //-----------------------------------------------------------------------------
 // Local variables:

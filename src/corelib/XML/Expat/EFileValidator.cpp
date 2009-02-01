@@ -40,15 +40,11 @@
 #include <map>
 #include <sstream>
 
-using namespace std;
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
-
-using namespace std;
 
 EFileValidator::EFileValidator()
 {
@@ -70,7 +66,7 @@ EFileValidator::~EFileValidator()
   m_element_stack.clear();
 }
 
-bool EFileValidator::startElement(wstring & strStartElement)
+bool EFileValidator::startElement(std::wstring & strStartElement)
 {
   m_iErrorCode = 0;
   if (strStartElement == L"passwordsafe") {
@@ -408,7 +404,8 @@ bool EFileValidator::startElement(wstring & strStartElement)
 }
 
 
-bool EFileValidator::endElement(wstring & endElement, StringX &strValue, int &datatype)
+bool EFileValidator::endElement(std::wstring & endElement, StringX &strValue,
+                                int &datatype)
 {
   if (endElement == L"entry") {
     if (m_ielement_occurs[XLE_TITLE] == 0 || m_ielement_occurs[XLE_PASSWORD] == 0) {

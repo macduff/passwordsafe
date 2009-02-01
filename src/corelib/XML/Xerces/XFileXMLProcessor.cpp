@@ -76,18 +76,20 @@ XFileXMLProcessor::~XFileXMLProcessor()
 }
 
 // ---------------------------------------------------------------------------
-bool XFileXMLProcessor::Process(const bool &bvalidation, const wstring &ImportedPrefix,
-                                const wstring &strXMLFileName, const wstring &strXSDFileName,
+bool XFileXMLProcessor::Process(const bool &bvalidation, 
+                                const std::wstring &ImportedPrefix,
+                                const std::wstring &strXMLFileName,
+								const std::wstring &strXSDFileName,
                                 int &nITER, int &nRecordsWithUnknownFields, 
                                 UnknownFieldList &uhfl)
 {
   bool bEerrorOccurred = false;
   bool b_into_empty = false;
-  wstring cs_validation;
+  std::wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  wstring cs_import;
+  std::wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
-  wstring strResultText(L"");
+  std::wstring strResultText(L"");
   m_bValidation = bvalidation;  // Validate or Import
 
   XSecMemMgr sec_mm;
@@ -99,7 +101,7 @@ bool XFileXMLProcessor::Process(const bool &bvalidation, const wstring &Imported
   }
   catch (const XMLException& toCatch)
   {
-    strResultText = wstring(toCatch.getMessage());
+    strResultText = std::wstring(toCatch.getMessage());
     return false;
   }
 
@@ -149,7 +151,7 @@ bool XFileXMLProcessor::Process(const bool &bvalidation, const wstring &Imported
     bEerrorOccurred = true;
   }
   catch (const XMLException& e) {
-    strResultText = wstring(e.getMessage());
+    strResultText = std::wstring(e.getMessage());
     bEerrorOccurred = true;
   }
 

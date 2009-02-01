@@ -44,14 +44,14 @@ MFilterXMLProcessor::~MFilterXMLProcessor()
 
 bool MFilterXMLProcessor::Process(const bool &bvalidation,
                                   const StringX &strXMLData,
-                                  const wstring &strXMLFileName,
-                                  const wstring &strXSDFileName)
+                                  const std::wstring &strXMLFileName,
+                                  const std::wstring &strXSDFileName)
 {
   HRESULT hr, hr0, hr60, hr40, hr30;
   bool b_ok = false;
-  wstring cs_validation;
+  std::wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  wstring cs_import;
+  std::wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
 
   m_strResultText = L"";

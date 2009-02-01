@@ -7,7 +7,8 @@
 */
 #include "hmac.h"
 #include "Util.h" // for ASSERT
-#include <string.h>
+
+#include <string>
 
 HMAC_SHA256::HMAC_SHA256(const unsigned char *key, unsigned long keylen)
 {

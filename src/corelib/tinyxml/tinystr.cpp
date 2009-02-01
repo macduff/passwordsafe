@@ -50,39 +50,39 @@ void TiXmlString::reserve (size_type cap)
 	{
 		TiXmlString tmp;
 		tmp.init(length(), cap);
-		memcpy(tmp.start(), data(), length() * sizeof(wchar_t));
+		memcpy(tmp.start(), data(), length() * sizeof(TCHAR));
 		swap(tmp);
 	}
 }
 
 
-TiXmlString& TiXmlString::assign(const wchar_t* str, size_type len)
+TiXmlString& TiXmlString::assign(const TCHAR* str, size_type len)
 {
 	size_type cap = capacity();
 	if (len > cap || cap > 3*(len + 8))
 	{
 		TiXmlString tmp;
 		tmp.init(len);
-		memcpy(tmp.start(), str, len * sizeof(wchar_t));
+		memcpy(tmp.start(), str, len * sizeof(TCHAR));
 		swap(tmp);
 	}
 	else
 	{
-		memmove(start(), str, len * sizeof(wchar_t));
+		memmove(start(), str, len * sizeof(TCHAR));
 		set_size(len);
 	}
 	return *this;
 }
 
 
-TiXmlString& TiXmlString::append(const wchar_t* str, size_type len)
+TiXmlString& TiXmlString::append(const TCHAR* str, size_type len)
 {
 	size_type newsize = length() + len;
 	if (newsize > capacity())
 	{
 		reserve (newsize + capacity());
 	}
-	memmove(finish(), str, len * sizeof(wchar_t));
+	memmove(finish(), str, len * sizeof(TCHAR));
 	set_size(newsize);
 	return *this;
 }
@@ -97,20 +97,20 @@ TiXmlString operator + (const TiXmlString & a, const TiXmlString & b)
 	return tmp;
 }
 
-TiXmlString operator + (const TiXmlString & a, const wchar_t* b)
+TiXmlString operator + (const TiXmlString & a, const TCHAR* b)
 {
 	TiXmlString tmp;
-	TiXmlString::size_type b_len = static_cast<TiXmlString::size_type>( wcslen(b) );
+	TiXmlString::size_type b_len = static_cast<TiXmlString::size_type>( _tcsclen(b) );
 	tmp.reserve(a.length() + b_len);
 	tmp += a;
 	tmp.append(b, b_len);
 	return tmp;
 }
 
-TiXmlString operator + (const wchar_t* a, const TiXmlString & b)
+TiXmlString operator + (const TCHAR* a, const TiXmlString & b)
 {
 	TiXmlString tmp;
-	TiXmlString::size_type a_len = static_cast<TiXmlString::size_type>( wcslen(a) );
+	TiXmlString::size_type a_len = static_cast<TiXmlString::size_type>( _tcsclen(a) );
 	tmp.reserve(a_len + b.length());
 	tmp.append(a, a_len);
 	tmp += b;

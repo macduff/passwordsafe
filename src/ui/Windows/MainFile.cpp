@@ -39,7 +39,7 @@
 #include "corelib/corelib.h"
 #include "os/file.h"
 
-#include "corelib/XML/XMLDefs.h"
+#include "corelib/XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 
 #include <sys/types.h>
 #include <bitset>

@@ -143,7 +143,6 @@ BEGIN_MESSAGE_MAP(CAddDlg, CPWDialog)
   ON_BN_CLICKED(IDC_OVERRIDE_POLICY, &CAddDlg::OnBnClickedOverridePolicy)
 END_MESSAGE_MAP()
 
-
 void CAddDlg::OnCancel() 
 {
   CPWDialog::OnCancel();
@@ -294,7 +293,6 @@ void CAddDlg::OnRandom()
   }
   UpdateData(FALSE);
 }
-
 
 //-----------------------------------------------------------------------------
 

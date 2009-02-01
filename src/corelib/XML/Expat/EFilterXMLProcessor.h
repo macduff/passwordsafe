@@ -29,13 +29,11 @@
 #include "../../Proxy.h"
 
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <vector>
 
 // Expat includes
 #include <expat.h>
-
-using namespace std;
 
 class EFilterXMLProcessor
 {
@@ -45,16 +43,16 @@ public:
 
   bool Process(const bool &bvalidation,
                const StringX &strXMLData,
-               const wstring &strXMLFileName,
-               const wstring &strXSDFileName);
+               const std::wstring &strXMLFileName,
+               const std::wstring &strXSDFileName);
 
-  wstring getResultText() {return m_strResultText;}
+  std::wstring getResultText() {return m_strResultText;}
 
 private:
   Asker *m_pAsker;
   PWSFilters &m_MapFilters;
   FilterPool m_FPool;
-  wstring m_strResultText;
+  std::wstring m_strResultText;
   bool m_bValidation;
 };
 

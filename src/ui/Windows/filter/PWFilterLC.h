@@ -17,8 +17,6 @@
 #include "FilterBoolDlg.h"
 #include "FilterEntryTypeDlg.h"
 
-using namespace std;
-
 class CSetHistoryFiltersDlg;
 class CSetPolicyFiltersDlg;
 
@@ -84,15 +82,15 @@ public:
   void Init(CWnd * pParent, st_filters *pfilters, const int &filtertype);
 
 protected:
-  vector<FieldType> vlast_ft;           // Last combo selected item
-  vector<PWSMatch::MatchType> vlast_mt; // Last selected matchtype
-  vector<bool> vcbxChanged;             // Has combo selection changed?
-  vector<bool> vCriteriaSet;            // Has criteria been set?
-  vector<bool> vAddPresent;             // Do we add 'ISPRESENT' rule option?
+  std::vector<FieldType> vlast_ft;           // Last combo selected item
+  std::vector<PWSMatch::MatchType> vlast_mt; // Last selected matchtype
+  std::vector<bool> vcbxChanged;             // Has combo selection changed?
+  std::vector<bool> vCriteriaSet;            // Has criteria been set?
+  std::vector<bool> vAddPresent;             // Do we add 'ISPRESENT' rule option?
 
-  vector<st_Fcbxdata> vFcbx_data;     // Field combobox strings & fieldtypes
-  vector<st_Lcbxdata> vLcbx_data;     // Logic (AND/OR) combobox strings
-  vector<st_Fcbxdata> vWCFcbx_data;   // Working copy Field combobox & fieldtypes
+  std::vector<st_Fcbxdata> vFcbx_data;     // Field combobox strings & fieldtypes
+  std::vector<st_Lcbxdata> vLcbx_data;     // Logic (AND/OR) combobox strings
+  std::vector<st_Fcbxdata> vWCFcbx_data;   // Working copy Field combobox & fieldtypes
 
   WCHAR *m_pwchTip;
   char *m_pchTip;

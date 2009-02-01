@@ -50,13 +50,13 @@ const struct st_filter_rulecodes {
   int irule_code;
 };
 
-typedef map<const wstring, const st_filter_element_data> Filter_Element_Map;
-typedef map<const wstring, const st_filter_element_data> :: const_iterator cFilter_Element_iter;
-typedef pair<const wstring, const st_filter_element_data> Filter_Element_Pair;
+typedef std::map<const std::wstring, const st_filter_element_data> Filter_Element_Map;
+typedef std::map<const std::wstring, const st_filter_element_data> :: const_iterator cFilter_Element_iter;
+typedef std::pair<const std::wstring, const st_filter_element_data> Filter_Element_Pair;
 
-typedef map<const wstring, const st_filter_rulecodes> Filter_Rulecodes_Map;
-typedef map<const wstring, const st_filter_rulecodes> :: const_iterator cFilter_Rules_iter;
-typedef pair<const wstring, const st_filter_rulecodes> Filter_Rules_Pair;
+typedef std::map<const std::wstring, const st_filter_rulecodes> Filter_Rulecodes_Map;
+typedef std::map<const std::wstring, const st_filter_rulecodes> :: const_iterator cFilter_Rules_iter;
+typedef std::pair<const std::wstring, const st_filter_rulecodes> Filter_Rules_Pair;
 
 class EFilterValidator
 {
@@ -64,15 +64,15 @@ public:
   EFilterValidator();
   ~EFilterValidator();
 
-  bool startElement(wstring &strStartElement);
-  bool endElement(wstring &strEndElement, StringX &strElemContent);
+  bool startElement(std::wstring &strStartElement);
+  bool endElement(std::wstring &strEndElement, StringX &strElemContent);
 
   bool VerifyXMLDataType(const StringX &strElemContent, const XTD_DataTypes &datatype);
   bool GetElementInfo(const XML_Char *name, st_filter_element_data &edata);
   PWSMatch::MatchRule GetMatchRule(const wchar_t *cs_rule);
 
   int getErrorCode() {return m_iErrorCode;}
-  wstring getErrorMsg() {return m_sErrorMsg;}
+  std::wstring getErrorMsg() {return m_sErrorMsg;}
 
 private:
   bool VerifyStartElement(cFilter_Element_iter e_iter);
@@ -83,10 +83,10 @@ private:
   Filter_Element_Map m_element_map;
   Filter_Rulecodes_Map m_rulecode_map;
 
-  stack<XTE_Codes> m_element_code_stack;
-  stack<XTD_DataTypes> m_element_datatype_stack;
+  std::stack<XTE_Codes> m_element_code_stack;
+  std::stack<XTD_DataTypes> m_element_datatype_stack;
 
-  wstring m_sErrorMsg;
+  std::wstring m_sErrorMsg;
   int m_iErrorCode;
 
   int m_ielement_occurs[XTE_LAST_ELEMENT];

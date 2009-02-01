@@ -5,6 +5,7 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
 #pragma once
 
 // RUEList.h
@@ -16,8 +17,6 @@
 #include "corelib/StringX.h"
 #include "corelib/PWScore.h"
 #include "corelib/UUIDGen.h"
-
-using namespace std;
 
 //-----------------------------------------------------------------------------
 
@@ -52,7 +51,7 @@ struct CRUEItemData {
   BOOL     IsRUEID()      { return magicNum == RUEMENUITEMID; }
 };
 
-typedef deque<RUEntry> RUEList;
+typedef std::deque<RUEntry> RUEList;
 typedef RUEList::iterator RUEListIter;
 typedef RUEList::const_iterator RUEListConstIter;
 
@@ -70,7 +69,7 @@ public:
   // Data retrieval
   size_t GetCount() const {return m_RUEList.size();}
   size_t GetMax() const {return m_maxentries;}
-  bool GetAllMenuItemStrings(vector<RUEntryStringImage> &) const;
+  bool GetAllMenuItemStrings(std::vector<RUEntryStringImage> &) const;
   bool GetPWEntry(size_t, CItemData &); // NOT const!
 
   // Data setting

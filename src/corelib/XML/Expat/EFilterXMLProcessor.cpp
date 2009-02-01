@@ -112,13 +112,13 @@ EFilterXMLProcessor::~EFilterXMLProcessor()
 
 bool EFilterXMLProcessor::Process(const bool &bvalidation,
                                   const StringX &strXMLData,
-                                  const wstring &strXMLFileName,
-                                  const wstring & /* XML Schema File Name */)
+                                  const std::wstring &strXMLFileName,
+                                  const std::wstring & /* XML Schema File Name */)
 {
   bool bEerrorOccurred = false;
-  wstring cs_validation;
+  std::wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  wstring cs_import;
+  std::wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
   m_strResultText = L"";
   m_bValidation = bvalidation;  // Validate or Import
@@ -171,7 +171,7 @@ bool EFilterXMLProcessor::Process(const bool &bvalidation,
     StringX sbuffer(strXMLData);
     StringX::size_type ipos;
     ipos = sbuffer.find(L"UTF-8");
-    if (ipos != wstring::npos)
+    if (ipos != std::wstring::npos)
       sbuffer.replace(ipos, 5, L"UTF-16");
     char *buffer = (char *)&sbuffer.at(0);
     status = XML_Parse(pParser, buffer,

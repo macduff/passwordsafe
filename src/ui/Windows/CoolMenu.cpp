@@ -24,6 +24,8 @@
 #include "resource2.h"
 #include "resource3.h"
 
+#include <algorithm>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -469,7 +471,7 @@ void CCoolMenuManager::ConvertMenu(CMenu* pMenu, UINT /* nIndex */,
       // now add the menu to list of "converted" menus
       HMENU hmenu = pMenu->GetSafeHmenu();
       ASSERT(hmenu);
-      MenuVectorIter iter = find(m_menuList.begin(), m_menuList.end(), hmenu);
+      MenuVectorIter iter = std::find(m_menuList.begin(), m_menuList.end(), hmenu);
       if (iter == m_menuList.end())
         m_menuList.push_back(hmenu);
 
@@ -491,7 +493,7 @@ void CCoolMenuManager::ConvertMenu(CMenu* pMenu, UINT /* nIndex */,
       miinfo.dwItemData = NULL;             // item data is NULL
       miinfo.fMask |= MIIM_DATA;            // change it
       delete pmd;                           // and item data too
-      PMDVectorIter iter = find(m_pmdList.begin(), m_pmdList.end(), pmd);
+      PMDVectorIter iter = std::find(m_pmdList.begin(), m_pmdList.end(), pmd);
       if (iter != m_pmdList.end())
         m_pmdList.erase(iter);
 

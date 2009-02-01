@@ -26,8 +26,6 @@
 #include "ItemData.h"
 #include "Proxy.h"
 
-using namespace std;
-
 enum FilterType {DFTYPE_INVALID = 0,
                  DFTYPE_MAIN,
                  DFTYPE_PWHISTORY, 
@@ -173,13 +171,13 @@ struct st_FilterRow {
 // Basically a named vector of filter rows, along with
 // some accounting information
 
-typedef vector<st_FilterRow> vFilterRows;
-typedef vector<int> vfiltergroup;
-typedef vector<vfiltergroup> vfiltergroups;
+typedef std::vector<st_FilterRow> vFilterRows;
+typedef std::vector<int> vfiltergroup;
+typedef std::vector<vfiltergroup> vfiltergroups;
 
 struct st_filters {
   // Filter name
-  wstring fname;
+  std::wstring fname;
   // Counters
   int num_Mactive;
   int num_Hactive;
@@ -232,7 +230,7 @@ enum FilterPool {FPOOL_DATABASE = 1, FPOOL_AUTOLOAD, FPOOL_IMPORTED, FPOOL_SESSI
 
 struct st_Filterkey {
   FilterPool fpool;
-  wstring cs_filtername;
+  std::wstring cs_filtername;
 };
 
 // Following is for map<> compare function
@@ -246,24 +244,24 @@ struct ltfk {
   }
 };
 
-class PWSFilters : public map<st_Filterkey, st_filters, ltfk> {
+class PWSFilters : public std::map<st_Filterkey, st_filters, ltfk> {
  public:
-  typedef pair<st_Filterkey, st_filters> Pair;
+  typedef std::pair<st_Filterkey, st_filters> Pair;
   
-  string GetFilterXMLHeader(const StringX &currentfile,
+  std::string GetFilterXMLHeader(const StringX &currentfile,
                                  const PWSfile::HeaderRecord &hdr);
 
   int WriteFilterXMLFile(const StringX &filename, const PWSfile::HeaderRecord hdr,
                          const StringX &currentfile);
-  int WriteFilterXMLFile(ostream &os, PWSfile::HeaderRecord hdr,
+  int WriteFilterXMLFile(std::ostream &os, PWSfile::HeaderRecord hdr,
                          const StringX &currentfile, const bool bWithFormatting = false);
   int ImportFilterXMLFile(const FilterPool fpool,
                           const StringX &strXMLData,
-                          const wstring &strXMLFileName,
-                          const wstring &strXSDFileName, wstring &strErrors,
+                          const std::wstring &strXMLFileName,
+                          const std::wstring &strXSDFileName, std::wstring &strErrors,
                           Asker *pAsker);
 
-  static wstring GetFilterDescription(const st_FilterRow &st_fldata);
+  static std::wstring GetFilterDescription(const st_FilterRow &st_fldata);
 };
 
 #endif  // __PWSFILTERS_H

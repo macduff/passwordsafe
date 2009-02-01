@@ -117,9 +117,9 @@ EFileXMLProcessor::~EFileXMLProcessor()
 
 // ---------------------------------------------------------------------------
 bool EFileXMLProcessor::Process(const bool &bvalidation,
-                                const wstring &ImportedPrefix,
-                                const wstring &strXMLFileName,
-                                const wstring & /* XML Schema File Name */,
+                                const std::wstring &ImportedPrefix,
+                                const std::wstring &strXMLFileName,
+                                const std::wstring & /* XML Schema File Name */,
                                 int &nITER,
                                 int &nRecordsWithUnknownFields,
                                 UnknownFieldList &uhfl)
@@ -136,9 +136,9 @@ bool EFileXMLProcessor::Process(const bool &bvalidation,
 
   bool bEerrorOccurred = false;
   bool b_into_empty = m_xmlcore->GetNumEntries() == 0;
-  wstring cs_validation;
+  std::wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  wstring cs_import;
+  std::wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
   m_strResultText = L"";
 

@@ -14,10 +14,6 @@
 #include "../../PWSFilters.h"
 #include "../../StringX.h"
 
-#include <vector>
-
-using namespace std;
-
 class MFilterXMLProcessor
 {
 public:
@@ -26,17 +22,17 @@ public:
 
   bool Process(const bool &bvalidation,
                const StringX &strXMLData,
-               const wstring &strXMLFileName,
-               const wstring &strXSDFileName);
+               const std::wstring &strXMLFileName,
+               const std::wstring &strXSDFileName);
 
-  wstring getResultText() {return m_strResultText;}
+  std::wstring getResultText() {return m_strResultText;}
   int m_MSXML_Version;
 
 private:
   Asker *m_pAsker;
   PWSFilters &m_MapFilters;
   FilterPool m_FPool;
-  wstring m_strResultText;
+  std::wstring m_strResultText;
   bool m_bValidation;
 };
 

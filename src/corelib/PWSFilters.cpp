@@ -18,7 +18,7 @@
 #include "os/file.h"
 #include "os/dir.h"
 
-#include "XML/XMLDefs.h"
+#include "XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 
 #if   USE_XML_LIBRARY == EXPAT
 #include "XML/Expat/EFilterXMLProcessor.h"
@@ -38,10 +38,8 @@
 #include <algorithm>
 #include <map>
 
-using namespace std;
-
-typedef vector<wstring>::const_iterator vciter;
-typedef vector<wstring>::iterator viter;
+typedef std::vector<std::wstring>::const_iterator vciter;
+typedef std::vector<std::wstring>::iterator viter;
 
 // These are in the same order as "enum MatchRule" in Match.h
 static const char * szentry[] = {"normal", 
@@ -49,7 +47,7 @@ static const char * szentry[] = {"normal",
                                  "shortcutbase", "shortcut"};
 
 static void GetFilterTestXML(const st_FilterRow &st_fldata,
-                             ostringstream &oss, bool bFile)
+                             std::ostringstream &oss, bool bFile)
 {
   CUTF8Conv utf8conv;
   const unsigned char *utf8 = NULL;
@@ -123,7 +121,7 @@ static void GetFilterTestXML(const st_FilterRow &st_fldata,
 
 static string GetFilterXML(const st_filters &filters, bool bWithFormatting)
 {
-  ostringstream oss; // ALWAYS a string of chars, never wchar_t!
+  std::ostringstream oss; // ALWAYS a string of chars, never wchar_t!
 
   CUTF8Conv utf8conv;
   const unsigned char *utf8 = NULL;
@@ -144,7 +142,7 @@ static string GetFilterXML(const st_filters &filters, bool bWithFormatting)
   oss << sztab1 << "<filter filtername=\"" << reinterpret_cast<const char *>(utf8) 
       << "\">" << szendl;
 
-  vector<st_FilterRow>::const_iterator Flt_citer;
+  std::vector<st_FilterRow>::const_iterator Flt_citer;
   for (Flt_citer = filters.vMfldata.begin(); 
        Flt_citer != filters.vMfldata.end(); Flt_citer++) {
     const st_FilterRow &st_fldata = *Flt_citer;
@@ -382,11 +380,11 @@ struct XMLFilterWriterToString {
   // operator
   void operator()(pair<const st_Filterkey, st_filters> p)
   {
-    string xml = GetFilterXML(p.second, m_bWithFormatting);
+    std::string xml = GetFilterXML(p.second, m_bWithFormatting);
     m_os << xml.c_str();
   }
 private:
-  ostream &m_os;
+  std::ostream &m_os;
   bool m_bWithFormatting;
 };
 
@@ -394,7 +392,7 @@ int PWSFilters::WriteFilterXMLFile(const StringX &filename,
                                    const PWSfile::HeaderRecord hdr,
                                    const StringX &currentfile)
 {
-  ofstream of(filename.c_str());
+  std::ofstream of(filename.c_str());
   if (!of)
     return PWScore::CANT_OPEN_FILE;
   else
@@ -406,7 +404,7 @@ int PWSFilters::WriteFilterXMLFile(ostream &os,
                                    const StringX &currentfile,
                                    const bool bWithFormatting)
 {
-  string str_hdr = GetFilterXMLHeader(currentfile, hdr);
+  std::string str_hdr = GetFilterXMLHeader(currentfile, hdr);
   os << str_hdr;
 
   XMLFilterWriterToString put_filterxml(os, bWithFormatting);
@@ -424,9 +422,9 @@ string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
   const unsigned char *utf8 = NULL;
   int utf8Len = 0;
 
-  ostringstream oss;
+  std::ostringstream oss;
   StringX tmp;
-  wstring cs_tmp;
+  std::wstring cs_tmp;
   time_t time_now;
 
   time(&time_now);
@@ -496,9 +494,9 @@ string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
 // Don't support importing XML from non-Windows using Microsoft XML libraries
 int PWSFilters::ImportFilterXMLFile(const FilterPool, 
                                     const StringX &, 
-                                    const wstring &, 
-                                    const wstring &,
-                                    wstring &,
+                                    const std::wstring &, 
+                                    const std::wstring &,
+                                    std::wstring &,
                                     Asker *)
 {
   return PWScore::UNIMPLEMENTED;
@@ -506,9 +504,9 @@ int PWSFilters::ImportFilterXMLFile(const FilterPool,
 #else
 int PWSFilters::ImportFilterXMLFile(const FilterPool fpool,
                                     const StringX &strXMLData,
-                                    const wstring &strXMLFileName,
-                                    const wstring &strXSDFileName,
-                                    wstring &strErrors,
+                                    const std::wstring &strXMLFileName,
+                                    const std::wstring &strXSDFileName,
+                                    std::wstring &strErrors,
                                     Asker *pAsker)
 {
 #if   USE_XML_LIBRARY == EXPAT
@@ -563,7 +561,7 @@ int PWSFilters::ImportFilterXMLFile(const FilterPool fpool,
 wstring PWSFilters::GetFilterDescription(const st_FilterRow &st_fldata)
 {
   // Get the description of the current criterion to display on the static text
-  wstring cs_rule, cs1, cs2, cs_and, cs_criteria;
+  std::wstring cs_rule, cs1, cs2, cs_and, cs_criteria;
   LoadAString(cs_rule, PWSMatch::GetRule(st_fldata.rule));
   TrimRight(cs_rule, L"\t");
   PWSMatch::GetMatchType(st_fldata.mtype,

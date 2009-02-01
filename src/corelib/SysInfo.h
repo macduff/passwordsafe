@@ -29,14 +29,14 @@ public:
 
   static bool IsUnderU3();
 
-  void SetEffectiveUser(const wstring &u) {m_euser = u;}
-  void SetEffectiveHost(const wstring &h) {m_esysname = h;}
+  void SetEffectiveUser(const std::wstring &u) {m_euser = u;}
+  void SetEffectiveHost(const std::wstring &h) {m_esysname = h;}
 
-  const wstring &GetRealUser() const {return m_ruser;}
-  const wstring &GetRealHost() const {return m_rsysname;}
-  const wstring &GetEffectiveUser() const {return m_euser;}
-  const wstring &GetEffectiveHost() const {return m_esysname;}
-  const wstring &GetCurrentPID() const {return m_ProcessID;}
+  const std::wstring &GetRealUser() const {return m_ruser;}
+  const std::wstring &GetRealHost() const {return m_rsysname;}
+  const std::wstring &GetEffectiveUser() const {return m_euser;}
+  const std::wstring &GetEffectiveHost() const {return m_esysname;}
+  const std::wstring &GetCurrentPID() const {return m_ProcessID;}
 
 private:
   SysInfo();
@@ -44,10 +44,11 @@ private:
 
   static SysInfo *self;
 
-  wstring m_ruser, m_rsysname;
-  wstring m_euser, m_esysname;
-  wstring m_ProcessID;
+  std::wstring m_ruser, m_rsysname;
+  std::wstring m_euser, m_esysname;
+  std::wstring m_ProcessID;
 };
+
 #endif /* __SYSINFO_H */
 //-----------------------------------------------------------------------------
 // Local variables:

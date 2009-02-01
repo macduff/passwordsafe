@@ -5,8 +5,10 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
 #ifndef __VERIFYFORMAT_H
 #define __VERIFYFORMAT_H
+
 // VerifyFormat.h
 //-----------------------------------------------------------------------------
 
@@ -18,12 +20,12 @@
 enum {PWH_OK = 0, PWH_IGNORE, PWH_INVALID_HDR, PWH_INVALID_STATUS,
       PWH_INVALID_NUM, PWH_INVALID_DATETIME,
       PWH_INVALID_PSWD_LENGTH, PWH_TOO_SHORT, PWH_TOO_LONG, PWH_INVALID_CHARACTER};
-bool VerifyASCDateTimeString(const wstring &time_str, time_t &t);
-bool VerifyXMLDateTimeString(const wstring &time_str, time_t &t);
-bool VerifyXMLDateString(const wstring &time_str, time_t &t);
-bool VerifyImportDateTimeString(const wstring &time_str, time_t &t);
+bool VerifyASCDateTimeString(const std::wstring &time_str, time_t &t);
+bool VerifyXMLDateTimeString(const std::wstring &time_str, time_t &t);
+bool VerifyXMLDateString(const std::wstring &time_str, time_t &t);
+bool VerifyImportDateTimeString(const std::wstring &time_str, time_t &t);
 int VerifyImportPWHistoryString(const StringX &PWHistory, StringX &newPWHistory,
-                                wstring &strErrors);
+                                std::wstring &strErrors);
 bool verifyDTvalues(int yyyy, int mon, int dd,
                     int hh, int min, int ss);
 

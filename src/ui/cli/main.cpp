@@ -12,8 +12,6 @@
 #include "PWScore.h"
 #include "os/file.h"
 
-using namespace std;
-
 static void usage(char *pname)
 {
   cerr << "Usage: " << pname << " safe passkey" << endl;

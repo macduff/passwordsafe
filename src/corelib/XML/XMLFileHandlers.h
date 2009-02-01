@@ -14,7 +14,7 @@
 #include "../UUIDGen.h"
 #include "../UnknownField.h"
 
-using namespace std;
+#include <vector>
 
 // Entry types
 enum {NORMAL = 0, ALIAS, SHORTCUT};
@@ -47,7 +47,7 @@ struct pwhistory_entry {
   StringX oldpassword;
 };
 
-typedef vector<pw_entry *> vdb_entries;
+typedef std::vector<pw_entry *> vdb_entries;
 
 class PWScore;
 
@@ -67,17 +67,17 @@ public:
   virtual ~XMLFileHandlers();
 
   void SetVariables(PWScore *core, const bool &bValidation,
-                    const wstring &ImportedPrefix, const wchar_t &delimiter,
+                    const std::wstring &ImportedPrefix, const wchar_t &delimiter,
                     UUIDList *possible_aliases, UUIDList *possible_shortcuts);
 
   bool getIfErrors() {return m_bErrors;}
   int getErrorCode() {return m_iErrorCode;}
-  wstring getErrorMessage() {return m_strErrorMessage;}
-  wstring getImportErrors() {return m_strImportErrors;}
+  std::wstring getErrorMessage() {return m_strErrorMessage;}
+  std::wstring getImportErrors() {return m_strImportErrors;}
 
   vdb_entries & getVDB_Entries() {return ventries;}
-  wstring getDefaultAutotypeString() {return m_sDefaultAutotypeString;}
-  wstring getDefaultUsername() {return m_sDefaultUsername;}
+  std::wstring getDefaultAutotypeString() {return m_sDefaultAutotypeString;}
+  std::wstring getDefaultUsername() {return m_sDefaultUsername;}
   wchar_t getDelimiter() {return m_delimiter;}
   int getNumEntries() {return m_numEntries;}
   int getNumIterations() {return m_nITER;}
@@ -96,8 +96,8 @@ protected:
   pwhistory_entry *cur_pwhistory_entry;
 
   StringX m_strElemContent;
-  wstring m_strImportErrors;
-  wstring m_strErrorMessage;
+  std::wstring m_strImportErrors;
+  std::wstring m_strErrorMessage;
   int m_nITER;
   int m_numEntries;
   int m_nRecordsWithUnknownFields;
@@ -124,9 +124,9 @@ private:
   // Preferences possibly stored in database
   // Note: boolean is integer to allow an 'not set' value of '-1'
   int prefsinXML[NUMPREFSINXML];
-  wstring m_ImportedPrefix;
-  wstring m_sDefaultAutotypeString;
-  wstring m_sDefaultUsername;
+  std::wstring m_ImportedPrefix;
+  std::wstring m_sDefaultAutotypeString;
+  std::wstring m_sDefaultUsername;
 };
 
 #endif /* __XMLFILEHANDLERS_H */

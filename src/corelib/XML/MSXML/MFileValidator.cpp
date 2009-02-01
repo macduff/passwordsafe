@@ -26,8 +26,6 @@
 // MSXML validation includes
 #include "MFileValidator.h"
 
-using namespace std;
-
 MFileValidator::MFileValidator()
 {
 }

@@ -11,7 +11,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <cassert>
-using namespace std;
 
 class TestSuiteError : public logic_error
 {

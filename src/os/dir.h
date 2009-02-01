@@ -11,15 +11,15 @@
 #include "typedefs.h"
 
 namespace pws_os {
-  extern wstring getexecdir(); // path of executable
-  extern wstring getcwd();
-  extern bool chdir(const wstring &dir);
+  extern std::wstring getexecdir(); // path of executable
+  extern std::wstring getcwd();
+  extern bool chdir(const std::wstring &dir);
   // In following, drive will be empty on non-Windows platforms
-  extern bool splitpath(const wstring &path,
-                        wstring &drive, wstring &dir,
-                        wstring &file, wstring &ext);
-  extern wstring makepath(const wstring &drive, const wstring &dir,
-                          const wstring &file, const wstring &ext);
+  extern bool splitpath(const std::wstring &path,
+                        std::wstring &drive, std::wstring &dir,
+                        std::wstring &file, std::wstring &ext);
+  extern std::wstring makepath(const std::wstring &drive, const std::wstring &dir,
+                               const std::wstring &file, const std::wstring &ext);
 };
 
 #endif /* __DIR_H */

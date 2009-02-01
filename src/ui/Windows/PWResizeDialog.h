@@ -11,8 +11,6 @@
 #include "PWDialog.h"
 #include <vector>
 
-using namespace std;
-
 // CPWResizeDialog dialog
 
 class CPWResizeDialog : public CPWDialog
@@ -24,7 +22,7 @@ public:
 	virtual ~CPWResizeDialog();
 
   void AddMainCtrlID(UINT iMainCtrl) {m_iMainCtrl = iMainCtrl;}
-  void AddBtnsCtrlIDs(vector<UINT> viBottomButtons, int iFocus = 0);
+  void AddBtnsCtrlIDs(std::vector<UINT> viBottomButtons, int iFocus = 0);
   void SetStatusBar(const UINT *pstatustext, int nIDCount, bool bTextVisible = true);
   bool IsStatusBarOK() {return m_bStatusBarOK;}
   void SetMaxHeightWidth(int maxHeight, int maxWidth);
@@ -50,7 +48,7 @@ private:
   int m_cxBSpace, m_cyBSpace, m_cySBar, m_ybuttondiff;
 
   CWnd *m_pMainCtrl;
-  vector<UINT> m_viBottomButtons;
+  std::vector<UINT> m_viBottomButtons;
   UINT m_iMainCtrl;
   UINT *m_pstatustext;
   int m_numbtns, m_numsbpanes, m_iFocus;

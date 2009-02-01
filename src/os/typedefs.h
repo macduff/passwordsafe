@@ -5,7 +5,10 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
 #ifndef _TYPEDEFS_H
+#define _TYPEDEFS_H
+
 /**
 * Silly wrapper to abstract away the difference between a Unicode
 * (wchar_t) and non-Unicode (char) string, as well as
@@ -14,8 +17,6 @@
 */
 
 #include <string>
-
-using namespace std;
 
 #ifdef _WIN32
 #include <wchar.h>

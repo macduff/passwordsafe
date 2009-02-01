@@ -23,11 +23,9 @@
 #include "../dir.h"
 #include "../env.h"
 
-using namespace std;
-
 const wchar_t *pws_os::PathSeparator = L"\\";
 
-bool pws_os::FileExists(const wstring &filename)
+bool pws_os::FileExists(const std::wstring &filename)
 {
   struct _stat statbuf;
   int status;
@@ -36,7 +34,7 @@ bool pws_os::FileExists(const wstring &filename)
   return (status == 0);
 }
 
-bool pws_os::FileExists(const wstring &filename, bool &bReadOnly)
+bool pws_os::FileExists(const std::wstring &filename, bool &bReadOnly)
 {
   struct _stat statbuf;
   int status;
@@ -54,7 +52,7 @@ bool pws_os::FileExists(const wstring &filename, bool &bReadOnly)
   }
 }
 
-bool pws_os::RenameFile(const wstring &oldname, const wstring &newname)
+bool pws_os::RenameFile(const std::wstring &oldname, const std::wstring &newname)
 {
   _wremove(newname.c_str()); // otherwise rename will fail if newname exists
   int status = _wrename(oldname.c_str(), newname.c_str());
@@ -62,7 +60,7 @@ bool pws_os::RenameFile(const wstring &oldname, const wstring &newname)
   return (status == 0);
 }
 
-extern bool pws_os::CopyAFile(const wstring &from, const wstring &to)
+extern bool pws_os::CopyAFile(const std::wstring &from, const std::wstring &to)
 {
   // Copy file and create any intervening directories as necessary & automatically
   wchar_t szSource[_MAX_PATH];
@@ -93,13 +91,13 @@ extern bool pws_os::CopyAFile(const wstring &from, const wstring &to)
   return (SHFileOperation(&sfop) == 0);
 }
 
-bool pws_os::DeleteAFile(const wstring &filename)
+bool pws_os::DeleteAFile(const std::wstring &filename)
 {
   return DeleteFile(filename.c_str()) == TRUE;
 }
 
 
-void pws_os::FindFiles(const wstring &filter, vector<wstring> &res)
+void pws_os::FindFiles(const std::wstring &filter, std::vector<std::wstring> &res)
 {
   CFileFind finder;
   BOOL bWorking = finder.FindFile(filter.c_str());
@@ -108,7 +106,6 @@ void pws_os::FindFiles(const wstring &filter, vector<wstring> &res)
     res.push_back(LPCWSTR(finder.GetFileName()));
   }
 }
-
 
 /*
 * The file lock/unlock functions were first implemented (in 2.08)
@@ -122,16 +119,16 @@ void pws_os::FindFiles(const wstring &filter, vector<wstring> &res)
 * Thanks to Frank (xformer) for discussion on the subject.
 */
 
-static wstring GetLockFileName(const wstring &filename)
+static std::wstring GetLockFileName(const std::wstring &filename)
 {
   ASSERT(!filename.empty());
   // derive lock filename from filename
-  wstring retval(filename, 0, filename.find_last_of(L'.'));
+  std::wstring retval(filename, 0, filename.find_last_of(L'.'));
   retval += L".plk";
   return retval;
 }
 
-static void GetLocker(const wstring &lock_filename, wstring &locker)
+static void GetLocker(const std::wstring &lock_filename, std::wstring &locker)
 {
   locker = L"Unable to determine locker";
   // read locker data ("user@machine:nnnnnnnn") from file
@@ -168,17 +165,17 @@ static void GetLocker(const wstring &lock_filename, wstring &locker)
   }
 }
 
-bool pws_os::LockFile(const wstring &filename, wstring &locker, 
+bool pws_os::LockFile(const std::wstring &filename, std::wstring &locker, 
                       HANDLE &lockFileHandle, int &LockCount)
 {
-  const wstring lock_filename = GetLockFileName(filename);
-  wstring s_locker;
-  const wstring user = pws_os::getusername();
-  const wstring host = pws_os::gethostname();
-  const wstring pid = pws_os::getprocessid();
+  const std::wstring lock_filename = GetLockFileName(filename);
+  std::wstring s_locker;
+  const std::wstring user = pws_os::getusername();
+  const std::wstring host = pws_os::gethostname();
+  const std::wstring pid = pws_os::getprocessid();
 
-  const wstring path(lock_filename);
-  wstring drv, dir, fname, ext;
+  const std::wstring path(lock_filename);
+  std::wstring drv, dir, fname, ext;
 
   pws_os::splitpath(path, drv, dir, fname, ext);
 
@@ -191,7 +188,7 @@ bool pws_os::LockFile(const wstring &filename, wstring &locker,
     // potential for a TOCTTOU issue here. Worse case, lock
     // will fail.
 
-    const wstring cs_me = user + L"@" + host + L":" + pid;
+    const std::wstring cs_me = user + L"@" + host + L":" + pid;
     GetLocker(lock_filename, s_locker);
 
     if (cs_me == s_locker) {
@@ -261,23 +258,23 @@ bool pws_os::LockFile(const wstring &filename, wstring &locker,
   }
 }
 
-void pws_os::UnlockFile(const wstring &filename,
+void pws_os::UnlockFile(const std::wstring &filename,
                         HANDLE &lockFileHandle, int &LockCount)
 {
-  const wstring user = pws_os::getusername();
-  const wstring host = pws_os::gethostname();
-  const wstring pid = pws_os::getprocessid();
+  const std::wstring user = pws_os::getusername();
+  const std::wstring host = pws_os::gethostname();
+  const std::wstring pid = pws_os::getprocessid();
 
   // Use Win32 API for locking - supposedly better at
   // detecting dead locking processes
   if (lockFileHandle != INVALID_HANDLE_VALUE) {
-    wstring locker;
-    const wstring lock_filename = GetLockFileName(filename);
-    const wstring cs_me = user + L"@" + host + L":" + pid;
+    std::wstring locker;
+    const std::wstring lock_filename = GetLockFileName(filename);
+    const std::wstring cs_me = user + L"@" + host + L":" + pid;
     GetLocker(lock_filename, locker);
 
-    const wstring path(lock_filename);
-    wstring drv, dir, fname, ext;
+    const std::wstring path(lock_filename);
+    std::wstring drv, dir, fname, ext;
     
     pws_os::splitpath(path, drv, dir, fname, ext);
 
@@ -292,9 +289,9 @@ void pws_os::UnlockFile(const wstring &filename,
   }
 }
 
-bool pws_os::IsLockedFile(const wstring &filename)
+bool pws_os::IsLockedFile(const std::wstring &filename)
 {
-  const wstring lock_filename = GetLockFileName(filename);
+  const std::wstring lock_filename = GetLockFileName(filename);
   // under this scheme, we need to actually try to open the file to determine
   // if it's locked.
   HANDLE h = CreateFile(lock_filename.c_str(),
@@ -328,7 +325,7 @@ bool pws_os::IsLockedFile(const wstring &filename)
   }
 }
 
-FILE *pws_os::FOpen(const wstring &filename, const wchar_t *mode)
+FILE *pws_os::FOpen(const std::wstring &filename, const wchar_t *mode)
 {
   FILE *fd = NULL;
 #if _MSC_VER >= 1400
@@ -339,7 +336,8 @@ FILE *pws_os::FOpen(const wstring &filename, const wchar_t *mode)
   return fd;
 }
 
-long pws_os::fileLength(FILE *fp) {
+long pws_os::fileLength(FILE *fp)
+{
   if (fp != NULL) {
     long pos = ftell(fp);
     fseek(fp, 0, SEEK_END);

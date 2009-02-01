@@ -128,18 +128,19 @@ namespace PWSUtil {
   void strCopy(LPWSTR target, size_t tcount, const LPCWSTR source, size_t scount);
   size_t strLength(const LPCWSTR str);
   StringX ConvertToDateTimeString(const time_t &t, const int result_format);
-  wstring GetNewFileName(const wstring &oldfilename, const wstring &newExtn);
+  std::wstring GetNewFileName(const std::wstring &oldfilename, const std::wstring &newExtn);
   extern const wchar_t *UNKNOWN_ASC_TIME_STR, *UNKNOWN_XML_TIME_STR;
   const wchar_t *GetTimeStamp();
-  wstring Base64Encode(const BYTE *inData, size_t len);
+  std::wstring Base64Encode(const BYTE *inData, size_t len);
   void Base64Decode(const StringX &inString, BYTE* &outData, size_t &out_len);
   StringX NormalizeTTT(const StringX &in);
-  void WriteXMLField(ostream &os, const char *fname,
+  void WriteXMLField(std::ostream &os, const char *fname,
                      const StringX &value, CUTF8Conv &utf8conv,
                      const char *tabs = "\t\t");
-  string GetXMLTime(int indent, const char *name,
+  std::string GetXMLTime(int indent, const char *name,
                          time_t t, CUTF8Conv &utf8conv);
 };
+
 #endif /* __UTIL_H */
 //-----------------------------------------------------------------------------
 // Local variables:

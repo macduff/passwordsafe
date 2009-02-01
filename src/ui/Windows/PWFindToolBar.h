@@ -13,8 +13,6 @@
 #include "ControlExtns.h"
 #include <vector>
 
-using namespace std;
-
 class CPWFindToolBar : public CToolBar
 {
   DECLARE_DYNAMIC(CPWFindToolBar)
@@ -48,7 +46,7 @@ public:
    subgroup_name = m_subgroup_name; subgroup_set = m_subgroup_set;
    subgroup_object = m_subgroup_object; subgroup_function = m_subgroup_function;}
 
-  vector<int> * GetSearchResults() {return &m_indices;}
+  std::vector<int> * GetSearchResults() {return &m_indices;}
   void SetStatus(CString cs_status) {m_findresults.SetWindowText(cs_status);}
 
   CEditExtn m_findedit;
@@ -77,7 +75,7 @@ private:
   int m_toolbarMode, m_bitmode;
   bool m_bVisible, m_bCaseSensitive, m_bAdvanced;
 
-  vector<int> m_indices; // array of found items
+  std::vector<int> m_indices; // array of found items
 
   bool m_cs_search, m_last_cs_search;
   CSecString m_search_text, m_last_search_text;

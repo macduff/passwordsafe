@@ -74,15 +74,15 @@ XFilterXMLProcessor::~XFilterXMLProcessor()
 
 bool XFilterXMLProcessor::Process(const bool &bvalidation,
                                   const StringX &strXMLData,
-                                  const wstring &strXMLFileName,
-                                  const wstring &strXSDFileName)
+                                  const std::wstring &strXMLFileName,
+                                  const std::wstring &strXSDFileName)
 {
   bool bEerrorOccurred = false;
-  wstring cs_validation;
+  std::wstring cs_validation;
   LoadAString(cs_validation, IDSC_XMLVALIDATION);
-  wstring cs_import;
+  std::wstring cs_import;
   LoadAString(cs_import, IDSC_XMLIMPORT);
-  wstring strResultText(L"");
+  std::wstring strResultText(L"");
   m_bValidation = bvalidation;  // Validate or Import
 
   XSecMemMgr sec_mm;
@@ -94,7 +94,7 @@ bool XFilterXMLProcessor::Process(const bool &bvalidation,
   }
   catch (const XMLException& toCatch)
   {
-    m_strResultText = wstring(toCatch.getMessage());
+    m_strResultText = std::wstring(toCatch.getMessage());
     return false;
   }
 
@@ -138,7 +138,7 @@ bool XFilterXMLProcessor::Process(const bool &bvalidation,
       StringX sbuffer(strXMLData);
       StringX::size_type ipos;
       ipos = sbuffer.find(L"UTF-8");
-      if (ipos != wstring::npos)
+      if (ipos != std::wstring::npos)
         sbuffer.replace(ipos, 5, L"UTF-16");
 
       MemBufInputSource* memBufIS = new MemBufInputSource(
@@ -156,7 +156,7 @@ bool XFilterXMLProcessor::Process(const bool &bvalidation,
   }
   catch (const XMLException& e)
   {
-    strResultText = wstring(e.getMessage());
+    strResultText = std::wstring(e.getMessage());
     bEerrorOccurred = true;
   }
 

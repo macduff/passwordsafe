@@ -16,8 +16,6 @@
 #include <string>
 #include <bitset>
 
-using namespace std;
-
 class CRichEditCtrlExtn : public CRichEditCtrl
 {
   // Construction
@@ -59,8 +57,8 @@ private:
   };
 
   // Vectors of format changes to be applied to the text string
-  vector<st_format> m_vFormat;
-  vector<ALink> m_vALink;
+  std::vector<st_format> m_vFormat;
+  std::vector<ALink> m_vALink;
 
   static bool iStartCompare(st_format elem1, st_format elem2);
 

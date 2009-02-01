@@ -12,8 +12,6 @@
 
 #include <vector>
 
-using namespace std;
-
 // Expired password Entry structure for CList
 class CItemData;
 
@@ -28,7 +26,7 @@ struct ExpPWEntry {
   int type;
 };
 
-typedef vector<ExpPWEntry> ExpiredList;
+typedef std::vector<ExpPWEntry> ExpiredList;
 
 // CExpPWListDlg dialog
 

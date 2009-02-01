@@ -50,8 +50,6 @@
 #include <xercesc/sax/SAXParseException.hpp>
 #include <xercesc/sax/SAXException.hpp>
 
-using namespace std;
-
 XFilterSAX2Handlers::XFilterSAX2Handlers()
 {
   m_strElemContent.clear();
@@ -72,9 +70,9 @@ void XFilterSAX2Handlers::startDocument()
 }
 
 void XFilterSAX2Handlers::startElement(const XMLCh* const /* uri */,
-                                      const XMLCh* const /* localname */,
-                                      const XMLCh* const qname,
-                                      const Attributes& attrs)
+                                       const XMLCh* const /* localname */,
+                                       const XMLCh* const qname,
+                                       const Attributes& attrs)
 {
   if (m_bValidation && XMLString::equals(qname, L"filters")) {
     if (m_pSchema_Version == NULL) {
@@ -120,7 +118,7 @@ void XFilterSAX2Handlers::startElement(const XMLCh* const /* uri */,
     if (bfilter) {
       XMLCh * xmlchValue = (XMLCh *)attrs.getValue(L"filtername"); 
       if (xmlchValue != NULL) {
-        cur_filter->fname = wstring(xmlchValue);
+        cur_filter->fname = std::wstring(xmlchValue);
       }
     }
 
@@ -135,7 +133,7 @@ void XFilterSAX2Handlers::startElement(const XMLCh* const /* uri */,
 }
 
 void XFilterSAX2Handlers::characters(const XMLCh* const chars,
-                                    const XMLSize_t length)
+                                     const XMLSize_t length)
 {
   if (m_bValidation)
     return;
@@ -161,8 +159,8 @@ void XFilterSAX2Handlers::ignorableWhitespace(const XMLCh* const chars,
 }
 
 void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
-                                    const XMLCh* const /* localname */,
-                                    const XMLCh* const qname)
+                                     const XMLCh* const /* localname */,
+                                     const XMLCh* const qname)
 {
   if (m_bValidation && XMLString::equals(qname, L"filters")) {
     // Check that the XML file version is present and that
@@ -200,7 +198,7 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
     fk.fpool = m_FPool;
     fk.cs_filtername = cur_filter->fname;
     if (m_MapFilters->find(fk) != m_MapFilters->end()) {
-      wstring question;
+      std::wstring question;
       Format(question, IDSC_FILTEREXISTS, cur_filter->fname);
       if (m_pAsker == NULL || !(*m_pAsker)(question)) {
         m_MapFilters->erase(fk);
@@ -245,7 +243,7 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
     cur_filterentry->ftype = FT_TITLE;
   }
 
-  else if (XMLString::equals(qname, L"username")) {
+  else if (XMLString::equals(qname, L"user")) {
     m_type = DFTYPE_MAIN;
     cur_filterentry->mtype = PWSMatch::MT_STRING;
     cur_filterentry->ftype = FT_USER;
@@ -544,14 +542,14 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
 
 void XFilterSAX2Handlers::FormatError(const SAXParseException& e, const int type)
 {
-  wchar_t szFormatString[MAX_PATH * 2] = {0};
+  std::wstring FormatString;
   int iLineNumber, iCharacter;
 
   XMLCh *szErrorMessage = (XMLCh *)e.getMessage();
   iLineNumber = (int)e.getLineNumber();
   iCharacter = (int)e.getColumnNumber();
 
-  wstring cs_format, cs_errortype;
+  std::wstring cs_format, cs_errortype;
   LoadAString(cs_format, IDSC_XERCESSAXGENERROR);
   switch (type) {
     case SAX2_WARNING:
@@ -567,14 +565,10 @@ void XFilterSAX2Handlers::FormatError(const SAXParseException& e, const int type
       assert(0);
   }
 
-#if (_MSC_VER >= 1400)
-  _stprintf_s(szFormatString, MAX_PATH * 2, cs_format.c_str(),
-              cs_errortype.c_str(), iLineNumber, iCharacter, szErrorMessage);
-#else
-  _stprintf(szFormatString, cs_format.c_str(), iLineNumber, iCharacter, szErrorMessage);
-#endif
+  Format(FormatString, cs_format.c_str(),
+         cs_errortype.c_str(), iLineNumber, iCharacter, szErrorMessage);
 
-  m_strValidationResult += szFormatString;
+  m_strValidationResult += FormatString;
 }
 
 void XFilterSAX2Handlers::error(const SAXParseException& e)

@@ -28,10 +28,8 @@
 #include <map>
 #include <algorithm>
 
-using namespace std;
-
-typedef vector<wstring>::const_iterator vciter;
-typedef vector<wstring>::iterator viter;
+typedef std::vector<std::wstring>::const_iterator vciter;
+typedef std::vector<std::wstring>::iterator viter;
 
 // Stop warnings about unused formal parameters!
 #pragma warning(disable : 4100)
@@ -96,7 +94,7 @@ HRESULT STDMETHODCALLTYPE MFilterSAX2ErrorHandler::error(struct ISAXLocator * pL
   pLocator->getLineNumber(&iLineNumber);
   pLocator->getColumnNumber(&iCharacter);
 
-  wstring cs_format;
+  std::wstring cs_format;
   LoadAString(cs_format, IDSC_MSXMLSAXGENERROR);
 
 #if (_MSC_VER >= 1400)
@@ -244,8 +242,8 @@ HRESULT STDMETHODCALLTYPE MFilterSAX2ContentHandler::startElement(
   if (m_bValidation || wcscmp(szCurElement, L"filters") == 0)
     return S_OK;
 
-  bool  bfilter = (wcscmp(szCurElement, L"filter") == 0);
-  bool  bfilter_entry = (wcscmp(szCurElement, L"filter_entry") == 0);
+  bool bfilter = (wcscmp(szCurElement, L"filter") == 0);
+  bool bfilter_entry = (wcscmp(szCurElement, L"filter_entry") == 0);
 
    if (bfilter) {
     cur_filter = new st_filters;
@@ -410,7 +408,7 @@ HRESULT STDMETHODCALLTYPE MFilterSAX2ContentHandler::endElement (
     cur_filterentry->ftype = FT_TITLE;
   }
 
-  else if (wcscmp(szCurElement, L"username") == 0) {
+  else if (wcscmp(szCurElement, L"user") == 0) {
     m_type = DFTYPE_MAIN;
     cur_filterentry->mtype = PWSMatch::MT_STRING;
     cur_filterentry->ftype = FT_USER;

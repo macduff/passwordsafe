@@ -5,14 +5,15 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
 #include "SysInfo.h"
 #include "os/env.h"
+
 //-----------------------------------------------------------------
 //
 // Singleton class to provide system-specific information,
 // such as hostname, username, pid
 //-----------------------------------------------------------------
-
 
 SysInfo *SysInfo::self = NULL;
 

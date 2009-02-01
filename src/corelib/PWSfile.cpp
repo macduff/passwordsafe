@@ -222,13 +222,11 @@ void PWSfile::SetUnknownHeaderFields(UnknownFieldList &UHFL)
 
 // Following for 'legacy' use of pwsafe as file encryptor/decryptor
 // this is for the undocumented 'command line file encryption'
-static const wstring CIPHERTEXT_SUFFIX(L".PSF");
+static const std::wstring CIPHERTEXT_SUFFIX(L".PSF");
 
-
-static wstring
-ErrorMessages()
+static std::wstring ErrorMessages()
 {
-  wstring cs_text;
+  std::wstring cs_text;
 
   switch (errno) {
   case EACCES:
@@ -252,7 +250,7 @@ ErrorMessages()
   return cs_text;
 }
 
-bool PWSfile::Encrypt(const wstring &fn, const StringX &passwd, wstring &errmess)
+bool PWSfile::Encrypt(const std::wstring &fn, const StringX &passwd, std::wstring &errmess)
 {
   unsigned int len;
   unsigned char* buf;
@@ -269,7 +267,7 @@ bool PWSfile::Encrypt(const wstring &fn, const StringX &passwd, wstring &errmess
     return false;
   }
 
-  wstring out_fn = fn;
+  std::wstring out_fn = fn;
   out_fn += CIPHERTEXT_SUFFIX;
 
   FILE *out = pws_os::FOpen(out_fn, L"wb");
@@ -314,7 +312,7 @@ bool PWSfile::Encrypt(const wstring &fn, const StringX &passwd, wstring &errmess
   return true;
 }
 
-bool PWSfile::Decrypt(const wstring &fn, const StringX &passwd, wstring &errmess)
+bool PWSfile::Decrypt(const std::wstring &fn, const StringX &passwd, std::wstring &errmess)
 {
   unsigned int len;
   unsigned char* buf;
@@ -369,7 +367,7 @@ bool PWSfile::Decrypt(const wstring &fn, const StringX &passwd, wstring &errmess
   size_t suffix_len = CIPHERTEXT_SUFFIX.length();
   size_t filepath_len = fn.length();
 
-  wstring out_fn = fn;
+  std::wstring out_fn = fn;
   out_fn = out_fn.substr(0,filepath_len - suffix_len);
 
   FILE *out = pws_os::FOpen(out_fn, L"wb");

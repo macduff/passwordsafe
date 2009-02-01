@@ -18,9 +18,9 @@
 class Startup {
 public:
   Startup() {
-    wchar_t *sl = _wsetlocale(LC_ALL, L"");
+    char *sl = setlocale(LC_ALL, "");
     if (sl == NULL)
-      throw L"Couldn't initialize locale - bailing out";
+      throw "Couldn't initialize locale - bailing out";
   }
 };
 

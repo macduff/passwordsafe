@@ -14,6 +14,7 @@
 #ifdef _WIN32
 #include <io.h>
 #endif
+
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -53,7 +54,7 @@ int PWSfileV1V2::WriteV2Header()
   char *rbuf = new char[rlen];
   PWSrand::GetInstance()->GetRandomData(rbuf, rlen-1);
   rbuf[rlen-1] = L'\0'; // although zero may be there before - who cares?
-  wstring rname(V2ItemName);
+  std::wstring rname(V2ItemName);
   rname += rbuf;
   delete[] rbuf;
   header.SetName(rname, L"");
@@ -212,7 +213,7 @@ static StringX ReMergeNotes(const CItemData &item)
   }
   const StringX at(item.GetAutoType());
   if (!at.empty()) {
-    wstring cs_autotype;
+    std::wstring cs_autotype;
     LoadAString(cs_autotype, IDSC_AUTOTYPE);
     notes += L"\r\n";
     notes += cs_autotype.c_str();
@@ -308,7 +309,7 @@ int PWSfileV1V2::WriteRecord(const CItemData &item)
 static void ExtractAutoTypeCmd(StringX &notesStr, StringX &autotypeStr)
 {
   StringX instr(notesStr);
-  wstring cs_autotype;
+  std::wstring cs_autotype;
   LoadAString(cs_autotype, IDSC_AUTOTYPE);
   StringX::size_type left = instr.find(cs_autotype.c_str(), 0);
   if (left == StringX::npos) {

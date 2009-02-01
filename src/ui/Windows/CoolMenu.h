@@ -23,10 +23,6 @@
 #include "SubClass.h"
 #include "PWToolbar.h"
 #include <vector>
-#include <map>
-#include <algorithm>
-
-using namespace std;
 
 //////////////////
 // CCoolMenuManager implements "cool" menus with buttons in them. To use:
@@ -48,10 +44,10 @@ struct CMenuItemData {
   BOOL     IsCMID()       { return magicNum == COOLMENUITEMID; }
 };
 
-typedef vector<HMENU> MenuVector;
+typedef std::vector<HMENU> MenuVector;
 typedef MenuVector::iterator MenuVectorIter;
 
-typedef vector<CMenuItemData *> PMDVector;
+typedef std::vector<CMenuItemData *> PMDVector;
 typedef PMDVector::iterator PMDVectorIter;
 
 class CCoolMenuManager : private CSubclassWnd
@@ -89,7 +85,7 @@ protected:
   // helpers
   void DrawMenuText(CDC& dc, CRect rc, CString text, COLORREF color);
   BOOL Draw3DCheckmark(CDC& dc, const CRect& rc, BOOL bSelected,
-    HBITMAP hbmCheck = NULL);
+                       HBITMAP hbmCheck = NULL);
   void ConvertMenu(CMenu* pMenu,UINT nIndex,BOOL bSysMenu,BOOL bShowButtons);
   CFont* GetMenuFont();
 
@@ -119,6 +115,6 @@ protected:
 struct CMenuItemInfo : public MENUITEMINFO {
   CMenuItemInfo()
   { memset(this, 0, sizeof(MENUITEMINFO));
-  cbSize = sizeof(MENUITEMINFO);
+    cbSize = sizeof(MENUITEMINFO);
   }
 };

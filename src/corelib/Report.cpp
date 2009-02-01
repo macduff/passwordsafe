@@ -33,14 +33,14 @@ const wchar_t *CRLF = L"\r\n";
 /*
   It writes a header record and a "Start Report" record.
 */
-void CReport::StartReport(LPCWSTR tcAction, const wstring &csDataBase)
+void CReport::StartReport(LPCWSTR tcAction, const std::wstring &csDataBase)
 {
   m_osxs.str(L"");
 
   m_tcAction = tcAction;
   m_csDataBase = csDataBase;
 
-  wstring cs_title;
+  std::wstring cs_title;
   Format(cs_title, IDSC_REPORT_TITLE1, tcAction,
                   PWSUtil::GetTimeStamp());
   WriteLine();
@@ -53,14 +53,14 @@ void CReport::StartReport(LPCWSTR tcAction, const wstring &csDataBase)
   WriteLine();
 }
 
-static bool isFileUnicode(const wstring &fname)
+static bool isFileUnicode(const std::wstring &fname)
 {
   char *fn = NULL;
   size_t fnlen = 0;
   fnlen = pws_os::wcstombs(fn, fnlen, fname.c_str(), fname.length()) + 1;
   fn = new char[fnlen];
   fnlen = pws_os::wcstombs(fn, fnlen, fname.c_str(), fname.length());
-  ifstream is(fn);
+  std::ifstream is(fn);
   delete[] fn;
   unsigned char buffer[] = {0x00, 0x00};
   const unsigned char BOM[] = {0xff, 0xfe};
@@ -77,8 +77,8 @@ bool CReport::SaveToDisk()
 {
   FILE *fd;
 
-  wstring path(m_csDataBase);
-  wstring drive, dir, file, ext;
+  std::wstring path(m_csDataBase);
+  std::wstring drive, dir, file, ext;
   if (!pws_os::splitpath(path, drive, dir, file, ext)) {
     PWSDebug::IssueError(L"StartReport: Finding path to database");
     return false;
@@ -117,7 +117,7 @@ bool CReport::SaveToDisk()
       FILE *f_in = pws_os::FOpen(m_cs_filename, L"rb");
 
       // Open new file
-      wstring cs_out = m_cs_filename + L".tmp";
+      std::wstring cs_out = m_cs_filename + L".tmp";
       FILE *f_out = pws_os::FOpen(cs_out, L"wb");
 
       // Write BOM
@@ -162,7 +162,7 @@ bool CReport::SaveToDisk()
 }
 
 // Write a record with(default) or without a CRLF
-void CReport::WriteLine(const wstring &cs_line, bool bCRLF)
+void CReport::WriteLine(const std::wstring &cs_line, bool bCRLF)
 {
   m_osxs << cs_line.c_str();
   if (bCRLF) {
@@ -191,7 +191,7 @@ void CReport::WriteLine()
 void CReport::EndReport()
 {
   WriteLine();
-  wstring cs_title;
+  std::wstring cs_title;
   LoadAString(cs_title, IDSC_END_REPORT1);
   WriteLine(cs_title);
   LoadAString(cs_title, IDSC_END_REPORT2);

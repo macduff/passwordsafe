@@ -5,8 +5,10 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
 #ifndef __PWSDIRS_H
 #define __PWSDIRS_H
+
 // PWSdirs.h
 // Provide directories used by application
 //
@@ -14,6 +16,7 @@
 // PWS_PREFSDIR if defined.
 //
 //-----------------------------------------------------------------------------
+
 #include "os/typedefs.h"
 #include <stack>
 
@@ -21,21 +24,22 @@ class PWSdirs
 {
 public:
   PWSdirs() {} // only need to create an object for push/pop
-  PWSdirs(const wstring &dir) {Push(dir);} // convenience: create & push
+  PWSdirs(const std::wstring &dir) {Push(dir);} // convenience: create & push
   ~PWSdirs(); // does a repeated Pop, so we're back where we started
 
-  static wstring GetSafeDir(); // default database location
-  static wstring GetConfigDir(); // pwsafe.cfg location
-  static wstring GetXMLDir(); // XML .xsd .xsl files
-  static wstring GetHelpDir(); // help file(s)
-  static wstring GetExeDir(); // location of executable
+  static std::wstring GetSafeDir(); // default database location
+  static std::wstring GetConfigDir(); // pwsafe.cfg location
+  static std::wstring GetXMLDir(); // XML .xsd .xsl files
+  static std::wstring GetHelpDir(); // help file(s)
+  static std::wstring GetExeDir(); // location of executable
 
-  void Push(const wstring &dir); // cd to dir after saving current dir
+  void Push(const std::wstring &dir); // cd to dir after saving current dir
   void Pop(); // cd to last dir, nop if stack empty
 
 private:
-  static wstring GetOurExecDir();
-  static wstring execdir;
-  stack<wstring> dirs;
+  static std::wstring GetOurExecDir();
+  static std::wstring execdir;
+  std::stack<std::wstring> dirs;
 };
+
 #endif /* __PWSDIRS_H */

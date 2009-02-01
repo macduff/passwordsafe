@@ -43,7 +43,7 @@ static FILE *f;
 
 bool CXMLprefs::Lock()
 {
-  wstring locker(L"");
+  std::wstring locker(L"");
   int tries = 10;
   do {
     m_bIsLocked = PWSprefs::LockCFGFile(m_csConfigFile, locker);
@@ -165,7 +165,7 @@ exit:
 }
 
 // get a int value
-int CXMLprefs::Get(const wstring &csBaseKeyName, const wstring &csValueName, 
+int CXMLprefs::Get(const std::wstring &csBaseKeyName, const std::wstring &csValueName, 
                    int iDefaultValue)
 {
   /*
@@ -173,32 +173,33 @@ int CXMLprefs::Get(const wstring &csBaseKeyName, const wstring &csValueName,
   call the Get(String) method.
   */
   int iRetVal = iDefaultValue;
-  wostringstream os;
+  std::wostringstream os;
   os << iDefaultValue;
-  wistringstream is(Get(csBaseKeyName, csValueName, os.str()));
+  std::wistringstream is(Get(csBaseKeyName, csValueName, os.str()));
   is >> iRetVal;
 
   return iRetVal;
 }
 
 // get a string value
-wstring CXMLprefs::Get(const wstring &csBaseKeyName, const wstring &csValueName, 
-                       const wstring &csDefaultValue)
+std::wstring CXMLprefs::Get(const std::wstring &csBaseKeyName, 
+                            const std::wstring &csValueName, 
+                            const std::wstring &csDefaultValue)
 {
   ASSERT(m_pXMLDoc != NULL); // shouldn't be called if not loaded
   if (m_pXMLDoc == NULL) // just in case
     return csDefaultValue;
 
   int iNumKeys = 0;
-  wstring csValue = csDefaultValue;
+  std::wstring csValue = csDefaultValue;
 
   // Add the value to the base key separated by a '\'
-  wstring csKeyName(csBaseKeyName);
+  std::wstring csKeyName(csBaseKeyName);
   csKeyName += L"\\";
   csKeyName += csValueName;
 
   // Parse all keys from the base key name (keys separated by a '\')
-  wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
+  std::wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
 
   // Traverse the xml using the keys parsed from the base key name to find the correct node
   if (pcsKeys != NULL) {
@@ -210,7 +211,7 @@ wstring CXMLprefs::Get(const wstring &csBaseKeyName, const wstring &csValueName,
 
       if (foundNode != NULL) {
         // get the text of the node (will be the value we requested)
-        csValue = wstring(foundNode->GetText());
+        csValue = std::wstring(foundNode->GetText());
       }
     }
     delete[] pcsKeys;
@@ -220,7 +221,7 @@ wstring CXMLprefs::Get(const wstring &csBaseKeyName, const wstring &csValueName,
 }
 
 // set a int value
-int CXMLprefs::Set(const wstring &csBaseKeyName, const wstring &csValueName,
+int CXMLprefs::Set(const std::wstring &csBaseKeyName, const std::wstring &csValueName,
                    int iValue)
 {
   /*
@@ -228,7 +229,7 @@ int CXMLprefs::Set(const wstring &csBaseKeyName, const wstring &csValueName,
   call the SetSettingString method.
   */
   int iRetVal = 0;
-  wstring csValue = L"";
+  std::wstring csValue = L"";
 
   Format(csValue, L"%d", iValue);
 
@@ -238,8 +239,9 @@ int CXMLprefs::Set(const wstring &csBaseKeyName, const wstring &csValueName,
 }
 
 // set a string value
-int CXMLprefs::Set(const wstring &csBaseKeyName, const wstring &csValueName, 
-                   const wstring &csValue)
+int CXMLprefs::Set(const std::wstring &csBaseKeyName, 
+                   const std::wstring &csValueName, 
+                   const std::wstring &csValue)
 {
   // m_pXMLDoc may be NULL if Load() not called b4 Set,
   // or if called & failed
@@ -251,12 +253,12 @@ int CXMLprefs::Set(const wstring &csBaseKeyName, const wstring &csValueName,
   int iNumKeys = 0;
 
   // Add the value to the base key separated by a '\'
-  wstring csKeyName(csBaseKeyName);
+  std::wstring csKeyName(csBaseKeyName);
   csKeyName += L"\\";
   csKeyName += csValueName;
 
   // Parse all keys from the base key name (keys separated by a '\')
-  wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
+  std::wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
 
   // Traverse the xml using the keys parsed from the base key name to find the correct node
   if (pcsKeys != NULL) {
@@ -286,7 +288,8 @@ int CXMLprefs::Set(const wstring &csBaseKeyName, const wstring &csValueName,
 }
 
 // delete a key or chain of keys
-bool CXMLprefs::DeleteSetting(const wstring &csBaseKeyName, const wstring &csValueName)
+bool CXMLprefs::DeleteSetting(const std::wstring &csBaseKeyName, 
+                              const std::wstring &csValueName)
 {
   // m_pXMLDoc may be NULL if Load() not called b4 DeleteSetting,
   // or if called & failed
@@ -296,7 +299,7 @@ bool CXMLprefs::DeleteSetting(const wstring &csBaseKeyName, const wstring &csVal
 
   bool bRetVal = false;
   int iNumKeys = 0;
-  wstring csKeyName(csBaseKeyName);
+  std::wstring csKeyName(csBaseKeyName);
 
   if (!csValueName.empty()) {
     csKeyName += L"\\";
@@ -304,7 +307,7 @@ bool CXMLprefs::DeleteSetting(const wstring &csBaseKeyName, const wstring &csVal
   }
 
   // Parse all keys from the base key name (keys separated by a '\')
-  wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
+  std::wstring *pcsKeys = ParseKeys(csKeyName, iNumKeys);
 
   // Traverse the xml using the keys parsed from the base key name to find the correct node.
   if (pcsKeys != NULL) {
@@ -331,31 +334,31 @@ bool CXMLprefs::DeleteSetting(const wstring &csBaseKeyName, const wstring &csVal
 }
 
 // Parse all keys from the base key name.
-wstring* CXMLprefs::ParseKeys(const wstring &csFullKeyPath, int &iNumKeys)
+std::wstring* CXMLprefs::ParseKeys(const std::wstring &csFullKeyPath, int &iNumKeys)
 {
-  wstring* pcsKeys = NULL;
+  std::wstring* pcsKeys = NULL;
 
   // replace spaces with _ since xml doesn't like them
-  wstring csFKP(csFullKeyPath);
+  std::wstring csFKP(csFullKeyPath);
   Replace(csFKP, L' ', L'_');
 
   if (csFKP[csFKP.length() - 1] == L'\\')
     TrimRight(csFKP, L"\\");  // remove slashes on the end
 
-  wstring csTemp(csFKP);
+  std::wstring csTemp(csFKP);
 
   iNumKeys = Remove(csTemp, L'\\') + 1;  // get a count of slashes
 
-  pcsKeys = new wstring[iNumKeys];  // create storage for the keys
+  pcsKeys = new std::wstring[iNumKeys];  // create storage for the keys
 
   if (pcsKeys) {
-    wstring::size_type iFind = 0, iLastFind = 0;
+    std::wstring::size_type iFind = 0, iLastFind = 0;
     int iCount = -1;
 
     // get all of the keys in the chain
-    while (iFind != wstring::npos) {
+    while (iFind != std::wstring::npos) {
       iFind = csFKP.find(L"\\", iLastFind);
-      if (iFind != wstring::npos) {
+      if (iFind != std::wstring::npos) {
         iCount++;
         pcsKeys[iCount] = csFKP.substr(iLastFind, iFind - iLastFind);
         iLastFind = iFind + 1;
@@ -381,7 +384,7 @@ void CXMLprefs::UnloadXML()
 
 // find a node given a chain of key names
 TiXmlElement *CXMLprefs::FindNode(TiXmlElement *parentNode,
-                                  wstring* pcsKeys, int iNumKeys,
+                                  std::wstring* pcsKeys, int iNumKeys,
                                   bool bAddNodes /*= false*/)
 {
   ASSERT(m_pXMLDoc != NULL); // shouldn't be called if load failed
