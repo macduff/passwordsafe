@@ -388,11 +388,33 @@ private:
   bool m_bWithFormatting;
 };
 
-int PWSFilters::WriteFilterXMLFile(const StringX &filename,
+int PWSFilters::WriteFilterXMLFile(const StringX &wfilename,
                                    const PWSfile::HeaderRecord hdr,
                                    const StringX &currentfile)
 {
-  std::ofstream of(filename.c_str());
+  size_t count;
+#if _MSC_VER >= 1400
+  errno_t err;
+  err = wcstombs_s(&count, NULL, 0, wfilename.c_str(), 0);
+  ASSERT(err == 0);
+  count++;
+#else
+  count = wcstombs(NULL, wfilename.c_str(), 0) + 1;
+#endif
+  ASSERT(count > 0);
+
+  char *cfilename = new char[count];
+
+#if _MSC_VER >= 1400
+  wcstombs_s(&count, cfilename, count + 1, wfilename.c_str(), count + 1);
+#else
+  wcstombs(cfilename, wfilename.c_str(), count + 1);
+#endif
+
+  std::ofstream of(cfilename);
+  trashMemory(cfilename, count);
+  delete [] cfilename;
+
   if (!of)
     return PWScore::CANT_OPEN_FILE;
   else

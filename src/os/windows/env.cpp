@@ -20,9 +20,6 @@ std::wstring pws_os::getenv(const char *env, bool is_path)
 {
   ASSERT(env != NULL);
   std::wstring retval;
-#if _MSC_VER < 1400
-  retval = getenv(env);
-#else
   char* value;
   size_t requiredSize;
   getenv_s(&requiredSize, NULL, 0, env);
@@ -50,7 +47,6 @@ std::wstring pws_os::getenv(const char *env, bool is_path)
       }
     }
   }
-#endif // _MSC_VER < 1400
   return retval;
 }
 

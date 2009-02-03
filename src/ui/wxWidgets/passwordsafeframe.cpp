@@ -24,9 +24,15 @@
 #endif
 
 ////@begin includes
+#include "PWSgrid.h"
+#include "PWStree.h"
 ////@end includes
 
 #include "passwordsafeframe.h"
+#include "safecombinationprompt.h"
+#include "properties.h"
+#include "corelib/PWSprefs.h"
+#include "corelib/PWSdirs.h"
 
 ////@begin XPM images
 ////@end XPM images
@@ -46,7 +52,17 @@ IMPLEMENT_CLASS( PasswordSafeFrame, wxFrame )
 BEGIN_EVENT_TABLE( PasswordSafeFrame, wxFrame )
 
 ////@begin PasswordSafeFrame event table entries
+  EVT_MENU( wxID_OPEN, PasswordSafeFrame::OnOpenClick )
+
+  EVT_MENU( wxID_CLOSE, PasswordSafeFrame::OnCloseClick )
+
+  EVT_MENU( wxID_PROPERTIES, PasswordSafeFrame::OnPropertiesClick )
+
   EVT_MENU( wxID_EXIT, PasswordSafeFrame::OnExitClick )
+
+  EVT_MENU( ID_LIST_VIEW, PasswordSafeFrame::OnListViewClick )
+
+  EVT_MENU( ID_TREE_VIEW, PasswordSafeFrame::OnTreeViewClick )
 
 ////@end PasswordSafeFrame event table entries
 
@@ -58,7 +74,7 @@ END_EVENT_TABLE()
  */
 
 PasswordSafeFrame::PasswordSafeFrame(PWScore &core)
-: m_core(core)
+: m_core(core), m_currentView(GRID)
 {
     Init();
 }
@@ -67,7 +83,7 @@ PasswordSafeFrame::PasswordSafeFrame(wxWindow* parent, PWScore &core,
                                      wxWindowID id, const wxString& caption,
                                      const wxPoint& pos, const wxSize& size,
                                      long style)
-  : m_core(core)
+  : m_core(core), m_currentView(GRID)
 {
     Init();
     Create( parent, id, caption, pos, size, style );
@@ -108,6 +124,8 @@ PasswordSafeFrame::~PasswordSafeFrame()
 void PasswordSafeFrame::Init()
 {
 ////@begin PasswordSafeFrame member initialisation
+  m_grid = NULL;
+  m_tree = NULL;
 ////@end PasswordSafeFrame member initialisation
 }
 
@@ -118,7 +136,10 @@ void PasswordSafeFrame::Init()
 
 void PasswordSafeFrame::CreateControls()
 {    
-////@begin PasswordSafeFrame content construction
+  PWSprefs *prefs = PWSprefs::GetInstance();
+  const StringX lastView = prefs->GetPref(PWSprefs::LastView);
+  m_currentView = (lastView == "list") ? GRID : TREE;
+
   PasswordSafeFrame* itemFrame1 = this;
 
   wxMenuBar* menuBar = new wxMenuBar;
@@ -214,17 +235,21 @@ void PasswordSafeFrame::CreateControls()
   menuBar->Append(itemMenu79, _("Help"));
   itemFrame1->SetMenuBar(menuBar);
 
-  m_grid = new wxGrid(itemFrame1, ID_LISTBOX,
-                      wxDefaultPosition, wxDefaultSize, wxHSCROLL|wxVSCROLL );
-  m_grid->SetDefaultColSize(50);
-  m_grid->SetDefaultRowSize(25);
-  m_grid->SetColLabelSize(25);
-  m_grid->SetRowLabelSize(15);
-  m_grid->CreateGrid(0, 2, wxGrid::wxGridSelectRows);
-  m_grid->SetColLabelValue(0, _("Title"));
-  m_grid->SetColLabelValue(1, _("User"));
+  wxBoxSizer* itemBoxSizer83 = new wxBoxSizer(wxHORIZONTAL);
+  itemFrame1->SetSizer(itemBoxSizer83);
 
-////@end PasswordSafeFrame content construction
+  m_grid = new PWSGrid( itemFrame1, ID_LISTBOX, wxDefaultPosition,
+                        itemFrame1->GetClientSize(), wxHSCROLL|wxVSCROLL );
+  itemBoxSizer83->Add(m_grid, wxSizerFlags().Expand().Border(0));
+
+  m_tree = new PWSTreeCtrl( itemFrame1, ID_TREECTRL, wxDefaultPosition,
+                            itemFrame1->GetClientSize(),
+                            wxTR_EDIT_LABELS|wxTR_HAS_BUTTONS |wxTR_HIDE_ROOT|wxTR_SINGLE );
+  itemBoxSizer83->Add(m_tree, wxSizerFlags().Expand().Border(0));
+  itemBoxSizer83->Layout();
+
+  if (m_currentView == TREE)
+    itemMenu47->Check(ID_TREE_VIEW, true);
 }
 
 
@@ -263,32 +288,35 @@ wxIcon PasswordSafeFrame::GetIconResource( const wxString& name )
 ////@end PasswordSafeFrame icon retrieval
 }
 
+void PasswordSafeFrame::SetTitle(const wxString& title)
+{
+  wxString newtitle = "PasswordSafe";
+  if (!title.empty()) {
+    newtitle += " - ";
+    StringX fname = title.c_str();
+    StringX::size_type findex = fname.rfind("/");
+    if (findex != StringX::npos)
+      fname = fname.substr(findex + 1);
+    newtitle += fname.c_str();
+  }
+  wxFrame::SetTitle(newtitle);
+}
 
 int PasswordSafeFrame::Load(const wxString &passwd)
 {
-  return m_core.ReadCurFile(passwd.c_str());
+  int status = m_core.ReadCurFile(passwd.c_str());
+  if (status == PWScore::SUCCESS) {
+    SetTitle(m_core.GetCurFile().c_str());
+  } else {
+    SetTitle("");
+  }
+  return status;
 }
 
 bool PasswordSafeFrame::Show(bool show)
 {
-  if (show) {
-    int N = m_grid->GetNumberRows();
-    if (N > 0)
-      m_grid->DeleteRows(0, N);
-
-    m_grid->AppendRows(m_core.GetNumEntries());
-    ItemListConstIter iter;
-    int row = 0;
-    for (iter = m_core.GetEntryIter();
-         iter != m_core.GetEntryEndIter();
-         iter++) {
-      wxString title = iter->second.GetTitle().c_str();
-      wxString user = iter->second.GetUser().c_str();
-      m_grid->SetCellValue(row, 0, title);
-      m_grid->SetCellValue(row, 1, user);
-      row++;
-    }
-  }
+  ShowGrid(show && (m_currentView == GRID));
+  ShowTree(show && (m_currentView == TREE));
   return wxFrame::Show(show);
 }
 
@@ -302,5 +330,321 @@ void PasswordSafeFrame::OnExitClick( wxCommandEvent& event )
   // Before editing this code, remove the block markers.
   Destroy();
 ////@end wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXIT in PasswordSafeFrame. 
+}
+
+void PasswordSafeFrame::ShowGrid(bool show)
+{
+  if (show) {
+    m_grid->Clear();
+
+    m_grid->AppendRows(m_core.GetNumEntries());
+    ItemListConstIter iter;
+    int row = 0;
+    for (iter = m_core.GetEntryIter();
+         iter != m_core.GetEntryEndIter();
+         iter++) {
+      m_grid->AddItem(iter->second, row);
+      row++;
+    }
+  }
+  int w,h;
+  GetClientSize(&w, &h);
+  m_grid->SetSize(w, h);
+  m_grid->Show(show);
+}
+
+void PasswordSafeFrame::ShowTree(bool show)
+{
+  if (show) {
+    m_tree->DeleteAllItems();
+    ItemListConstIter iter;
+    for (iter = m_core.GetEntryIter();
+         iter != m_core.GetEntryEndIter();
+         iter++) {
+      m_tree->AddItem(iter->second);
+    }
+  }
+
+  m_tree->Show(show);
+}
+
+
+/*!
+ * wxEVT_COMMAND_MENU_SELECTED event handler for ID_LIST_VIEW
+ */
+
+void PasswordSafeFrame::OnListViewClick( wxCommandEvent& event )
+{
+  PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, "list");
+  ShowTree(false);
+  ShowGrid(true);
+}
+
+
+/*!
+ * wxEVT_COMMAND_MENU_SELECTED event handler for ID_TREE_VIEW
+ */
+
+void PasswordSafeFrame::OnTreeViewClick( wxCommandEvent& event )
+{
+  PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, "tree");
+  ShowGrid(false);
+  ShowTree(true);
+}
+
+int PasswordSafeFrame::Save()
+{
+  int rc = m_core.WriteCurFile();
+  if (rc != PWScore::SUCCESS) {
+    wxString msg(_("Failed to save database "));
+    msg += m_core.GetCurFile().c_str();
+    wxMessageDialog dlg(this, msg, GetTitle(),
+                        (wxICON_ERROR | wxOK));
+    dlg.ShowModal();
+  }
+  return rc;
+}
+
+int PasswordSafeFrame::SaveIfChanged()
+{
+  // offer to save existing database if it was modified.
+  // used before loading another
+  // returns PWScore::SUCCESS if save succeeded or if user decided
+  // not to save
+
+  if (m_core.IsChanged()) {
+    wxString prompt(_("Do you want to save changes to the password database: "));
+    prompt += m_core.GetCurFile().c_str();
+    prompt += "?";
+    wxMessageDialog dlg(this, prompt, GetTitle(),
+                        (wxICON_QUESTION | wxCANCEL |
+                         wxYES_NO | wxYES_DEFAULT));
+    int rc = dlg.ShowModal();
+    switch (rc) {
+      case wxCANCEL:
+        return PWScore::USER_CANCEL;
+      case wxYES:
+        rc = Save();
+        // Make sure that file was successfully written
+        if (rc == PWScore::SUCCESS)
+          break;
+        else
+          return PWScore::CANT_OPEN_FILE;
+      case wxNO:
+        // Reset changed flag
+        // SetChanged(Clear);
+        break;
+    }
+  }
+  return PWScore::SUCCESS;
+}
+
+void PasswordSafeFrame::ClearData()
+{
+  m_core.ReInit();
+  m_grid->BeginBatch();
+  m_grid->ClearGrid();
+  m_grid->EndBatch();
+  m_tree->DeleteAllItems();
+}
+
+
+
+
+/*!
+ * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_OPEN
+ */
+
+void PasswordSafeFrame::OnOpenClick( wxCommandEvent& event )
+{
+  stringT dir = PWSdirs::GetSafeDir();
+  //Open-type dialog box
+  wxFileDialog fd(this, _("Please Choose a Database to Open:"),
+                  dir.c_str(), "pwsafe.psafe3",
+                  _("Password Safe Databases (*.psafe3; *.dat)|*.psafe3; *.dat|"
+                   "Password Safe Backups (*.bak)|*.bak|"
+                   "Password Safe Intermediate Backups (*.ibak)|*.ibak|"
+                    "All files (*.*)|*.*"),
+                  (wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_CHANGE_DIR));
+
+  while (1) {
+    if (fd.ShowModal() == wxID_OK) {
+      int rc = Open(fd.GetPath()); // prompt for password of new file and load.
+      if (rc == PWScore::SUCCESS) {
+        break;
+      }
+    } else { // user cancelled 
+      break;
+    }
+  }
+}
+
+
+/*!
+ * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CLOSE
+ */
+
+void PasswordSafeFrame::OnCloseClick( wxCommandEvent& event )
+{
+  PWSprefs *prefs = PWSprefs::GetInstance();
+
+  // Save Application related preferences
+  prefs->SaveApplicationPreferences();
+  if( !m_core.GetCurFile().empty() ) {
+    int rc = SaveIfChanged();
+    if (rc != PWScore::SUCCESS)
+      return;
+    m_core.UnlockFile(m_core.GetCurFile().c_str());
+    m_core.SetCurFile(_T(""));
+    ClearData();
+    SetTitle("");
+  }
+}
+
+int PasswordSafeFrame::Open(const wxString &fname)
+{ // prompt for password, try to Load.
+  CSafeCombinationPrompt pwdprompt(this, m_core, fname);
+  if (pwdprompt.ShowModal() == wxID_OK) {
+    m_core.SetCurFile(fname.c_str());
+    wxString password = pwdprompt.GetPassword();
+    int retval = Load(password);
+    if (retval == PWScore::SUCCESS)
+      Show();
+    return retval;
+  } else
+    return PWScore::USER_CANCEL;
+#if 0
+  //Check that this file isn't already open
+  if (pszFilename == m_core.GetCurFile() && !m_needsreading) {
+    //It is the same damn file
+    cs_text.LoadString(IDS_ALREADYOPEN);
+    cs_title.LoadString(IDS_OPENDATABASE);
+    MessageBox(cs_text, cs_title, MB_OK|MB_ICONWARNING);
+    return PWScore::ALREADY_OPEN;
+  }
+
+  rc = SaveIfChanged();
+  if (rc != PWScore::SUCCESS)
+    return rc;
+
+  // if we were using a different file, unlock it
+  // do this before GetAndCheckPassword() as that
+  // routine gets a lock on the new file
+  if( !m_core.GetCurFile().empty() ) {
+    m_core.UnlockFile(m_core.GetCurFile().c_str());
+  }
+
+  rc = GetAndCheckPassword(pszFilename, passkey, GCP_NORMAL, bReadOnly);  // OK, CANCEL, HELP
+  switch (rc) {
+    case PWScore::SUCCESS:
+      app.AddToMRU(pszFilename.c_str());
+      m_bAlreadyToldUserNoSave = false;
+      break; // Keep going...
+    case PWScore::CANT_OPEN_FILE:
+      temp.Format(IDS_SAFENOTEXIST, pszFilename.c_str());
+      cs_title.LoadString(IDS_FILEOPENERROR);
+      MessageBox(temp, cs_title, MB_OK|MB_ICONWARNING);
+    case TAR_OPEN:
+      return Open();
+    case TAR_NEW:
+      return New();
+    case PWScore::WRONG_PASSWORD:
+    case PWScore::USER_CANCEL:
+      /*
+      If the user just cancelled out of the password dialog,
+      assume they want to return to where they were before...
+      */
+      return PWScore::USER_CANCEL;
+    default:
+      ASSERT(0); // we should take care of all cases explicitly
+      return PWScore::USER_CANCEL; // conservative behaviour for release version
+  }
+
+  // clear the data before loading the new file
+  ClearData();
+
+  cs_title.LoadString(IDS_FILEREADERROR);
+  MFCAsker q;
+  MFCReporter r;
+  m_core.SetAsker(&q);
+  m_core.SetReporter(&r);
+  rc = m_core.ReadFile(pszFilename, passkey);
+  m_core.SetAsker(NULL);
+  m_core.SetReporter(NULL);
+  switch (rc) {
+    case PWScore::SUCCESS:
+      break;
+    case PWScore::CANT_OPEN_FILE:
+      temp.Format(IDS_CANTOPENREADING, pszFilename.c_str());
+      MessageBox(temp, cs_title, MB_OK|MB_ICONWARNING);
+      /*
+      Everything stays as is... Worst case,
+      they saved their file....
+      */
+      return PWScore::CANT_OPEN_FILE;
+    case PWScore::BAD_DIGEST:
+    {
+      temp.Format(IDS_FILECORRUPT, pszFilename.c_str());
+      const int yn = MessageBox(temp, cs_title, MB_YESNO|MB_ICONERROR);
+      if (yn == IDYES) {
+        rc = PWScore::SUCCESS;
+        break;
+      } else
+        return rc;
+    }
+#ifdef DEMO
+    case PWScore::LIMIT_REACHED:
+    {
+      CString cs_msg; cs_msg.Format(IDS_LIMIT_MSG, MAXDEMO);
+      CString cs_title(MAKEINTRESOURCE(IDS_LIMIT_TITLE));
+      const int yn = MessageBox(cs_msg, cs_title, MB_YESNO|MB_ICONWARNING);
+      if (yn == IDNO) {
+        return PWScore::USER_CANCEL;
+      }
+      rc = PWScore::SUCCESS;
+      m_MainToolBar.GetToolBarCtrl().EnableButton(ID_MENUITEM_ADD, FALSE);
+      break;
+    }
+#endif
+    default:
+      temp.Format(IDS_UNKNOWNERROR, pszFilename.c_str());
+      MessageBox(temp, cs_title, MB_OK|MB_ICONERROR);
+      return rc;
+  }
+  m_core.SetCurFile(pszFilename);
+#if !defined(POCKET_PC)
+  m_titlebar = PWSUtil::NormalizeTTT(_T("Password Safe - ") +
+                                     m_core.GetCurFile()).c_str();
+  SetWindowText(LPCTSTR(m_titlebar));
+#endif
+  CheckExpiredPasswords();
+  ChangeOkUpdate();
+
+  // Tidy up filters
+  m_currentfilter.Empty();
+  m_bFilterActive = false;
+
+  RefreshViews();
+  SetInitialDatabaseDisplay();
+  m_core.SetDefUsername(PWSprefs::GetInstance()->
+                        GetPref(PWSprefs::DefaultUsername));
+  m_core.SetUseDefUser(PWSprefs::GetInstance()->
+                       GetPref(PWSprefs::UseDefaultUser) ? true : false);
+  m_needsreading = false;
+  SelectFirstEntry();
+
+  return rc;
+#endif
+}
+
+
+/*!
+ * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_PROPERTIES
+ */
+
+void PasswordSafeFrame::OnPropertiesClick( wxCommandEvent& event )
+{
+  CProperties props(this, m_core);
+  props.ShowModal();
 }
 

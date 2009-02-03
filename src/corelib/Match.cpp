@@ -226,7 +226,6 @@ void PWSMatch::GetMatchType(MatchType mtype,
         ASSERT(err == 0);
 #else
         st = *localtime(&fdate1);
-        ASSERT(st != NULL);
 #endif
         wchar_t tc_buf1[80];
         wcsftime(tc_buf1, sizeof(tc_buf1) / sizeof(tc_buf1[0]), L"%x", &st);
@@ -237,7 +236,6 @@ void PWSMatch::GetMatchType(MatchType mtype,
           ASSERT(err == 0);
 #else
           st = *localtime(&fdate2);
-          ASSERT(st != NULL);
 #endif
           wchar_t tc_buf2[80];
           wcsftime(tc_buf2, sizeof(tc_buf2) / sizeof(tc_buf2[0]), L"%x", &st);

@@ -11,6 +11,13 @@
 #include "typedefs.h"
 
 namespace pws_os {
+#ifndef _WIN32
+  /*
+   * General conversion from char* to std::wstring routine
+   */
+  extern std::wstring towc(const char *val);
+#endif
+
   /**
    * getenv return environment value associated with env, empty string if
    * not defined. if is_path is true, the returned value will end with a path

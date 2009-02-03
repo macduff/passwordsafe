@@ -19,7 +19,7 @@
 
 #include "../env.h"
 
-static std::wstring towc(const char *val)
+std::wstring pws_os::towc(const char *val)
 {
   std::wstring retval;
   assert(val != NULL);
@@ -42,7 +42,7 @@ std::wstring pws_os::getenv(const char *env, bool is_path)
 {
   assert(env != NULL);
   std::wstring retval;
-  char *value = getenv(env);
+  char *value = ::getenv(env);
   if (value != NULL) {
     retval = towc(value);
     if (is_path) {

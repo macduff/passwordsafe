@@ -317,7 +317,7 @@ private:
   PWScore *m_core;
 };
 
-int PWScore::WritePlaintextFile(const StringX &filename,
+int PWScore::WritePlaintextFile(const StringX &wfilename,
                                 const CItemData::FieldBits &bsFields,
                                 const std::wstring &subgroup_name,
                                 const int &subgroup_object,
@@ -328,7 +328,28 @@ int PWScore::WritePlaintextFile(const StringX &filename,
   if (bsFields.count() == 0)
     return SUCCESS;
 
-  std::ofstream ofs(filename.c_str());
+  size_t count;
+#if _MSC_VER >= 1400
+  errno_t err;
+  err = wcstombs_s(&count, NULL, 0, wfilename.c_str(), 0);
+  ASSERT(err == 0);
+  count ++;
+#else
+  count = wcstombs(NULL, wfilename.c_str(), 0) + 1;
+#endif
+  ASSERT(count > 0);
+
+  char *cfilename = new char[count];
+
+#if _MSC_VER >= 1400
+  wcstombs_s(&count, cfilename, count + 1, wfilename.c_str(), count + 1);
+#else
+  wcstombs(cfilename, wfilename.c_str(), count + 1);
+#endif
+
+  std::ofstream ofs(cfilename);
+  trashMemory(cfilename, count);
+  delete [] cfilename;
 
   if (!ofs)
     return CANT_OPEN_FILE;
@@ -502,13 +523,34 @@ private:
   PWScore *m_core;
 };
 
-int PWScore::WriteXMLFile(const StringX &filename,
+int PWScore::WriteXMLFile(const StringX &wfilename,
                           const CItemData::FieldBits &bsFields,
                           const std::wstring &subgroup_name,
                           const int &subgroup_object, const int &subgroup_function,
                           const wchar_t delimiter, const OrderedItemList *il)
 {
-  std::ofstream of(filename.c_str());
+  size_t count;
+#if _MSC_VER >= 1400
+  errno_t err;
+  err = wcstombs_s(&count, NULL, 0, wfilename.c_str(), 0);
+  ASSERT(err == 0);
+  count ++;
+#else
+  count = wcstombs(NULL, wfilename.c_str(), 0) + 1;
+#endif
+  ASSERT(count > 0);
+
+  char *cfilename = new char[count];
+
+#if _MSC_VER >= 1400
+  wcstombs_s(&count, cfilename, count + 1, wfilename.c_str(), count + 1);
+#else
+  wcstombs(cfilename, wfilename.c_str(), count + 1);
+#endif
+
+  std::ofstream of(cfilename);
+  trashMemory(cfilename, count);
+  delete [] cfilename;
 
   if (!of)
     return CANT_OPEN_FILE;
@@ -724,17 +766,38 @@ int PWScore::ImportXMLFile(const std::wstring &ImportedPrefix, const std::wstrin
 #endif
 
 int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
-                                 const StringX &filename, std::wstring &strError,
+                                 const StringX &wfilename, std::wstring &strError,
                                  wchar_t fieldSeparator, wchar_t delimiter,
                                  int &numImported, int &numSkipped,
                                  CReport &rpt)
 {
-  std::wstring csError;
-  std::wifstream ifs(filename.c_str());
+  size_t count;
+#if _MSC_VER >= 1400
+  errno_t err;
+  err = wcstombs_s(&count, NULL, 0, wfilename.c_str(), 0);
+  ASSERT(err == 0);
+  count ++;
+#else
+  count = wcstombs(NULL, wfilename.c_str(), 0) + 1;
+#endif
+  ASSERT(count > 0);
 
-  if (!ifs)
+  char *cfilename = new char[count];
+
+#if _MSC_VER >= 1400
+  wcstombs_s(&count, cfilename, count + 1, wfilename.c_str(), count + 1);
+#else
+  wcstombs(cfilename, wfilename.c_str(), count + 1);
+#endif
+
+  std::wifstream wifs(cfilename);
+  trashMemory(cfilename, count);
+  delete [] cfilename;
+
+  if (!wifs)
     return CANT_OPEN_FILE;
 
+  std::wstring csError;
   numImported = numSkipped = 0;
 
   int numlines = 0;
@@ -778,7 +841,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
   std::wstring s_title, linebuf;
 
   // Get title record
-  if (!getline(ifs, s_title, L'\n')) {
+  if (!getline(wifs, s_title, L'\n')) {
     LoadAString(strError, IDSC_IMPORTNOHEADER);
     rpt.WriteLine(strError);
     return SUCCESS;  // not even a title record! - succeeded but none imported!
@@ -841,7 +904,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
   // Finished parsing header, go get the data!
   for (;;) {
     // read a single line.
-    if (!getline(ifs, linebuf, L'\n')) break;
+    if (!getline(wifs, linebuf, L'\n')) break;
     numlines++;
 
     // remove MS-DOS linebreaks, if needed.
@@ -879,10 +942,10 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
             //there was exactly one quote, meaning that we've a multi-line Note
             bool noteClosed = false;
             do {
-              if (!getline(ifs, linebuf, L'\n')) {
+              if (!getline(wifs, linebuf, L'\n')) {
                 Format(csError, IDSC_IMPMISSINGQUOTE, numlines);
                 rpt.WriteLine(csError);
-                ifs.close(); // file ends before note closes
+                wifs.close(); // file ends before note closes
                 return (numImported > 0) ? SUCCESS : INVALID_FORMAT;
               }
               numlines++;
@@ -1108,7 +1171,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
     AddEntry(temp);
     numImported++;
   } // file processing for (;;) loop
-  ifs.close();
+  wifs.close();
 
   AddDependentEntries(possible_aliases, &rpt, CItemData::ET_ALIAS, CItemData::PASSWORD);
   AddDependentEntries(possible_shortcuts, &rpt, CItemData::ET_SHORTCUT, CItemData::PASSWORD);
@@ -1664,12 +1727,33 @@ that is imports.  Both are pretty easy things to live with.
 --jah
 */
 
-int PWScore::ImportKeePassTextFile(const StringX &filename)
+int PWScore::ImportKeePassTextFile(const StringX &wfilename)
 {
   static const wchar_t *ImportedPrefix = { L"ImportedKeePass" };
-  std::wifstream ifs(filename.c_str());
 
-  if (!ifs) {
+  size_t count;
+#if _MSC_VER >= 1400
+  errno_t err;
+  err = wcstombs_s(&count, NULL, 0, wfilename.c_str(), 0);
+  ASSERT(err == 0);
+  count++;
+#else
+  count = wcstombs(NULL, wfilename.c_str(), 0) + 1;
+#endif
+  ASSERT(count > 0);
+
+  char *cfilename = new char[count];
+
+#if _MSC_VER >= 1400
+  wcstombs_s(&count, cfilename, count + 1, wfilename.c_str(), count + 1);
+#else
+  wcstombs(cfilename, wfilename.c_str(), count + 1);
+#endif
+
+  std::wifstream wifs(cfilename);
+  delete [] cfilename;
+
+  if (!wifs) {
     return CANT_OPEN_FILE;
   }
 
@@ -1677,7 +1761,7 @@ int PWScore::ImportKeePassTextFile(const StringX &filename)
   std::wstring group, title, user, passwd, notes;
 
   // read a single line.
-  if (!getline(ifs, linebuf, L'\n') || linebuf.empty()) {
+  if (!getline(wifs, linebuf, L'\n') || linebuf.empty()) {
     return INVALID_FORMAT;
   }
 
@@ -1686,7 +1770,7 @@ int PWScore::ImportKeePassTextFile(const StringX &filename)
 
   std::wstring::size_type pos = std::wstring::npos;
   for (;;) {
-    if (!ifs)
+    if (!wifs)
       break;
     notes.erase();
 
@@ -1699,7 +1783,7 @@ int PWScore::ImportKeePassTextFile(const StringX &filename)
     title = linebuf.substr(linebuf.find(L"[") + 1, linebuf.rfind(L"]") - 1).c_str();
 
     // set the group: line pattern: Group: <user>
-    if (!getline(ifs, linebuf, L'\n') ||
+    if (!getline(wifs, linebuf, L'\n') ||
         (pos = linebuf.find(L"Group: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
@@ -1710,14 +1794,14 @@ int PWScore::ImportKeePassTextFile(const StringX &filename)
     }
 
     // set the user: line pattern: UserName: <user>
-    if (!getline(ifs, linebuf, L'\n') ||
+    if (!getline(wifs, linebuf, L'\n') ||
         (pos = linebuf.find(L"UserName: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
     user = linebuf.substr(pos + 10);
 
     // set the url: line pattern: URL: <url>
-    if (!getline(ifs, linebuf, L'\n') ||
+    if (!getline(wifs, linebuf, L'\n') ||
         (pos = linebuf.find(L"URL: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
@@ -1727,14 +1811,14 @@ int PWScore::ImportKeePassTextFile(const StringX &filename)
     }
 
     // set the password: line pattern: Password: <passwd>
-    if (!getline(ifs, linebuf, L'\n') ||
+    if (!getline(wifs, linebuf, L'\n') ||
         (pos = linebuf.find(L"Password: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
     passwd = linebuf.substr(pos + 10);
 
     // set the first line of notes: line pattern: Notes: <notes>
-    if (!getline(ifs, linebuf, L'\n') ||
+    if (!getline(wifs, linebuf, L'\n') ||
         (pos = linebuf.find(L"Notes: ")) == std::wstring::npos) {
       return INVALID_FORMAT;
     }
@@ -1743,7 +1827,7 @@ int PWScore::ImportKeePassTextFile(const StringX &filename)
     // read in any remaining new notes and set up the next record
     for (;;) {
       // see if we hit the end of the file
-      if (!getline(ifs, linebuf, L'\n')) {
+      if (!getline(wifs, linebuf, L'\n')) {
         break;
       }
 
@@ -1767,7 +1851,7 @@ int PWScore::ImportKeePassTextFile(const StringX &filename)
 
     AddEntry(temp);
   }
-  ifs.close();
+  wifs.close();
 
   // TODO: maybe return an error if the full end of the file was not reached?
 

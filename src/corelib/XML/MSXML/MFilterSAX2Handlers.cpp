@@ -363,7 +363,7 @@ HRESULT STDMETHODCALLTYPE MFilterSAX2ContentHandler::endElement (
     fk.fpool = m_FPool;
     fk.cs_filtername = cur_filter->fname;
     if (m_MapFilters->find(fk) != m_MapFilters->end()) {
-      wstring question;
+      std::wstring question;
       Format(question, IDSC_FILTEREXISTS, cur_filter->fname.c_str());
       if (m_pAsker == NULL || !(*m_pAsker)(question)) {
         m_MapFilters->erase(fk);

@@ -14,7 +14,7 @@
 //#define SHA1HANDSOFF Copies data before messing with it.
 
 #include <stdio.h>
-#include <string>
+#include <string.h>
 #include <stdlib.h>
 #include "sha1.h"
 

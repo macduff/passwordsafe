@@ -117,13 +117,13 @@ bool pws_os::CopyAFile(const std::wstring &wfrom, const std::wstring &wto)
   std::string::size_type stop;
   do {
     stop = cto.find_first_of("/", start);
-    if (stop != string::npos)
+    if (stop != std::string::npos)
       ::mkdir(cto.substr(start, stop).c_str(), 0700); // fail if already there - who cares?
     start = stop + 1;
-  } while (stop != string::npos);
+  } while (stop != std::string::npos);
 
-  std::ifstream src(szfrom, ios_base::in | ios_base::binary);
-  std::ofstream dst(cto.c_str(), ios_base::out | ios_base::binary);
+  std::ifstream src(szfrom, std::ios_base::in | std::ios_base::binary);
+  std::ofstream dst(cto.c_str(), std::ios_base::out | std::ios_base::binary);
   const size_t BUFSIZE = 2048;
   char buf[BUFSIZE];
   size_t readBytes;
@@ -144,10 +144,10 @@ bool pws_os::DeleteAFile(const std::wstring &wfilename)
   size_t fnsize = wcstombs(NULL, wfilename.c_str(), 0) + 1;
   assert(fnsize > 0);
   char *szfn = new char[fnsize];
-  wcstombs(szffn, wfilename.c_str(), fnsize);
+  wcstombs(szfn, wfilename.c_str(), fnsize);
 
-  bool rc = ::unlink(szffn);
-  delete [] szffn;
+  bool rc = ::unlink(szfn);
+  delete [] szfn;
   return rc;
 }
 
@@ -170,14 +170,14 @@ void pws_os::FindFiles(const std::wstring &wfilter, std::vector<std::wstring> &r
 
   std::string cfilter(szfilter);
   std::string dir;
-  std::string::size_type last_slash = filter.find_last_of("/");
+  std::string::size_type last_slash = cfilter.find_last_of("/");
 
-  if (last_slash != wstring::npos) {
-    dir = filter.substr(0, last_slash);
-    filterString = filter.substr(last_slash + 1);
+  if (last_slash != std::wstring::npos) {
+    dir = cfilter.substr(0, last_slash);
+    filterString = cfilter.substr(last_slash + 1);
   } else {
     dir = ".";
-    filterString = filter;
+    filterString = cfilter;
   }
   delete [] szfilter;
   res.clear();
@@ -188,7 +188,8 @@ void pws_os::FindFiles(const std::wstring &wfilter, std::vector<std::wstring> &r
     return;
 
   while (nMatches-- != 0) {
-    res.push_back(wstring(namelist[nMatches]->d_name));
+    std::wstring wname = towc(namelist[nMatches]->d_name);
+    res.push_back(wname);
     free(namelist[nMatches]);
   }
   free(namelist);
@@ -211,7 +212,7 @@ bool pws_os::LockFile(const std::wstring &wfilename, std::wstring &locker,
   size_t lfs = wcstombs(NULL, wlock_filename.c_str(), wlock_filename.length()) + 1;
   assert(lfs > 0);
   char *lfn = new char[lfs];
-  wcstombs(lfn, lock_filename.c_str(), wlock_filename.length());
+  wcstombs(lfn, wlock_filename.c_str(), wlock_filename.length());
   int fh = open(lfn, (O_CREAT | O_EXCL | O_WRONLY),
                      (S_IREAD | S_IWRITE));
   delete [] lfn;
@@ -226,7 +227,7 @@ bool pws_os::LockFile(const std::wstring &wfilename, std::wstring &locker,
       case EEXIST: // filename already exists
       {
         // read locker data ("user@machine:nnnnnnnn") from file
-        std::wistringstream is(lock_filename);
+        std::wistringstream is(wlock_filename);
         std::wstring lockerStr;
         if (is >> lockerStr) {
           locker = lockerStr;
@@ -271,7 +272,7 @@ void pws_os::UnlockFile(const std::wstring &wfilename,
   size_t lfs = wcstombs(NULL, wlock_filename.c_str(), wlock_filename.length()) + 1;
   assert(lfs > 0);
   char *lfn = new char[lfs];
-  wcstombs(lfn, wlock_filename.c_str(), lock_filename.length());
+  wcstombs(lfn, wlock_filename.c_str(), wlock_filename.length());
   unlink(lfn);
   delete [] lfn;
 }

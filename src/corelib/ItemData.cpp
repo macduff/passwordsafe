@@ -1271,7 +1271,6 @@ bool CItemData::WillExpire(const int numdays)
   ASSERT(err == 0);
 #else
   st = *localtime(&now);
-  ASSERT(st != NULL);
 #endif
   st.tm_mday += numdays;
   exptime = mktime(&st);

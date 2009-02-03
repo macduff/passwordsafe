@@ -11,9 +11,12 @@
  */
  
 #include "../dir.h"
+#include "../env.h"
+
 #include <unistd.h>
 #include <limits.h>
 #include <cassert>
+#include <stdlib.h>
 
 std::wstring pws_os::getexecdir()
 {
@@ -22,7 +25,7 @@ std::wstring pws_os::getexecdir()
   if (readlink("/proc/self/exe", path, PATH_MAX) < 0)
     return std::wstring(L"?");
   else {
-    std::wstring retval(path);
+    std::wstring retval = towc(path);
     std::wstring::size_type last_slash = retval.find_last_of(L"/");
     return retval.substr(0, last_slash + 1);
   }
@@ -35,14 +38,7 @@ std::wstring pws_os::getcwd()
     curdir[0] = '?';
     curdir[1] = '\0';
   }
-  const int len = strlen(curdir);
-  size_t wsize = mbtowcs(NULL, curdir, len + 1) + 1;
-  assert(wsize > 0);
-  wchar_t wcurdir = new wchar_t[wsize];
-  mbtowcs(wcurdir, curdir, len + 1);
-  std::wstring retval = std::wstring(wcurdir);
-  delete [] wcurdir;
-  return retval;
+  return towc(curdir);
 }
 
 bool pws_os::chdir(const std::wstring &wdir)
@@ -76,7 +72,7 @@ bool pws_os::splitpath(const std::wstring &path,
     ext = path.substr(last_dot + 1);
   } else {
     file = path.substr(last_slash + 1);
-    ext = "";
+    ext = L"";
   }
   return true;
 }
