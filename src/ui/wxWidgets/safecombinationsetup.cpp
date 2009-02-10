@@ -139,7 +139,7 @@ void CSafeCombinationSetup::CreateControls()
   wxStaticText* itemStaticText6 = new wxStaticText( itemDialog1, wxID_STATIC, _("Safe Combination:"), wxDefaultPosition, wxDefaultSize, 0 );
   itemBoxSizer4->Add(itemStaticText6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
-  wxTextCtrl* itemTextCtrl7 = new wxTextCtrl( itemDialog1, ID_PASSKEY, _T(""), wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(120, -1)).x, -1), wxTE_PASSWORD );
+  wxTextCtrl* itemTextCtrl7 = new wxTextCtrl( itemDialog1, ID_PASSKEY, L"", wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(120, -1)).x, -1), wxTE_PASSWORD );
   itemBoxSizer4->Add(itemTextCtrl7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   wxBoxSizer* itemBoxSizer8 = new wxBoxSizer(wxHORIZONTAL);
@@ -150,7 +150,7 @@ void CSafeCombinationSetup::CreateControls()
   wxStaticText* itemStaticText10 = new wxStaticText( itemDialog1, wxID_STATIC, _("Verify:"), wxDefaultPosition, wxDefaultSize, 0 );
   itemBoxSizer8->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
-  wxTextCtrl* itemTextCtrl11 = new wxTextCtrl( itemDialog1, ID_VERIFY, _T(""), wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(120, -1)).x, -1), wxTE_PASSWORD );
+  wxTextCtrl* itemTextCtrl11 = new wxTextCtrl( itemDialog1, ID_VERIFY, L"", wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(120, -1)).x, -1), wxTE_PASSWORD );
   itemBoxSizer8->Add(itemTextCtrl11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   wxStdDialogButtonSizer* itemStdDialogButtonSizer12 = new wxStdDialogButtonSizer;

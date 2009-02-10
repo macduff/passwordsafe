@@ -179,7 +179,7 @@ static bool SafeCompare(const wchar_t *v1, const wchar_t *v2)
 
 /*
 * The latest version information is in
-* http://passwordsafe.sourceforge.net/latest.xml
+* http://pwsafe.org/latest.xml
 *
 * And is of the form:
 * <VersionInfo>
@@ -204,7 +204,7 @@ CAboutDlg::CheckStatus CAboutDlg::CheckLatestVersion(CString &latest)
   CWaitCursor waitCursor;
   try {
     // Loading the file as binary since we're treating it as UTF-8
-    fh = session.OpenURL(L"http://passwordsafe.sourceforge.net/latest.xml",
+    fh = session.OpenURL(L"http://pwsafe.org/latest.xml",
                          1, (INTERNET_FLAG_TRANSFER_BINARY | INTERNET_FLAG_RELOAD));
   } catch (CInternetException *) {
     // throw;

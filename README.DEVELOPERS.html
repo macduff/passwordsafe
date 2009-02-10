@@ -19,14 +19,13 @@ the following freely available components:</p>
 </ul>
 </ul>
 
-<p>If you're using Microsoft's Visual Studio, the file "UserVariables.vsprops"
+<p>If you're using Microsoft's Visual Studio, the file "<font color=red>UserVariables.vsprops</font>" for the Windows MFC application and "<font color=red>wxUserVariables.vsprops</font>" for the Windows wxWidgets application 
 <b><u><i>must</i></u></b> exist and point to the directories where the above
 components have been installed. <b><u><i>The solution will not open correctly without
 this file being present.</i></u></b></p>
 
-<p>For your convenience, we've included a simple Visual Basic script, 
-"configure.vbs", that you can run to generate the "UserVariables.vsprops" file
-with the correct values.</p>
+<p>For your convenience, we've included two simple Visual Basic scripts, 
+"<font color=red>configure.vbs</font>" and "<font color=red>wxconfigure.vbs</font>", that you can run to generate the "UserVariables.vsprops" file and the "wxUserVariables.vsprops" file respectively with the correct values.</p>
 
 <h3>XML Processing</h3>
 <p>Originally, PasswordSafe used Microsoft's XML library 
@@ -61,11 +60,6 @@ supporting parsers also support this interface.  Because Expat is
 non-validating, code is being added directly into Password Safe to
 perform this validation, so that the program and its databases are
 not corrupted by poorly formed XML or incorrect data within the XML file.</p>
-
-<p>Note: As of 1 December 2008, the additional validation code for Expat and
-non-Unicode versions of all three implementations are in progress.  Work
-is also needed to ensure that error processing is correct and that associated
-messages are produced correctly.</p>
 
 </body>
 </html>

@@ -27,6 +27,7 @@
 
 #include "safecombinationentry.h"
 #include "safecombinationsetup.h"
+#include "version.h"
 #include "corelib/PWSdirs.h"
 #include "os/file.h"
 ////@begin XPM images
@@ -159,7 +160,11 @@ void CSafeCombinationEntry::CreateControls()
                                                          itemDialog1->ConvertDialogToPixels(wxSize(111, 16)), 0 );
   itemBoxSizer5->Add(itemStaticBitmap6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
-  wxStaticText* itemStaticText7 = new wxStaticText( itemDialog1, wxID_STATIC, _("Version 3.16"), wxDefaultPosition, wxDefaultSize, 0 );
+  wxStaticText* itemStaticText7 = new wxStaticText(itemDialog1, wxID_STATIC,
+                                                   wxString::Format(_("Version %d.%d"),
+                                                                    MAJORVERSION,
+                                                                    MINORVERSION),
+                                                   wxDefaultPosition, wxDefaultSize, 0 );
   itemBoxSizer5->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   wxStaticText* itemStaticText8 = new wxStaticText( itemDialog1, wxID_STATIC, _("Open Password Database:"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -169,7 +174,7 @@ void CSafeCombinationEntry::CreateControls()
   itemBoxSizer4->Add(itemBoxSizer9, 50, wxGROW|wxALL, 5);
 
   wxArrayString itemComboBox10Strings;
-  wxComboBox* itemComboBox10 = new wxComboBox( itemDialog1, ID_DBASECOMBOBOX, _T(""), wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(140, -1)).x, -1), itemComboBox10Strings, wxCB_DROPDOWN );
+  wxComboBox* itemComboBox10 = new wxComboBox( itemDialog1, ID_DBASECOMBOBOX, L"", wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(140, -1)).x, -1), itemComboBox10Strings, wxCB_DROPDOWN );
   itemBoxSizer9->Add(itemComboBox10, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 0);
   itemComboBox10->SetFocus();
 
@@ -179,7 +184,7 @@ void CSafeCombinationEntry::CreateControls()
   wxStaticText* itemStaticText12 = new wxStaticText( itemDialog1, wxID_STATIC, _("Safe Combination:"), wxDefaultPosition, wxDefaultSize, 0 );
   itemBoxSizer4->Add(itemStaticText12, 0, wxALIGN_LEFT|wxALL, 3);
 
-  wxTextCtrl* itemTextCtrl13 = new wxTextCtrl( itemDialog1, ID_PASSWORD, _T(""), wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(160, -1)).x, -1), wxTE_PASSWORD );
+  wxTextCtrl* itemTextCtrl13 = new wxTextCtrl( itemDialog1, ID_PASSWORD, L"", wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(160, -1)).x, -1), wxTE_PASSWORD );
   itemBoxSizer4->Add(itemTextCtrl13, 0, wxGROW|wxRIGHT|wxTOP|wxBOTTOM, 5);
 
   wxBoxSizer* itemBoxSizer14 = new wxBoxSizer(wxHORIZONTAL);
@@ -241,14 +246,14 @@ wxBitmap CSafeCombinationEntry::GetBitmapResource( const wxString& name )
   // Bitmap retrieval
 ////@begin CSafeCombinationEntry bitmap retrieval
   wxUnusedVar(name);
-  if (name == _T("../graphics/cpane.bmp"))
+  if (name == L"../graphics/cpane.bmp")
   {
-    wxBitmap bitmap(_T("../graphics/cpane.bmp"), wxBITMAP_TYPE_BMP);
+    wxBitmap bitmap(L"../graphics/cpane.bmp", wxBITMAP_TYPE_BMP);
     return bitmap;
   }
-  else if (name == _T("../graphics/psafetxt.bmp"))
+  else if (name == L"../graphics/psafetxt.bmp")
   {
-    wxBitmap bitmap(_T("../graphics/psafetxt.bmp"), wxBITMAP_TYPE_BMP);
+    wxBitmap bitmap(L"../graphics/psafetxt.bmp", wxBITMAP_TYPE_BMP);
     return bitmap;
   }
   return wxNullBitmap;

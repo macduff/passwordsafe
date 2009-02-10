@@ -106,14 +106,14 @@ void CProperties::Init()
 ////@begin CProperties member initialisation
 ////@end CProperties member initialisation
   m_database = m_core.GetCurFile().c_str();
-  m_databaseformat = wxString::Format("%d.%02d",
+  m_databaseformat = wxString::Format(L"%d.%02d",
                                       m_core.GetHeader().m_nCurrentMajorVersion,
                                       m_core.GetHeader().m_nCurrentMinorVersion);
   std::vector<stringT> aryGroups;
   m_core.GetUniqueGroups(aryGroups);
-  m_numgroups = wxString::Format(_T("%d"), aryGroups.size());
+  m_numgroups = wxString::Format(L"%d", aryGroups.size());
 
-  m_numentries = wxString::Format(_T("%d"), m_core.GetNumEntries());
+  m_numentries = wxString::Format(L"%d", m_core.GetNumEntries());
 
   time_t twls = m_core.GetHeader().m_whenlastsaved;
   if (twls == 0) {
@@ -145,7 +145,7 @@ void CProperties::Init()
   m_core.GetFileUUID(file_uuid_array);
 
   if (memcmp(file_uuid_array, ref_uuid_array, sizeof(file_uuid_array)) == 0)
-    m_file_uuid = _T("N/A");
+    m_file_uuid = L"N/A";
   else {
     ostringstreamT os;
     CUUIDGen huuid(file_uuid_array, true); // true for canonical format
