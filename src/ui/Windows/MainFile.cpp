@@ -441,6 +441,17 @@ int DboxMain::Close(const bool bTrySave)
     }
   }
 
+  // If we did save the database, now save attachments.
+  // This will save changed items (new always saved when added) and 
+  // remove deleted & missing entries
+  if (bTrySave && m_bOpen && !m_core.IsReadOnly() && m_core.DBHasAttachments()) {
+    // Just in case user has changed the database since the last save but didn't
+    // want to keep those changes - restore the attachment status at the point of the
+    // last save
+    m_core.RestoreAttachmentStatusAtLastSave();
+    m_core.WriteAttachmentFile(true);
+  }
+
   // Turn off special display if on
   if (m_bUnsavedDisplayed)
     OnShowUnsavedEntries();
@@ -1032,6 +1043,9 @@ int DboxMain::Save(const SaveType savetype)
     return rc;
   }
 
+  // Save current Attachment status
+  m_core.SaveAttachmentStatusAtSave();
+
   m_core.ResetStateAfterSave();
   m_core.ClearChangedNodes();
   SetChanged(Clear);
@@ -1237,6 +1251,12 @@ int DboxMain::SaveAs()
     // reset read-only status (new file can't be read-only!)
     // and so cause toolbar to be the correct version
     m_core.SetReadOnly(false);
+  }
+
+  // Now save any attachments in the new name!
+  if (m_core.DBHasAttachments()) {
+    m_core.WriteAttachmentFile(false);
+    m_core.SaveAttachmentStatusAtSave();
   }
 
   return PWScore::SUCCESS;

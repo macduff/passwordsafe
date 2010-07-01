@@ -422,6 +422,10 @@ void DboxMain::OnOptions()
     GetPref(PWSprefs::LockDBOnIdleTimeout) ? TRUE : FALSE;
   security.m_IdleTimeOut = prevLockInterval = prefs->
     GetPref(PWSprefs::IdleTimeout);
+  security.m_csEraserLocation = prefs->
+    GetPref(PWSprefs::EraseProgram).c_str();
+  security.m_csEraseCmdLineParms = prefs->
+    GetPref(PWSprefs::ErasePgmCmdLineParms).c_str();
 
   shortcuts.m_iColWidth = prefs->
     GetPref(PWSprefs::OptShortcutColumnWidth);
@@ -595,6 +599,10 @@ void DboxMain::OnOptions()
                    security.m_confirmcopy == FALSE);
     prefs->SetPref(PWSprefs::LockOnWindowLock,
                    security.m_LockOnWindowLock == TRUE);
+    prefs->SetPref(PWSprefs::EraseProgram,
+                   LPCWSTR(security.m_csEraserLocation));
+    prefs->SetPref(PWSprefs::ErasePgmCmdLineParms,
+                   LPCWSTR(security.m_csEraseCmdLineParms));
 
     prefs->SetPref(PWSprefs::UseSystemTray,
                    system.m_usesystemtray == TRUE);

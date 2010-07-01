@@ -238,12 +238,13 @@ size_t _writecbc(FILE *fp, const unsigned char* buffer, int length, unsigned cha
 * and -1 is returned if it matches. (used in V3)
 */
 size_t _readcbc(FILE *fp,
-         unsigned char* &buffer, unsigned int &buffer_len, unsigned char &type,
-         Fish *Algorithm, unsigned char* cbcbuffer,
-         const unsigned char *TERMINAL_BLOCK, size_t file_len)
+                 unsigned char* &buffer, unsigned int &buffer_len, unsigned char &type,
+                 Fish *Algorithm, unsigned char* cbcbuffer,
+                 const unsigned char *TERMINAL_BLOCK, size_t file_len, bool bSkip,
+                 unsigned char *pSkipTypes)
 {
   const unsigned int BS = Algorithm->GetBlockSize();
-  size_t numRead = 0;
+  size_t num_bytes_read = 0;
 
   // some trickery to avoid new/delete
  // Initialize memory.  (Lockheed Martin) Secure Coding  11-14-2007
@@ -255,14 +256,14 @@ size_t _readcbc(FILE *fp,
   ASSERT(BS <= sizeof(block1)); // if needed we can be more sophisticated here...
   
   // Safety check.  (Lockheed Martin) Secure Coding  11-14-2007
-  if ((BS > sizeof( block1 )) || (BS == 0))
+  if ((BS > sizeof(block1)) || (BS == 0))
    return 0;
 
   lengthblock = block1;
 
   buffer_len = 0;
-  numRead = fread(lengthblock, 1, BS, fp);
-  if (numRead != BS) {
+  num_bytes_read = fread(lengthblock, 1, BS, fp);
+  if (num_bytes_read != BS) {
     return 0;
   }
 
@@ -298,8 +299,17 @@ size_t _readcbc(FILE *fp,
     return 0;
   }
 
+  if (bSkip && pSkipTypes != NULL && pSkipTypes[type] != 0) {
+    // Skip over data but return length it would have been
+    long lpos = ftell(fp) + length;
+    fseek(fp, lpos, 0);
+    buffer = NULL;
+    buffer_len = length;
+    return length;
+  }
+ 
   buffer_len = length;
-  buffer = new unsigned char[(length/BS)*BS +2*BS]; // round upwards
+  buffer = new unsigned char[(length / BS) * BS + 2 * BS]; // round upwards
   unsigned char *b = buffer;
 
   // Initialize memory.  (Lockheed Martin) Secure Coding  11-14-2007
@@ -314,7 +324,7 @@ size_t _readcbc(FILE *fp,
     b += len1;
   }
 
-  unsigned int BlockLength = ((length+(BS-1))/BS)*BS;
+  unsigned int BlockLength = ((length + (BS - 1)) / BS) * BS;
   // Following is meant for lengths < BS,
   // but results in a block being read even
   // if length is zero. This is wasteful,
@@ -327,8 +337,8 @@ size_t _readcbc(FILE *fp,
   if (length > 0 ||
       (BS == 8 && length == 0)) { // pre-3 pain
     unsigned char *tempcbc = block3;
-    numRead += fread(b, 1, BlockLength, fp);
-    for (unsigned int x=0; x<BlockLength; x+=BS) {
+    num_bytes_read += fread(b, 1, BlockLength, fp);
+    for (unsigned int x = 0; x < BlockLength; x += BS) {
       memcpy(tempcbc, b + x, BS);
       Algorithm->Decrypt(b + x, b + x);
       xormem(b + x, cbcbuffer, BS);
@@ -340,7 +350,7 @@ size_t _readcbc(FILE *fp,
     // delete[] buffer here since caller will see zero length
     delete[] buffer;
   }
-  return numRead;
+  return num_bytes_read;
 }
 
 // PWSUtil implementations
@@ -383,16 +393,20 @@ StringX PWSUtil::ConvertToDateTimeString(const time_t &t,
       return ConvertToDateTimeString(0, result_format);
 #endif
     if ((result_format & TMC_EXPORT_IMPORT) == TMC_EXPORT_IMPORT)
-      _tcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
+      _tcsftime(datetime_str, sizeof(datetime_str) / sizeof(datetime_str[0]),
                 _T("%Y/%m/%d %H:%M:%S"), st);
     else if ((result_format & TMC_XML) == TMC_XML)
-      _tcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
+      _tcsftime(datetime_str, sizeof(datetime_str) / sizeof(datetime_str[0]),
                 _T("%Y-%m-%dT%H:%M:%S"), st);
     else if ((result_format & TMC_LOCALE) == TMC_LOCALE) {
       setlocale(LC_TIME, "");
-      _tcsftime(datetime_str, sizeof(datetime_str)/sizeof(datetime_str[0]),
+      _tcsftime(datetime_str, sizeof(datetime_str) / sizeof(datetime_str[0]),
                 _T("%c"), st);
-    } else {
+    }
+    else if ((result_format & TMC_FILE) == TMC_FILE)
+      _tcsftime(datetime_str, sizeof(datetime_str) / sizeof(datetime_str[0]),
+                _T("_%Y%m%d_%H%M%S"), st);
+    else {
       int terr = _tasctime_s(datetime_str, 32, st);  // secure version
       if (terr != 0)
         return ConvertToDateTimeString(0, result_format);
@@ -526,14 +540,14 @@ void PWSUtil::Base64Decode(const StringX &inString, BYTE* &outData, size_t &out_
   out_len = st_length;
 }
 
-
 static const size_t MAX_TTT_LEN = 64; // Max tooltip text length
+
 StringX PWSUtil::NormalizeTTT(const StringX &in)
 {
   StringX ttt;
   if (in.length() >= MAX_TTT_LEN) {
-    ttt = in.substr(0, MAX_TTT_LEN/2-6) + 
-      _T(" ... ") + in.substr(in.length() - MAX_TTT_LEN/2);
+    ttt = in.substr(0, MAX_TTT_LEN / 2-6) + 
+      _T(" ... ") + in.substr(in.length() - MAX_TTT_LEN / 2);
   } else {
     ttt = in;
   }
@@ -617,3 +631,69 @@ string PWSUtil::GetXMLTime(int indent, const char *name,
   return oss.str();
 }
 
+// CRC creation
+static bool bCRCInitDone = false;
+static unsigned long CRC32_Table[256] = {0};
+
+void PWSUtil::Init_CRC32_Table()
+{
+  // From: http://www.createwindow.com/programming/crc32/index.htm
+  // Copyright © 2000 - 2010 Richard A. Ellingson
+
+  // Call this function only once to initialize the CRC table.
+  // This is the official polynomial used by CRC-32
+  if (bCRCInitDone)
+    return;
+
+  ULONG ulPolynomial = 0x04c11db7; 
+
+  // 256 values representing ASCII character codes.
+  for (int i = 0; i <= 0xFF; i++) { 
+    CRC32_Table[i] = Reflect(i, 8) << 24;
+    for (int j = 0; j < 8; j++) {
+      CRC32_Table[i] = (CRC32_Table[i] << 1) ^ (CRC32_Table[i] & (1 << 31) ? ulPolynomial : 0);
+    }
+    CRC32_Table[i] = Reflect(CRC32_Table[i], 32);
+  }
+  bCRCInitDone = true;
+}
+
+unsigned long PWSUtil::Reflect(unsigned long ref, char ch)
+{
+  // From: http://www.createwindow.com/programming/crc32/index.htm
+  // Copyright © 2000 - 2010 Richard A. Ellingson
+
+  // Used only by Init_CRC32_Table().
+  ULONG value(0);
+
+  // Swap bit 0 for bit 7, bit 1 for bit 6, etc.
+  for (int i = 1; i < (ch + 1); i++) {
+    if (ref & 1)
+      value |= 1 << (ch - i);
+
+    ref >>= 1;
+  }
+  return value;
+}
+
+int PWSUtil::Get_CRC(unsigned char *pData, const unsigned int &iLen)
+{
+  // From: http://www.createwindow.com/programming/crc32/index.htm
+  // Copyright © 2000 - 2010 Richard A. Ellingson
+
+  // Pass a text string to this function and it will return the CRC.
+  // Once the lookup table has been filled in by the two functions above,
+  // this function creates all CRCs using only the lookup table.
+
+  Init_CRC32_Table();
+
+  // Start out with all bits set high.
+  unsigned int len(iLen);
+  unsigned long ulCRC = 0xffffffff;
+  // Perform the algorithm on each character in the string, using the lookup table values.
+  while (len--) {
+    ulCRC = (ulCRC >> 8) ^ CRC32_Table[(ulCRC & 0xFF) ^ *pData++];
+  }
+  // Exclusive OR the result with the beginning value.
+  return (ulCRC ^ 0xffffffff);
+} 

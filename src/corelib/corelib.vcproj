@@ -902,6 +902,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CoreAttmnt.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CoreImpExp.cpp"
 				>
 			</File>
@@ -983,6 +987,14 @@
 			</File>
 			<File
 				RelativePath=".\PWPolicy.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\PWSAttfile.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\PWSAttfileV3.cpp"
 				>
 			</File>
 			<File
@@ -1119,6 +1131,10 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
+				RelativePath=".\attachments.h"
+				>
+			</File>
+			<File
 				RelativePath=".\BlowFish.h"
 				>
 			</File>
@@ -1236,6 +1252,14 @@
 			</File>
 			<File
 				RelativePath=".\PWPolicy.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PWSAttfile.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PWSAttfileV3.h"
 				>
 			</File>
 			<File
