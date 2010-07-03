@@ -1,5 +1,4 @@
 /*
-/*
 * Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
@@ -18,13 +17,19 @@
 #include "UUIDGen.h"
 #include "SysInfo.h"
 #include "UTF8Conv.h"
-#include "PWSfileV3.h"    // XXX cleanup with dynamic_cast
+#include "Report.h"
+#include "VerifyFormat.h"
+#include "PWSfileV3.h" // XXX cleanup with dynamic_cast
+#include "StringXStream.h"
 
 #include "os/typedefs.h"
 #include "os/dir.h"
 #include "os/debug.h"
 #include "os/file.h"
+#include "os/mem.h"
 
+#include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -40,18 +45,17 @@ Reporter *PWScore::m_pReporter = NULL;
 
 uuid_array_t PWScore::NULL_UUID = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-PWScore::PWScore()
-  : m_currfile(_T("")),
-  m_passkey(NULL), m_passkey_len(0),
-  m_lockFileHandle(INVALID_HANDLE_VALUE),
-  m_lockFileHandle2(INVALID_HANDLE_VALUE),
-  m_LockCount(0), m_LockCount2(0),
-  m_ReadFileVersion(PWSfile::UNKNOWN_VERSION),
-  m_bDBChanged(false), m_bDBPrefsChanged(false),
-  m_bAtachmentsChanged(false),
-  m_IsReadOnly(false), m_bUniqueGTUValidated(false), 
-  m_nRecordsWithUnknownFields(0),
-  m_bNotifyDB(false), m_pUIIF(NULL), m_fileSig(NULL)
+PWScore::PWScore() : 
+                     m_currfile(_T("")),
+                     m_passkey(NULL), m_passkey_len(0),
+                     m_lockFileHandle(INVALID_HANDLE_VALUE),
+                     m_lockFileHandle2(INVALID_HANDLE_VALUE),
+                     m_LockCount(0), m_LockCount2(0),
+                     m_ReadFileVersion(PWSfile::UNKNOWN_VERSION),
+                     m_bDBChanged(false), m_bDBPrefsChanged(false),
+                     m_IsReadOnly(false), m_bUniqueGTUValidated(false), 
+                     m_nRecordsWithUnknownFields(0),
+                     m_bNotifyDB(false), m_pUIIF(NULL), m_fileSig(NULL)
 {
   // following should ideally be wrapped in a mutex
   if (!PWScore::m_session_initialized) {
@@ -309,9 +313,6 @@ void PWScore::ReInit(bool bNewFile)
 
   m_nRecordsWithUnknownFields = 0;
   m_UHFL.clear();
-  m_MM_entry_uuid_atr.clear();
-  m_MM_entry_uuid_atr_saved.clear();
-
   ClearChangedNodes();
 
   SetChanged(false, false);
@@ -782,23 +783,6 @@ int PWScore::ReadFile(const StringX &a_filename,
     (*m_pReporter)(cs_caption, cs_msg);
   }
 
-  // Now get the attachment info
-  status = ReadAttachmentFile(true);
-  if (status != PWSAttfile::SUCCESS) {
-    pws_os::Trace(_T("Problem reading in attachments. rc=%d\n"), status);
-    if (m_pReporter != NULL) {
-      stringT cs_msg, cs_caption;
-      LoadAString(cs_caption, IDSC_ATT_ERRORS);
-      if (status == PWSAttfile::HEADERS_INVALID)
-        LoadAString(cs_msg, IDSC_ATT_HDRMISMATCH);
-      else
-        Format(cs_msg, IDSC_ATT_UNKNOWNERROR, status);
-
-      // Tell user
-      (*m_pReporter)(cs_caption, cs_msg);
-    }
-  }
-
   return closeStatus;
 }
 
@@ -926,7 +910,7 @@ bool PWScore::BackupCurFile(int maxNumIncBackups, int backupSuffix,
 
   // Current file becomes backup
   // Directories along the specified backup path are created as needed
-  return pws_os::RenameFile(path, bu_fname);
+  return pws_os::RenameFile(m_currfile.c_str(), bu_fname);
 }
 
 void PWScore::ChangePasskey(const StringX &newPasskey)

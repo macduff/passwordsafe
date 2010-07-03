@@ -18,7 +18,6 @@
 #include "PWPolicy.h"
 #include "UUIDGen.h"
 #include "StringX.h"
-
 #include <time.h> // for time_t
 #include <bitset>
 #include <vector>
@@ -103,7 +102,7 @@ public:
   //Construction
   CItemData();
 
-  CItemData(const CItemData& ci);
+  CItemData(const CItemData& stuffhere);
 
   ~CItemData();
 

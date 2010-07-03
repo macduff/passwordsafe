@@ -221,7 +221,7 @@ BOOL CManageFiltersDlg::OnInitDialog()
   m_FilterProperties.SetColumn(MFPRP_FILTER_ACTIVE, &lvc);
   m_FilterProperties.SetColumn(MFPRP_AND_OR, &lvc);
 
-  CHeaderCtrl *pHCtrl;
+  CHeaderCtrl* pHCtrl;
   pHCtrl = m_FilterLC.GetHeaderCtrl();
   ASSERT(pHCtrl != NULL);
   pHCtrl->SetDlgCtrlID(IDC_FILTERLC_HEADER);

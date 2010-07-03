@@ -82,7 +82,7 @@ CUUIDGen::CUUIDGen(const StringX &s) // s is a hex string as returned by GetHexS
 
   int x;
   for (int i = 0; i < 16; i++) {
-    iStringXStream is(s.substr(i * 2, 2));
+    iStringXStream is(s.substr(i*2, 2));
     is >> hex >> x;
     uu[i] = (unsigned char)x;
   }
@@ -104,6 +104,7 @@ void CUUIDGen::GetUUID(uuid_array_t &uuid_array) const
   uuid_copy(uuid_array, uuid);
 #endif
 }
+
 
 ostream &operator<<(ostream &os, const CUUIDGen &uuid)
 {
@@ -138,6 +139,7 @@ StringX CUUIDGen::GetHexStr() const
   m_canonic = sc;
   return os.str();
 }
+
 
 #ifdef TEST
 #include <stdio.h>

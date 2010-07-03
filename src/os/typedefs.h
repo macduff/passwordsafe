@@ -48,8 +48,8 @@ typedef unsigned short   uint16;
 typedef unsigned int     uint32;
 typedef unsigned __int64 uint64;
 
-typedef unsigned __int64 ulong64;
-typedef unsigned long    ulong32;
+typedef unsigned __int64   ulong64;
+typedef unsigned long      ulong32;
 
 typedef unsigned int uint;
 
