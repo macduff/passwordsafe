@@ -237,6 +237,10 @@
 #define IDSC_ALIASES                    3403
 #define IDSC_SHORTCUTS                  3404
 
+#define IDSC_ATT_ERRORS                 3500
+#define IDSC_ATT_HDRMISMATCH            3501
+#define IDSC_ATT_UNKNOWNERROR           3502
+
 // Keep DCA together
 #define IDSC_CURRENTDEFAULTDCA          4000
 #define IDSC_DCABROWSE                  4001

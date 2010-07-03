@@ -53,7 +53,7 @@ bool pws_os::FileExists(const stringT &filename, bool &bReadOnly)
 }
 
 static bool FileOP(const stringT &src, const stringT &dst,
-                   UINT wFunc)
+                                     UINT wFunc)
 {
   // wrapper for SHFileOperation() for moving or copying from src to dst
   // create any intervening directories as necessary & automatically
@@ -95,7 +95,7 @@ bool pws_os::RenameFile(const stringT &oldname, const stringT &newname)
   return FileOP(oldname, newname, FO_MOVE);
 }
 
-extern bool pws_os::CopyAFile(const stringT &from, const stringT &to)
+bool pws_os::CopyAFile(const stringT &from, const stringT &to)
 {
   return FileOP(from, to, FO_COPY);
 }

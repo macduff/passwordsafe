@@ -323,13 +323,24 @@
 #define IDB_UNDO_CLASSIC                478
 #define IDD_ALIAS_PSWDCHANGE            478
 #define IDB_REDO_CLASSIC                479
+#define IDD_ADDEDIT_ATTACHMENTS         479
 #define IDB_UNDO_NEW                    480
+#define IDD_EXTRACT_ATTACHMENT          480
 #define IDB_REDO_NEW                    481
-#define IDB_UNDO_NEW_D                  482
-#define IDB_REDO_NEW_D                  483
-#define IDB_SYNCHRONIZE_CLASSIC         484
-#define IDB_SYNCHRONIZE_NEW             485
-#define IDB_SYNCHRONIZE_NEW_D           486
+#define IDD_VIEW_ATTACHMENTS            482
+#define IDB_UNDO_NEW_D                  483
+#define IDB_REDO_NEW_D                  484
+#define IDB_SYNCHRONIZE_CLASSIC         485
+#define IDB_SYNCHRONIZE_NEW             486
+#define IDB_SYNCHRONIZE_NEW_D           487
+#define IDB_UNCHECKEDA                  488
+#define IDB_VIEW_ATTACHMENTS_CLASSIC    489
+#define IDB_VIEW_ATTACHMENTS_NEW        490
+#define IDB_VIEW_ATTACHMENTS_NEW_D      491
+#define IDD_ATT_PROPERTIES              492
+#define IDR_POPATTPROPERTIES            493
+#define IDD_DIALOG1                     494
+#define IDD_ANIMATE                     495
 #define IDC_APPVERSION                  1000
 #define IDC_VERSION                     1001
 #define IDC_BROWSE                      1002
@@ -706,14 +717,51 @@
 #define IDC_CONFIGFILE                  1423
 #define IDC_STATIC_RWSTATUS             1424
 #define IDC_COPYPASSWORD                1425
+#define IDC_ADD_ATTACHMENT              1426
+#define IDC_DELETE_ATTACHMENT           1427
+#define IDC_ATTACHMENT_LIST             1428
+#define IDC_NEWATTACHMENT_LIST          1429
+#define IDC_ERASERLOCATION              1430
+#define IDC_ERASERCMDLINE               1431
+#define IDC_EXISTING_ATTLC_HEADER       1432
+#define IDC_NEW_ATTLC_HEADER            1433
+#define IDC_EXTRACT_ATTLC_HEADER        1434
+#define IDC_VIEW_ATTLC_HEADER           1435
+#define IDC_STATIC_ATTDESC              1436
+#define IDC_ATTDESC                     1437
+#define IDC_EXTRACT                     1438
+#define IDC_ATTACHMENTNAME              1439
+#define IDC_ATTACHMENTPATH              1440
+#define IDC_ATTACHMENTDESC              1441
+#define IDC_ATTACHMENTCDATE             1442
+#define IDC_ATTACHMENTADATE             1443
+#define IDC_ATTACHMENTMDATE             1444
+#define IDC_ATTACHMENTDDATE             1445
+#define IDC_ATTACHMENTUSIZE             1446
+#define IDC_ATTACHMENTCOMP              1447
+#define IDC_ATTACHMENTCRC               1448
+#define IDC_ATTACHMENTDIGEST            1449
+#define IDC_STATIC_ATT1                 1450
+#define IDC_STATIC_ATT2                 1451
+#define IDC_STATIC_ATT3                 1452
+#define IDC_STATIC_ATT4                 1453
+#define IDC_STATIC_ATT5                 1454
+#define IDC_STATIC_ATT6                 1455
+#define IDC_STATIC_ATT7                 1456
+#define IDC_STATIC_ATT8                 1457
+#define IDC_STATIC_ATT9                 1458
+#define IDC_STATIC_ATT10                1459
+#define IDC_STATIC_ATT11                1460
+#define IDC_STATIC_WARNING              1461
+#define IDC_ANIMATE                     1462
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        479
+#define _APS_NEXT_RESOURCE_VALUE        498
 #define _APS_NEXT_COMMAND_VALUE         30001
-#define _APS_NEXT_CONTROL_VALUE         1426
+#define _APS_NEXT_CONTROL_VALUE         1463
 #define _APS_NEXT_SYMED_VALUE           166
 #endif
 #endif

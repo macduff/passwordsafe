@@ -24,6 +24,26 @@ CPWPropertyPage::CPWPropertyPage(UINT nID)
   m_psp.dwFlags |= PSP_HASHELP;
 }
 
+BEGIN_MESSAGE_MAP(CPWPropertyPage, CPropertyPage)
+  ON_WM_MOUSEACTIVATE()
+  ON_WM_MOUSEMOVE()
+END_MESSAGE_MAP()
+
+
+int CPWPropertyPage::OnMouseActivate(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+  // Silly problem in debug mode - assert at line 882 in wincore.cpp
+  //    ASSERT(::IsWindow(m_hWnd));
+  return CPropertyPage::OnMouseActivate(pWnd, nHitTest, message);
+}
+
+void CPWPropertyPage::OnMouseMove(UINT flags, CPoint point)
+{
+  // Silly problem in debug mode - assert at line 882 in wincore.cpp
+  //    ASSERT(::IsWindow(m_hWnd));
+  CPropertyPage::OnMouseMove(flags, point);
+}
+
 LRESULT CPWPropertyPage::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
   CWnd *pParent = GetParent();

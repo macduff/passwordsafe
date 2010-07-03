@@ -54,7 +54,8 @@ extern size_t _readcbc(FILE *fp, unsigned char* &buffer,
                        unsigned char &type, Fish *Algorithm,
                        unsigned char* cbcbuffer,
                        const unsigned char *TERMINAL_BLOCK = NULL, 
-                       size_t file_len = 0);
+                       size_t file_len = 0,
+                       bool bSkip = false, unsigned char *pSkipTypes = NULL);
 
 // _writecbc will throw(EIO) iff a write fail occurs!
 extern size_t _writecbc(FILE *fp, const unsigned char* buffer, int length,
@@ -124,7 +125,7 @@ inline void putInt32(unsigned char buf[4], const int val )
 
 // Time conversion result formats - powers of 2 as they can be combined!
 enum {TMC_ASC_UNKNOWN = 1, TMC_ASC_NULL = 2, TMC_EXPORT_IMPORT = 4, TMC_XML = 8,
-      TMC_LOCALE = 16};
+      TMC_LOCALE = 16, TMC_FILE = 32};
 
 namespace PWSUtil {
   // namespace of common utility functions
@@ -145,6 +146,11 @@ namespace PWSUtil {
                      const char *tabs = "\t\t");
   std::string GetXMLTime(int indent, const char *name,
                          time_t t, CUTF8Conv &utf8conv);
+
+  // CRC routines
+  void Init_CRC32_Table();
+  unsigned long Reflect(unsigned long ref, char ch);
+  int Get_CRC(unsigned char *pData, const unsigned int &iLen);
 };
 
 ///////////////////////////////////////////////////////
