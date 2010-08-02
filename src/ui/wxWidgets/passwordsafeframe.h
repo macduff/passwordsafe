@@ -180,6 +180,9 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_SAVE
   void OnSaveClick( wxCommandEvent& evt);
 
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_SAVEAS
+  void OnSaveAsClick(wxCommandEvent& evt);
+
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_PROPERTIES
   void OnPropertiesClick( wxCommandEvent& evt);
 
@@ -265,6 +268,23 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_CLEAR_MRU
   void OnClearRecentHistory(wxCommandEvent& evt);
 
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_IMPORT_PLAINTEXT
+  void OnImportText(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_IMPORT_XML
+  void OnImportXML(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_IMPORT_KEEPASS
+  void OnImportKeePass(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for EXPORT2OLD1XFORMAT & ID_EXPORT2V2FORMAT
+  void OnExportVx(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_EXPORT2PLAINTEXT
+  void OnExportPlainText(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_EXPORT2XML
+  void OnExportXml(wxCommandEvent& evt);
 
   /// called when one of the MRU db's is selected from File menu
   void OnOpenRecentDB(wxCommandEvent& evt);
@@ -304,9 +324,11 @@ public:
 
     ItemListConstIter GetEntryIter() const {return m_core.GetEntryIter();}
     ItemListConstIter GetEntryEndIter() const {return m_core.GetEntryEndIter();}
-    
+
+    void Execute(Command *pcmd, PWScore *pcore = NULL);
+
     bool IsTreeView() const {return m_currentView == TREE;}
-    void RefreshView() {if (IsTreeView()) ShowTree(); else ShowGrid();}
+    void RefreshViews() {if (IsTreeView()) ShowTree(); else ShowGrid();}
     void FlattenTree(OrderedItemList& olist);
 
     void DispatchDblClickAction(CItemData &item); //called by grid/tree
@@ -353,6 +375,8 @@ public:
   CItemData *GetSelectedEntry() const;
   CItemData* GetBaseOfSelectedEntry(); //traverses to the base item if the selected item is a shortcut 
   void UpdateAccessTime(CItemData &ci);
+  enum ChangeType {Clear, Data, TimeStamp, DBPrefs, ClearDBPrefs};
+  void SetChanged(ChangeType changed);
   void CreateMainToolbar();
   bool IsRUEEvent(const wxCommandEvent& evt) {
     long index = evt.GetExtraLong();
@@ -380,6 +404,7 @@ public:
   bool m_exitFromMenu; 
   CRUEList m_RUEList;
   GUIInfo* m_guiInfo;
+  bool m_bTSUpdated;
 };
 
 #endif

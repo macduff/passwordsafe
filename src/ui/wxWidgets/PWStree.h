@@ -53,12 +53,12 @@ typedef std::map<CUUIDGen, wxTreeItemId, CUUIDGen::ltuuid> UUIDTIMapT;
 
 class PWSTreeCtrl: public wxTreeCtrl
 {    
-  DECLARE_DYNAMIC_CLASS( PWSTreeCtrl )
+  DECLARE_CLASS( PWSTreeCtrl )
   DECLARE_EVENT_TABLE()
 
 public:
   /// Constructors
-  PWSTreeCtrl(): m_core(*(PWScore*)(NULL)){} //if called, we're history
+  PWSTreeCtrl(); // Declared, never defined, as we don't support this!
   PWSTreeCtrl(PWScore &core);
   PWSTreeCtrl(wxWindow* parent, PWScore &core, wxWindowID id, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxTR_HAS_BUTTONS);
 

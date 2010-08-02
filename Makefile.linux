@@ -5,14 +5,20 @@ all clean unicodedebug unicoderelease:
 	$(MAKE) -C src/corelib $@
 	$(MAKE) -C src/ui/wxWidgets $@
 
-debug release:
-	@echo "'$@' not currently supported, use unicode{debug,release} instead"
+debug:
+	$(MAKE) unicodedebug
+
+release:
+	$(MAKE) unicoderelease
 
 reallyclean:
 	$(MAKE) clean CONFIG=unicodebug
 	$(MAKE) clean CONFIG=unicorelease
 
-.PHONY:	all clean reallyclean debug release unicodedebug unicoderelease
+deb:
+	$(MAKE) -C install/deb
+
+.PHONY:	all clean reallyclean debug release unicodedebug unicoderelease deb
 # Local variables:
 # mode: makefile
 # End:

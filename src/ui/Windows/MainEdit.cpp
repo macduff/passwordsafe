@@ -344,7 +344,8 @@ void DboxMain::OnDelete()
   if (m_core.GetNumEntries() == 0) // easiest way to avoid asking stupid questions...
     return;
 
-  bool bAskForDeleteGroupConfirmation = false;
+  bool bAskForDeleteConfirmation = !(PWSprefs::GetInstance()->
+                                     GetPref(PWSprefs::DeleteQuestion));
   bool dodelete = true;
   int num_children = 0;
 
@@ -353,14 +354,14 @@ void DboxMain::OnDelete()
     HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
     if (hStartItem != NULL) {
       if (m_ctlItemTree.GetItemData(hStartItem) == NULL) {  // group node
-        bAskForDeleteGroupConfirmation = true; // ALWAYS ask if deleting a group
+        bAskForDeleteConfirmation = true; // ALWAYS ask if deleting a group
         num_children = m_ctlItemTree.CountChildren(hStartItem);
       }
     }
   }
 
   // Confirm whether to delete the item
-  if (bAskForDeleteGroupConfirmation) {
+  if (bAskForDeleteConfirmation) {
     CConfirmDeleteDlg deleteDlg(this, num_children);
     INT_PTR rc = deleteDlg.DoModal();
     if (rc == IDCANCEL) {
@@ -372,7 +373,8 @@ void DboxMain::OnDelete()
     Delete();
 }
 
-void DboxMain::Delete()
+void
+DboxMain::Delete()
 {
   // "Top level" element delete:
   // 1. Sets up Command mechanism
@@ -909,10 +911,17 @@ void DboxMain::OnDisplayPswdSubset()
     ASSERT(pci != NULL);
   }
 
+  uuid_array_t entry_uuid;
+  pci_original->GetUUID(entry_uuid);
+
   CPasswordSubsetDlg DisplaySubsetDlg(this, pci->GetPassword());
 
-  if (DisplaySubsetDlg.DoModal() != IDCANCEL)
+  if (DisplaySubsetDlg.DoModal() != IDCANCEL) {
+    // Just in case PasswordSafe was locked and pci_original is invalid
+    ItemListIter iter = Find(entry_uuid);
+    pci_original = &iter->second;
     UpdateAccessTime(pci_original);
+  }
 }
 
 void DboxMain::OnCopyPassword()

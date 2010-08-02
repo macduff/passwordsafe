@@ -41,9 +41,10 @@
 #define ID_CSAFECOMBINATIONENTRY 10000
 #define ID_DBASECOMBOBOX 10002
 #define ID_ELLIPSIS 10003
-#define ID_PASSWORD 10004
+#define ID_COMBINATION 10004
 #define ID_READONLY 10005
 #define ID_NEWDB 10006
+#define ID_VKBD 10007
 #define SYMBOL_CSAFECOMBINATIONENTRY_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX|wxDIALOG_MODAL|wxTAB_TRAVERSAL
 #define SYMBOL_CSAFECOMBINATIONENTRY_TITLE _("Safe Combination Entry")
 #define SYMBOL_CSAFECOMBINATIONENTRY_IDNAME ID_CSAFECOMBINATIONENTRY
@@ -84,16 +85,16 @@ public:
 ////@begin CSafeCombinationEntry event handler declarations
 
   /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_ELLIPSIS
-  void OnEllipsisClick( wxCommandEvent& evt);
+  void OnEllipsisClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_NEWDB
-  void OnNewDbClick( wxCommandEvent& evt);
+  void OnNewDbClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_BUTTON_CLICKED event handler for wxID_OK
-  void OnOk( wxCommandEvent& evt);
+  void OnOk( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_BUTTON_CLICKED event handler for wxID_CANCEL
-  void OnCancel( wxCommandEvent& evt);
+  void OnCancel( wxCommandEvent& event );
 
 ////@end CSafeCombinationEntry event handler declarations
 
@@ -110,6 +111,8 @@ public:
   static bool ShowToolTips();
 
 ////@begin CSafeCombinationEntry member variables
+  wxStaticText* m_version;
+  wxComboBox* m_filenameCB;
 ////@end CSafeCombinationEntry member variables
  private:
   wxString m_filename;

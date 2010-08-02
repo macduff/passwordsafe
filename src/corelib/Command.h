@@ -104,6 +104,7 @@ public:
   void Undo();
 
 private:
+  UpdateGUICommand& operator=(const UpdateGUICommand&); // Do not implement
   UpdateGUICommand(CommandInterface *pcomInt, ExecuteFn When,
                    GUI_Action ga);
   const ExecuteFn m_When;
@@ -150,6 +151,7 @@ public:
   friend class DeleteEntryCommand; // allow access to c'tor
 
 private:
+  AddEntryCommand& operator=(const AddEntryCommand&); // Do not implement
   AddEntryCommand(CommandInterface *pcomInt, const CItemData &ci,
                   const ATRVector *pvNewATRecords = NULL);
   AddEntryCommand(CommandInterface *pcomInt,
@@ -173,6 +175,7 @@ public:
   friend class AddEntryCommand; // allow access to c'tor
 
 private:
+  DeleteEntryCommand& operator=(const DeleteEntryCommand&); // Do not implement
   DeleteEntryCommand(CommandInterface *pcomInt, const CItemData &ci);
   const CItemData m_ci;
   uuid_array_t m_base_uuid; // for undo of shortcut or alias deletion

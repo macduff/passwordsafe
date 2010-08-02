@@ -1,5 +1,5 @@
-Password Safe 3.22.1 Release Notes - June 2010
-==============================================
+Password Safe 3.23.1 Release Notes - August 2010
+================================================
 
 This note describe the new features, fixed bugs and known problems
 with the latest versions of Password Safe. For a short description of
@@ -8,19 +8,30 @@ information on the product and the project, please visit
 http://passwordsafe.sourceforge.net. Details about changes to older
 releases may be found in the file ChangeLog.txt.
 
-New Features for 3.22.1
-=======================
+Bugs fixed in 3.23.1
+====================
+[] Spanish translations for installer and application updated - thanks
+to Jose.
+
+New Features for 3.23
+=====================
+[3022827] Implement 'stealth' mode where, as long as the user specifies both
+the use of the System Tray and a valid Hot Key, then the System Tray
+icon and the button on the Taskbar can be hidden.
 [3017535] Allow user to edit the generated passwords (Manage->Generate Password)
 before copying to the clipboard.
 [3011546] "autotype" can now be added to the List View via the Column
 Picker (right click on column labels).
 
-Changes to Existing Features in 3.22.1
-======================================
-None
+Changes to Existing Features in 3.23
+====================================
+[3026944] Confirm on Delete option has been re-instated.
 
-Bugs fixed in 3.22.1
-====================
+Bugs fixed in 3.23
+==================
+[3029576] Ensure user specified backup directory ends with a slash.
+[3028926] Entries modified via Synchronize are now displayed correctly if the
+user checks the preference "Highlight changed entries" via Options->Display.
 [3016803] No longer crashes when trying to view a base entry with
 similarly named aliases.
 [3013199] PasswordSafe no longer hangs when trying to read preferences
@@ -224,4 +235,3 @@ application's main window, use the Restore menu item.
 to end of line characters, now only show the first line but indicate
 more are there using [>>>] at end of line. Setting preference "Show
 Notes as Tooltips in Tree & List View" will show these (up to 250 characters).
-

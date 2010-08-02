@@ -189,11 +189,15 @@ public:
   void OnSearchClose(wxCommandEvent& evt);
   void OnAdvancedSearchOptions(wxCommandEvent& evt);
   void OnToggleCaseSensitivity(wxCommandEvent& evt);
+  void OnChar(wxKeyEvent& evt);
   void FindNext(void);
   void FindPrevious(void);
   void UpdateView();
   
   void Activate(void);
+  
+  //overridden from wxEvtHandler
+  virtual bool ProcessEvent(wxEvent& evt);
 
 private:
   template <class Iter, class Accessor>
@@ -205,7 +209,8 @@ private:
                      CItemData::FieldType subgroupObject, PWSMatch::MatchRule subgroupFunction, Iter begin, Iter end, Accessor afn);
 
   void CreateSearchBar(void);
-
+  void HideSearchToolbar();
+  
   template <class Iter, class Accessor>
   void OnDoSearchT( Iter begin, Iter end, Accessor afn); 
 

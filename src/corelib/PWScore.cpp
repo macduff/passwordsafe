@@ -259,6 +259,7 @@ void PWScore::DoReplaceEntry(const CItemData &old_ci, const CItemData &new_ci)
   m_pwlist[old_uuid] = new_ci;
   if (old_ci.GetEntryType() != new_ci.GetEntryType())
     GUIRefreshEntry(new_ci);
+  m_bDBChanged = true;
 }
 
 void PWScore::ClearData(void)
@@ -376,12 +377,10 @@ int PWScore::WriteFile(const StringX &filename, PWSfile::VERSION version)
     return status;
   }
 
-  if (m_fileSig != NULL) {
-    // since we're writing a new file, the previous sig's
-    // about to be invalidated
-    delete m_fileSig;
-    m_fileSig = NULL;
-  }
+  // since we're writing a new file, the previous sig's
+  // about to be invalidated
+  delete m_fileSig;
+  m_fileSig = NULL;
 
   m_hdr.m_prefString = PWSprefs::GetInstance()->Store();
   m_hdr.m_whatlastsaved = m_AppNameAndVersion.c_str();
@@ -658,7 +657,7 @@ int PWScore::ReadFile(const StringX &a_filename,
     m_MapFilters = in3->GetFilters();
 
   UUIDVector Possible_Aliases, Possible_Shortcuts;
-  unsigned int uimaxsize(0);
+  size_t uimaxsize(0);
   int numlarge(0);
   do {
     ci_temp.Clear(); // Rather than creating a new one each time.
@@ -681,7 +680,7 @@ int PWScore::ReadFile(const StringX &a_filename,
       case PWSfile::SUCCESS:
         if (iMAXCHARS > 0 && ci_temp.GetSize() > iMAXCHARS) {
           numlarge++;
-          uimaxsize = max(uimaxsize, ci_temp.GetSize());
+          uimaxsize = MAX(uimaxsize, ci_temp.GetSize());
         }
         uuid_array_t uuid;
         ci_temp.GetUUID(uuid);
@@ -760,8 +759,7 @@ int PWScore::ReadFile(const StringX &a_filename,
   // Setup file signature for checking file integrity upon backup.
   // Goal is to prevent overwriting a good backup with a corrupt file.
   if (a_filename == m_currfile) {
-    if (m_fileSig != NULL)
-      delete m_fileSig;
+    delete m_fileSig;
     m_fileSig = new PWSFileSig(a_filename.c_str());
   }
 
@@ -876,14 +874,19 @@ bool PWScore::BackupCurFile(int maxNumIncBackups, int backupSuffix,
 
   pws_os::splitpath(path, drv, dir, name, ext);
   // Get location for intermediate backup
-  if (userBackupDir.empty()) { // directory same as database's
+  if (userBackupDir.empty()) {
+    // directory same as database's
     // Get directory containing database
     cs_temp = drv + dir;
     // (in Windows, need to verify for non-Windows)
     // splitpath directory ends with a '/', therefore do not need:
     // cs_temp += pws_os::PathSeparator;
   } else {
+    // User specified somewhere else
     cs_temp = userBackupDir;
+    // Ensure ends with path separator
+    if (userBackupDir[userBackupDir.length() - 1] != pws_os::PathSeparator)
+      cs_temp += pws_os::PathSeparator;
   }
 
   // generate prefix of intermediate backup file name
@@ -948,6 +951,7 @@ struct FieldsMatch {
   m_group(a_group), m_title(a_title), m_user(a_user) {}
 
 private:
+  FieldsMatch& operator=(const FieldsMatch&); // Do not implement
   const StringX &m_group;
   const StringX &m_title;
   const StringX &m_user;
@@ -974,6 +978,7 @@ struct TitleMatch {
     m_title(a_title) {}
 
 private:
+  TitleMatch& operator=(const TitleMatch&); // Do not implement
   const StringX &m_title;
 };
 
@@ -1018,6 +1023,7 @@ struct GroupTitle_TitleUserMatch {
                             m_gt(a_grouptitle),  m_tu(a_titleuser) {}
 
 private:
+  GroupTitle_TitleUserMatch& operator=(const GroupTitle_TitleUserMatch&); // Do not implement
   const StringX &m_gt;
   const StringX &m_tu;
 };
@@ -2239,6 +2245,9 @@ struct HistoryUpdater {
 protected:
   int &m_num_altered;
   std::map<CUUIDGen, StringX, CUUIDGen::ltuuid> &m_mapSavedHistory;
+
+private:
+  HistoryUpdater& operator=(const HistoryUpdater&); // Do not implement
 };
 
 struct HistoryUpdateResetOff : public HistoryUpdater {
@@ -2246,8 +2255,7 @@ struct HistoryUpdateResetOff : public HistoryUpdater {
                         SavePWHistoryMap &mapSavedHistory)
  : HistoryUpdater(num_altered, mapSavedHistory) {}
 
-  void operator()(CItemData &ci)
-  {
+  void operator()(CItemData &ci) {
     uuid_array_t item_uuid;
     ci.GetUUID(item_uuid);
     StringX cs_tmp = ci.GetPWHistory();
@@ -2258,6 +2266,9 @@ struct HistoryUpdateResetOff : public HistoryUpdater {
       m_num_altered++;
     }
   }
+
+private:
+  HistoryUpdateResetOff& operator=(const HistoryUpdateResetOff&); // Do not implement
 };
 
 struct HistoryUpdateResetOn : public HistoryUpdater {
@@ -2266,8 +2277,7 @@ struct HistoryUpdateResetOn : public HistoryUpdater {
     : HistoryUpdater(num_altered, mapSavedHistory)
   {Format(m_text, _T("1%02x00"), new_default_max);}
 
-  void operator()(CItemData &ci)
-  {
+  void operator()(CItemData &ci) {
     uuid_array_t item_uuid;
     ci.GetUUID(item_uuid);
     StringX cs_tmp = ci.GetPWHistory();
@@ -2286,6 +2296,7 @@ struct HistoryUpdateResetOn : public HistoryUpdater {
   }
 
 private:
+  HistoryUpdateResetOn& operator=(const HistoryUpdateResetOn&); // Do not implement
   StringX m_text;
 };
 
@@ -2296,8 +2307,7 @@ struct HistoryUpdateSetMax : public HistoryUpdater {
     m_new_default_max(new_default_max)
   {Format(m_text, _T("1%02x"), new_default_max);}
 
-  void operator()(CItemData &ci)
-  {
+  void operator()(CItemData &ci) {
     uuid_array_t item_uuid;
     ci.GetUUID(item_uuid);
     StringX cs_tmp = ci.GetPWHistory();
@@ -2323,6 +2333,7 @@ struct HistoryUpdateSetMax : public HistoryUpdater {
   }
 
 private:
+  HistoryUpdateSetMax& operator=(const HistoryUpdateSetMax&); // Do not implement
   int m_new_default_max;
   StringX m_text;
 };

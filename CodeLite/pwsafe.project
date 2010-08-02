@@ -54,6 +54,19 @@
     <File Name="../src/ui/wxWidgets/pwsafeapp.h"/>
     <File Name="../src/ui/wxWidgets/RUEList.cpp"/>
     <File Name="../src/ui/wxWidgets/RUEList.h"/>
+    <File Name="../src/ui/wxWidgets/guiinfo.cpp"/>
+    <File Name="../src/ui/wxWidgets/guiinfo.h"/>
+    <File Name="../src/ui/wxWidgets/RecentDBList.h"/>
+    <File Name="../src/ui/wxWidgets/ImportTextDlg.h"/>
+    <File Name="../src/ui/wxWidgets/ImportTextDlg.cpp"/>
+    <File Name="../src/ui/wxWidgets/ImportXmlDlg.h"/>
+    <File Name="../src/ui/wxWidgets/ImportXmlDlg.cpp"/>
+    <File Name="../src/ui/wxWidgets/OpenFilePickerValidator.cpp"/>
+    <File Name="../src/ui/wxWidgets/OpenFilePickerValidator.h"/>
+    <File Name="../src/ui/wxWidgets/ExportTextWarningDlg.cpp"/>
+    <File Name="../src/ui/wxWidgets/ExportTextWarningDlg.h"/>
+    <File Name="../src/ui/wxWidgets/SafeCombinationCtrl.h"/>
+    <File Name="../src/ui/wxWidgets/SafeCombinationCtrl.cpp"/>
   </VirtualDirectory>
   <Dependencies Name="Release">
     <Project Name="core"/>
@@ -65,7 +78,7 @@
   </Dependencies>
   <Settings Type="Executable">
     <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;$(shell wx-config --cxxflags --unicode=yes --debug=yes --inplace)" Required="yes" PreCompiledHeader="">
+      <Compiler Options="-Wall;$(shell wx-config --cxxflags --unicode=yes --debug=yes --inplace);-ggdb;-O0" Required="yes" PreCompiledHeader="">
         <IncludePath Value="../src"/>
         <Preprocessor Value="UNICODE"/>
       </Compiler>
@@ -96,16 +109,15 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild>version.h
-version.h: always
-	../Misc/mkversion.pl ../src/ui/wxWidgets/version.in ../src/ui/wxWidgets/$@
-
-.PHONY: always
-</CustomPreBuild>
+        <CustomPreBuild>../src/ui/wxWidgets/version.h
+#dummy line to keep CodeLite from stripping the TAB from the next line
+	
+../src/ui/wxWidgets/version.h: ../src/ui/wxWidgets/version.in
+	../Misc/mkversion.pl ../src/ui/wxWidgets/version.in ../src/ui/wxWidgets/version.h</CustomPreBuild>
       </AdditionalRules>
     </Configuration>
     <Configuration Name="Release" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="$(shell wx-config --cxxflags --unicode=yes --debug=no --inplace);-O" Required="yes" PreCompiledHeader="">
+      <Compiler Options="-O;-Wall;$(shell wx-config --cxxflags --unicode=yes --debug=no --inplace)" Required="yes" PreCompiledHeader="">
         <IncludePath Value="../src"/>
         <Preprocessor Value="UNICODE"/>
       </Compiler>
@@ -136,11 +148,12 @@ version.h: always
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild>version.h
-version.h: always
-	../Misc/mkversion.pl ../src/ui/wxWidgets/version.in ../src/ui/wxWidgets/$@
-
-.PHONY: always</CustomPreBuild>
+        <CustomPreBuild>../src/ui/wxWidgets/version.h
+#dummy line to prevent CodeLite from stripping the TAB from the next line
+	
+../src/ui/wxWidgets/version.h: ../src/ui/wxWidgets/version.in
+	../Misc/mkversion.pl ../src/ui/wxWidgets/version.in ../src/ui/wxWidgets/version.h
+</CustomPreBuild>
       </AdditionalRules>
     </Configuration>
     <GlobalSettings>
