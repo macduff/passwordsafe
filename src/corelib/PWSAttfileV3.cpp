@@ -428,10 +428,11 @@ void PWSAttfileV3::StretchKey(const unsigned char *salt, unsigned long saltLen,
 const unsigned short AttVersionNum = 0x8301;
 
 // Following specific for PWSAttfileV3::WriteHeader
-#define SAFE_FWRITE(p, sz, cnt, stream) do { \
+#define SAFE_FWRITE(p, sz, cnt, stream) \
+  { \
     size_t _ret = fwrite(p, sz, cnt, stream); \
     if (_ret != cnt) { status = FAILURE; goto end;} \
-  } while (0)
+  }
 
 int PWSAttfileV3::WriteHeader()
 {

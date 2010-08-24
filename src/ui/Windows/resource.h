@@ -321,26 +321,26 @@
 #define IDB_DRAGEMAIL_CLASSIC           476
 #define IDB_DRAGEMAILX_CLASSIC          477
 #define IDB_UNDO_CLASSIC                478
-#define IDD_ALIAS_PSWDCHANGE            478
-#define IDB_REDO_CLASSIC                479
-#define IDD_ADDEDIT_ATTACHMENTS         479
-#define IDB_UNDO_NEW                    480
-#define IDD_EXTRACT_ATTACHMENT          480
-#define IDB_REDO_NEW                    481
-#define IDD_VIEW_ATTACHMENTS            482
-#define IDB_UNDO_NEW_D                  483
-#define IDB_REDO_NEW_D                  484
-#define IDB_SYNCHRONIZE_CLASSIC         485
-#define IDB_SYNCHRONIZE_NEW             486
-#define IDB_SYNCHRONIZE_NEW_D           487
-#define IDB_UNCHECKEDA                  488
-#define IDB_VIEW_ATTACHMENTS_CLASSIC    489
-#define IDB_VIEW_ATTACHMENTS_NEW        490
-#define IDB_VIEW_ATTACHMENTS_NEW_D      491
-#define IDD_ATT_PROPERTIES              492
-#define IDR_POPATTPROPERTIES            493
-#define IDD_DIALOG1                     494
-#define IDD_ANIMATE                     495
+#define IDD_ALIAS_PSWDCHANGE            479
+#define IDB_REDO_CLASSIC                480
+#define IDD_ADDEDIT_ATTACHMENTS         481
+#define IDB_UNDO_NEW                    482
+#define IDD_EXTRACT_ATTACHMENT          483
+#define IDB_REDO_NEW                    484
+#define IDD_VIEW_ATTACHMENTS            485
+#define IDB_UNDO_NEW_D                  486
+#define IDB_REDO_NEW_D                  487
+#define IDB_SYNCHRONIZE_CLASSIC         488
+#define IDB_SYNCHRONIZE_NEW             489
+#define IDB_SYNCHRONIZE_NEW_D           490
+#define IDB_UNCHECKEDA                  491
+#define IDB_VIEW_ATTACHMENTS_CLASSIC    492
+#define IDB_VIEW_ATTACHMENTS_NEW        493
+#define IDB_VIEW_ATTACHMENTS_NEW_D      494
+#define IDD_ATT_PROPERTIES              495
+#define IDR_POPATTPROPERTIES            496
+#define IDD_ANIMATE                     497
+#define IDD_ADD_DESCRIPTION             498
 #define IDC_APPVERSION                  1000
 #define IDC_VERSION                     1001
 #define IDC_BROWSE                      1002
@@ -434,8 +434,8 @@
 #define IDC_STATIC_RESTART              1097
 #define IDC_STATIC_MAXREITEMS           1098
 #define IDC_MAXREITEMS                  1099
-#define IDC_URL                         1101
-#define IDC_AUTOTYPE                    1102
+#define IDC_URL                         1100
+#define IDC_AUTOTYPE                    1101
 #define IDC_EMAIL                       1102
 #define IDC_EXPIRYDATE                  1103
 #define IDC_EXPIRYTIME                  1104
@@ -478,7 +478,7 @@
 #define IDC_XML_IMPORT_RESULTS          1147
 #define IDC_PASSWORD2                   1149
 #define IDC_CLEAR_HISTORY               1150
-#define IDC_REPORT2CLIPBOARD            1150
+#define IDC_REPORT2CLIPBOARD            1151
 #define IDC_ADVANCED_LIST               1152
 #define IDC_ADVANCED_SELECTED           1153
 #define IDC_ADVANCED_SELECTSOME         1154
@@ -756,14 +756,17 @@
 #define IDC_STATIC_ATT11                1461
 #define IDC_STATIC_WARNING              1462
 #define IDC_ANIMATE                     1463
+#define IDC_STATIC_DROPATTACHMENT       1464
+#define IDC_STATIC_ATTACHMENTNAME       1465
+#define IDC_OPTIONALDESCRIPTION         1466
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        498
+#define _APS_NEXT_RESOURCE_VALUE        500
 #define _APS_NEXT_COMMAND_VALUE         30001
-#define _APS_NEXT_CONTROL_VALUE         1464
+#define _APS_NEXT_CONTROL_VALUE         1467
 #define _APS_NEXT_SYMED_VALUE           166
 #endif
 #endif

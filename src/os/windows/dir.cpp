@@ -61,10 +61,10 @@ bool pws_os::splitpath(const stringT &path,
   TCHAR tname[_MAX_FNAME];
   TCHAR text[_MAX_EXT];
 
-  memset(tdrv, 0, sizeof(tdrv));
-  memset(tdir, 0, sizeof(tdir));
-  memset(tname, 0, sizeof(tname));
-  memset(text, 0, sizeof(text));
+  wmemset(tdrv, 0, sizeof(tdrv)/sizeof(TCHAR));
+  wmemset(tdir, 0, sizeof(tdir)/sizeof(TCHAR));
+  wmemset(tname, 0, sizeof(tname)/sizeof(TCHAR));
+  wmemset(text, 0, sizeof(text)/sizeof(TCHAR));
 
   if (_tsplitpath_s(path.c_str(), tdrv, tdir, tname, text) == 0) {
     drive = tdrv;
@@ -82,7 +82,7 @@ stringT pws_os::makepath(const stringT &drive, const stringT &dir,
   stringT retval;
   TCHAR path[_MAX_PATH];
 
-  memset(path, 0, sizeof(path));
+  wmemset(path, 0, sizeof(path)/sizeof(TCHAR));
   if (_tmakepath_s(path, drive.c_str(), dir.c_str(),
                    file.c_str(), ext.c_str()) == 0)
     retval = path;
@@ -184,12 +184,12 @@ stringT pws_os::getuserprefsdir()
 
 stringT pws_os::getsafedir(void)
 {
-  stringT sDrive, sDir, sName, sExt;
+  stringT sDrive, sDir, sName, sExt, retval;
 
   pws_os::splitpath(getexecdir(), sDrive, sDir, sName, sExt);
-  sDrive += _T("\\"); // Trailing slash required.
+  const stringT sDriveT = sDrive + _T("\\"); // Trailing slash required.
 
-  const UINT uiDT = ::GetDriveType(sDrive.c_str());
+  const UINT uiDT = ::GetDriveType(sDriveT.c_str());
   if (uiDT == DRIVE_REMOVABLE) { 
 #ifndef DEBUG
     stringT::size_type index = sDir.rfind(_T("Program\\"));
@@ -198,11 +198,12 @@ stringT pws_os::getsafedir(void)
 #endif
     if (index != stringT::npos) {
       sDir.replace(index, 8, stringT(_T("Safes\\")));
-      if (PathFileExists(sDir.c_str()) == TRUE)
-        return sDir;
+      retval = sDrive + sDir;
+      if (PathFileExists(retval.c_str()) == TRUE)
+        return retval;
     }
   }
-  stringT sLocalSafePath, retval;
+  stringT sLocalSafePath;
   if (GetLocalDir(CSIDL_PERSONAL, sLocalSafePath)) {
     retval = sLocalSafePath + _T("\\My Safes");
     if (PathFileExists(retval.c_str()) == FALSE)
@@ -217,15 +218,16 @@ stringT pws_os::getxmldir(void)
   stringT sDrive, sDir, sName, sExt;
 
   pws_os::splitpath(getexecdir(), sDrive, sDir, sName, sExt);
-  sDrive += _T("\\"); // Trailing slash required.
+  const stringT sDriveT = sDrive + _T("\\"); // Trailing slash required.
 
-  const UINT uiDT = ::GetDriveType(sDrive.c_str());
+  const UINT uiDT = ::GetDriveType(sDriveT.c_str());
   if (uiDT == DRIVE_REMOVABLE) { 
     stringT::size_type index = sDir.rfind(_T("Program\\"));
     if (index != stringT::npos) {
       sDir.replace(index, 8, stringT(_T("xml\\")));
-      if (PathFileExists(sDir.c_str()) == TRUE)
-        return sDir;
+      stringT retval = sDrive + sDir;
+      if (PathFileExists(retval.c_str()) == TRUE)
+        return retval;
     }
   }
   return getexecdir();

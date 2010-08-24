@@ -18,7 +18,7 @@
 * As per XML parsing rules, any error stops the parsing immediately.
 */
 
-#include "../XMLDefs.h"
+#include "../XMLDefs.h"    // Required if testing "USE_XML_LIBRARY"
 
 #if USE_XML_LIBRARY == EXPAT
 
@@ -28,6 +28,7 @@
 #include "ESecMemMgr.h"
 
 #include "../../corelib.h"
+#include "../../../os/pws_tchar.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -36,12 +37,6 @@
 
 // Expat includes
 #include <expat.h>
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
 
 #define BUFFSIZE 8192
 
@@ -91,7 +86,7 @@ static void WFilter_free(void *p)
 
 EFilterXMLProcessor::EFilterXMLProcessor(PWSFilters &mapfilters, const FilterPool fpool,
                                          Asker *pAsker)
-  : m_MapFilters(mapfilters), m_FPool(fpool), m_pAsker(pAsker)
+  : m_pAsker(pAsker), m_MapFilters(mapfilters), m_FPool(fpool)
 {
   pSecMM = new ESecMemMgr;
   pFilterHandler = new EFilterHandlers;

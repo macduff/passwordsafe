@@ -18,7 +18,7 @@
 * As per XML parsing rules, any error stops the parsing immediately.
 */
 
-#include "../XMLDefs.h"
+#include "../XMLDefs.h"    // Required if testing "USE_XML_LIBRARY"
 
 #if USE_XML_LIBRARY == EXPAT
 
@@ -34,17 +34,12 @@
 #include "../../StringXStream.h"
 #include "../../VerifyFormat.h"
 #include "../../corelib.h"
+#include "../../../os/pws_tchar.h"
 
 #include <algorithm>
 #include <vector>
 #include <map>
 #include <sstream>
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
 
 using namespace std;
 

@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "AddEdit_Attachments.h"
 #include "AddEdit_PropertySheet.h"
+#include "AddDescription.h"
 
 #include "ThisMfcApp.h"    // For Help
 #include "GeneralMsgBox.h"
@@ -33,6 +34,7 @@ void CAddEdit_Attachments::DoDataExchange(CDataExchange* pDX)
   DDX_Control(pDX, IDC_NEWATTACHMENT_LIST, m_NewAttLC);
 
   DDX_Control(pDX, IDC_STATIC_WARNING, m_stc_warning);
+  DDX_Control(pDX, IDC_STATIC_DROPATTACHMENT, m_stc_DropFiles);
 }
 
 BEGIN_MESSAGE_MAP(CAddEdit_Attachments, CAddEdit_PropertyPage)
@@ -42,6 +44,7 @@ BEGIN_MESSAGE_MAP(CAddEdit_Attachments, CAddEdit_PropertyPage)
   ON_COMMAND(ID_HELP, OnHelp)
   ON_NOTIFY(NM_CLICK, IDC_NEWATTACHMENT_LIST, OnNewAttachmentListSelected)
   ON_MESSAGE(PWS_MSG_ATTACHMENT_FLAG_CHANGED, OnAttachmentChanged)
+  ON_MESSAGE(WM_DROPFILES, DropFiles)
 END_MESSAGE_MAP()
 
 BOOL CAddEdit_Attachments::PreTranslateMessage(MSG* pMsg)
@@ -83,11 +86,11 @@ BOOL CAddEdit_Attachments::OnInitDialog()
 
   DWORD dwExStyle;
   dwExStyle = m_AttLC.GetExtendedStyle();
-  dwExStyle |= LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES; // | LVS_EX_BORDERSELECT;
+  dwExStyle |= LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_SUBITEMIMAGES; // | LVS_EX_BORDERSELECT;
   m_AttLC.SetExtendedStyle(dwExStyle);
 
   dwExStyle = m_NewAttLC.GetExtendedStyle();
-  dwExStyle |= LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES; // | LVS_EX_BORDERSELECT;
+  dwExStyle |= LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_SUBITEMIMAGES; // | LVS_EX_BORDERSELECT;
   m_NewAttLC.SetExtendedStyle(dwExStyle);
 
   // Nothing is selected yet
@@ -103,6 +106,8 @@ BOOL CAddEdit_Attachments::OnInitDialog()
   m_AttLC.AddAttachments(M_vATRecords());
 
   m_stc_warning.SetColour(RGB(255, 0, 0));
+  m_stc_DropFiles.DragAcceptFiles(TRUE);
+  m_stc_DropFiles.SetBkColour(RGB(222, 255, 222));
 
   UpdateData(FALSE);
 
@@ -183,7 +188,7 @@ void CAddEdit_Attachments::OnAddNewAttachment()
   // attachments
   ATRecord atr;
 
-  if (M_pDbx()->GetNewAttachmentInfo(atr)) {
+  if (M_pDbx()->GetNewAttachmentInfo(atr, true)) {
     memcpy(atr.entry_uuid, M_entry_uuid(), sizeof(uuid_array_t));
     atr.flags = ATT_EXTRACTTOREMOVEABLE | ATT_ERASURE_REQUIRED;
     M_vNewATRecords().push_back(atr);
@@ -297,5 +302,54 @@ LRESULT CAddEdit_Attachments::OnAttachmentChanged(WPARAM wParam, LPARAM lParam)
   }
 
   m_ae_psh->SetAttachmentsChanged(m_NewAttLC.GetItemCount() > 0 || HasExistingChanged());
+  return 0L;
+}
+
+LRESULT CAddEdit_Attachments::DropFiles(WPARAM wParam, LPARAM)
+{
+  bool bAddAttachment(false);
+  // Get the number of pathnames that have been dropped
+  HDROP hDrop = (HDROP)wParam;
+  const UINT uiNumFilesDropped = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
+
+  // Allocate memory to contain full pathname & zero byte
+  wchar_t *pszFile = new wchar_t[MAX_PATH + 1];
+
+  // get all file names
+  for (UINT uinum = 0 ; uinum < uiNumFilesDropped; uinum++) {
+    // Get the number of bytes required by the file's full pathname
+    const UINT uiPathnameSize = DragQueryFile(hDrop, uinum, NULL, 0);
+
+    // If buffer to small - get a bigger one!
+    if (uiPathnameSize > sizeof(pszFile + 1) / sizeof(wchar_t)) {
+      delete [] pszFile;
+      pszFile = new wchar_t[uiPathnameSize + 1];
+    }
+ 
+    // Copy the pathname into the buffer
+    DragQueryFile(hDrop, uinum, pszFile, uiPathnameSize + 1);
+
+    ATRecord atr;
+
+    atr.filename = pszFile;
+    if (M_pDbx()->GetNewAttachmentInfo(atr, false)) {
+      bAddAttachment = true;
+      CAddDescription dlg(this, pszFile);
+      dlg.DoModal();
+      atr.description = dlg.GetDescription();
+      memcpy(atr.entry_uuid, M_entry_uuid(), sizeof(uuid_array_t));
+      atr.flags = ATT_EXTRACTTOREMOVEABLE | ATT_ERASURE_REQUIRED;
+      M_vNewATRecords().push_back(atr);
+      m_NewAttLC.AddNewAttachment(M_vNewATRecords().size() - 1, atr);
+    }
+  }
+
+  if (bAddAttachment) {
+    m_ae_psh->SetAttachmentsChanged(true);
+    m_NewAttLC.Invalidate();
+  }
+
+  // clean up
+  delete [] pszFile;
   return 0L;
 }

@@ -353,7 +353,9 @@ public:
 
     void ClearRUEList() { m_RUEList.ClearEntries(); }
     void OnUpdateClearRecentHistory();
-    
+
+    void ViewReport(CReport& rpt);
+
 ////@begin PasswordSafeFrame member variables
   PWSGrid* m_grid;
   PWSTreeCtrl* m_tree;
@@ -396,6 +398,9 @@ public:
   void DoBrowse(CItemData &item);
   void DoRun(CItemData &item);
   void DoEmail(CItemData &item);
+
+  template <class ExportType>
+  void DoExportText();
   
   PWScore &m_core;
   enum {TREE, GRID} m_currentView;

@@ -18,7 +18,7 @@
 * As per XML parsing rules, any error stops the parsing immediately.
 */
 
-#include "../XMLDefs.h"
+#include "../XMLDefs.h"    // Required if testing "USE_XML_LIBRARY"
 
 #if USE_XML_LIBRARY == EXPAT
 
@@ -32,15 +32,10 @@
 #include "../../VerifyFormat.h"
 #include "../../PWSFilters.h"
 #include "../../corelib.h"
+#include "../../../os/pws_tchar.h"
 
 #include <algorithm>
 #include <sstream>
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
 
 using namespace std;
 
@@ -335,7 +330,7 @@ bool EFilterValidator::startElement(stringT & strStartElement)
   if (m_iErrorCode != 0) {
     switch (m_iErrorCode) {
       case XTPEC_UNEXPECTED_ELEMENT:
-        Format(m_sErrorMsg, IDSC_EXPATUNEXPECTED, strStartElement);
+        Format(m_sErrorMsg, IDSC_EXPATUNEXPECTED, strStartElement.c_str());
         break;
       default:
       /*

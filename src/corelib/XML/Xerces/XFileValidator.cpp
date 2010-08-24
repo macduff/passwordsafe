@@ -13,7 +13,7 @@
 * Note: Xerces uses wchar_t even in non-Unicode mode.
 */
 
-#include "../XMLDefs.h"
+#include "../XMLDefs.h"    // Required if testing "USE_XML_LIBRARY"
 
 #if USE_XML_LIBRARY == XERCES
 
@@ -27,12 +27,6 @@
 #include "../../StringX.h"
 
 #include <map>
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
 
 using namespace std;
 

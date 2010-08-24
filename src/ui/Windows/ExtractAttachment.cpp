@@ -85,7 +85,7 @@ BOOL CExtractAttachment::OnInitDialog()
 
   DWORD dwExStyle;
   dwExStyle = m_AttLC.GetExtendedStyle();
-  dwExStyle |= LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES;
+  dwExStyle |= LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_SUBITEMIMAGES;
   m_AttLC.SetExtendedStyle(dwExStyle);
 
   // Nothing is selected yet

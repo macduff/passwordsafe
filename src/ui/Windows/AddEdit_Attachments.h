@@ -31,6 +31,7 @@ public:
   enum { IDD = IDD_ADDEDIT_ATTACHMENTS };
 
   CStaticExtn m_stc_warning;
+  void OnDropFiles(HDROP hDrop);
 
   // ClassWizard generate virtual function overrides
   //{{AFX_VIRTUAL(CAddEdit_Attachments)
@@ -53,6 +54,7 @@ protected:
   afx_msg void OnNewAttachmentListSelected(NMHDR *pNMHDR, LRESULT *pResult);
   afx_msg LRESULT OnAttachmentChanged(WPARAM wParam, LPARAM lParam);
   afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+  afx_msg LRESULT DropFiles(WPARAM hDrop, LPARAM);
   //}}AFX_MSG
 
   DECLARE_MESSAGE_MAP()
@@ -68,6 +70,8 @@ private:
   std::vector<BYTE> m_vAttFlags;
   uuid_array_t m_entry_uuid;
   bool m_bInitdone;
+
+  CStaticExtn m_stc_DropFiles;
 };
 //-----------------------------------------------------------------------------
 // Local variables:

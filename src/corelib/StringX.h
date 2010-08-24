@@ -26,6 +26,7 @@
 #include <cstring> // for memset
 
 #include "../os/typedefs.h"
+#include "./PwsPlatform.h"
 
 namespace S_Alloc
 {
@@ -59,11 +60,11 @@ namespace S_Alloc
 
       // Utility functions
       pointer address(reference r) const {
-        return &r;
+        return (&r);
       }
 
       const_pointer address(const_reference c) const {
-        return &c;
+        return (&c);
       }
 
       size_type max_size() const {
@@ -77,9 +78,9 @@ namespace S_Alloc
       }
 
       // In-place destruction
-      void destroy(pointer p) {
+      void destroy(pointer p) const {
         // call destructor directly
-        (p)->~T();
+        (p)->T::~T();
       }
 
       // Rebind to allocators of other types
@@ -89,18 +90,19 @@ namespace S_Alloc
         };
 
       // Allocate raw memory
-      pointer allocate(size_type n, const void* = NULL) {
-        void* p = std::malloc(n * sizeof(T));
+      pointer allocate(size_type n, const_pointer hint = 0) {
+        UNREFERENCED_PARAMETER(hint);
+        pointer p = (pointer)std::malloc(n * sizeof(T));
         // pws_os::Trace(_T("Securely Allocated %d bytes at %p\n"), n * sizeof(T), p);
-        if(p == NULL)
+        if (p == NULL)
           throw std::bad_alloc();
-        return pointer(p);
+        return p;
       }
 
       // Free raw memory.
-      // Note that C++ standard defines this function as
-      // deallocate(pointer p, size_type n).
-      void deallocate(void* p, size_type n){
+      // Note that C++ standard defines this function as:
+      //   deallocate(pointer p, size_type n).
+      void deallocate(pointer p, size_type n) {
         // assert(p != NULL);
         // The standard states that p must not be NULL. However, some
         // STL implementations fail this requirement, so the check must

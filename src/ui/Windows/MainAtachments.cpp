@@ -34,7 +34,7 @@ using namespace std;
 static char THIS_FILE[] = __FILE__;
 #endif
 
-bool DboxMain::GetNewAttachmentInfo(ATRecord &atr)
+bool DboxMain::GetNewAttachmentInfo(ATRecord &atr, const bool bGetFileName)
 {
   StringX sx_Filename;
   CString cs_text(MAKEINTRESOURCE(IDS_CHOOSEATTACHMENT));
@@ -48,19 +48,30 @@ bool DboxMain::GetNewAttachmentInfo(ATRecord &atr)
 
   while (1) {
     // Open-type dialog box (with extra description edit control)
-    CPWFileDialog fd(TRUE,
-                     NULL,
-                     NULL,
-                     OFN_FILEMUSTEXIST | OFN_LONGNAMES | OFN_DONTADDTORECENT |
-                        OFN_HIDEREADONLY | OFN_PATHMUSTEXIST,
-                     CString(MAKEINTRESOURCE(IDS_FDF_ALL)),
-                     this, 0, true);
+    INT_PTR rc2(IDOK);
+    StringX sFullFileName = atr.filename;
 
-    fd.m_ofn.lpstrTitle = cs_text;
-    if (!dir.empty())
-      fd.m_ofn.lpstrInitialDir = dir.c_str();
+    if (bGetFileName) {
+      CPWFileDialog fd(TRUE,
+                       NULL,
+                       NULL,
+                       OFN_FILEMUSTEXIST | OFN_LONGNAMES | OFN_DONTADDTORECENT |
+                          OFN_HIDEREADONLY | OFN_PATHMUSTEXIST,
+                       CString(MAKEINTRESOURCE(IDS_FDF_ALL)),
+                       this, 0, true);
 
-    INT_PTR rc2 = fd.DoModal();
+      fd.m_ofn.lpstrTitle = cs_text;
+      if (!dir.empty())
+        fd.m_ofn.lpstrInitialDir = dir.c_str();
+
+      rc2 = fd.DoModal();
+      if (rc2 == IDOK) {
+        // Note: Using fd.GetFileName() for the filename may truncate the extension
+        // to 3 characters
+        sFullFileName = (LPCWSTR)fd.GetPathName();
+        atr.description = fd.GetDescription();
+      }
+    }
 
     if (m_inExit) {
       // If U3ExitNow called while in CPWFileDialog,
@@ -72,28 +83,25 @@ bool DboxMain::GetNewAttachmentInfo(ATRecord &atr)
 
     if (rc2 == IDOK) {
       std::wstring sDrive, sDir, sName, sExt;
-      pws_os::splitpath((LPCWSTR)fd.GetPathName(), sDrive, sDir, sName, sExt);
+      pws_os::splitpath(sFullFileName.c_str(), sDrive, sDir, sName, sExt);
       atr.path = StringX(sDrive.c_str()) + StringX(sDir.c_str());
-      // Note: Using fd.GetFileName() for the filename may truncate the extension
-      // to 3 characters
       atr.filename = StringX(sName.c_str()) + StringX(sExt.c_str());
-      atr.description = fd.GetDescription();
       atr.flags = 0;
       atr.uiflags = 0;
-      struct _stat buffer;
-      int irc = _wstat(fd.GetPathName(), &buffer);
+      struct _stat stat_buffer;
+      int irc = _wstat(sFullFileName.c_str(), &stat_buffer);
       if (irc == 0) {
-        if (buffer.st_size == 0) {
+        if (stat_buffer.st_size == 0) {
           CGeneralMsgBox gmb;
           CString cs_msg(MAKEINTRESOURCE(IDS_NOZEROSIZEEXTRACT)),
               cs_title(MAKEINTRESOURCE(IDS_WILLNOTATTACH));
           gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONSTOP);
         } else {
-          atr.mtime = buffer.st_mtime;
-          atr.atime = buffer.st_atime;
-          atr.ctime = buffer.st_ctime;
+          atr.mtime = stat_buffer.st_mtime;
+          atr.atime = stat_buffer.st_atime;
+          atr.ctime = stat_buffer.st_ctime;
           atr.dtime = 0;
-          atr.uncsize = buffer.st_size;
+          atr.uncsize = stat_buffer.st_size;
           atr.cmpsize = 0;
           atr.CRC = 0;
           uuid_array_t new_attmt_uuid;
