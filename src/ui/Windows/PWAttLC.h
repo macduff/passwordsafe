@@ -50,11 +50,14 @@
 // ATT_ERASURE_REQUIRED = ATT_ERASEPGMEXISTS | ATT_ERASEONDBCLOSE
 #define ATT_ERASURE_REQUIRED    0x60
 
-// Extract attachment via context menu on Attachment CListCtrl - also defined in DboxMain.h
+// Extract attachment via context menu on Attachment CListCtrl - ALSO DEFINED IN DBOXMAIN.H
 #define PWS_MSG_EXTRACT_ATTACHMENT      (WM_APP + 70)
 
-// Update AddEdit_Attachments that the user has changed an entry's flags - also defined in DboxMain.h
-#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 71)
+// Export attachment via context menu on Attachment CListCtrl - ALSO DEFINED IN DBOXMAIN.H
+#define PWS_MSG_EXPORT_ATTACHMENT       (WM_APP + 71)
+
+// Update AddEdit_Attachments that the user has changed an entry's flags - ALSO DEFINED IN DBOXMAIN.H
+#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 72)
 
 class CPWAttDlg;
 

@@ -18,6 +18,7 @@
 #include "GeneralMsgBox.h"
 #include "ExtractAttachment.h"
 #include "ViewAttachments.h"
+#include "ExportXMLDlg.h"
 
 #include "resource3.h"  // String resources
 
@@ -158,6 +159,88 @@ void DboxMain::OnViewAttachments()
   // Now let them decide where to extract it to and the new file name
   // and then do it
   dlg.DoModal();
+}
+
+LRESULT DboxMain::OnExportAttachment(WPARAM wParam, LPARAM )
+{
+  ATRecordEx *pATREx = (ATRecordEx *)wParam;
+  DoExportAttachmentsXML(pATREx);
+
+  return 0L;
+}
+
+void DboxMain::OnExportAllAttachments()
+{
+  DoExportAttachmentsXML();
+}
+
+void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
+{
+  CExportXMLDlg eXML(this);
+  CString cs_text, cs_title, cs_temp;
+
+  INT_PTR rc = eXML.DoModal();
+  if (rc == IDOK) {
+    CGeneralMsgBox gmb;
+    StringX newfile;
+    StringX pw(eXML.GetPasskey());
+    if (m_core.CheckPasskey(m_core.GetCurFile(), pw) == PWScore::SUCCESS) {
+      // do the export
+      // SaveAs-type dialog box
+      std::wstring XMLFileName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(),
+                                                         L"xml");
+      const std::wstring subgroup_name = L"";
+      const int subgroup_object = 0;
+      const int subgroup_function = 0;
+      cs_text.LoadString(IDS_NAMEXMLFILE);
+
+      while (1) {
+        CPWFileDialog fd(FALSE,
+                         L"xml",
+                         XMLFileName.c_str(),
+                         OFN_PATHMUSTEXIST | OFN_HIDEREADONLY |
+                            OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
+                         CString(MAKEINTRESOURCE(IDS_FDF_X_ALL)),
+                         this);
+        fd.m_ofn.lpstrTitle = cs_text;
+        rc = fd.DoModal();
+        if (m_inExit) {
+          // If U3ExitNow called while in CPWFileDialog,
+          // PostQuitMessage makes us return here instead
+          // of exiting the app. Try resignalling 
+          PostQuitMessage(0);
+          return;
+        }
+        if (rc == IDOK) {
+          newfile = fd.GetPathName();
+          break;
+        } else
+          goto exit;
+      } // while (1)
+
+      ATRExVector vAIRecordExs;
+      if (pATREx == NULL) {
+        m_core.GetAllAttachments(vAIRecordExs);
+      } else {
+        vAIRecordExs.push_back(*pATREx);
+      }
+
+      rc = m_core.WriteXMLAttachmentFile(newfile,
+                   subgroup_name, subgroup_object,
+                   subgroup_function, vAIRecordExs);
+
+      if (rc != PWScore::SUCCESS) {
+        //DisplayFileWriteError(rc, newfile);
+        ASSERT(0);
+      }
+    } else {
+      gmb.AfxMessageBox(IDS_BADPASSKEY);
+      ::Sleep(3000); // protect against automatic attacks
+    }
+  }
+
+exit:
+  return;
 }
 
 LRESULT DboxMain::OnExtractAttachment(WPARAM wParam, LPARAM )

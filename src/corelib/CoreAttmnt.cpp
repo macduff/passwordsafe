@@ -13,8 +13,12 @@
 #include "corelib.h"
 #include "Util.h"
 #include "UUIDGen.h"
+#include "SysInfo.h"
 #include "UTF8Conv.h"
+#include "Report.h"
 #include "PWSAttfileV3.h" // XXX cleanup with dynamic_cast
+
+#include "XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 
 #include "os/typedefs.h"
 #include "os/dir.h"
@@ -22,6 +26,10 @@
 
 #include "zlib/zlib.h"
 
+#include <sstream>
+#include <fstream>
+#include <iostream>
+#include <iomanip>
 #include <string>
 #include <algorithm>
 #include <set>
@@ -29,6 +37,15 @@
 #include <errno.h>
 
 using namespace std;
+
+// hide w_char/char differences where possible:
+#ifdef UNICODE
+typedef std::wifstream ifstreamT;
+typedef std::wofstream ofstreamT;
+#else
+typedef std::ifstream ifstreamT;
+typedef
+#endif
 
 // Return whether uuid elem1 is less than uuid elem2
 // Used in set_difference between 2 sets
@@ -1147,3 +1164,291 @@ void PWScore::SetupAttachmentHeader()
     memcpy(m_atthdr.DBfile_uuid, m_hdr.m_file_uuid_array, sizeof(uuid_array_t));
   }
 }
+
+struct XMLAttachmentWriter {
+  XMLAttachmentWriter(const stringT &subgroup_name,
+                      const int subgroup_object, const int subgroup_function,
+                      ofstream &ofs, PWScore *pcore) :
+  m_subgroup_name(subgroup_name), m_subgroup_object(subgroup_object),
+  m_subgroup_function(subgroup_function), m_of(ofs), m_id(0), m_pcore(pcore)
+  {}
+
+  void operator()(ATRecordEx atrex) {
+    m_id++;
+    ItemListIter iter = m_pcore->Find(atrex.atr.entry_uuid);
+    CItemData *pci = &iter->second;
+    if (m_subgroup_name.empty() ||
+        pci->Matches(m_subgroup_name,
+                     m_subgroup_object, m_subgroup_function)) {
+      CUTF8Conv utf8conv;
+      const unsigned char *utf8 = NULL;
+      int utf8Len = 0;
+
+      ostringstream oss; // ALWAYS a string of chars, never wchar_t!
+      oss << "\t<attachment id=\"" << dec << m_id << "\" >" << endl;
+
+      uuid_array_t attachment_uuid, entry_uuid;
+      memcpy(attachment_uuid, atrex.atr.attmt_uuid, sizeof(uuid_array_t));
+      memcpy(entry_uuid, atrex.atr.entry_uuid, sizeof(uuid_array_t));
+      const CUUIDGen a_uuid(attachment_uuid), e_uuid(entry_uuid);
+      oss << "\t\t<attachment_uuid><![CDATA[" << a_uuid << "]]></attachment_uuid>" << endl;
+      oss << "\t\t<entry_uuid><![CDATA[" << e_uuid << "]]></entry_uuid>" << endl;
+
+      oss << "\t\t<osize>" << dec << atrex.atr.uncsize << "</osize>" << endl;
+      oss << "\t\t<csize>" << dec << atrex.atr.cmpsize << "</csize>" << endl;
+
+      PWSUtil::WriteXMLField(oss, "filename", atrex.atr.filename, utf8conv);
+      PWSUtil::WriteXMLField(oss, "path", atrex.atr.path, utf8conv);
+      PWSUtil::WriteXMLField(oss, "description", atrex.atr.description, utf8conv);
+
+      oss << "\t\t<crc>" << hex << setfill('0') << setw(8)
+          << atrex.atr.CRC << "</crc>" << endl;
+
+      stringT tmp;
+      stringT cs_temp;
+      for (unsigned int i = 0; i < SHA1::HASHLEN; i++) {
+        Format(cs_temp, _T("%02x"), atrex.atr.digest[i]);
+        tmp += cs_temp;
+      }
+      utf8conv.ToUTF8(tmp.c_str(), utf8, utf8Len);
+      oss << "\t\t<digest>" << utf8 << "</digest>" << endl;
+
+      oss << PWSUtil::GetXMLTime(2, "ctime", atrex.atr.ctime, utf8conv);
+      oss << PWSUtil::GetXMLTime(2, "atime", atrex.atr.atime, utf8conv);
+      oss << PWSUtil::GetXMLTime(2, "mtime", atrex.atr.mtime, utf8conv);
+      oss << PWSUtil::GetXMLTime(2, "dtime", atrex.atr.dtime, utf8conv);
+
+      oss << "\t\t<flags>" << endl; 
+      oss << "\t\t\t<ExtractToRemoveable>" <<
+         ((atrex.atr.flags & ATT_EXTRACTTOREMOVEABLE) ? "1</" : "0</") << 
+         "ExtractToRemoveable>" << endl;
+      oss << "\t\t\t<EraseProgamExists>" <<
+        ((atrex.atr.flags & ATT_ERASEPGMEXISTS) ? "1</" : "0</") <<
+        "EraseProgamExists>" << endl;
+      oss << "\t\t\t<EraseOnDatabaseClose>" << 
+        ((atrex.atr.flags & ATT_ERASEONDBCLOSE) ? "1</" : "0</") <<
+        "EraseOnDatabaseClose>" << endl;
+      oss << "\t\t</flags>" << endl;
+
+      stringT sdata = PWSUtil::Base64Encode(atrex.atr.pData, atrex.atr.cmpsize);
+      utf8conv.ToUTF8(sdata.c_str(), utf8, utf8Len);
+      oss << "\t\t<data><![CDATA[" << endl;
+      for (unsigned int i = 0; i < (unsigned int)utf8Len; i += 64) {
+        char buffer[65];
+        memset(buffer, 0, sizeof(buffer));
+        if (utf8Len - i > 64)
+          memcpy(buffer, utf8 + i, 64);
+        else
+          memcpy(buffer, utf8 + i, utf8Len - i);
+        oss << "\t\t" << buffer << endl;
+      }
+      oss <<  "\t\t]]></data>" << endl;
+      oss << "\t</attachment>" << endl;
+      m_of.write(oss.str().c_str(),
+                 static_cast<streamsize>(oss.str().length()));
+    }
+  }
+
+private:
+  XMLAttachmentWriter& operator=(const XMLAttachmentWriter&); // Do not implement
+  const stringT &m_subgroup_name;
+  const int m_subgroup_object;
+  const int m_subgroup_function;
+  ofstream &m_of;
+  unsigned m_id;
+  PWScore *m_pcore;
+};
+
+int PWScore::WriteXMLAttachmentFile(const StringX &filename,
+                          const stringT &subgroup_name,
+                          const int &subgroup_object, const int &subgroup_function,
+                          const ATRExVector &vAIRecordExs)
+{
+  size_t num = vAIRecordExs.size();
+  if (num == 0)
+    return NO_ENTRIES_EXPORTED;
+
+#ifdef UNICODE
+  const unsigned char *fname = NULL;
+  CUTF8Conv conv;
+  int fnamelen;
+  conv.ToUTF8(filename, fname, fnamelen); 
+#else
+  const char *fname = filename.c_str();
+#endif
+
+  ofstream ofs(reinterpret_cast<const char *>(fname));
+
+  if (!ofs)
+    return CANT_OPEN_FILE;
+
+  oStringXStream oss_xml;
+  StringX pwh, tmp;
+  stringT cs_temp;
+  time_t time_now;
+
+  time(&time_now);
+  const StringX now = PWSUtil::ConvertToDateTimeString(time_now, TMC_XML);
+
+  ofs << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+  ofs << "<?xml-stylesheet type=\"text/xsl\" href=\"pwsafe.xsl\"?>" << endl;
+  ofs << endl;
+  ofs << "<passwordsafe_attachments" << endl;
+  tmp = m_currfile;
+  Replace(tmp, StringX(_T("&")), StringX(_T("&amp;")));
+
+  CUTF8Conv utf8conv;
+  const unsigned char *utf8 = NULL;
+  int utf8Len = 0;
+
+  utf8conv.ToUTF8(tmp, utf8, utf8Len);
+  ofs << "Database=\"";
+  ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
+  ofs << "\"" << endl;
+  utf8conv.ToUTF8(now, utf8, utf8Len);
+  ofs << "ExportTimeStamp=\"";
+  ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
+  ofs << "\"" << endl;
+  ofs << "FromDatabaseFormat=\"";
+  ostringstream osv; // take advantage of UTF-8 == ascii for version string
+  osv << m_hdr.m_nCurrentMajorVersion
+      << "." << setw(2) << setfill('0')
+      << m_hdr.m_nCurrentMinorVersion;
+  ofs.write(osv.str().c_str(), osv.str().length());
+  ofs << "\"" << endl;
+  if (!m_hdr.m_lastsavedby.empty() || !m_hdr.m_lastsavedon.empty()) {
+    oStringXStream oss;
+    oss << m_hdr.m_lastsavedby << _T(" on ") << m_hdr.m_lastsavedon;
+    utf8conv.ToUTF8(oss.str(), utf8, utf8Len);
+    ofs << "WhoSaved=\"";
+    ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
+    ofs << "\"" << endl;
+  }
+  if (!m_hdr.m_whatlastsaved.empty()) {
+    utf8conv.ToUTF8(m_hdr.m_whatlastsaved, utf8, utf8Len);
+    ofs << "WhatSaved=\"";
+    ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
+    ofs << "\"" << endl;
+  }
+  if (m_hdr.m_whenlastsaved != 0) {
+    StringX wls = PWSUtil::ConvertToDateTimeString(m_hdr.m_whenlastsaved,
+                                                   TMC_XML);
+    utf8conv.ToUTF8(wls.c_str(), utf8, utf8Len);
+    ofs << "WhenLastSaved=\"";
+    ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
+    ofs << "\"" << endl;
+  }
+
+  CUUIDGen db_uuid(m_hdr.m_file_uuid_array, true); // true to print canoncally
+  CUUIDGen att_uuid(m_atthdr.attfile_uuid, true); // true to print canoncally
+
+  ofs << "Database_uuid=\"" << db_uuid << "\"" << endl;
+  ofs << "Attachment_file_uuid=\"" << att_uuid << "\"" << endl;
+  ofs << "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" << endl;
+  ofs << "xsi:noNamespaceSchemaLocation=\"pwsafe.xsd\">" << endl;
+  ofs << endl;
+
+  XMLAttachmentWriter put_xml(subgroup_name, subgroup_object, subgroup_function,
+                              ofs, this);
+
+  for_each(vAIRecordExs.begin(), vAIRecordExs.end(), put_xml);
+
+  ofs << "</passwordsafe_attachments>" << endl;
+  ofs.close();
+
+ return SUCCESS;
+}
+
+#if !defined(USE_XML_LIBRARY) || (!defined(_WIN32) && USE_XML_LIBRARY == MSXML)
+// Don't support importing XML on non-Windows platforms using Microsoft XML libraries
+int PWScore::ImportXMLAttachmentFile(const stringT &,
+                           const stringT &,
+                           stringT &, stringT &,
+                           int &, int &, int &,
+                           bool &, bool &, 
+                           CReport &, Command *&)
+{
+  return UNIMPLEMENTED;
+}
+#else
+int PWScore::ImportXMLAttachmentFile(const stringT &strXMLFileName,
+                           const stringT &strXSDFileName,
+                           stringT &strXMLErrors, stringT &strSkippedList,
+                           int &numValidated, int &numImported, int &numSkipped,
+                           bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields,
+                           CReport &rpt, Command *&pcommand)
+{
+  UUIDVector Possible_Aliases, Possible_Shortcuts;
+  MultiCommands *pmulticmds = MultiCommands::Create(this);
+  pcommand = pmulticmds;
+
+#if   USE_XML_LIBRARY == EXPAT
+  EFileXMLProcessor iXML(this, &Possible_Aliases, &Possible_Shortcuts, pmulticmds, &rpt);
+#elif USE_XML_LIBRARY == MSXML
+  MFileXMLProcessor iXML(this, &Possible_Aliases, &Possible_Shortcuts, pmulticmds, &rpt);
+#elif USE_XML_LIBRARY == XERCES
+  XFileXMLProcessor iXML(this, &Possible_Aliases, &Possible_Shortcuts, pmulticmds, &rpt);
+#endif
+
+  bool status, validation;
+  int nITER(0);
+  int nRecordsWithUnknownFields;
+  UnknownFieldList uhfl;
+  bool bEmptyDB = (GetNumEntries() == 0);
+
+  strXMLErrors = strPWHErrorList = strRenameList = _T("");
+
+  // Expat is not a validating parser - but we now do it ourselves!
+  validation = true;
+  status = iXML.Process(validation, ImportedPrefix, strXMLFileName,
+                        strXSDFileName, bImportPSWDsOnly, 
+                        nITER, nRecordsWithUnknownFields, uhfl);
+  strXMLErrors = iXML.getXMLErrors();
+  if (!status) {
+    return XML_FAILED_VALIDATION;
+  }
+  numValidated = iXML.getNumEntriesValidated();
+
+  validation = false;
+  status = iXML.Process(validation, ImportedPrefix, strXMLFileName,
+                        strXSDFileName, bImportPSWDsOnly,
+                        nITER, nRecordsWithUnknownFields, uhfl);
+
+  numImported = iXML.getNumEntriesImported();
+  numSkipped = iXML.getNumEntriesSkipped();
+  numRenamed = iXML.getNumEntriesRenamed();
+  numPWHErrors = iXML.getNumEntriesPWHErrors();
+
+  strXMLErrors = iXML.getXMLErrors();
+  strSkippedList = iXML.getSkippedList();
+  strRenameList = iXML.getRenameList();
+  strPWHErrorList = iXML.getPWHErrorList();
+
+  if (!status) {
+    delete pcommand;
+    pcommand = NULL;
+    return XML_FAILED_IMPORT;
+  }
+ 
+  bBadUnknownFileFields = iXML.getIfDatabaseHeaderErrors();
+  bBadUnknownRecordFields = iXML.getIfRecordHeaderErrors();
+  m_nRecordsWithUnknownFields += nRecordsWithUnknownFields;
+
+  // Only add header unknown fields or change number of iterations
+  // if the database was empty to start with
+  if (bEmptyDB) {
+    m_hdr.m_nITER = nITER;
+    if (uhfl.empty())
+      m_UHFL.clear();
+    else {
+      m_UHFL = uhfl;
+    }
+  }
+  uhfl.clear();
+
+  if (numImported > 0)
+    SetDBChanged(true);
+
+  return ((numRenamed + numPWHErrors) == 0) ? SUCCESS : OK_WITH_ERRORS;
+}
+#endif

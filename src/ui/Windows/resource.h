@@ -338,7 +338,7 @@
 #define IDB_VIEW_ATTACHMENTS_NEW        493
 #define IDB_VIEW_ATTACHMENTS_NEW_D      494
 #define IDD_ATT_PROPERTIES              495
-#define IDR_POPATTPROPERTIES            496
+#define IDR_POPATTACHMENTS            496
 #define IDD_ANIMATE                     497
 #define IDD_ADD_DESCRIPTION             498
 #define IDC_APPVERSION                  1000

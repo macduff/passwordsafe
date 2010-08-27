@@ -171,6 +171,9 @@ public:
                    const int &iFunction, const TCHAR &delimiter,
                    const OrderedItemList *il = NULL,
                    const bool &bFilterActive = false);
+  int WriteXMLAttachmentFile(const StringX &filename,
+                   const stringT &subgroup, const int &iObject,
+                   const int &iFunction, const ATRExVector &vAIRecordExs);
 
   // Import databases
   // If returned status is SUCCESS, then returned Command * can be executed.
@@ -190,6 +193,13 @@ public:
                     stringT &strPWHErrorList, stringT &strRenameList, 
                     int &numValidated, int &numImported, int &numSkipped,
                     int &numPWHErrors, int &numRenamed, 
+                    bool &bBadUnknownFileFields,
+                    bool &bBadUnknownRecordFields,
+                    CReport &rpt, Command *&pcommand);
+  int ImportXMLAttachmentFile(const stringT &strXMLFileName,
+                    const stringT &strXSDFileName,
+                    stringT &strXMLErrors, stringT &strSkippedList,
+                    int &numValidated, int &numImported, int &numSkipped,
                     bool &bBadUnknownFileFields,
                     bool &bBadUnknownRecordFields,
                     CReport &rpt, Command *&pcommand);

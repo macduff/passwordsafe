@@ -427,6 +427,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_REFRESH, OnRefreshWindow)
   ON_COMMAND(ID_MENUITEM_SHOWHIDE_UNSAVED, OnShowUnsavedEntries)
   ON_COMMAND(ID_MENUITEM_VIEWATTACHMENTS, OnViewAttachments)
+  ON_COMMAND(ID_MENUITEM_EXPORTATTACHMENTS, OnExportAllAttachments)
 
   // Manage Menu
   ON_COMMAND(ID_MENUITEM_CHANGECOMBO, OnPasswordChange)
@@ -523,6 +524,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_MESSAGE(WM_QUERYENDSESSION, OnQueryEndSession)
   ON_MESSAGE(WM_ENDSESSION, OnEndSession)
   ON_MESSAGE(PWS_MSG_EXTRACT_ATTACHMENT, OnExtractAttachment)
+  ON_MESSAGE(PWS_MSG_EXPORT_ATTACHMENT, OnExportAttachment)
 
   ON_COMMAND(ID_MENUITEM_CUSTOMIZETOOLBAR, OnCustomizeToolbar)
 
@@ -614,6 +616,7 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_EXPORTENT2PLAINTEXT, true, true, false, false},
   {ID_MENUITEM_EXPORTENT2XML, true, true, false, false},
   {ID_MENUITEM_EXTRACT_ATTACHMENT, true, true, false, false},
+  {ID_MENUITEM_EXPORTATT2XML, true, true, false, false},
   // View menu
   {ID_MENUITEM_LIST_VIEW, true, true, true, false},
   {ID_MENUITEM_TREE_VIEW, true, true, true, false},
@@ -641,6 +644,7 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_REFRESH, true, true, false, false},
   {ID_MENUITEM_SHOWHIDE_UNSAVED, true, false, false, false},
   {ID_MENUITEM_VIEWATTACHMENTS,  true, false, false, false},
+  {ID_MENUITEM_EXPORTATTACHMENTS, true, false, false, false},
   // Manage menu
   {ID_MENUITEM_CHANGECOMBO, true, false, true, false},
   {ID_MENUITEM_BACKUPSAFE, true, true, true, false},
@@ -2990,6 +2994,8 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
         iEnable = FALSE;
       break;
     case ID_MENUITEM_VIEWATTACHMENTS:
+    case ID_MENUITEM_EXPORTATTACHMENTS:
+    case ID_MENUITEM_EXPORTATT2XML:
       iEnable = m_core.DBHasAttachments() ? TRUE : FALSE;
       break;
     case ID_MENUITEM_CLEAR_MRU:

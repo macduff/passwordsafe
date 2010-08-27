@@ -506,7 +506,7 @@ void CPWAttLC::OnRButtonDown(UINT nFlags, CPoint point)
     if (pATR == NULL)
       goto exit;
 
-    PopupMenu.LoadMenu(IDR_POPATTPROPERTIES);
+    PopupMenu.LoadMenu(IDR_POPATTACHMENTS);
     CMenu* pContextMenu = PopupMenu.GetSubMenu(0);
 
     if (m_lct == NEW)
@@ -521,6 +521,22 @@ void CPWAttLC::OnRButtonDown(UINT nFlags, CPoint point)
     if (nID == ID_MENUITEM_EXTRACT_ATTACHMENT) {
       ASSERT(m_pWnd != NULL);
       m_pWnd->SendMessage(PWS_MSG_EXTRACT_ATTACHMENT, (WPARAM)pATR, 0);
+      goto exit;
+    }
+
+    if (nID == ID_MENUITEM_EXPORTATT2XML) {
+      ASSERT(m_pWnd != NULL);
+      ATRecordEx *pATREx;
+      if (m_lct != VIEW) {
+        // Need an extended record
+        ATRecordEx atrex;
+        atrex.atr = m_vATRecords[num];
+        atrex.sxGroup = atrex.sxTitle = atrex.sxUser = L"";
+        pATREx = &atrex;
+      } else {
+        pATREx = &m_vATRecordsEx[num];
+      }
+      m_pWnd->SendMessage(PWS_MSG_EXPORT_ATTACHMENT, (WPARAM)pATREx, 0);
       goto exit;
     }
 

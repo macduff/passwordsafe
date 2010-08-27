@@ -131,7 +131,6 @@ public:
   void SetCurVersion(VERSION v) {m_curversion = v;}
 
 protected:
-  PWSAttfile& operator=(const PWSAttfile&); // Do not implement
   PWSAttfile(const StringX &filename, RWmode mode);
   void FOpen(); // calls right variant of m_fd = fopen(m_filename);
   virtual size_t WriteCBC(unsigned char type, const StringX &data) = 0;

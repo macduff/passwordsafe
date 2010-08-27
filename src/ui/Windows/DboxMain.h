@@ -102,8 +102,9 @@ DECLARE_HANDLE(HDROP);
 
 // Extract attachment via context menu on Attachment CListCtrl - also defined in PWAttLC.h
 #define PWS_MSG_EXTRACT_ATTACHMENT      (WM_APP + 70)
+#define PWS_MSG_EXPORT_ATTACHMENT       (WM_APP + 71)
 // Update AddEdit_Attachments that the user has changed an entry's flags - also defined in PWAttLC.h
-#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 71)
+#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 72)
 
 /* timer event number used to by PupText.  Here for doc. only
 #define TIMER_PUPTEXT             0x03  */
@@ -676,6 +677,7 @@ protected:
   afx_msg void OnRefreshWindow();
   afx_msg void OnShowUnsavedEntries();
   afx_msg void OnViewAttachments();
+  afx_msg void OnExportAllAttachments();
   afx_msg void OnMinimize();
   afx_msg void OnRestore();
   afx_msg void OnTimer(UINT_PTR nIDEvent);
@@ -709,6 +711,7 @@ protected:
   afx_msg void OnImportXML();
   afx_msg void OnExtractAttachment();
   afx_msg LRESULT OnExtractAttachment(WPARAM wParam, LPARAM lParam);
+  afx_msg LRESULT OnExportAttachment(WPARAM wParam, LPARAM lParam);
 
   afx_msg void OnToolBarFind();
   afx_msg void OnToolBarFindUp();
@@ -827,6 +830,7 @@ private:
 
   void DoExportText(const bool bAll);
   void DoExportXML(const bool bAll);
+  void DoExportAttachmentsXML(ATRecordEx *patrex = NULL);
   
   static const struct UICommandTableEntry {
     UINT ID;
