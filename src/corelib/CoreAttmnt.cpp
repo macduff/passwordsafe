@@ -1206,29 +1206,42 @@ struct XMLAttachmentWriter {
 
       stringT tmp;
       stringT cs_temp;
+      // add digest of original file
       for (unsigned int i = 0; i < SHA1::HASHLEN; i++) {
         Format(cs_temp, _T("%02x"), atrex.atr.digest[i]);
         tmp += cs_temp;
       }
       utf8conv.ToUTF8(tmp.c_str(), utf8, utf8Len);
-      oss << "\t\t<digest>" << utf8 << "</digest>" << endl;
+      oss << "\t\t<odigest>" << utf8 << "</odigest>" << endl;
+
+      tmp = cs_temp = L"";
+      // add digest of compressed file
+      unsigned char cdigest[SHA1::HASHLEN];
+      SHA1 context;
+      context.Update(atrex.atr.pData, atrex.atr.cmpsize);
+      context.Final(cdigest);
+      for (unsigned int i = 0; i < SHA1::HASHLEN; i++) {
+        Format(cs_temp, _T("%02x"), cdigest[i]);
+        tmp += cs_temp;
+      }
+      utf8conv.ToUTF8(tmp.c_str(), utf8, utf8Len);
+      oss << "\t\t<cdigest>" << utf8 << "</cdigest>" << endl;
 
       oss << PWSUtil::GetXMLTime(2, "ctime", atrex.atr.ctime, utf8conv);
       oss << PWSUtil::GetXMLTime(2, "atime", atrex.atr.atime, utf8conv);
       oss << PWSUtil::GetXMLTime(2, "mtime", atrex.atr.mtime, utf8conv);
       oss << PWSUtil::GetXMLTime(2, "dtime", atrex.atr.dtime, utf8conv);
 
-      oss << "\t\t<flags>" << endl; 
-      oss << "\t\t\t<ExtractToRemoveable>" <<
-         ((atrex.atr.flags & ATT_EXTRACTTOREMOVEABLE) ? "1</" : "0</") << 
-         "ExtractToRemoveable>" << endl;
-      oss << "\t\t\t<EraseProgamExists>" <<
-        ((atrex.atr.flags & ATT_ERASEPGMEXISTS) ? "1</" : "0</") <<
-        "EraseProgamExists>" << endl;
-      oss << "\t\t\t<EraseOnDatabaseClose>" << 
-        ((atrex.atr.flags & ATT_ERASEONDBCLOSE) ? "1</" : "0</") <<
-        "EraseOnDatabaseClose>" << endl;
-      oss << "\t\t</flags>" << endl;
+      if (atrex.atr.flags != 0) {
+        oss << "\t\t<flags>" << endl;
+        if ((atrex.atr.flags & ATT_EXTRACTTOREMOVEABLE) == ATT_EXTRACTTOREMOVEABLE)
+          oss << "\t\t\t<ExtractToRemoveable>1</ExtractToRemoveable>" << endl;
+        if ((atrex.atr.flags & ATT_ERASEPGMEXISTS) == ATT_ERASEPGMEXISTS)
+          oss << "\t\t\t<EraseProgamExists>1</EraseProgamExists>" << endl;
+        if ((atrex.atr.flags & ATT_ERASEONDBCLOSE) == ATT_ERASEONDBCLOSE)
+          oss << "\t\t\t<EraseOnDatabaseClose>1</EraseOnDatabaseClose>" << endl;
+        oss << "\t\t</flags>" << endl;
+      }
 
       stringT sdata = PWSUtil::Base64Encode(atrex.atr.pData, atrex.atr.cmpsize);
       utf8conv.ToUTF8(sdata.c_str(), utf8, utf8Len);
@@ -1359,7 +1372,11 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename,
  return SUCCESS;
 }
 
-#if !defined(USE_XML_LIBRARY) || (!defined(_WIN32) && USE_XML_LIBRARY == MSXML)
+/*
+  Not yet implemented
+*/
+//#if !defined(USE_XML_LIBRARY) || (!defined(_WIN32) && USE_XML_LIBRARY == MSXML)
+
 // Don't support importing XML on non-Windows platforms using Microsoft XML libraries
 int PWScore::ImportXMLAttachmentFile(const stringT &,
                            const stringT &,
@@ -1370,7 +1387,7 @@ int PWScore::ImportXMLAttachmentFile(const stringT &,
 {
   return UNIMPLEMENTED;
 }
-#else
+/* #else
 int PWScore::ImportXMLAttachmentFile(const stringT &strXMLFileName,
                            const stringT &strXSDFileName,
                            stringT &strXMLErrors, stringT &strSkippedList,
@@ -1378,77 +1395,7 @@ int PWScore::ImportXMLAttachmentFile(const stringT &strXMLFileName,
                            bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields,
                            CReport &rpt, Command *&pcommand)
 {
-  UUIDVector Possible_Aliases, Possible_Shortcuts;
-  MultiCommands *pmulticmds = MultiCommands::Create(this);
-  pcommand = pmulticmds;
-
-#if   USE_XML_LIBRARY == EXPAT
-  EFileXMLProcessor iXML(this, &Possible_Aliases, &Possible_Shortcuts, pmulticmds, &rpt);
-#elif USE_XML_LIBRARY == MSXML
-  MFileXMLProcessor iXML(this, &Possible_Aliases, &Possible_Shortcuts, pmulticmds, &rpt);
-#elif USE_XML_LIBRARY == XERCES
-  XFileXMLProcessor iXML(this, &Possible_Aliases, &Possible_Shortcuts, pmulticmds, &rpt);
-#endif
-
-  bool status, validation;
-  int nITER(0);
-  int nRecordsWithUnknownFields;
-  UnknownFieldList uhfl;
-  bool bEmptyDB = (GetNumEntries() == 0);
-
-  strXMLErrors = strPWHErrorList = strRenameList = _T("");
-
-  // Expat is not a validating parser - but we now do it ourselves!
-  validation = true;
-  status = iXML.Process(validation, ImportedPrefix, strXMLFileName,
-                        strXSDFileName, bImportPSWDsOnly, 
-                        nITER, nRecordsWithUnknownFields, uhfl);
-  strXMLErrors = iXML.getXMLErrors();
-  if (!status) {
-    return XML_FAILED_VALIDATION;
-  }
-  numValidated = iXML.getNumEntriesValidated();
-
-  validation = false;
-  status = iXML.Process(validation, ImportedPrefix, strXMLFileName,
-                        strXSDFileName, bImportPSWDsOnly,
-                        nITER, nRecordsWithUnknownFields, uhfl);
-
-  numImported = iXML.getNumEntriesImported();
-  numSkipped = iXML.getNumEntriesSkipped();
-  numRenamed = iXML.getNumEntriesRenamed();
-  numPWHErrors = iXML.getNumEntriesPWHErrors();
-
-  strXMLErrors = iXML.getXMLErrors();
-  strSkippedList = iXML.getSkippedList();
-  strRenameList = iXML.getRenameList();
-  strPWHErrorList = iXML.getPWHErrorList();
-
-  if (!status) {
-    delete pcommand;
-    pcommand = NULL;
-    return XML_FAILED_IMPORT;
-  }
- 
-  bBadUnknownFileFields = iXML.getIfDatabaseHeaderErrors();
-  bBadUnknownRecordFields = iXML.getIfRecordHeaderErrors();
-  m_nRecordsWithUnknownFields += nRecordsWithUnknownFields;
-
-  // Only add header unknown fields or change number of iterations
-  // if the database was empty to start with
-  if (bEmptyDB) {
-    m_hdr.m_nITER = nITER;
-    if (uhfl.empty())
-      m_UHFL.clear();
-    else {
-      m_UHFL = uhfl;
-    }
-  }
-  uhfl.clear();
-
-  if (numImported > 0)
-    SetDBChanged(true);
-
-  return ((numRenamed + numPWHErrors) == 0) ? SUCCESS : OK_WITH_ERRORS;
+  return UNIMPLEMENTED;
 }
-#endif
+#endif */
+

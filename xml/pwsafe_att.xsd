@@ -80,17 +80,18 @@
               <xs:element name="osize" type="xs:integer" minOccurs="1" maxOccurs="1" />
               <xs:element name="csize" type="xs:integer" minOccurs="1" maxOccurs="1" />
               <xs:element name="crc" type="crcType" minOccurs="1" maxOccurs="1" />
-              <xs:element name="digest" type="digestType" minOccurs="1" maxOccurs="1" />
+              <xs:element name="odigest" type="digestType" minOccurs="1" maxOccurs="1" />
+              <xs:element name="cdigest" type="digestType" minOccurs="1" maxOccurs="1" />
               <xs:element name="ctime" type="datetimestampType" minOccurs="1" maxOccurs="1" />
               <xs:element name="atime" type="datetimestampType" minOccurs="1" maxOccurs="1" />
               <xs:element name="mtime" type="datetimestampType" minOccurs="1" maxOccurs="1" />
               <xs:element name="dtime" type="datetimestampType" minOccurs="1" maxOccurs="1" />
-              <xs:element name="flags" minOccurs="1" maxOccurs="1">
+              <xs:element name="flags" minOccurs="0" maxOccurs="1">
                 <xs:complexType>
                   <xs:all>
-                    <xs:element name="ExtractToRemoveable" type="boolType" minOccurs="1" maxOccurs="1" />
-                    <xs:element name="EraseProgamExists" type="boolType" minOccurs="1" maxOccurs="1" />
-                    <xs:element name="EraseOnDatabaseClose" type="boolType" minOccurs="1" maxOccurs="1" />
+                    <xs:element name="ExtractToRemoveable" type="boolType" minOccurs="0" maxOccurs="1" />
+                    <xs:element name="EraseProgamExists" type="boolType" minOccurs="0" maxOccurs="1" />
+                    <xs:element name="EraseOnDatabaseClose" type="boolType" minOccurs="0" maxOccurs="1" />
                   </xs:all>
                 </xs:complexType>
               </xs:element>
