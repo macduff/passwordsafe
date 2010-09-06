@@ -473,7 +473,7 @@ void PWSUtil::GetTimeStamp(stringT &sTimeStamp)
 
 stringT PWSUtil::Base64Encode(const BYTE *strIn, size_t len)
 {
-  stringT cs_Out;
+  stringT encoded;
   static const TCHAR base64ABC[] = 
     _S("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
 
@@ -482,23 +482,26 @@ stringT PWSUtil::Base64Encode(const BYTE *strIn, size_t len)
                (((i + 1) < len) ? (((long)strIn[i + 1]) << 8) : 0) | 
                (((i + 2) < len) ? ((long)strIn[i + 2]) : 0);
 
-    cs_Out += base64ABC[(l >> 18) & 0x3F];
-    cs_Out += base64ABC[(l >> 12) & 0x3F];
-    if (i + 1 < len) cs_Out += base64ABC[(l >> 6) & 0x3F];
-    if (i + 2 < len) cs_Out += base64ABC[(l ) & 0x3F];
+    encoded += base64ABC[(l >> 18) & 0x3F];
+    encoded += base64ABC[(l >> 12) & 0x3F];
+    if (i + 1 < len) encoded += base64ABC[(l >> 6) & 0x3F];
+    if (i + 2 < len) encoded += base64ABC[(l) & 0x3F];
   }
 
   switch (len % 3) {
     case 1:
-      cs_Out += TCHAR('=');
+      encoded += TCHAR('=');
     case 2:
-      cs_Out += TCHAR('=');
+      encoded += TCHAR('=');
   }
-  return cs_Out;
+  return encoded;
 }
 
-void PWSUtil::Base64Decode(const StringX &inString, BYTE* &outData, size_t &out_len)
+void PWSUtil::Base64Decode(const StringX &inString, BYTE* &decoded, size_t &buffer_len)
 {
+  // NOTE: On entry - buffer_len MUST be the allocated size of the decoded buffer
+  // On return it is the actual amount used in this buffer.
+
   static const char szCS[]=
     "=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -513,31 +516,34 @@ void PWSUtil::Base64Decode(const StringX &inString, BYTE* &outData, size_t &out_
 
     for (i1 = 0; i1 < sizeof(szCS) - 1; i1++) {
       for (i3 = i2; i3 < i2 + 4; i3++) {
-        if (i3 < in_length &&  inString[i3] == szCS[i1])
+        if (i3 < in_length && inString[i3] == szCS[i1])
           iDigits[i3 - i2] = i1 - 1;
       }
     }
 
-    outData[st_length] = ((BYTE)iDigits[0] << 2);
+    ASSERT(st_length <= buffer_len);
+    decoded[st_length] = ((BYTE)iDigits[0] << 2);
 
     if (iDigits[1] >= 0) {
-      outData[st_length] += ((BYTE)iDigits[1] >> 4) & 0x3;
+      decoded[st_length] += ((BYTE)iDigits[1] >> 4) & 0x3;
     }
 
     st_length++;
 
     if (iDigits[2] >= 0) {
-      outData[st_length++] = (((BYTE)iDigits[1] & 0x0f) << 4)
-        | (((BYTE)iDigits[2] >> 2) & 0x0f);
+      ASSERT(st_length <= buffer_len);    
+      decoded[st_length++] = (((BYTE)iDigits[1] & 0x0f) << 4) |
+                              (((BYTE)iDigits[2] >> 2) & 0x0f);
     }
 
     if (iDigits[3] >= 0) {
-      outData[st_length++] = (((BYTE)iDigits[2] & 0x03) << 6)
-        | ((BYTE)iDigits[3] & 0x3f);
+      ASSERT(st_length <= buffer_len);
+      decoded[st_length++] = (((BYTE)iDigits[2] & 0x03) << 6) |
+                              ((BYTE)iDigits[3] & 0x3f);
     }
   }
 
-  out_len = st_length;
+  buffer_len = st_length;
 }
 
 static const size_t MAX_TTT_LEN = 64; // Max tooltip text length

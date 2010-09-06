@@ -695,6 +695,7 @@
     <ClCompile Include="AddEdit_PasswordPolicy.cpp" />
     <ClCompile Include="AddEdit_PropertyPage.cpp" />
     <ClCompile Include="AddEdit_PropertySheet.cpp" />
+    <ClCompile Include="AdvancedAttDlg.cpp" />
     <ClCompile Include="AdvancedDlg.cpp" />
     <ClCompile Include="AttProperties.cpp" />
     <ClCompile Include="ChangeAliasPswd.cpp" />
@@ -717,6 +718,7 @@
     <ClCompile Include="DumpSelect.cpp" />
     <ClCompile Include="EBListCtrl.cpp" />
     <ClCompile Include="EditShortcutDlg.cpp" />
+    <ClCompile Include="ExportAttDlg.cpp" />
     <ClCompile Include="ExportTextDlg.cpp" />
     <ClCompile Include="ExportXMLDlg.cpp" />
     <ClCompile Include="ExpPWListDlg.cpp" />
@@ -818,6 +820,7 @@
     <ClInclude Include="AddEdit_PasswordPolicy.h" />
     <ClInclude Include="AddEdit_PropertyPage.h" />
     <ClInclude Include="AddEdit_PropertySheet.h" />
+    <ClInclude Include="AdvancedAttDlg.h" />
     <ClInclude Include="AdvancedDlg.h" />
     <ClInclude Include="AttProperties.h" />
     <ClInclude Include="ChangeAliasPswd.h" />
@@ -840,6 +843,7 @@
     <ClInclude Include="DumpSelect.h" />
     <ClInclude Include="EBListCtrl.h" />
     <ClInclude Include="EditShortcutDlg.h" />
+    <ClInclude Include="ExportAttDlg.h" />
     <ClInclude Include="ExportTextDlg.h" />
     <ClInclude Include="ExportXMLDlg.h" />
     <ClInclude Include="ExpPWListDlg.h" />

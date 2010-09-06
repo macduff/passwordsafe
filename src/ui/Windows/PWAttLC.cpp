@@ -9,6 +9,7 @@
 #include "stdafx.h"
 #include "PWAttLC.h"
 #include "AttProperties.h"
+#include "DboxMain.h"
 
 #include "resource.h"
 #include "resource3.h"
@@ -42,6 +43,8 @@ CPWAttLC::~CPWAttLC()
     delete m_pCheckImageList;
   }
 
+  m_menuManager.Cleanup();
+
   delete m_pToolTipCtrl;
   delete [] m_pbColTT;
 
@@ -68,6 +71,10 @@ void CPWAttLC::Init(const LCType lct, CWnd *pWnd)
   m_pParent = GetParent();
   m_pWnd = pWnd;
   EnableToolTips(TRUE);
+
+  m_menuManager.Install(this);
+  m_menuManager.SetImageList(&((DboxMain *)m_pWnd)->m_MainToolBar);
+  m_menuManager.SetMapping(&((DboxMain *)m_pWnd)->m_MainToolBar);
 
   const COLORREF crTransparent = RGB(192, 192, 192);
   CBitmap bitmap;
@@ -508,6 +515,15 @@ void CPWAttLC::OnRButtonDown(UINT nFlags, CPoint point)
 
     PopupMenu.LoadMenu(IDR_POPATTACHMENTS);
     CMenu* pContextMenu = PopupMenu.GetSubMenu(0);
+  
+    MENUINFO minfo ={0};
+    minfo.cbSize = sizeof(MENUINFO);
+    minfo.fMask = MIM_MENUDATA;
+    minfo.dwMenuData = IDR_POPATTACHMENTS;
+
+    BOOL brc;
+    brc = PopupMenu.SetMenuInfo(&minfo);
+    ASSERT(brc != 0);
 
     if (m_lct == NEW)
       pContextMenu->RemoveMenu(ID_MENUITEM_EXTRACT_ATTACHMENT, MF_BYCOMMAND);

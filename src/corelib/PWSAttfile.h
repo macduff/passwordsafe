@@ -38,6 +38,9 @@ typedef std::multimap<st_UUID, ATRecord> UUIDATRMMap;
 typedef UUIDATRMMap::const_iterator UAMMciter;
 typedef UUIDATRMMap::iterator UAMMiter;
 
+typedef std::vector<st_UUID> UUIDAVector;
+typedef UUIDVector::iterator UViter;
+
 class Fish;
 class Asker;
 

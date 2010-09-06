@@ -841,6 +841,14 @@ BOOL ThisMfcApp::InitInstance()
   minfo.dwMenuData = ID_FILTERMENU;
   pMenu2->SetMenuInfo(&minfo);
 
+  // Do View Menu Attachment submenu
+  pos2 = app.FindMenuItem(pMenu1, ID_ATTACHMENTMENU);
+  ASSERT(pos2 != -1);
+
+  pMenu2 = pMenu1->GetSubMenu(pos2);
+  minfo.dwMenuData = ID_ATTACHMENTMENU;
+  pMenu2->SetMenuInfo(&minfo);
+
   // Do View Menu ChangeFont submenu
   pos2 = app.FindMenuItem(pMenu1, ID_CHANGEFONTMENU);
   ASSERT(pos2 != -1);

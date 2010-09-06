@@ -142,8 +142,18 @@ DboxMain::DboxMain(CWnd* pParent)
   m_bAutotypeCtrl(false), m_bAutotypeShift(false),
   m_bInAT(false), m_bInRestoreWindowsData(false), m_bSetup(false)
 {
-  // Need to do this as using the direct calls will fail for Windows versions before Vista
-  m_hUser32 = ::LoadLibrary(L"User32.dll");
+  // Need to do the following as using the direct calls will fail for Windows versions before Vista
+  // (Load Library using absolute path to avoid dll poisoning attacks)
+  TCHAR szFileName[ MAX_PATH ];
+  memset( szFileName, 0, MAX_PATH );
+  GetSystemDirectory( szFileName, MAX_PATH );
+  int nLen = _tcslen( szFileName );
+  if (nLen > 0) {
+    if (szFileName[ nLen - 1 ] != '\\')
+      _tcscat_s( szFileName, MAX_PATH, L"\\" );
+  }
+  _tcscat_s( szFileName, MAX_PATH, L"User32.dll" );
+  m_hUser32 = ::LoadLibrary(szFileName);
   if (m_hUser32 != NULL) {
     m_pfcnShutdownBlockReasonCreate = (PSBR_CREATE)::GetProcAddress(m_hUser32, "ShutdownBlockReasonCreate"); 
     m_pfcnShutdownBlockReasonDestroy = (PSBR_DESTROY)::GetProcAddress(m_hUser32, "ShutdownBlockReasonDestroy");
@@ -428,6 +438,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_SHOWHIDE_UNSAVED, OnShowUnsavedEntries)
   ON_COMMAND(ID_MENUITEM_VIEWATTACHMENTS, OnViewAttachments)
   ON_COMMAND(ID_MENUITEM_EXPORTATTACHMENTS, OnExportAllAttachments)
+  ON_COMMAND(ID_MENUITEM_IMPORTATTACHMENTS, OnImportAttachments)
 
   // Manage Menu
   ON_COMMAND(ID_MENUITEM_CHANGECOMBO, OnPasswordChange)
@@ -645,6 +656,7 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_SHOWHIDE_UNSAVED, true, false, false, false},
   {ID_MENUITEM_VIEWATTACHMENTS,  true, false, false, false},
   {ID_MENUITEM_EXPORTATTACHMENTS, true, false, false, false},
+  {ID_MENUITEM_IMPORTATTACHMENTS, true, false, false, false},
   // Manage menu
   {ID_MENUITEM_CHANGECOMBO, true, false, true, false},
   {ID_MENUITEM_BACKUPSAFE, true, true, true, false},
@@ -2745,6 +2757,7 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
     case ID_MENUITEM_APPLYFILTER:
     case ID_MENUITEM_EDITFILTER:
     case ID_MENUITEM_MANAGEFILTERS:
+    case ID_MENUITEM_IMPORTATTACHMENTS:
       return FALSE;
     default:
       break;

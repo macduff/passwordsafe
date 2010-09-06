@@ -631,7 +631,7 @@
 #define IDS_NOTREMOVEABLE               5813
 #define IDS_ATTACHMENT_EXTN             5814
 #define IDS_EXTRACTED                   5815
-#define IDS_EXTRACTOK                   5816
+#define IDS_COMPLETEDOK                 5816
 #define IDS_CANTCREATEFILE              5817
 #define IDS_BADATTACHMENTWRITE          5818
 #define IDS_CANTGETATTACHMENT           5819
@@ -640,3 +640,8 @@
 #define IDS_NOZEROSIZEEXTRACT           5822
 #define IDS_WILLNOTATTACH               5823
 #define IDS_ADDFILE                     5824
+#define IDS_PATH                        5825
+#define IDS_FILENAME                    5826
+#define IDS_DESCRIPTION                 5827
+#define IDS_EXPORTED                    5828
+#define IDS_EXPORTOK                    5829

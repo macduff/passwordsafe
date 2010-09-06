@@ -10,11 +10,12 @@
 
 #pragma once
 
+#include "PWDialog.h"
 #include "resource.h"
 
 // CAddDescription dialog
 
-class CAddDescription : public CDialog
+class CAddDescription : public CPWDialog
 {
 	DECLARE_DYNAMIC(CAddDescription)
 
@@ -28,7 +29,7 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-  afx_msg void OnBnClickedOk();
+  afx_msg void OnOK();
 
 	DECLARE_MESSAGE_MAP()
 

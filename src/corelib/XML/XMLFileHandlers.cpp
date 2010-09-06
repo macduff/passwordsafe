@@ -101,14 +101,14 @@ bool XMLFileHandlers::ProcessStartElement(const int icurrent_element)
       m_numEntriesRenamed = 0;
       m_numEntriesPWHErrors = 0;
       m_nRecordsWithUnknownFields = 0;
-      m_bentrybeingprocessed = false;
+      m_bEntryBeingProcessed = false;
       break;
     case XLE_UNKNOWNHEADERFIELDS:
       m_ukhxl.clear();
       m_bheader = true;
       break;
     case XLE_ENTRY:
-      m_bentrybeingprocessed = true;
+      m_bEntryBeingProcessed = true;
       if (m_bValidation)
         return false;
 
@@ -234,8 +234,8 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
         // as hexadecimal, rather than base64 encoding.
         // Easier to debug.
 #ifndef UNK_HEX_REP
-        m_pfield = new unsigned char[(length / 3) * 4 + 4];
-        size_t out_len;
+        size_t out_len = (length / 3) * 4 + 4;
+        m_pfield = new unsigned char[out_len];
         PWSUtil::Base64Decode(m_strElemContent, m_pfield, out_len);
         m_fieldlen = (int)out_len;
 #else

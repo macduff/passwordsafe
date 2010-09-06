@@ -378,6 +378,12 @@
     <ClCompile Include="AddDescription.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AdvancedAttDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ExportAttDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AboutDlg.h">
@@ -744,6 +750,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AddDescription.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AdvancedAttDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ExportAttDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

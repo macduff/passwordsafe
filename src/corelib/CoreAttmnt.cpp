@@ -16,9 +16,18 @@
 #include "SysInfo.h"
 #include "UTF8Conv.h"
 #include "Report.h"
+#include "Match.h"
 #include "PWSAttfileV3.h" // XXX cleanup with dynamic_cast
 
 #include "XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
+
+#if USE_XML_LIBRARY == EXPAT
+#include "XML/Expat/EAtteXMLProcessor.h"
+#elif USE_XML_LIBRARY == MSXML
+#include "XML/MSXML/MAttXMLProcessor.h"
+#elif USE_XML_LIBRARY == XERCES
+#include "XML/Xerces/XAttXMLProcessor.h"
+#endif
 
 #include "os/typedefs.h"
 #include "os/dir.h"
@@ -1166,26 +1175,32 @@ void PWScore::SetupAttachmentHeader()
 }
 
 struct XMLAttachmentWriter {
-  XMLAttachmentWriter(const stringT &subgroup_name,
-                      const int subgroup_object, const int subgroup_function,
-                      ofstream &ofs, PWScore *pcore) :
-  m_subgroup_name(subgroup_name), m_subgroup_object(subgroup_object),
-  m_subgroup_function(subgroup_function), m_of(ofs), m_id(0), m_pcore(pcore)
-  {}
+  XMLAttachmentWriter(const ATFVector &vatf,  ofstream &ofs, size_t *pnum_exported,
+                      PWScore *pcore)
+  : m_of(ofs), m_vatf(vatf), m_pnum_exported(pnum_exported), m_pcore(pcore)
+  {
+    *m_pnum_exported = 0;
+  }
 
-  void operator()(ATRecordEx atrex) {
-    m_id++;
+  void operator()(const ATRecordEx &atrex) {
     ItemListIter iter = m_pcore->Find(atrex.atr.entry_uuid);
-    CItemData *pci = &iter->second;
-    if (m_subgroup_name.empty() ||
-        pci->Matches(m_subgroup_name,
-                     m_subgroup_object, m_subgroup_function)) {
+    if (m_pcore->AttMatches(atrex, m_vatf)) {
+      (*m_pnum_exported)++;
       CUTF8Conv utf8conv;
       const unsigned char *utf8 = NULL;
       int utf8Len = 0;
 
       ostringstream oss; // ALWAYS a string of chars, never wchar_t!
-      oss << "\t<attachment id=\"" << dec << m_id << "\" >" << endl;
+      oss << "\t<attachment id=\"" << dec << (*m_pnum_exported) << "\" >" << endl;
+
+      // NOTE - ORDER MAUST CORRESPOND TO ORDER IN SCHEMA
+      if (!atrex.sxGroup.empty())
+        PWSUtil::WriteXMLField(oss, "group", atrex.sxGroup, utf8conv);
+
+      PWSUtil::WriteXMLField(oss, "title", atrex.sxTitle, utf8conv);
+
+      if (!atrex.sxUser.empty())
+        PWSUtil::WriteXMLField(oss, "username", atrex.sxUser, utf8conv);
 
       uuid_array_t attachment_uuid, entry_uuid;
       memcpy(attachment_uuid, atrex.atr.attmt_uuid, sizeof(uuid_array_t));
@@ -1194,35 +1209,35 @@ struct XMLAttachmentWriter {
       oss << "\t\t<attachment_uuid><![CDATA[" << a_uuid << "]]></attachment_uuid>" << endl;
       oss << "\t\t<entry_uuid><![CDATA[" << e_uuid << "]]></entry_uuid>" << endl;
 
-      oss << "\t\t<osize>" << dec << atrex.atr.uncsize << "</osize>" << endl;
-      oss << "\t\t<csize>" << dec << atrex.atr.cmpsize << "</csize>" << endl;
-
       PWSUtil::WriteXMLField(oss, "filename", atrex.atr.filename, utf8conv);
       PWSUtil::WriteXMLField(oss, "path", atrex.atr.path, utf8conv);
       PWSUtil::WriteXMLField(oss, "description", atrex.atr.description, utf8conv);
 
+      oss << "\t\t<osize>" << dec << atrex.atr.uncsize << "</osize>" << endl;
+      oss << "\t\t<csize>" << dec << atrex.atr.cmpsize << "</csize>" << endl;
+
       oss << "\t\t<crc>" << hex << setfill('0') << setw(8)
           << atrex.atr.CRC << "</crc>" << endl;
 
-      stringT tmp;
-      stringT cs_temp;
+      stringT tmp, temp;
       // add digest of original file
       for (unsigned int i = 0; i < SHA1::HASHLEN; i++) {
-        Format(cs_temp, _T("%02x"), atrex.atr.digest[i]);
-        tmp += cs_temp;
+        Format(temp, _T("%02x"), atrex.atr.digest[i]);
+        tmp += temp;
       }
       utf8conv.ToUTF8(tmp.c_str(), utf8, utf8Len);
       oss << "\t\t<odigest>" << utf8 << "</odigest>" << endl;
 
-      tmp = cs_temp = L"";
+      tmp.clear();
+      temp.clear();
       // add digest of compressed file
       unsigned char cdigest[SHA1::HASHLEN];
       SHA1 context;
       context.Update(atrex.atr.pData, atrex.atr.cmpsize);
       context.Final(cdigest);
       for (unsigned int i = 0; i < SHA1::HASHLEN; i++) {
-        Format(cs_temp, _T("%02x"), cdigest[i]);
-        tmp += cs_temp;
+        Format(temp, _T("%02x"), cdigest[i]);
+        tmp += temp;
       }
       utf8conv.ToUTF8(tmp.c_str(), utf8, utf8Len);
       oss << "\t\t<cdigest>" << utf8 << "</cdigest>" << endl;
@@ -1243,8 +1258,8 @@ struct XMLAttachmentWriter {
         oss << "\t\t</flags>" << endl;
       }
 
-      stringT sdata = PWSUtil::Base64Encode(atrex.atr.pData, atrex.atr.cmpsize);
-      utf8conv.ToUTF8(sdata.c_str(), utf8, utf8Len);
+      tmp = PWSUtil::Base64Encode(atrex.atr.pData, atrex.atr.cmpsize).c_str();
+      utf8conv.ToUTF8(tmp.c_str(), utf8, utf8Len);
       oss << "\t\t<data><![CDATA[" << endl;
       for (unsigned int i = 0; i < (unsigned int)utf8Len; i += 64) {
         char buffer[65];
@@ -1255,7 +1270,7 @@ struct XMLAttachmentWriter {
           memcpy(buffer, utf8 + i, utf8Len - i);
         oss << "\t\t" << buffer << endl;
       }
-      oss <<  "\t\t]]></data>" << endl;
+      oss << "\t\t]]></data>" << endl;
       oss << "\t</attachment>" << endl;
       m_of.write(oss.str().c_str(),
                  static_cast<streamsize>(oss.str().length()));
@@ -1264,18 +1279,15 @@ struct XMLAttachmentWriter {
 
 private:
   XMLAttachmentWriter& operator=(const XMLAttachmentWriter&); // Do not implement
-  const stringT &m_subgroup_name;
-  const int m_subgroup_object;
-  const int m_subgroup_function;
+  const ATFVector &m_vatf;
   ofstream &m_of;
-  unsigned m_id;
+  size_t *m_pnum_exported;
   PWScore *m_pcore;
 };
 
-int PWScore::WriteXMLAttachmentFile(const StringX &filename,
-                          const stringT &subgroup_name,
-                          const int &subgroup_object, const int &subgroup_function,
-                          const ATRExVector &vAIRecordExs)
+int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
+                                    const ATRExVector &vAIRecordExs,
+                                    size_t *pnum_exported)
 {
   size_t num = vAIRecordExs.size();
   if (num == 0)
@@ -1296,8 +1308,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename,
     return CANT_OPEN_FILE;
 
   oStringXStream oss_xml;
-  StringX pwh, tmp;
-  stringT cs_temp;
+  StringX pwh, temp;
   time_t time_now;
 
   time(&time_now);
@@ -1307,14 +1318,14 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename,
   ofs << "<?xml-stylesheet type=\"text/xsl\" href=\"pwsafe.xsl\"?>" << endl;
   ofs << endl;
   ofs << "<passwordsafe_attachments" << endl;
-  tmp = m_currfile;
-  Replace(tmp, StringX(_T("&")), StringX(_T("&amp;")));
+  temp = m_currfile;
+  Replace(temp, StringX(_T("&")), StringX(_T("&amp;")));
 
   CUTF8Conv utf8conv;
   const unsigned char *utf8 = NULL;
   int utf8Len = 0;
 
-  utf8conv.ToUTF8(tmp, utf8, utf8Len);
+  utf8conv.ToUTF8(temp, utf8, utf8Len);
   ofs << "Database=\"";
   ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
   ofs << "\"" << endl;
@@ -1361,8 +1372,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename,
   ofs << "xsi:noNamespaceSchemaLocation=\"pwsafe.xsd\">" << endl;
   ofs << endl;
 
-  XMLAttachmentWriter put_xml(subgroup_name, subgroup_object, subgroup_function,
-                              ofs, this);
+  XMLAttachmentWriter put_xml(vatf, ofs, pnum_exported, this);
 
   for_each(vAIRecordExs.begin(), vAIRecordExs.end(), put_xml);
 
@@ -1372,30 +1382,153 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename,
  return SUCCESS;
 }
 
-/*
-  Not yet implemented
-*/
-//#if !defined(USE_XML_LIBRARY) || (!defined(_WIN32) && USE_XML_LIBRARY == MSXML)
-
+#if !defined(USE_XML_LIBRARY) || (!defined(_WIN32) && USE_XML_LIBRARY == MSXML)
 // Don't support importing XML on non-Windows platforms using Microsoft XML libraries
 int PWScore::ImportXMLAttachmentFile(const stringT &,
                            const stringT &,
                            stringT &, stringT &,
                            int &, int &, int &,
-                           bool &, bool &, 
                            CReport &, Command *&)
 {
   return UNIMPLEMENTED;
 }
-/* #else
+#else
 int PWScore::ImportXMLAttachmentFile(const stringT &strXMLFileName,
                            const stringT &strXSDFileName,
                            stringT &strXMLErrors, stringT &strSkippedList,
                            int &numValidated, int &numImported, int &numSkipped,
-                           bool &bBadUnknownFileFields, bool &bBadUnknownRecordFields,
                            CReport &rpt, Command *&pcommand)
 {
-  return UNIMPLEMENTED;
-}
-#endif */
+  UUIDVector Possible_Aliases, Possible_Shortcuts;
+  MultiCommands *pmulticmds = MultiCommands::Create(this);
+  pcommand = pmulticmds;
 
+#if   USE_XML_LIBRARY == EXPAT
+  EAttXMLProcessor iXML(this, pmulticmds, &rpt);
+#elif USE_XML_LIBRARY == MSXML
+  MAttXMLProcessor iXML(this, pmulticmds, &rpt);
+#elif USE_XML_LIBRARY == XERCES
+  XAttXMLProcessor iXML(this, pmulticmds, &rpt);
+#endif
+
+  bool status, validation;
+
+  strXMLErrors = _T("");
+
+  // Expat is not a validating parser - but we now do it ourselves!
+  validation = true;
+  status = iXML.Process(validation, strXMLFileName, strXSDFileName);
+  strXMLErrors = iXML.getXMLErrors();
+
+  if (!status) {
+    return XML_FAILED_VALIDATION;
+  }
+  numValidated = iXML.getNumAttachmentsValidated();
+
+  validation = false;
+  status = iXML.Process(validation, strXMLFileName,
+                        strXSDFileName);
+
+  numImported = iXML.getNumAttachmentsImported();
+  numSkipped = iXML.getNumAttachmentsSkipped();
+
+  strXMLErrors = iXML.getXMLErrors();
+  strSkippedList = iXML.getSkippedList();
+
+  if (!status) { 
+    delete pcommand;
+    pcommand = NULL;
+    return XML_FAILED_IMPORT;
+  }
+
+  if (numImported > 0)
+    SetDBChanged(true);
+
+  return SUCCESS ;
+}
+#endif
+
+struct get_att_uuid {
+  get_att_uuid(UUIDAVector &vatt_uuid)
+  :  m_vatt_uuid(vatt_uuid)
+  {}
+
+  void operator()(std::pair<const st_UUID, ATRecord> const& p) const {
+    st_UUID st(p.second.attmt_uuid);
+    m_vatt_uuid.push_back(st);
+  }
+
+private:
+  UUIDAVector &m_vatt_uuid;
+};
+
+UUIDAVector PWScore::GetAttachmentUUIDs()
+{
+  UUIDAVector vatt_uuid;
+  get_att_uuid gatt_uuid(vatt_uuid);
+
+  for_each(m_MM_entry_uuid_atr.begin(), m_MM_entry_uuid_atr.end(), gatt_uuid);
+  return vatt_uuid;
+}
+
+bool PWScore::AttMatches(const ATRecordEx &atrex, const ATFVector &atfv)
+{
+  // Tests are only OR - not AND
+  int iMatch(0);
+  size_t num_tests = atfv.size();
+  for (size_t i = 0; i < num_tests; i++) {
+    if (atfv[i].set != 0) {
+      if (AttMatches(atrex, atfv[i].object, atfv[i].function, atfv[i].value))
+        return true;  // Passed - get out now
+      else
+        iMatch--;     // Failed test - never know, another might be ok
+    }
+  }
+  // If it passed a test - already returned true
+  // If no tests - would have dropped through and iMatch == 0
+  // So if iMatch < 0, it didn't pass any user tests
+  return (iMatch == 0);
+}
+
+bool PWScore::AttMatches(const ATRecordEx &atrex, const int &iObject, const int &iFunction,
+                         const stringT &value) const
+{
+  ASSERT(iFunction != 0); // must be positive or negative!
+
+  StringX csObject;
+  switch(iObject) {
+    case ATTGROUP:
+      csObject = atrex.sxGroup;
+      break;
+    case ATTTITLE:
+      csObject = atrex.sxTitle;
+      break;
+    case ATTUSER:
+      csObject = atrex.sxUser;
+      break;
+    case ATTGROUPTITLE:
+      csObject = atrex.sxGroup + TCHAR('.') + atrex.sxTitle;
+      break;
+    case ATTPATH:
+      csObject = atrex.atr.path;
+      break;
+    case ATTFILENAME:
+      csObject = atrex.atr.filename;
+      break;
+    case ATTDESCRIPTION:
+      csObject = atrex.atr.description;
+      break;
+    default:
+      ASSERT(0);
+  }
+
+  const bool bValue = !csObject.empty();
+  if (iFunction == PWSMatch::MR_PRESENT || iFunction == PWSMatch::MR_NOTPRESENT) {
+    return PWSMatch::Match(bValue, iFunction);
+  }
+
+  if (!bValue) // String empty - always return false for other comparisons
+    return false;
+  else
+    return PWSMatch::Match(value.c_str(), csObject, iFunction);
+}

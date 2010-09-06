@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "CoolMenu.h"
+
 #include "corelib/Itemdata.h"
 #include "corelib/attachments.h"
 
@@ -85,6 +87,8 @@ public:
 protected:
   WCHAR *m_pwchTip;
   char *m_pchTip;
+
+  CCoolMenuManager m_menuManager;
 
   BOOL PreTranslateMessage(MSG* pMsg);
   INT_PTR OnToolHitTest(CPoint point, TOOLINFO * pTI) const;

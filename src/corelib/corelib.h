@@ -240,6 +240,12 @@
 #define IDSC_ATT_ERRORS                 3500
 #define IDSC_ATT_HDRMISMATCH            3501
 #define IDSC_ATT_UNKNOWNERROR           3502
+#define IDSC_IMPORTATTACHMENT           3503
+#define IDSC_IMPORTATTSKIPPED           3504
+#define IDSC_IMPORT_ENTRYNOTFOUND       3505
+#define IDSC_IMPORT_SIZEDIFFERENT       3506
+#define IDSC_IMPORT_DIGESTFAILED        3507
+#define IDSC_IMPORTTIMESTAMP            3508
 
 // Keep DCA together
 #define IDSC_CURRENTDEFAULTDCA          4000

@@ -52,6 +52,9 @@ End of Entry                0xff        [empty]
 #define ATT_ATTACHMENT_DELETED  0x40
 // Unused                       0x3f
 
+// Values for matching criteria for Export to XML
+enum {ATTGROUP, ATTTITLE, ATTGROUPTITLE, ATTUSER, ATTPATH, ATTFILENAME, ATTDESCRIPTION};
+
 struct ATRecord {
   ATRecord()
   : uncsize(0), cmpsize(0), CRC(0), flags(0), uiflags(0),
@@ -120,8 +123,7 @@ struct ATRecord {
     return *this;
   }
 
-  void Clear()
-  {
+  void Clear() {
     uncsize = cmpsize = 0;
     flags = uiflags = 0;
     CRC = 0;
@@ -180,8 +182,7 @@ struct ATRecordEx {
     return *this;
   }
 
-  void Clear()
-  {
+  void Clear() {
     atr.Clear();
     sxGroup = sxTitle = sxUser = _T("");
   }
@@ -192,11 +193,47 @@ struct ATRecordEx {
   StringX sxUser;
 };
 
+struct ATFilter {
+  ATFilter()
+  : set(0), object(0), function(0),
+    value(_T(""))
+  {}
+
+  ATFilter(const ATFilter &af)
+    : set(af.set), object(af.object), function(af.function),
+    value(af.value)
+  {}
+
+  ATFilter &operator =(const ATFilter &af)
+  {
+    if (this != &af) {
+      set = af.set;
+      object = af.object;
+      function = af.function;
+      value = af.value;
+    }
+    return *this;
+  }
+
+  void Clear()  {
+    set = object = function = 0;
+    value = _T("");
+  }
+
+  int set;
+  int object;
+  int function;
+  stringT value;
+};
+
 typedef std::vector<ATRecord> ATRVector;
 typedef std::vector<ATRecordEx> ATRExVector;
+typedef std::vector<ATFilter> ATFVector;
 
 typedef std::vector<ATRecord>::iterator ATRViter;
 typedef std::vector<ATRecordEx>::iterator ATRExViter;
+typedef std::vector<ATFilter>::iterator ATFViter;
+
 
 #endif /* __ATTACHMENTS_H */
 //-----------------------------------------------------------------------------

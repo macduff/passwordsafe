@@ -13,10 +13,10 @@
 
 // CAddDescription dialog
 
-IMPLEMENT_DYNAMIC(CAddDescription, CDialog)
+IMPLEMENT_DYNAMIC(CAddDescription, CPWDialog)
 
 CAddDescription::CAddDescription(CWnd* pParent, const CString filename)
-	: CDialog(CAddDescription::IDD, pParent), m_filename(filename)
+	: CPWDialog(CAddDescription::IDD, pParent), m_filename(filename)
 {
 }
 
@@ -26,20 +26,20 @@ CAddDescription::~CAddDescription()
 
 void CAddDescription::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CPWDialog::DoDataExchange(pDX);
 
   DDX_Text(pDX, IDC_STATIC_ATTACHMENTNAME, m_filename);
   DDX_Text(pDX, IDC_OPTIONALDESCRIPTION, m_description);
 }
 
-BEGIN_MESSAGE_MAP(CAddDescription, CDialog)
-  ON_BN_CLICKED(IDOK, &CAddDescription::OnBnClickedOk)
+BEGIN_MESSAGE_MAP(CAddDescription, CPWDialog)
+  ON_BN_CLICKED(IDOK, OnOK)
 END_MESSAGE_MAP()
 
 // CAddDescription message handlers
 
-void CAddDescription::OnBnClickedOk()
+void CAddDescription::OnOK()
 {
   // TODO: Add your control notification handler code here
-  CDialog::OnOK();
+  CPWDialog::OnOK();
 }

@@ -28,13 +28,14 @@
 #include "PWFileDialog.h"
 #include "DisplayFSBkupFiles.h"
 
-#include "corelib/pwsprefs.h"
-#include "corelib/util.h"
+#include "corelib/PWSprefs.h"
+#include "corelib/Util.h"
 #include "corelib/PWSdirs.h"
 #include "corelib/Report.h"
 #include "corelib/ItemData.h"
 #include "corelib/corelib.h"
 #include "corelib/VerifyFormat.h"
+#include "corelib/SysInfo.h"
 #include "corelib/XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 
 #include "os/file.h"
@@ -356,7 +357,15 @@ int DboxMain::NewFile(StringX &newfilename)
 
   CString cf(MAKEINTRESOURCE(IDS_DEFDBNAME)); // reasonable default for first time user
   std::wstring v3FileName = PWSUtil::GetNewFileName(LPCWSTR(cf), DEFAULT_SUFFIX);
-  std::wstring dir = PWSdirs::GetSafeDir();
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   INT_PTR rc;
 
   while (1) {
@@ -367,8 +376,10 @@ int DboxMain::NewFile(StringX &newfilename)
                         OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
                      CString(MAKEINTRESOURCE(IDS_FDF_V3_ALL)),
                      this);
+
     fd.m_ofn.lpstrTitle = cs_text;
     fd.m_ofn.Flags &= ~OFN_READONLY;
+
     if (!dir.empty())
       fd.m_ofn.lpstrInitialDir = dir.c_str();
 
@@ -568,7 +579,14 @@ int DboxMain::Open(const UINT uiTitle)
   int rc = PWScore::SUCCESS;
   StringX sx_Filename;
   CString cs_text(MAKEINTRESOURCE(uiTitle));
-  std::wstring dir = PWSdirs::GetSafeDir();
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
 
   // Open-type dialog box
   while (1) {
@@ -579,6 +597,7 @@ int DboxMain::Open(const UINT uiTitle)
                      CString(MAKEINTRESOURCE(IDS_FDF_DB_BU_ALL)),
                      this);
     fd.m_ofn.lpstrTitle = cs_text;
+
     if (uiTitle == IDS_CHOOSEDATABASE) {
       // Normal Open
       if (PWSprefs::GetInstance()->GetPref(PWSprefs::DefaultOpenRO))
@@ -1174,7 +1193,16 @@ int DboxMain::SaveAs()
     CString defname(MAKEINTRESOURCE(IDS_DEFDBNAME)); // reasonable default for first time user
     cf = LPCWSTR(defname);
   }
+
   std::wstring v3FileName = PWSUtil::GetNewFileName(cf.c_str(), DEFAULT_SUFFIX);
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
 
   while (1) {
     CPWFileDialog fd(FALSE,
@@ -1188,11 +1216,14 @@ int DboxMain::SaveAs()
       cs_text.LoadString(IDS_NEWNAME1);
     else
       cs_text.LoadString(IDS_NEWNAME2);
+
     fd.m_ofn.lpstrTitle = cs_text;
-    std::wstring dir = PWSdirs::GetSafeDir();
+
     if (!dir.empty())
       fd.m_ofn.lpstrInitialDir = dir.c_str();
+
     rc = fd.DoModal();
+
     if (m_inExit) {
       // If U3ExitNow called while in CPWFileDialog,
       // PostQuitMessage makes us return here instead
@@ -1288,6 +1319,16 @@ void DboxMain::OnExportVx(UINT nID)
   std::wstring OldFormatFileName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(),
                                                       L"dat");
   cs_text.LoadString(IDS_NAMEEXPORTFILE);
+
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   while (1) {
     CPWFileDialog fd(FALSE,
                      DEFAULT_SUFFIX,
@@ -1296,8 +1337,14 @@ void DboxMain::OnExportVx(UINT nID)
                         OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
                      CString(MAKEINTRESOURCE(IDS_FDF_DB_ALL)),
                      this);
+
     fd.m_ofn.lpstrTitle = cs_text;
+
+    if (!dir.empty())
+      fd.m_ofn.lpstrInitialDir = dir.c_str();
+
     rc = fd.DoModal();
+
     if (m_inExit) {
       // If U3ExitNow called while in CPWFileDialog,
       // PostQuitMessage makes us return here instead
@@ -1397,6 +1444,14 @@ void DboxMain::DoExportText(const bool bAll)
       // SaveAs-type dialog box
       std::wstring TxtFileName = PWSUtil::GetNewFileName(sx_temp.c_str(), L"txt");
       cs_text.LoadString(IDS_NAMETEXTFILE);
+      std::wstring dir;
+      if (m_core.GetCurFile().empty())
+        dir = PWSdirs::GetSafeDir();
+      else {
+        std::wstring cdrive, cdir, dontCare;
+        pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+        dir = cdrive + cdir;
+      }
 
       while (1) {
         CPWFileDialog fd(FALSE,
@@ -1406,8 +1461,14 @@ void DboxMain::DoExportText(const bool bAll)
                             OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
                          CString(MAKEINTRESOURCE(IDS_FDF_T_C_ALL)),
                          this);
+
         fd.m_ofn.lpstrTitle = cs_text;
+
+        if (!dir.empty())
+          fd.m_ofn.lpstrInitialDir = dir.c_str();
+
         rc = fd.DoModal();
+
         if (m_inExit) {
           // If U3ExitNow called while in CPWFileDialog,
           // PostQuitMessage makes us return here instead
@@ -1502,6 +1563,14 @@ void DboxMain::DoExportXML(const bool bAll)
       std::wstring XMLFileName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(),
                                                     L"xml");
       cs_text.LoadString(IDS_NAMEXMLFILE);
+      std::wstring dir;
+      if (m_core.GetCurFile().empty())
+        dir = PWSdirs::GetSafeDir();
+      else {
+        std::wstring cdrive, cdir, dontCare;
+        pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+        dir = cdrive + cdir;
+      }
 
       while (1) {
         CPWFileDialog fd(FALSE,
@@ -1511,8 +1580,14 @@ void DboxMain::DoExportXML(const bool bAll)
                             OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
                          CString(MAKEINTRESOURCE(IDS_FDF_X_ALL)),
                          this);
+
         fd.m_ofn.lpstrTitle = cs_text;
+
+        if (!dir.empty())
+          fd.m_ofn.lpstrInitialDir = dir.c_str();
+
         rc = fd.DoModal();
+
         if (m_inExit) {
           // If U3ExitNow called while in CPWFileDialog,
           // PostQuitMessage makes us return here instead
@@ -1575,14 +1650,27 @@ void DboxMain::OnImportText()
   CString cs_text;
   wchar_t fieldSeparator(dlg.m_Separator[0]);
 
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   CPWFileDialog fd(TRUE,
                    L"txt",
                    NULL,
                    OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
                    CString(MAKEINTRESOURCE(IDS_FDF_T_C_ALL)),
                    this);
+
   cs_text.LoadString(IDS_PICKTEXTFILE);
   fd.m_ofn.lpstrTitle = cs_text;
+
+  if (!dir.empty())
+    fd.m_ofn.lpstrInitialDir = dir.c_str();
 
   INT_PTR rc = fd.DoModal();
 
@@ -1705,15 +1793,30 @@ void DboxMain::OnImportKeePass()
     return;
 
   CString cs_text, cs_title, cs_temp;
+  cs_text.LoadString(IDS_PICKKEEPASSFILE);
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   CPWFileDialog fd(TRUE,
                    L"txt",
                    NULL,
                    OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
                    CString(MAKEINTRESOURCE(IDS_FDF_T_C_ALL)),
                    this);
-  cs_text.LoadString(IDS_PICKKEEPASSFILE);
+
   fd.m_ofn.lpstrTitle = cs_text;
+
+  if (!dir.empty())
+    fd.m_ofn.lpstrInitialDir = dir.c_str();
+
   INT_PTR rc = fd.DoModal();
+
   if (m_inExit) {
     // If U3ExitNow called while in CPWFileDialog,
     // PostQuitMessage makes us return here instead
@@ -1763,6 +1866,7 @@ void DboxMain::OnImportXML()
 
   CString cs_title, cs_temp, cs_text;
   cs_title.LoadString(IDS_XMLIMPORTFAILED);
+  cs_text.LoadString(IDS_PICKXMLFILE);
 
   CGeneralMsgBox gmb;
   // Initialize set
@@ -1795,14 +1899,26 @@ void DboxMain::OnImportXML()
     return;
 
   std::wstring ImportedPrefix(dlg.m_groupName);
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   CPWFileDialog fd(TRUE,
                    L"xml",
                    NULL,
                    OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
                    CString(MAKEINTRESOURCE(IDS_FDF_XML)),
                    this);
-  cs_text.LoadString(IDS_PICKXMLFILE);
+
   fd.m_ofn.lpstrTitle = cs_text;
+
+  if (!dir.empty())
+    fd.m_ofn.lpstrInitialDir = dir.c_str();
 
   INT_PTR rc = fd.DoModal();
 
@@ -1836,16 +1952,16 @@ void DboxMain::OnImportXML()
     std::vector<StringX> vgroups;
     Command *pcmd = NULL;
 
-    rc = m_core.ImportXMLFile(ImportedPrefix, std::wstring(XMLFilename),
-                              XSDFilename.c_str(), bImportPSWDsOnly,
-                              strXMLErrors, strSkippedList, strPWHErrorList, strRenameList,
-                              numValidated, numImported, numSkipped, numPWHErrors, numRenamed,
-                              bBadUnknownFileFields, bBadUnknownRecordFields,
-                              rpt, pcmd);
+    int xrc = m_core.ImportXMLFile(ImportedPrefix, std::wstring(XMLFilename),
+                                   XSDFilename.c_str(), bImportPSWDsOnly,
+                                   strXMLErrors, strSkippedList, strPWHErrorList, strRenameList,
+                                   numValidated, numImported, numSkipped, numPWHErrors, numRenamed,
+                                   bBadUnknownFileFields, bBadUnknownRecordFields,
+                                   rpt, pcmd);
     waitCursor.Restore();  // Restore normal cursor
 
     std::wstring csErrors(L"");
-    switch (rc) {
+    switch (xrc) {
       case PWScore::XML_FAILED_VALIDATION:
         rpt.WriteLine(strXMLErrors.c_str());
         cs_temp.Format(IDS_FAILEDXMLVALIDATE, fd.GetFileName(), L"");
@@ -2032,6 +2148,15 @@ void DboxMain::DoOtherDBProcessing(const UINT uiftn)
   CString cs_text;
   cs_text.LoadString(uimsgid);
 
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   //Open-type dialog box
   CPWFileDialog fd(TRUE,
                    DEFAULT_SUFFIX,
@@ -2039,8 +2164,9 @@ void DboxMain::DoOtherDBProcessing(const UINT uiftn)
                    OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
                    CString(MAKEINTRESOURCE(IDS_FDF_DB_BU_ALL)),
                    this);
+
   fd.m_ofn.lpstrTitle = cs_text;
-  std::wstring dir = PWSdirs::GetSafeDir();
+
   if (!dir.empty())
     fd.m_ofn.lpstrInitialDir = dir.c_str();
 
@@ -3221,18 +3347,20 @@ void DboxMain::OnOK()
   }
 }
 
-static void RelativizePath(stringT &curfile)
+void RelativizePath(stringT &curfile)
 {
-  // If exec's drive == curfile's drive, remove
+  // If  IsUnderPw2go() && exec's drive == curfile's drive, remove
   // from latter's path. This supports DoK usage
-  const stringT execDir = pws_os::getexecdir();
-  stringT execDrive, dontCare;
-  pws_os::splitpath(execDir, execDrive, dontCare, dontCare, dontCare);
-  stringT fileDrive, fileDir, fileFile, fileExt;
-  pws_os::splitpath(curfile, fileDrive, fileDir, fileFile, fileExt);
-  ToUpper(fileDrive); ToUpper(execDrive);
-  if (fileDrive == execDrive) {
-    curfile = pws_os::makepath(L"", fileDir, fileFile, fileExt);
+  if (SysInfo::IsUnderPw2go()) {
+    const stringT execDir = pws_os::getexecdir();
+    stringT execDrive, dontCare;
+    pws_os::splitpath(execDir, execDrive, dontCare, dontCare, dontCare);
+    stringT fileDrive, fileDir, fileFile, fileExt;
+    pws_os::splitpath(curfile, fileDrive, fileDir, fileFile, fileExt);
+    ToUpper(fileDrive); ToUpper(execDrive);
+    if (fileDrive == execDrive) {
+      curfile = pws_os::makepath(L"", fileDir, fileFile, fileExt);
+    }
   }
 }
 

@@ -147,6 +147,11 @@ public:
   {m_MM_entry_uuid_atr_saved = m_MM_entry_uuid_atr;}
   void RestoreAttachmentStatusAtLastSave()
   {m_MM_entry_uuid_atr = m_MM_entry_uuid_atr_saved;}
+  UUIDAVector GetAttachmentUUIDs();
+  bool AttMatches(const ATRecordEx &atrex, const ATFVector &atfv);
+  bool AttMatches(const ATRecordEx &atrex, const int &iObject, const int &iFunction,
+                  const stringT &value) const;
+  void AddAttachment(const ATRecord &atr);
 
   // R/O file status
   void SetReadOnly(bool state) {m_IsReadOnly = state;}
@@ -171,9 +176,8 @@ public:
                    const int &iFunction, const TCHAR &delimiter,
                    const OrderedItemList *il = NULL,
                    const bool &bFilterActive = false);
-  int WriteXMLAttachmentFile(const StringX &filename,
-                   const stringT &subgroup, const int &iObject,
-                   const int &iFunction, const ATRExVector &vAIRecordExs);
+  int WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf, 
+                             const ATRExVector &vAIRecordExs, size_t *pnum_exported);
 
   // Import databases
   // If returned status is SUCCESS, then returned Command * can be executed.
@@ -200,8 +204,6 @@ public:
                     const stringT &strXSDFileName,
                     stringT &strXMLErrors, stringT &strSkippedList,
                     int &numValidated, int &numImported, int &numSkipped,
-                    bool &bBadUnknownFileFields,
-                    bool &bBadUnknownRecordFields,
                     CReport &rpt, Command *&pcommand);
   int ImportKeePassTextFile(const StringX &filename, Command *&pcommand);
 
@@ -387,7 +389,6 @@ private:
   virtual void UndoUpdatePasswordHistory(SavePWHistoryMap &mapSavedHistory);
 
   // Attachment
-  virtual void AddAttachment(const ATRecord &atr);
   virtual void AddAttachments(ATRVector &vNewATRecords);
   virtual void ChangeAttachment(const ATRecord &atr);
   virtual bool MarkAttachmentForDeletion(const ATRecord &atr);
@@ -490,7 +491,7 @@ private:
   int ReadAttachmentFile(const bool bVerify = false);
   void SetupAttachmentHeader();
   int SaveAttachmentFile(const stringT &tempfilename);
-  UUIDATRMMap m_MM_entry_uuid_atr; // std::multimap key = entry_uuid, value = attachment record
+  UUIDATRMMap m_MM_entry_uuid_atr;        // std::multimap key = entry_uuid, value = attachment record
   UUIDATRMMap m_MM_entry_uuid_atr_saved;  // As above but status as per the last save.
 
   static Reporter *m_pReporter; // set as soon as possible to show errors

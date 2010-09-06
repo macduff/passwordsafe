@@ -71,7 +71,10 @@
         <xs:element name="attachment" minOccurs="0" maxOccurs="unbounded">
         <!-- Start Database Attachments -->
           <xs:complexType>
-            <xs:all>
+            <xs:sequence>
+              <xs:element name="group" type="stringType" minOccurs="0" maxOccurs="1" />
+              <xs:element name="title" type="stringType" minOccurs="1" />
+              <xs:element name="username" type="stringType" minOccurs="0" maxOccurs="1" />
               <xs:element name="attachment_uuid" type="uuidType" minOccurs="1" maxOccurs="1" />
               <xs:element name="entry_uuid" type="uuidType" minOccurs="1" maxOccurs="1" />
               <xs:element name="filename" type="stringType" minOccurs="1" maxOccurs="1" />
@@ -96,24 +99,7 @@
                 </xs:complexType>
               </xs:element>
               <xs:element name="data" type="xs:base64Binary" minOccurs="1" maxOccurs="1" />
-              <xs:element name="unknownrecordfields" minOccurs="0" maxOccurs="1">
-              <!-- Start Unknown Record Fields -->
-                <xs:complexType>
-                  <xs:sequence>
-                    <xs:element name="field" minOccurs="0" maxOccurs="unbounded">
-                      <xs:complexType>
-                        <xs:simpleContent>
-                          <xs:extension base="xs:base64Binary">
-                            <xs:attribute name="ftype" type="fieldType" use="required" />
-                          </xs:extension>
-                        </xs:simpleContent>
-                      </xs:complexType>
-                    </xs:element>
-                  </xs:sequence>
-                </xs:complexType>
-              <!-- End Unknown Record Fields -->
-              </xs:element>
-            </xs:all>
+            </xs:sequence>
             <xs:attribute name="id" type="xs:int" use="optional" />
           </xs:complexType>
         <!-- End Database Entries -->

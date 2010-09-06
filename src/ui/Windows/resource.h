@@ -338,9 +338,11 @@
 #define IDB_VIEW_ATTACHMENTS_NEW        493
 #define IDB_VIEW_ATTACHMENTS_NEW_D      494
 #define IDD_ATT_PROPERTIES              495
-#define IDR_POPATTACHMENTS            496
+#define IDR_POPATTACHMENTS              496
 #define IDD_ANIMATE                     497
 #define IDD_ADD_DESCRIPTION             498
+#define IDD_EXPORT_ATTACHMENT           499
+#define IDD_ADVANCED_ATT                501
 #define IDC_APPVERSION                  1000
 #define IDC_VERSION                     1001
 #define IDC_BROWSE                      1002
@@ -759,14 +761,35 @@
 #define IDC_STATIC_DROPATTACHMENT       1464
 #define IDC_STATIC_ATTACHMENTNAME       1465
 #define IDC_OPTIONALDESCRIPTION         1466
+#define IDC_ADVANCED_TEST1              1467
+#define IDC_ADVANCED_TEST2              1468
+#define IDC_ADVANCED_TEST3              1469
+#define IDC_ADVANCED_FUNCTION1          1470
+#define IDC_ADVANCED_FUNCTION2          1471
+#define IDC_ADVANCED_FUNCTION3          1472
+#define IDC_ADVANCED_NAME1              1473
+#define IDC_ADVANCED_NAME2              1474
+#define IDC_ADVANCED_NAME3              1475
+#define IDC_ADVANCED_OBJECT1            1476
+#define IDC_ADVANCED_OBJECT2            1477
+#define IDC_ADVANCED_OBJECT3            1478
+#define IDC_ADVANCED_CASE1              1479
+#define IDC_ADVANCED_CASE2              1480
+#define IDC_ADVANCED_CASE3              1481
+#define IDC_STATIC_TEXT1                1482
+#define IDC_STATIC_TEXT2                1483
+#define IDC_STATIC_TEXT3                1484
+#define IDC_STATIC_WHERE1               1485
+#define IDC_STATIC_WHERE2               1486
+#define IDC_STATIC_WHERE3               1487
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        500
+#define _APS_NEXT_RESOURCE_VALUE        501
 #define _APS_NEXT_COMMAND_VALUE         30001
-#define _APS_NEXT_CONTROL_VALUE         1467
+#define _APS_NEXT_CONTROL_VALUE         1488
 #define _APS_NEXT_SYMED_VALUE           166
 #endif
 #endif

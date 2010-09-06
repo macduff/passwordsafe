@@ -54,6 +54,8 @@
 #include "../../corelib/XML/XMLDefs.h"
 #include "./ViewReport.h"
 #include "corelib/XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
+#include <wx/fontdlg.h>
+#include "./PWSDragBar.h"
 
 // main toolbar images
 #include "../graphics/toolbar/wxWidgets/new.xpm"
@@ -196,6 +198,15 @@ BEGIN_EVENT_TABLE( PasswordSafeFrame, wxFrame )
   EVT_MENU(wxID_UNDO,          PasswordSafeFrame::OnUndo )
   EVT_MENU(wxID_REDO,          PasswordSafeFrame::OnRedo )
 
+  EVT_MENU(ID_EXPANDALL,       PasswordSafeFrame::OnExpandAll )
+  EVT_MENU(ID_COLLAPSEALL,     PasswordSafeFrame::OnCollapseAll )
+
+  EVT_MENU(ID_CHANGETREEFONT,  PasswordSafeFrame::OnChangeTreeFont )
+  EVT_MENU(ID_CHANGEPSWDFONT,  PasswordSafeFrame::OnChangePasswordFont )
+
+  EVT_MENU(ID_SHOWHIDE_TOOLBAR,  PasswordSafeFrame::OnShowHideToolBar )
+  EVT_MENU(ID_SHOWHIDE_DRAGBAR,  PasswordSafeFrame::OnShowHideDragBar )
+
   EVT_MENU( ID_MENU_CLEAR_MRU, PasswordSafeFrame::OnClearRecentHistory )
   EVT_UPDATE_UI( ID_MENU_CLEAR_MRU, PasswordSafeFrame::OnUpdateClearRecentDBHistory )
 
@@ -204,7 +215,7 @@ BEGIN_EVENT_TABLE( PasswordSafeFrame, wxFrame )
   EVT_UPDATE_UI(wxID_SAVE,          PasswordSafeFrame::OnUpdateUI )
   EVT_UPDATE_UI(ID_ADDGROUP,        PasswordSafeFrame::OnUpdateUI )
   EVT_UPDATE_UI(ID_RENAME,          PasswordSafeFrame::OnUpdateUI )
-  EVT_UPDATE_UI(ID_COLLAPESALL,     PasswordSafeFrame::OnUpdateUI )
+  EVT_UPDATE_UI(ID_COLLAPSEALL,     PasswordSafeFrame::OnUpdateUI )
   EVT_UPDATE_UI(ID_EXPANDALL,       PasswordSafeFrame::OnUpdateUI )
   EVT_UPDATE_UI(ID_GOTOBASEENTRY,   PasswordSafeFrame::OnUpdateUI )
   EVT_UPDATE_UI(ID_EDITBASEENTRY,   PasswordSafeFrame::OnUpdateUI )
@@ -269,9 +280,27 @@ bool PasswordSafeFrame::Create( wxWindow* parent, wxWindowID id, const wxString&
 ////@end PasswordSafeFrame creation
   m_search = new PasswordSafeSearch(this);
   CreateMainToolbar();
+  CreateDragBar();
     return true;
 }
 
+void PasswordSafeFrame::CreateDragBar()
+{
+  wxSizer* origSizer = GetSizer();
+  
+  wxASSERT(origSizer);
+  wxASSERT(origSizer->IsKindOf(wxBoxSizer(wxVERTICAL).GetClassInfo()));
+  wxASSERT(((wxBoxSizer*)origSizer)->GetOrientation() == wxVERTICAL);
+
+  PWSDragBar* dragbar = new PWSDragBar(this);
+  origSizer->Insert(0, dragbar);
+  
+  const bool bShow = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowDragbar);
+  if (!bShow) {
+    dragbar->Hide();
+  }
+  GetMenuBar()->Check(ID_SHOWHIDE_DRAGBAR, bShow);
+}
 
 /*!
  * PasswordSafeFrame destructor
@@ -380,7 +409,7 @@ void PasswordSafeFrame::CreateControls()
   itemMenu47->Append(ID_SHOWHIDE_DRAGBAR, _("&Dragbar visible"), _T(""), wxITEM_CHECK);
   itemMenu47->AppendSeparator();
   itemMenu47->Append(ID_EXPANDALL, _("Expand All"), _T(""), wxITEM_NORMAL);
-  itemMenu47->Append(ID_COLLAPESALL, _("Collapse All"), _T(""), wxITEM_NORMAL);
+  itemMenu47->Append(ID_COLLAPSEALL, _("Collapse All"), _T(""), wxITEM_NORMAL);
   wxMenu* itemMenu56 = new wxMenu;
   itemMenu56->Append(ID_EDITFILTER, _("&New/Edit Filter..."), _T(""), wxITEM_NORMAL);
   itemMenu56->Append(ID_APPLYFILTER, _("&Apply current"), _T(""), wxITEM_NORMAL);
@@ -468,7 +497,7 @@ void PasswordSafeFrame::CreateMainToolbar()
   toolbar->AddTool(wxID_DELETE, wxEmptyString, wxBitmap(delete_xpm), wxBitmap(delete_disabled_xpm), wxITEM_NORMAL, wxT("Delete an Entry"));
   toolbar->AddSeparator();
   toolbar->AddTool(ID_EXPANDALL, wxEmptyString, wxBitmap(expandall_xpm), wxBitmap(expandall_disabled_xpm), wxITEM_NORMAL, wxT("Expand All"));
-  toolbar->AddTool(ID_COLLAPESALL, wxEmptyString, wxBitmap(collapseall_xpm), wxBitmap(collapseall_disabled_xpm), wxITEM_NORMAL, wxT("Collapse All"));
+  toolbar->AddTool(ID_COLLAPSEALL, wxEmptyString, wxBitmap(collapseall_xpm), wxBitmap(collapseall_disabled_xpm), wxITEM_NORMAL, wxT("Collapse All"));
   toolbar->AddSeparator();
   toolbar->AddTool(wxID_PREFERENCES, wxEmptyString, wxBitmap(options_xpm), wxBitmap(options_disabled_xpm), wxITEM_NORMAL, wxT("Options"));
   toolbar->AddSeparator();
@@ -476,6 +505,12 @@ void PasswordSafeFrame::CreateMainToolbar()
 
   if (!toolbar->Realize())
     wxMessageBox(wxT("Could not create main toolbar"));
+  
+  const bool bShow = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowToolbar);
+  if (!bShow) {
+    toolbar->Hide();
+  }
+  GetMenuBar()->Check(ID_SHOWHIDE_TOOLBAR, bShow);
 }
 
 
@@ -570,6 +605,9 @@ void PasswordSafeFrame::ShowGrid(bool show)
     m_grid->AutoSizeColumns();
     m_grid->EnableEditing(false);
     m_grid->DeleteAllItems();
+    wxFont font(towxstring(PWSprefs::GetInstance()->GetPref(PWSprefs::TreeFont)));
+    if (font.IsOk())
+      m_grid->SetDefaultCellFont(font);
     ItemListConstIter iter;
     int i;
     for (iter = m_core.GetEntryIter(), i = 0;
@@ -586,6 +624,9 @@ void PasswordSafeFrame::ShowTree(bool show)
 {
   if (show) {
     m_tree->Clear();
+    wxFont font(towxstring(PWSprefs::GetInstance()->GetPref(PWSprefs::TreeFont)));
+    if (font.IsOk())
+      m_tree->SetFont(font);
     ItemListConstIter iter;
     for (iter = m_core.GetEntryIter();
          iter != m_core.GetEntryEndIter();
@@ -624,6 +665,87 @@ void PasswordSafeFrame::OnTreeViewClick( wxCommandEvent& /* evt */ )
   ShowGrid(false);
   ShowTree(true);
   m_currentView = TREE;
+}
+
+void PasswordSafeFrame::OnExpandAll(wxCommandEvent& /*evt*/)
+{
+  wxASSERT(m_currentView == TREE);
+  m_tree->ExpandAll();
+}
+
+void PasswordSafeFrame::OnCollapseAll(wxCommandEvent& /*evt*/)
+{
+  wxASSERT(m_currentView == TREE);
+  
+  //we cannot just call wxTreeCtrl::CollapseAll(), since it tries to 
+  //collapse the invisible root item also, and thus ASSERTs
+  wxTreeItemIdValue cookie;
+  for ( wxTreeItemId root = m_tree->GetRootItem(), idCurr = m_tree->GetFirstChild(root, cookie);
+        idCurr.IsOk();
+        idCurr = m_tree->GetNextChild(root, cookie) )
+  {
+      m_tree->CollapseAllChildren(idCurr);
+  }
+}
+
+void PasswordSafeFrame::OnChangeTreeFont(wxCommandEvent& /*evt*/)
+{
+  wxFont currentFont(towxstring(PWSprefs::GetInstance()->GetPref(PWSprefs::TreeFont)));
+
+  if (!currentFont.IsOk()) {
+    currentFont = IsTreeView() ? m_tree->GetFont() : m_grid->GetDefaultCellFont();
+  }
+  
+  wxFont newFont = ::wxGetFontFromUser(this, currentFont, _("Select Tree/List display font"));
+  
+  if (newFont.IsOk()) {
+    if (IsTreeView()) {
+      m_tree->SetFont(newFont);
+    }
+    else {
+      m_grid->SetDefaultCellFont(newFont);
+    }
+    PWSprefs::GetInstance()->SetPref(PWSprefs::TreeFont, tostringx(newFont.GetNativeFontInfoDesc()));
+  }
+}
+
+void PasswordSafeFrame::OnChangePasswordFont(wxCommandEvent& /*evt*/)
+{
+  wxFont passwordFont(towxstring(PWSprefs::GetInstance()->GetPref(PWSprefs::PasswordFont)));
+
+  wxFont newFont = ::wxGetFontFromUser(this, passwordFont, _("Set Password display font"));
+  if (newFont.IsOk()) {
+    PWSprefs::GetInstance()->SetPref(PWSprefs::PasswordFont, tostringx(newFont.GetNativeFontInfoDesc()));
+  }
+}
+
+void PasswordSafeFrame::OnShowHideToolBar(wxCommandEvent& evt)
+{
+  GetToolBar()->Show(evt.IsChecked());
+  PWSprefs::GetInstance()->SetPref(PWSprefs::ShowToolbar, evt.IsChecked());
+  DoLayout();
+  SendSizeEvent();
+}
+
+void PasswordSafeFrame::OnShowHideDragBar(wxCommandEvent& evt)
+{
+  wxSizer* origSizer = GetSizer();
+  
+  wxASSERT(origSizer);
+  wxASSERT(origSizer->IsKindOf(wxBoxSizer(wxVERTICAL).GetClassInfo()));
+  wxASSERT(((wxBoxSizer*)origSizer)->GetOrientation() == wxVERTICAL);
+  
+  wxSizerItem* dragbarItem = origSizer->GetItem(size_t(0));
+  wxASSERT_MSG(dragbarItem && dragbarItem->IsWindow() && 
+                      dragbarItem->GetWindow()->IsKindOf(&PWSDragBar::ms_classInfo),
+                    wxT("Found unexpected item while searching for DragBar"));
+                    
+  PWSDragBar* dragbar = wxDynamicCast(dragbarItem->GetWindow(), PWSDragBar);
+  wxASSERT(dragbar);
+  
+  dragbar->Show(evt.IsChecked());
+  PWSprefs::GetInstance()->SetPref(PWSprefs::ShowDragbar, evt.IsChecked());
+  DoLayout();
 }
 
 int PasswordSafeFrame::Save()
@@ -1428,7 +1550,7 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
    
     case ID_ADDGROUP:
     case ID_EXPANDALL:
-    case ID_COLLAPESALL:
+    case ID_COLLAPSEALL:
       evt.Enable(m_currentView == TREE);
       break;
     
@@ -1773,7 +1895,7 @@ int PasswordSafeFrame::NewFile(StringX &fname)
   while (1) {
     wxFileDialog fd(static_cast<wxWindow*>(this), cs_text, dir, v3FileName,
                     _("psafe3 files (*.psafe3)|*.psafe3|All files(*.*)|*.*"),
-                    wxFD_OPEN | wxFD_CHANGE_DIR);
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT | wxFD_CHANGE_DIR);
     rc = fd.ShowModal();
 
     if (rc == wxID_OK) {

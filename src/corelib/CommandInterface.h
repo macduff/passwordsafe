@@ -94,7 +94,6 @@ class CommandInterface
   // Attachment members
   virtual size_t HasAttachments(const uuid_array_t &entry_uuid) = 0;
 
-  //virtual void AddAttachment(const ATRecord &atr) = 0;
   virtual void AddAttachments(ATRVector &vNewATRecords) = 0;
 
   virtual void ChangeAttachment(const ATRecord &atr) = 0;

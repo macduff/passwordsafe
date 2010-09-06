@@ -188,6 +188,21 @@
     <ClCompile Include="PWSAttfileV3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="XML\XMLAttHandlers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XML\XMLAttValidation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XML\MSXML\MAttSAX2Handlers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XML\MSXML\MAttValidator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XML\MSXML\MAttXMLProcessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BlowFish.h">
@@ -395,6 +410,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PWSAttfileV3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XML\XMLAttHandlers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XML\XMLAttValidation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XML\MSXML\MAttSAX2Handlers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XML\MSXML\MAttValidator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XML\MSXML\MAttXMLProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

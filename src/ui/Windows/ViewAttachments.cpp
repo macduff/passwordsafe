@@ -45,6 +45,7 @@ void CViewAttachments::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CViewAttachments, CPWDialog)
+  ON_BN_CLICKED(IDOK, OnOK)
   ON_COMMAND(ID_HELP, OnHelp)
   ON_NOTIFY(HDN_ITEMCLICK, IDC_VIEW_ATTLC_HEADER, OnColumnClick)
 END_MESSAGE_MAP()
@@ -64,6 +65,7 @@ BOOL CViewAttachments::PreTranslateMessage(MSG* pMsg)
 
   return CPWDialog::PreTranslateMessage(pMsg);
 }
+
 
 BOOL CViewAttachments::OnInitDialog()
 {
@@ -96,7 +98,6 @@ void CViewAttachments::OnHelp()
   cs_HelpTopic = app.GetHelpFileName() + L"::/html/extract.html";
   HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 }
-
 
 void CViewAttachments::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
 {

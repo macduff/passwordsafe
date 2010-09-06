@@ -18,11 +18,14 @@
 #include "GeneralMsgBox.h"
 #include "ExtractAttachment.h"
 #include "ViewAttachments.h"
-#include "ExportXMLDlg.h"
+#include "ExportAttDlg.h"
+
 
 #include "resource3.h"  // String resources
 
 #include "corelib/attachments.h"
+#include "corelib/PWSdirs.h"
+#include "corelib/corelib.h"
 
 #include "os/file.h"
 #include "os/dir.h"
@@ -164,6 +167,15 @@ void DboxMain::OnViewAttachments()
 LRESULT DboxMain::OnExportAttachment(WPARAM wParam, LPARAM )
 {
   ATRecordEx *pATREx = (ATRecordEx *)wParam;
+  if (pATREx->sxTitle.empty()) {
+    // Title is mandatory - implies caller didn't fill in necessary fields
+    ItemListIter iter = Find(pATREx->atr.entry_uuid);
+    if (iter == End())
+      return 0L;
+    pATREx->sxGroup = iter->second.GetGroup();
+    pATREx->sxTitle = iter->second.GetTitle();
+    pATREx->sxUser = iter->second.GetUser();
+  }
   DoExportAttachmentsXML(pATREx);
 
   return 0L;
@@ -176,10 +188,19 @@ void DboxMain::OnExportAllAttachments()
 
 void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
 {
-  CExportXMLDlg eXML(this);
+  ATFVector vatf;
+  for (int i = 0; i < CAdvancedAttDlg::NUM_TESTS; i++) {
+    ATFilter atf;
+    vatf.push_back(atf);
+  }
+
+  CGeneralMsgBox gmb;
+  CExportAttDlg eXML(this, vatf);
   CString cs_text, cs_title, cs_temp;
+  size_t num_exported(0);
 
   INT_PTR rc = eXML.DoModal();
+
   if (rc == IDOK) {
     CGeneralMsgBox gmb;
     StringX newfile;
@@ -189,11 +210,17 @@ void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
       // SaveAs-type dialog box
       std::wstring XMLFileName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(),
                                                          L"xml");
-      const std::wstring subgroup_name = L"";
-      const int subgroup_object = 0;
-      const int subgroup_function = 0;
+      
       cs_text.LoadString(IDS_NAMEXMLFILE);
-
+      std::wstring dir;
+      if (m_core.GetCurFile().empty())
+        dir = PWSdirs::GetSafeDir();
+      else {
+        std::wstring cdrive, cdir, dontCare;
+        pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+        dir = cdrive + cdir;
+      }
+ 
       while (1) {
         CPWFileDialog fd(FALSE,
                          L"xml",
@@ -202,8 +229,14 @@ void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
                             OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
                          CString(MAKEINTRESOURCE(IDS_FDF_X_ALL)),
                          this);
+
         fd.m_ofn.lpstrTitle = cs_text;
+  
+        if (!dir.empty())
+          fd.m_ofn.lpstrInitialDir = dir.c_str();
+
         rc = fd.DoModal();
+
         if (m_inExit) {
           // If U3ExitNow called while in CPWFileDialog,
           // PostQuitMessage makes us return here instead
@@ -225,9 +258,7 @@ void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
         vAIRecordExs.push_back(*pATREx);
       }
 
-      rc = m_core.WriteXMLAttachmentFile(newfile,
-                   subgroup_name, subgroup_object,
-                   subgroup_function, vAIRecordExs);
+      rc = m_core.WriteXMLAttachmentFile(newfile, vatf, vAIRecordExs, &num_exported);
 
       if (rc != PWScore::SUCCESS) {
         //DisplayFileWriteError(rc, newfile);
@@ -238,9 +269,177 @@ void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
       ::Sleep(3000); // protect against automatic attacks
     }
   }
+  
+  cs_text.Format(IDS_EXPORTOK, num_exported);
+  cs_title.LoadString(IDS_EXPORTED);
+  gmb.MessageBox(cs_text, cs_title, MB_OK | MB_ICONINFORMATION);
 
 exit:
   return;
+}
+
+void DboxMain::OnImportAttachments()
+{
+  // disable in read-only mode and empty database
+  if (m_core.IsReadOnly() || m_core.GetNumEntries() == 0)
+    return;
+
+  CString cs_title, cs_temp, cs_text;
+  cs_title.LoadString(IDS_XMLIMPORTFAILED);
+
+  CGeneralMsgBox gmb;
+  // Initialize set
+  GTUSet setGTU;
+  if (!m_core.GetUniqueGTUValidated() && !m_core.InitialiseGTU(setGTU)) {
+    // Database is not unique to start with - tell user to validate it first
+    cs_temp.Format(IDS_DBHASDUPLICATES, m_core.GetCurFile().c_str());
+    gmb.MessageBox(cs_temp, cs_title, MB_ICONEXCLAMATION);
+    return;
+  }
+
+  const std::wstring XSDfn(L"pwsafe_att.xsd");
+  std::wstring XSDFilename = PWSdirs::GetXMLDir() + XSDfn;
+
+#if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
+  // Expat is a non-validating parser - no use for Schema!
+  if (!pws_os::FileExists(XSDFilename)) {
+    CGeneralMsgBox gmb;
+    cs_temp.Format(IDSC_MISSINGXSD, XSDfn.c_str());
+    cs_title.LoadString(IDSC_CANTVALIDATEXML);
+    gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONSTOP);
+    return;
+  }
+#endif
+
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
+  CPWFileDialog fd(TRUE,
+                   L"xml",
+                   NULL,
+                   OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
+                   CString(MAKEINTRESOURCE(IDS_FDF_XML)),
+                   this);
+
+  cs_text.LoadString(IDS_PICKXMLFILE);
+  fd.m_ofn.lpstrTitle = cs_text;
+
+  if (!dir.empty())
+    fd.m_ofn.lpstrInitialDir = dir.c_str();
+
+  INT_PTR rc = fd.DoModal();
+
+  if (m_inExit) {
+    // If U3ExitNow called while in CPWFileDialog,
+    // PostQuitMessage makes us return here instead
+    // of exiting the app. Try resignalling 
+    PostQuitMessage(0);
+    return;
+  }
+
+  if (rc == IDOK) {
+    std::wstring strXMLErrors, strSkippedList;
+    CString XMLFilename = fd.GetPathName();
+    int numValidated, numImported, numSkipped;
+
+    CWaitCursor waitCursor;  // This may take a while!
+
+    /* Create report as we go */
+    CReport rpt;
+    CString cs_text;
+    cs_text.LoadString(IDS_RPTIMPORTXML);
+    rpt.StartReport(cs_text, m_core.GetCurFile().c_str());
+    cs_text.LoadString(IDS_XML);
+    cs_temp.Format(IDS_IMPORTFILE, cs_text, XMLFilename);
+    rpt.WriteLine((LPCWSTR)cs_temp);
+    rpt.WriteLine();
+    std::vector<StringX> vgroups;
+    Command *pcmd = NULL;
+
+    int xrc = m_core.ImportXMLAttachmentFile(std::wstring(XMLFilename),
+                                             XSDFilename.c_str(), 
+                                             strXMLErrors, strSkippedList,
+                                             numValidated, numImported, numSkipped,
+                                             rpt, pcmd);
+    waitCursor.Restore();  // Restore normal cursor
+
+    std::wstring csErrors(L"");
+    switch (xrc) {
+      case PWScore::XML_FAILED_VALIDATION:
+        rpt.WriteLine(strXMLErrors.c_str());
+        cs_temp.Format(IDS_FAILEDXMLVALIDATE, fd.GetFileName(), L"");
+        delete pcmd;
+        break;
+      case PWScore::XML_FAILED_IMPORT:
+        rpt.WriteLine(strXMLErrors.c_str());
+        cs_temp.Format(IDS_XMLERRORS, fd.GetFileName(), L"");
+        delete pcmd;
+        break;
+      case PWScore::SUCCESS:
+      case PWScore::OK_WITH_ERRORS:
+        cs_title.LoadString(rc == PWScore::SUCCESS ? IDS_COMPLETE : IDS_OKWITHERRORS);
+        if (pcmd != NULL)
+          Execute(pcmd);
+
+        if (!strXMLErrors.empty() || numSkipped > 0) {
+          if (!strXMLErrors.empty()) {
+            csErrors = strXMLErrors + L"\n";
+          }
+
+          if (!csErrors.empty()) {
+            rpt.WriteLine(csErrors.c_str());
+          }
+
+          CString cs_renamed(L""), cs_skipped(L"");
+          if (numSkipped > 0) {
+            cs_skipped.LoadString(IDS_TITLESKIPPED);
+            rpt.WriteLine((LPCWSTR)cs_skipped);
+            cs_skipped.Format(IDS_XMLIMPORTSKIPPED, numSkipped);
+            rpt.WriteLine(strSkippedList.c_str());
+            rpt.WriteLine();
+          }
+
+          cs_temp.Format(IDS_XMLIMPORTWITHERRORS,
+                         fd.GetFileName(), numValidated, numImported,
+                         cs_skipped, cs_renamed, L"");
+
+          ChangeOkUpdate();
+        } else {
+          const CString cs_validate(MAKEINTRESOURCE(numValidated == 1 ? IDSC_ENTRY : IDSC_ENTRIES));
+          const CString cs_imported(MAKEINTRESOURCE(numImported == 1 ? IDSC_ENTRY : IDSC_ENTRIES));
+          cs_temp.Format(IDS_XMLIMPORTOK, numValidated, cs_validate, numImported, cs_imported);
+          ChangeOkUpdate();
+        }
+
+        RefreshViews();
+        break;
+      default:
+        ASSERT(0);
+    } // switch
+
+    // Finish Report
+    rpt.WriteLine((LPCWSTR)cs_temp);
+    rpt.EndReport();
+
+    if (rc != PWScore::SUCCESS || !strXMLErrors.empty())
+      gmb.SetStandardIcon(MB_ICONEXCLAMATION);
+    else
+      gmb.SetStandardIcon(MB_ICONINFORMATION);
+
+    gmb.SetTitle(cs_title);
+    gmb.SetMsg(cs_temp);
+    gmb.AddButton(IDS_OK, IDS_OK, TRUE, TRUE);
+    gmb.AddButton(IDS_VIEWREPORT, IDS_VIEWREPORT);
+    INT_PTR rc = gmb.DoModal();
+    if (rc == IDS_VIEWREPORT)
+      ViewReport(rpt);
+  }
 }
 
 LRESULT DboxMain::OnExtractAttachment(WPARAM wParam, LPARAM )
@@ -414,7 +613,7 @@ void DboxMain::DoAttachmentExtraction(const ATRecord &atr)
 
   EndWaitCursor();
 
-  cs_msg.LoadString(IDS_EXTRACTOK);
+  cs_msg.LoadString(IDS_COMPLETEDOK);
   cs_title.LoadString(IDS_EXTRACTED);
   gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONINFORMATION);
 

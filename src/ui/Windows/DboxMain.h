@@ -163,7 +163,7 @@ enum SearchDirection {FIND_UP = -1, FIND_DOWN = 1};
 
 // List of all Popup menus in the Main Menu
 enum PopupMenus {FILEMENU = 0, EXPORTMENU, IMPORTMENU, 
-                 EDITMENU, VIEWMENU, FILTERMENU, 
+                 EDITMENU, VIEWMENU, FILTERMENU, ATTACHMENTMENU,
                  CHANGEFONTMENU, REPORTSMENU, MANAGEMENU, 
                  HELPMENU, NUMPOPUPMENUS};
 
@@ -345,6 +345,7 @@ public:
   void OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult);
   bool IsNodeModified(StringX &path)
   {return m_core.IsNodeModified(path);}
+  StringX GetCurFile() {return m_core.GetCurFile();}
 
   // Following to simplify Command creation in child dialogs:
   CommandInterface *GetCore() {return &m_core;}
@@ -678,6 +679,7 @@ protected:
   afx_msg void OnShowUnsavedEntries();
   afx_msg void OnViewAttachments();
   afx_msg void OnExportAllAttachments();
+  afx_msg void OnImportAttachments();
   afx_msg void OnMinimize();
   afx_msg void OnRestore();
   afx_msg void OnTimer(UINT_PTR nIDEvent);
