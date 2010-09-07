@@ -636,3 +636,28 @@ exit:
 
   return;
 }
+
+bool DboxMain::AnyAttachments(HTREEITEM hItem)
+{
+  CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
+  if (pci != NULL) {
+    // Leaf
+    uuid_array_t entry_uuid;
+    pci->GetUUID(entry_uuid);
+    return (m_core.HasAttachments(entry_uuid) > 0);
+  }
+
+  // Must be a group - Walk the Tree from here to determine if any entries have attachments
+  while ((hItem = m_ctlItemTree.GetNextTreeItem(hItem)) != NULL) {
+    if (!m_ctlItemTree.ItemHasChildren(hItem)) {
+      CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
+      if (pci != NULL) {  // NULL if there's an empty group [bug #1633516]
+        uuid_array_t entry_uuid;
+        pci->GetUUID(entry_uuid);
+        if (m_core.HasAttachments(entry_uuid) > 0)
+          return true;
+      }
+    }
+  }
+  return false;
+}

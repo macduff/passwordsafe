@@ -1431,7 +1431,30 @@ void CPWTreeCtrl::OnBeginDrag(NMHDR *pNMHDR, LRESULT *pLResult)
   if (m_cfdropped == m_tcddCPFID &&
       (de & DROPEFFECT_MOVE) == DROPEFFECT_MOVE &&
       !m_bWithinThisInstance && !m_pDbx->IsMcoreReadOnly()) {
-    m_pDbx->Delete(); // XXX assume we've a selected item here!
+    HTREEITEM hItem = GetSelectedItem();
+    bool bDelete(true);
+    if (m_pDbx->AnyAttachments(hItem)) {
+      CGeneralMsgBox gmb;
+      gmb.SetTitle(IDS_DELETEMOVEDTITLE);
+      gmb.SetStandardIcon(MB_ICONQUESTION);
+      gmb.SetMsg(IDS_DELETEMOVED);
+      gmb.AddButton(IDS_YES, IDS_YES, TRUE, TRUE);
+      gmb.AddButton(IDS_NO, IDS_NO);
+
+      INT_PTR rc = gmb.DoModal();
+      switch (rc) {
+        case IDS_YES:
+          bDelete = false;
+          break;
+        case IDS_NO:
+          bDelete = true;
+          break;
+        default:
+          ASSERT(0);
+      }
+    }
+    if (bDelete)
+      m_pDbx->Delete(); // XXX assume we've a selected item here!
   }
 
   // wrong place to clean up imagelist?

@@ -784,8 +784,23 @@ void DboxMain::InitPasswordSafe()
     IDB_SHORTCUT,
   };
 
-  for (int i = 0; i < sizeof(bitmapResIDs)/sizeof(bitmapResIDs[0]); i++) {
+  // Note shortcuts can not have attachments
+  UINT bitmapResIDsAttachments[] = {
+    IDB_ATT_NORMAL, IDB_ATT_NORMAL_WARNEXPIRED, IDB_ATT_NORMAL_EXPIRED,
+    IDB_ATT_ABASE, IDB_ATT_ABASE_WARNEXPIRED, IDB_ATT_ABASE_EXPIRED,
+    IDB_ATT_ALIAS,
+    IDB_ATT_SBASE, IDB_ATT_SBASE_WARNEXPIRED, IDB_ATT_SBASE_EXPIRED,
+  };
+
+  m_numNormalImages = sizeof(bitmapResIDs) / sizeof(bitmapResIDs[0]);
+  for (int i = 0; i < sizeof(bitmapResIDs) / sizeof(bitmapResIDs[0]); i++) {
     bitmap.LoadBitmap(bitmapResIDs[i]);
+    m_pImageList->Add(&bitmap, crTransparent);
+    bitmap.DeleteObject();
+  }
+
+  for (int i = 0; i < sizeof(bitmapResIDsAttachments) / sizeof(bitmapResIDsAttachments[0]); i++) {
+    bitmap.LoadBitmap(bitmapResIDsAttachments[i]);
     m_pImageList->Add(&bitmap, crTransparent);
     bitmap.DeleteObject();
   }
@@ -2614,7 +2629,7 @@ void DboxMain::MakeOrderedItemList(OrderedItemList &il)
   while (NULL != (hItem = m_ctlItemTree.GetNextTreeItem(hItem))) {
     if (!m_ctlItemTree.ItemHasChildren(hItem)) {
       CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
-      if (pci != NULL) {// NULL if there's an empty group [bug #1633516]
+      if (pci != NULL) { // NULL if there's an empty group [bug #1633516]
         il.push_back(*pci);
       }
     }
