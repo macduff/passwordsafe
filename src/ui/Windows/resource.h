@@ -342,7 +342,17 @@
 #define IDD_ANIMATE                     497
 #define IDD_ADD_DESCRIPTION             498
 #define IDD_EXPORT_ATTACHMENT           499
-#define IDD_ADVANCED_ATT                501
+#define IDD_ADVANCED_ATT                500
+#define IDB_ATT_NORMAL                  501
+#define IDB_ATT_NORMAL_WARNEXPIRED      502
+#define IDB_ATT_NORMAL_EXPIRED          503
+#define IDB_ATT_ABASE                   504
+#define IDB_ATT_ABASE_WARNEXPIRED       505
+#define IDB_ATT_ABASE_EXPIRED           506
+#define IDB_ATT_ALIAS                   507
+#define IDB_ATT_SBASE                   508
+#define IDB_ATT_SBASE_WARNEXPIRED       509
+#define IDB_ATT_SBASE_EXPIRED           510
 #define IDC_APPVERSION                  1000
 #define IDC_VERSION                     1001
 #define IDC_BROWSE                      1002
@@ -787,7 +797,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        501
+#define _APS_NEXT_RESOURCE_VALUE        511
 #define _APS_NEXT_COMMAND_VALUE         30001
 #define _APS_NEXT_CONTROL_VALUE         1488
 #define _APS_NEXT_SYMED_VALUE           166

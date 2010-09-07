@@ -403,6 +403,7 @@ public:
   unsigned char * GetAttachment(const ATRecord &atr, int &status)
   {return m_core.GetAttachment(atr, status);}
   void DoAttachmentExtraction(const ATRecord &atr);
+  bool AnyAttachments(HTREEITEM hItem);
 
   // ClassWizard generated virtual function overrides
   //{{AFX_VIRTUAL(DboxMain)
@@ -775,6 +776,7 @@ private:
   int m_nColumnHeaderWidthByType[CItemData::LAST];
   int m_iheadermaxwidth;
   CFont *m_pFontTree;
+  size_t m_numNormalImages;
 
   uuid_array_t m_LUUIDSelectedAtMinimize; // to restore List entry selection upon un-minimize
   uuid_array_t m_TUUIDSelectedAtMinimize; // to restore Tree entry selection upon un-minimize

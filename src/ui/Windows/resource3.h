@@ -645,3 +645,5 @@
 #define IDS_DESCRIPTION                 5827
 #define IDS_EXPORTED                    5828
 #define IDS_EXPORTOK                    5829
+#define IDS_DELETEMOVEDTITLE            5830
+#define IDS_DELETEMOVED                 5831
