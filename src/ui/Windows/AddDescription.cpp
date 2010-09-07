@@ -15,12 +15,10 @@
 
 IMPLEMENT_DYNAMIC(CAddDescription, CPWDialog)
 
-CAddDescription::CAddDescription(CWnd* pParent, const CString filename)
-	: CPWDialog(CAddDescription::IDD, pParent), m_filename(filename)
-{
-}
-
-CAddDescription::~CAddDescription()
+CAddDescription::CAddDescription(CWnd* pParent, const CString filename,
+                                 const CString description)
+	: CPWDialog(CAddDescription::IDD, pParent), m_filename(filename),
+  m_description(description)
 {
 }
 
@@ -33,13 +31,17 @@ void CAddDescription::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CAddDescription, CPWDialog)
-  ON_BN_CLICKED(IDOK, OnOK)
 END_MESSAGE_MAP()
 
 // CAddDescription message handlers
 
-void CAddDescription::OnOK()
+BOOL CAddDescription::OnInitDialog()
 {
-  // TODO: Add your control notification handler code here
-  CPWDialog::OnOK();
+  CPWDialog::OnInitDialog();
+
+  CEdit *pWnd = (CEdit *)GetDlgItem(IDC_OPTIONALDESCRIPTION);
+  pWnd->SetFocus();
+  pWnd->SetSel(0, -1);
+
+  return FALSE;
 }

@@ -652,7 +652,8 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
             // Get attachment record
             UAMiter iter = mp_attmt_uuid_atr.find(atr.attmt_uuid);
             if (iter != mp_attmt_uuid_atr.end()) {
-              out3->WriteAttmntRecord(atr);
+              // Write out in copy version as it ma have been changed.
+              out3->WriteAttmntRecord(iter->second);
               vATRWritten.push_back(iter->second);
             }
           }

@@ -20,8 +20,8 @@ class CAddDescription : public CPWDialog
 	DECLARE_DYNAMIC(CAddDescription)
 
 public:
-	CAddDescription(CWnd* pParent, const CString filename);   // standard constructor
-	virtual ~CAddDescription();
+	CAddDescription(CWnd* pParent, const CString filename, 
+    const CString description = L"");   // standard constructor
 
 // Dialog Data
 	enum { IDD = IDD_ADD_DESCRIPTION };
@@ -29,7 +29,7 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-  afx_msg void OnOK();
+  virtual BOOL OnInitDialog();
 
 	DECLARE_MESSAGE_MAP()
 

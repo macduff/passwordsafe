@@ -128,6 +128,7 @@ Do NOT change the value of any resource used in a menu from V3.17 onwards.
 #define ID_MENUITEM_EXPORTATT2XML       32131
 #define ID_MENUITEM_EXPORTATTACHMENTS   32132
 #define ID_MENUITEM_IMPORTATTACHMENTS   32133
+#define ID_MENUITEM_EDITDESCRIPTION     32134
 
 // Manage menu
 #define ID_MANAGEMENU                   32150

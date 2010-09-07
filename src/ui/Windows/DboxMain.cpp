@@ -536,6 +536,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_MESSAGE(WM_ENDSESSION, OnEndSession)
   ON_MESSAGE(PWS_MSG_EXTRACT_ATTACHMENT, OnExtractAttachment)
   ON_MESSAGE(PWS_MSG_EXPORT_ATTACHMENT, OnExportAttachment)
+  ON_MESSAGE(PWS_MSG_CHANGE_ATTACHMENT, OnChangeAttachment)
 
   ON_COMMAND(ID_MENUITEM_CUSTOMIZETOOLBAR, OnCustomizeToolbar)
 
@@ -628,6 +629,7 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_EXPORTENT2XML, true, true, false, false},
   {ID_MENUITEM_EXTRACT_ATTACHMENT, true, true, false, false},
   {ID_MENUITEM_EXPORTATT2XML, true, true, false, false},
+  {ID_MENUITEM_EDITDESCRIPTION, true, true, false, false},
   // View menu
   {ID_MENUITEM_LIST_VIEW, true, true, true, false},
   {ID_MENUITEM_TREE_VIEW, true, true, true, false},
@@ -3009,6 +3011,7 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
     case ID_MENUITEM_VIEWATTACHMENTS:
     case ID_MENUITEM_EXPORTATTACHMENTS:
     case ID_MENUITEM_EXPORTATT2XML:
+    case ID_MENUITEM_EDITDESCRIPTION:
       iEnable = m_core.DBHasAttachments() ? TRUE : FALSE;
       break;
     case ID_MENUITEM_CLEAR_MRU:

@@ -2087,7 +2087,7 @@ BOOL CPWTreeCtrl::RenderAllData(HGLOBAL* phGlobal)
     return FALSE;
 
   char header[OLE_HDR_LEN+1];
-  // Note: GetDDType will return either FROMTREE or FROMTREE_R
+  // Note: GetDDType will return either FROMTREE_L or FROMTREE_R
 #if (_MSC_VER >= 1400)
   sprintf_s(header, sizeof(header),
             OLE_HDR_FMT, GetCurrentProcessId(), GetDDType(), lBufLen);

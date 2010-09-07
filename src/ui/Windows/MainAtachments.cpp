@@ -181,6 +181,17 @@ LRESULT DboxMain::OnExportAttachment(WPARAM wParam, LPARAM )
   return 0L;
 }
 
+LRESULT DboxMain::OnChangeAttachment(WPARAM wParam, LPARAM )
+{
+  ATRecord *pATR = (ATRecord *)wParam;
+
+  pATR->uiflags |= ATT_ATTACHMENT_FLGCHGD;
+  m_core.ChangeAttachment(*pATR);
+  m_core.WriteAttachmentFile(false);
+
+  return 0L;
+}
+
 void DboxMain::OnExportAllAttachments()
 {
   DoExportAttachmentsXML();

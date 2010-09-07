@@ -152,6 +152,7 @@ public:
   bool AttMatches(const ATRecordEx &atrex, const int &iObject, const int &iFunction,
                   const stringT &value) const;
   void AddAttachment(const ATRecord &atr);
+  void ChangeAttachment(const ATRecord &atr);
 
   // R/O file status
   void SetReadOnly(bool state) {m_IsReadOnly = state;}
@@ -390,7 +391,6 @@ private:
 
   // Attachment
   virtual void AddAttachments(ATRVector &vNewATRecords);
-  virtual void ChangeAttachment(const ATRecord &atr);
   virtual bool MarkAttachmentForDeletion(const ATRecord &atr);
   virtual bool UnMarkAttachmentForDeletion(const ATRecord &atr);
   virtual void MarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid);

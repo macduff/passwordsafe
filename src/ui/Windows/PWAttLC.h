@@ -58,8 +58,11 @@
 // Export attachment via context menu on Attachment CListCtrl - ALSO DEFINED IN DBOXMAIN.H
 #define PWS_MSG_EXPORT_ATTACHMENT       (WM_APP + 71)
 
+// Change attachment via context menu on Attachment CListCtrl - ALSO DEFINED IN DBOXMAIN.H
+#define PWS_MSG_CHANGE_ATTACHMENT       (WM_APP + 72)
+
 // Update AddEdit_Attachments that the user has changed an entry's flags - ALSO DEFINED IN DBOXMAIN.H
-#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 72)
+#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 79)
 
 class CPWAttDlg;
 

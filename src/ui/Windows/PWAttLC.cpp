@@ -10,6 +10,7 @@
 #include "PWAttLC.h"
 #include "AttProperties.h"
 #include "DboxMain.h"
+#include "AddDescription.h"
 
 #include "resource.h"
 #include "resource3.h"
@@ -553,6 +554,28 @@ void CPWAttLC::OnRButtonDown(UINT nFlags, CPoint point)
         pATREx = &m_vATRecordsEx[num];
       }
       m_pWnd->SendMessage(PWS_MSG_EXPORT_ATTACHMENT, (WPARAM)pATREx, 0);
+      goto exit;
+    }
+
+    if (nID == ID_MENUITEM_EDITDESCRIPTION) {
+      CAddDescription dlg(this, pATR->filename.c_str(), pATR->description.c_str());
+
+      INT_PTR rc =  dlg.DoModal();
+
+      if (rc == IDOK && pATR->description.c_str() != dlg.GetDescription()) {
+        pATR->description = dlg.GetDescription();
+        m_pWnd->SendMessage(PWS_MSG_CHANGE_ATTACHMENT, (WPARAM)pATR, 0);
+        int nDescCol(3);
+        if (m_lct == EXISTING) {
+          nDescCol = 4;
+        } else
+        if (m_lct == VIEW) {
+          nDescCol = 6;
+        }
+
+        SetItemText(iItem, nDescCol, pATR->description.c_str());
+        Update(iItem);
+      }
       goto exit;
     }
 
