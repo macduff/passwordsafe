@@ -131,7 +131,7 @@ BOOL CAdvancedAttDlg::OnInitDialog()
       cs_text.LoadString(IDS_PATH);
       iItem = cboSubgroupObject->AddString(cs_text);
       cboSubgroupObject->SetItemData(iItem, ATTPATH);
-      cs_text.LoadString(IDS_FILENAME);
+      cs_text.LoadString(IDS_FILENAME_EXTN);
       iItem = cboSubgroupObject->AddString(cs_text);
       cboSubgroupObject->SetItemData(iItem, ATTFILENAME);
       cs_text.LoadString(IDS_DESCRIPTION);

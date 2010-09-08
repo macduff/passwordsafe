@@ -116,26 +116,26 @@ void CPWAttLC::Init(const LCType lct, CWnd *pWnd)
 
   int ncol = 0;
   if (m_lct == EXISTING) {
-    cs_text = L"Del";
+    cs_text.LoadString(IDS_DEL);
     InsertColumn(ncol, cs_text); ncol++;
   } else
   if (m_lct == VIEW) {
-    cs_text = L"Group";
+    cs_text.LoadStringW(IDS_GROUP);
     InsertColumn(ncol, cs_text); ncol++;
-    cs_text = L"Title";
+    cs_text.LoadStringW(IDS_TITLE);
     InsertColumn(ncol, cs_text); ncol++;
-    cs_text = L"User";
+    cs_text.LoadStringW(IDS_USERNAME);
     InsertColumn(ncol, cs_text); ncol++;
   }
-  cs_text = L"Ers";
+  cs_text.LoadString(IDS_ERASE);
   InsertColumn(ncol, cs_text); ncol++;
-  cs_text = L"Rem";
+  cs_text.LoadString(IDS_REMOVEABLE);
   InsertColumn(ncol, cs_text); ncol++;
-  cs_text = L"Filename";
+  cs_text.LoadStringW(IDS_FILENAME);
   InsertColumn(ncol, cs_text); ncol++;
-  cs_text = L"Description";
+  cs_text.LoadStringW(IDS_DESCRIPTION);
   InsertColumn(ncol, cs_text); ncol++;
-  cs_text = L"Path";
+  cs_text.LoadStringW(IDS_PATH);
   InsertColumn(ncol, cs_text); ncol++;
 
   int numcols = GetHeaderCtrl()->GetItemCount();
