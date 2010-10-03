@@ -25,8 +25,12 @@
 ////@begin includes
 ////@end includes
 
-// currently for debugging
-#include <iostream>
+#include <iostream> // currently for debugging
+
+#if !defined(_WIN32)
+#include <unistd.h> // for fork()
+#endif
+
 using namespace std;
 
 #include "pwsafeapp.h"
@@ -118,7 +122,7 @@ END_EVENT_TABLE()
  * Constructor for PwsafeApp
  */
 
-PwsafeApp::PwsafeApp() : m_activityTimer(new wxTimer(this, ACTIVITY_TIMER_ID)), m_frame(0)
+PwsafeApp::PwsafeApp() : m_activityTimer(new wxTimer(this, ACTIVITY_TIMER_ID)), m_frame(0), m_recentDatabases(0)
 {
     Init();
 }
@@ -129,6 +133,7 @@ PwsafeApp::PwsafeApp() : m_activityTimer(new wxTimer(this, ACTIVITY_TIMER_ID)), 
 PwsafeApp::~PwsafeApp()
 {
   delete m_activityTimer;
+  delete m_recentDatabases;
 
   PWSprefs::DeleteInstance();
   PWSrand::DeleteInstance();
@@ -169,6 +174,9 @@ bool PwsafeApp::OnInit()
 #if wxUSE_GIF
   wxImage::AddHandler(new wxGIFHandler);
 #endif
+  // Get progname
+  wxString progName(argv[0]);
+  progName = progName.AfterLast(wxChar('/'));
   // Parse command line
   wxCmdLineParser cmdParser(cmdLineDesc, argc, argv);
   int res = cmdParser.Parse();
@@ -210,17 +218,34 @@ bool PwsafeApp::OnInit()
     PWSprefs::SetConfigFile(cfg_file.c_str());
 
   m_core.SetReadOnly(cmd_ro);
-  // if filename passed in command line, it tkae precedence
+  // OK to load prefs now
+  PWSprefs *prefs = PWSprefs::GetInstance();
+  // if filename passed in command line, it takes precedence
   // over that in preference:
   if (filename.empty()) {
-    PWSprefs *prefs = PWSprefs::GetInstance();
     filename =  prefs->GetPref(PWSprefs::CurrentFile).c_str();
-  }
-  else {
-    m_recentDatabases.AddFileToHistory(filename);
+  } else {
+    recentDatabases().AddFileToHistory(filename);
   }
   m_core.SetCurFile(filename.c_str());
-  m_recentDatabases.Load();
+  m_core.SetApplicationNameAndVersion(progName.c_str(),
+                                      MAKEWORD(MAJORVERSION, MINORVERSION));
+
+#if !defined(__WXDEBUG__) && !defined(__WXMAC__) && !defined(_WIN32)
+  // Now's a good time to fork
+  // and exit the parent process, returning the command prompt to the user
+  // (but not for debug builds - just make debugging harder)
+  pid_t pid = fork();
+  if (pid == -1) {
+    perror("fork"); // should never happen!
+    exit(1);
+  } else if (pid != 0) { // parent
+    exit(0);
+  }
+#endif /* _DEBUG */
+
+  // here if we're the child
+  recentDatabases().Load();
 
   if (cmd_closed) {
     m_core.SetCurFile(wxT(""));
@@ -249,6 +274,7 @@ bool PwsafeApp::OnInit()
     m_frame->Load(initWindow->GetPassword());
   }
 
+  RestoreFrameCoords();
   m_frame->Show();
   return true;
 }
@@ -260,7 +286,7 @@ bool PwsafeApp::OnInit()
 
 int PwsafeApp::OnExit()
 {    
-  m_recentDatabases.Save();
+  recentDatabases().Save();
   PWSprefs *prefs = PWSprefs::GetInstance();
   if (!m_core.GetCurFile().empty())
     prefs->SetPref(PWSprefs::CurrentFile, m_core.GetCurFile());
@@ -286,4 +312,49 @@ void PwsafeApp::OnActivate(wxActivateEvent& actEvent)
 void PwsafeApp::OnActivityTimer(wxTimerEvent& /* timerEvent */)
 {
   m_frame->HideUI(true);  //true => lock
+}
+
+CRecentDBList &PwsafeApp::recentDatabases()
+{
+  // we create an instance of m_recentDatabases
+  // as late as possible in order to make
+  // sure that prefs' is set correcly (user, machine, etc.)
+  if (m_recentDatabases == NULL)
+    m_recentDatabases = new CRecentDBList;
+  return *m_recentDatabases;
+}
+
+void PwsafeApp::SaveFrameCoords(void)
+{
+  if (m_frame->IsMaximized()) {
+    PWSprefs::GetInstance()->SetPrefRect(-1, -1, -1, -1);
+  }
+  else if (m_frame->IsIconized() || !m_frame->IsShown()) {
+    //if we save coords when minimized/hidden, pwsafe could be hidden or off 
+    //screen next time it runs
+    return; 
+  }
+  else {
+    wxRect rc = m_frame->GetScreenRect();
+    PWSprefs::GetInstance()->SetPrefRect(rc.GetTop(), rc.GetBottom(), rc.GetLeft(), rc.GetRight());
+  }
+}
+
+void PwsafeApp::RestoreFrameCoords(void)
+{
+  long top, bottom, left, right;
+  PWSprefs::GetInstance()->GetPrefRect(top, bottom, left, right);
+  if (left == -1 && top == -1 && right == -1 && bottom == -1) {
+    m_frame->Maximize();
+  }
+  else {
+    wxRect rcApp(left, top, right - left, bottom - top);
+    
+    int displayWidth, displayHeight;
+    ::wxDisplaySize(&displayWidth, &displayHeight);
+    wxRect rcDisplay(0, 0, displayWidth, displayHeight);
+    
+    if (!rcApp.IsEmpty() && rcDisplay.Contains(rcApp))
+      m_frame->SetSize(rcApp);
+  }
 }

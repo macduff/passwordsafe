@@ -1,5 +1,4 @@
 /*
-/*
 * Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
@@ -18,17 +17,24 @@
 #include "UUIDGen.h"
 #include "SysInfo.h"
 #include "UTF8Conv.h"
-#include "PWSfileV3.h"    // XXX cleanup with dynamic_cast
+#include "Report.h"
+#include "VerifyFormat.h"
+#include "PWSfileV3.h" // XXX cleanup with dynamic_cast
+#include "StringXStream.h"
 
 #include "os/typedefs.h"
 #include "os/dir.h"
 #include "os/debug.h"
 #include "os/file.h"
+#include "os/mem.h"
 
+#include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <set>
+#include <iterator>
 
 using namespace std;
 
@@ -40,18 +46,17 @@ Reporter *PWScore::m_pReporter = NULL;
 
 uuid_array_t PWScore::NULL_UUID = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-PWScore::PWScore()
-  : m_currfile(_T("")),
-  m_passkey(NULL), m_passkey_len(0),
-  m_lockFileHandle(INVALID_HANDLE_VALUE),
-  m_lockFileHandle2(INVALID_HANDLE_VALUE),
-  m_LockCount(0), m_LockCount2(0),
-  m_ReadFileVersion(PWSfile::UNKNOWN_VERSION),
-  m_bDBChanged(false), m_bDBPrefsChanged(false),
-  m_bAtachmentsChanged(false),
-  m_IsReadOnly(false), m_bUniqueGTUValidated(false), 
-  m_nRecordsWithUnknownFields(0),
-  m_bNotifyDB(false), m_pUIIF(NULL), m_fileSig(NULL)
+PWScore::PWScore() : 
+                     m_currfile(_T("")),
+                     m_passkey(NULL), m_passkey_len(0),
+                     m_lockFileHandle(INVALID_HANDLE_VALUE),
+                     m_lockFileHandle2(INVALID_HANDLE_VALUE),
+                     m_LockCount(0), m_LockCount2(0),
+                     m_ReadFileVersion(PWSfile::UNKNOWN_VERSION),
+                     m_bDBChanged(false), m_bDBPrefsChanged(false),
+                     m_IsReadOnly(false), m_bUniqueGTUValidated(false), 
+                     m_nRecordsWithUnknownFields(0),
+                     m_bNotifyDB(false), m_pUIIF(NULL), m_fileSig(NULL)
 {
   // following should ideally be wrapped in a mutex
   if (!PWScore::m_session_initialized) {
@@ -62,8 +67,7 @@ PWScore::PWScore()
     PWSrand::GetInstance()->GetRandomData(m_session_salt,
                                           sizeof(m_session_salt));
   }
-  m_undo_iter = m_vpcommands.end();
-  m_redo_iter = m_vpcommands.end();
+  m_undo_iter = m_redo_iter = m_vpcommands.end();
 }
 
 PWScore::~PWScore()
@@ -259,6 +263,7 @@ void PWScore::DoReplaceEntry(const CItemData &old_ci, const CItemData &new_ci)
   m_pwlist[old_uuid] = new_ci;
   if (old_ci.GetEntryType() != new_ci.GetEntryType())
     GUIRefreshEntry(new_ci);
+  m_bDBChanged = true;
 }
 
 void PWScore::ClearData(void)
@@ -309,9 +314,6 @@ void PWScore::ReInit(bool bNewFile)
 
   m_nRecordsWithUnknownFields = 0;
   m_UHFL.clear();
-  m_MM_entry_uuid_atr.clear();
-  m_MM_entry_uuid_atr_saved.clear();
-
   ClearChangedNodes();
 
   SetChanged(false, false);
@@ -321,7 +323,7 @@ void PWScore::NewFile(const StringX &passkey)
 {
   ClearData();
   SetPassKey(passkey);
-
+  m_ReadFileVersion = PWSfile::VCURRENT;
   SetChanged(false, false);
 }
 
@@ -376,12 +378,10 @@ int PWScore::WriteFile(const StringX &filename, PWSfile::VERSION version)
     return status;
   }
 
-  if (m_fileSig != NULL) {
-    // since we're writing a new file, the previous sig's
-    // about to be invalidated
-    delete m_fileSig;
-    m_fileSig = NULL;
-  }
+  // since we're writing a new file, the previous sig's
+  // about to be invalidated
+  delete m_fileSig;
+  m_fileSig = NULL;
 
   m_hdr.m_prefString = PWSprefs::GetInstance()->Store();
   m_hdr.m_whatlastsaved = m_AppNameAndVersion.c_str();
@@ -469,9 +469,8 @@ int PWScore::Execute(Command *pcmd)
   }
 
   m_vpcommands.push_back(pcmd);
-  int rc = pcmd->Execute();
-
   m_undo_iter = m_redo_iter = m_vpcommands.end();
+  int rc = pcmd->Execute();
   m_undo_iter--;
 
   uuid_array_t entry_uuid = {'0'};  // Valid value not required for this particular call.
@@ -535,12 +534,12 @@ void PWScore::Redo()
         (m_redo_iter != m_vpcommands.end()) ? distance(m_redo_iter, m_vpcommands.begin()) : -1);
 }
 
-bool PWScore::AnyToUndo()
+bool PWScore::AnyToUndo() const
 {
   return (m_undo_iter != m_vpcommands.end());
 }
 
-bool PWScore::AnyToRedo()
+bool PWScore::AnyToRedo() const
 {
   return (m_redo_iter != m_vpcommands.end());
 }
@@ -658,7 +657,7 @@ int PWScore::ReadFile(const StringX &a_filename,
     m_MapFilters = in3->GetFilters();
 
   UUIDVector Possible_Aliases, Possible_Shortcuts;
-  unsigned int uimaxsize(0);
+  size_t uimaxsize(0);
   int numlarge(0);
   do {
     ci_temp.Clear(); // Rather than creating a new one each time.
@@ -681,7 +680,7 @@ int PWScore::ReadFile(const StringX &a_filename,
       case PWSfile::SUCCESS:
         if (iMAXCHARS > 0 && ci_temp.GetSize() > iMAXCHARS) {
           numlarge++;
-          uimaxsize = max(uimaxsize, ci_temp.GetSize());
+          uimaxsize = MAX(uimaxsize, ci_temp.GetSize());
         }
         uuid_array_t uuid;
         ci_temp.GetUUID(uuid);
@@ -760,8 +759,7 @@ int PWScore::ReadFile(const StringX &a_filename,
   // Setup file signature for checking file integrity upon backup.
   // Goal is to prevent overwriting a good backup with a corrupt file.
   if (a_filename == m_currfile) {
-    if (m_fileSig != NULL)
-      delete m_fileSig;
+    delete m_fileSig;
     m_fileSig = new PWSFileSig(a_filename.c_str());
   }
 
@@ -780,23 +778,6 @@ int PWScore::ReadFile(const StringX &a_filename,
     Format(cs_msg, IDSC_WARNINGENTRYLENGTH, numlarge, cs_entry.c_str(), uimaxsize,
            units == 0 ? _T("KB") : _T("MB"));
     (*m_pReporter)(cs_caption, cs_msg);
-  }
-
-  // Now get the attachment info
-  status = ReadAttachmentFile(true);
-  if (status != PWSAttfile::SUCCESS) {
-    pws_os::Trace(_T("Problem reading in attachments. rc=%d\n"), status);
-    if (m_pReporter != NULL) {
-      stringT cs_msg, cs_caption;
-      LoadAString(cs_caption, IDSC_ATT_ERRORS);
-      if (status == PWSAttfile::HEADERS_INVALID)
-        LoadAString(cs_msg, IDSC_ATT_HDRMISMATCH);
-      else
-        Format(cs_msg, IDSC_ATT_UNKNOWNERROR, status);
-
-      // Tell user
-      (*m_pReporter)(cs_caption, cs_msg);
-    }
   }
 
   return closeStatus;
@@ -876,14 +857,19 @@ bool PWScore::BackupCurFile(int maxNumIncBackups, int backupSuffix,
 
   pws_os::splitpath(path, drv, dir, name, ext);
   // Get location for intermediate backup
-  if (userBackupDir.empty()) { // directory same as database's
+  if (userBackupDir.empty()) {
+    // directory same as database's
     // Get directory containing database
     cs_temp = drv + dir;
     // (in Windows, need to verify for non-Windows)
     // splitpath directory ends with a '/', therefore do not need:
     // cs_temp += pws_os::PathSeparator;
   } else {
+    // User specified somewhere else
     cs_temp = userBackupDir;
+    // Ensure ends with path separator
+    if (userBackupDir[userBackupDir.length() - 1] != pws_os::PathSeparator)
+      cs_temp += pws_os::PathSeparator;
   }
 
   // generate prefix of intermediate backup file name
@@ -926,7 +912,7 @@ bool PWScore::BackupCurFile(int maxNumIncBackups, int backupSuffix,
 
   // Current file becomes backup
   // Directories along the specified backup path are created as needed
-  return pws_os::RenameFile(path, bu_fname);
+  return pws_os::RenameFile(m_currfile.c_str(), bu_fname);
 }
 
 void PWScore::ChangePasskey(const StringX &newPasskey)
@@ -948,6 +934,7 @@ struct FieldsMatch {
   m_group(a_group), m_title(a_title), m_user(a_user) {}
 
 private:
+  FieldsMatch& operator=(const FieldsMatch&); // Do not implement
   const StringX &m_group;
   const StringX &m_title;
   const StringX &m_user;
@@ -974,6 +961,7 @@ struct TitleMatch {
     m_title(a_title) {}
 
 private:
+  TitleMatch& operator=(const TitleMatch&); // Do not implement
   const StringX &m_title;
 };
 
@@ -1018,6 +1006,7 @@ struct GroupTitle_TitleUserMatch {
                             m_gt(a_grouptitle),  m_tu(a_titleuser) {}
 
 private:
+  GroupTitle_TitleUserMatch& operator=(const GroupTitle_TitleUserMatch&); // Do not implement
   const StringX &m_gt;
   const StringX &m_tu;
 };
@@ -2239,6 +2228,9 @@ struct HistoryUpdater {
 protected:
   int &m_num_altered;
   std::map<CUUIDGen, StringX, CUUIDGen::ltuuid> &m_mapSavedHistory;
+
+private:
+  HistoryUpdater& operator=(const HistoryUpdater&); // Do not implement
 };
 
 struct HistoryUpdateResetOff : public HistoryUpdater {
@@ -2246,8 +2238,7 @@ struct HistoryUpdateResetOff : public HistoryUpdater {
                         SavePWHistoryMap &mapSavedHistory)
  : HistoryUpdater(num_altered, mapSavedHistory) {}
 
-  void operator()(CItemData &ci)
-  {
+  void operator()(CItemData &ci) {
     uuid_array_t item_uuid;
     ci.GetUUID(item_uuid);
     StringX cs_tmp = ci.GetPWHistory();
@@ -2258,6 +2249,9 @@ struct HistoryUpdateResetOff : public HistoryUpdater {
       m_num_altered++;
     }
   }
+
+private:
+  HistoryUpdateResetOff& operator=(const HistoryUpdateResetOff&); // Do not implement
 };
 
 struct HistoryUpdateResetOn : public HistoryUpdater {
@@ -2266,8 +2260,7 @@ struct HistoryUpdateResetOn : public HistoryUpdater {
     : HistoryUpdater(num_altered, mapSavedHistory)
   {Format(m_text, _T("1%02x00"), new_default_max);}
 
-  void operator()(CItemData &ci)
-  {
+  void operator()(CItemData &ci) {
     uuid_array_t item_uuid;
     ci.GetUUID(item_uuid);
     StringX cs_tmp = ci.GetPWHistory();
@@ -2286,6 +2279,7 @@ struct HistoryUpdateResetOn : public HistoryUpdater {
   }
 
 private:
+  HistoryUpdateResetOn& operator=(const HistoryUpdateResetOn&); // Do not implement
   StringX m_text;
 };
 
@@ -2296,8 +2290,7 @@ struct HistoryUpdateSetMax : public HistoryUpdater {
     m_new_default_max(new_default_max)
   {Format(m_text, _T("1%02x"), new_default_max);}
 
-  void operator()(CItemData &ci)
-  {
+  void operator()(CItemData &ci) {
     uuid_array_t item_uuid;
     ci.GetUUID(item_uuid);
     StringX cs_tmp = ci.GetPWHistory();
@@ -2323,6 +2316,7 @@ struct HistoryUpdateSetMax : public HistoryUpdater {
   }
 
 private:
+  HistoryUpdateSetMax& operator=(const HistoryUpdateSetMax&); // Do not implement
   int m_new_default_max;
   StringX m_text;
 };

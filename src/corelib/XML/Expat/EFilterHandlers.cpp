@@ -16,7 +16,7 @@
 * Static library or used as a dynamic library e.g. DLL in Windows.
 */
 
-#include "../XMLDefs.h"
+#include "../XMLDefs.h"    // Required if testing "USE_XML_LIBRARY"
 
 #if USE_XML_LIBRARY == EXPAT
 
@@ -24,12 +24,13 @@
 #include "EFilterHandlers.h"
 #include "EFilterValidator.h"
 
-#include "../../util.h"
+#include "../../Util.h"
 #include "../../UUIDGen.h"
 #include "../../corelib.h"
 #include "../../PWSFilters.h"
 #include "../../VerifyFormat.h"
 #include "../../Match.h"
+#include "../../../os/pws_tchar.h"
 
 #include <map>
 #include <algorithm>
@@ -98,7 +99,7 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
         m_iErrorCode = XTPEC_FILTERNAME_MISSING;
         XML_StopParser((XML_Parser)userdata, XML_FALSE);
       } else {
-        pair<set<const stringT>::iterator, bool> ret;
+        pair<set<stringT>::iterator, bool> ret;
         ret = m_unique_filternames.insert(filtername);
         if (ret.second == false) {
           // error - not unique
@@ -121,7 +122,7 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
   if (_tcscmp(name, _T("filters")) == 0) {
     m_unique_filternames.clear();
     m_strErrorMessage.clear();
-    m_bentrybeingprocessed = false;
+    m_bEntryBeingProcessed = false;
   }
 
   else if (_tcscmp(name, _T("filter")) == 0) {
@@ -138,7 +139,7 @@ void XMLCALL EFilterHandlers::startElement(void *userdata, const XML_Char *name,
     cur_filterentry = new st_FilterRow;
     cur_filterentry->Empty();
     cur_filterentry->bFilterActive = true;
-    m_bentrybeingprocessed = true;
+    m_bEntryBeingProcessed = true;
     // Process the attributes we need.
     for (int i = 0; attrs[i]; i += 2) {
       if (_tcscmp(attrs[i], _T("active")) == 0) {
@@ -206,19 +207,22 @@ void XMLCALL EFilterHandlers::endElement(void * userdata, const XML_Char *name)
     return;
   }
 
-  else if (_tcscmp(name, _T("filter")) == 0) {
-    INT_PTR rc = IDYES;
+  else if (_tcscmp(name,_T("filter")) == 0) {
+    bool bAddFilter(true);
     st_Filterkey fk;
     fk.fpool = m_FPool;
     fk.cs_filtername = cur_filter->fname;
     if (m_MapFilters->find(fk) != m_MapFilters->end()) {
       stringT question;
       Format(question, IDSC_FILTEREXISTS, cur_filter->fname.c_str());
-      if (m_pAsker == NULL || !(*m_pAsker)(question)) {
+      if (m_pAsker != NULL)
+        bAddFilter = (*m_pAsker)(question);
+      if (m_pAsker == NULL || bAddFilter) {
         m_MapFilters->erase(fk);
+        bAddFilter = true;
       }
     }
-    if (rc == IDYES) {
+    if (bAddFilter) {
       m_MapFilters->insert(PWSFilters::Pair(fk, *cur_filter));
     }
     delete cur_filter;

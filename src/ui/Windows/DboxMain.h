@@ -100,11 +100,6 @@ DECLARE_HANDLE(HDROP);
 // Update current filters whilst SetFilters dialog is open
 #define PWS_MSG_EXECUTE_FILTERS         (WM_APP + 60)
 
-// Extract attachment via context menu on Attachment CListCtrl - also defined in PWAttLC.h
-#define PWS_MSG_EXTRACT_ATTACHMENT      (WM_APP + 70)
-// Update AddEdit_Attachments that the user has changed an entry's flags - also defined in PWAttLC.h
-#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 71)
-
 /* timer event number used to by PupText.  Here for doc. only
 #define TIMER_PUPTEXT             0x03  */
 // timer event number used to check if the workstation is locked
@@ -233,15 +228,15 @@ public:
   CItemData &GetEntryAt(ItemListIter iter)
   {return m_core.GetEntry(iter);}
 
-  // Set the section to the entry.  MakeVisible will scroll list, if needed.
-  BOOL SelectEntry(int i, BOOL MakeVisible = FALSE);
-  BOOL SelectFindEntry(int i, BOOL MakeVisible = FALSE);
-  void SelectFirstEntry();
-
   // For InsertItemIntoGUITreeList and RefreshViews (mainly when refreshing views)
   // Note: iBothViews = iListOnly + iTreeOnly
   enum {iListOnly = 1, iTreeOnly = 2, iBothViews = 3};
   void RefreshViews(const int iView = iBothViews);
+
+  // Set the section to the entry.  MakeVisible will scroll list, if needed.
+  BOOL SelectEntry(const int i, BOOL MakeVisible = FALSE);
+  BOOL SelectFindEntry(const int i, BOOL MakeVisible = FALSE);
+  void SelectFirstEntry();
 
   int CheckPasskey(const StringX &filename, const StringX &passkey)
   {return m_core.CheckPasskey(filename, passkey);}
@@ -344,6 +339,7 @@ public:
   void OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult);
   bool IsNodeModified(StringX &path)
   {return m_core.IsNodeModified(path);}
+  StringX GetCurFile() {return m_core.GetCurFile();}
 
   // Following to simplify Command creation in child dialogs:
   CommandInterface *GetCore() {return &m_core;}
@@ -388,16 +384,12 @@ public:
   bool CheckPreTranslateRename(MSG* pMsg);
   bool CheckPreTranslateAutoType(MSG* pMsg);
 
+  void SetSetup() {m_bSetup = true;} // called by app when '--setup' passed
+
   // Needed public function for ComapreResultsDialog
   void CPRInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
   {OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);}
-
-  // Attachments
-  bool GetNewAttachmentInfo(ATRecord &atr);
-  unsigned char * GetAttachment(const ATRecord &atr, int &status)
-  {return m_core.GetAttachment(atr, status);}
-  void DoAttachmentExtraction(const ATRecord &atr);
-
+  
   // ClassWizard generated virtual function overrides
   //{{AFX_VIRTUAL(DboxMain)
 protected:
@@ -412,7 +404,10 @@ protected:
   bool m_bIsRestoring;
   bool m_bOpen;
   bool m_bValidate; // do validation after reading db
+  bool m_bInRestoreWindowsData;
 
+  bool m_bSetup; // invoked with '--setup'?
+  
 #if !defined(POCKET_PC)
   CString m_titlebar; // what's displayed in the title bar
 #endif
@@ -670,7 +665,6 @@ protected:
   afx_msg void OnSetFilter();
   afx_msg void OnRefreshWindow();
   afx_msg void OnShowUnsavedEntries();
-  afx_msg void OnViewAttachments();
   afx_msg void OnMinimize();
   afx_msg void OnRestore();
   afx_msg void OnTimer(UINT_PTR nIDEvent);
@@ -702,8 +696,6 @@ protected:
   afx_msg void OnImportText();
   afx_msg void OnImportKeePass();
   afx_msg void OnImportXML();
-  afx_msg void OnExtractAttachment();
-  afx_msg LRESULT OnExtractAttachment(WPARAM wParam, LPARAM lParam);
 
   afx_msg void OnToolBarFind();
   afx_msg void OnToolBarFindUp();
@@ -729,6 +721,7 @@ protected:
                           int index, int flags = 0,
                           PWScore *pcore = 0, 
                           CAdvancedDlg::Type adv_type = CAdvancedDlg::ADV_INVALID);
+
 
 private:
   // UIInterFace implementations:
@@ -761,8 +754,14 @@ private:
   int m_nColumnHeaderWidthByType[CItemData::LAST];
   int m_iheadermaxwidth;
   CFont *m_pFontTree;
-  uuid_array_t m_UUIDSelectedAtMinimize; // to restore selection upon un-minimize
-  StringX m_sxSelectedGroup;
+
+  uuid_array_t m_LUUIDSelectedAtMinimize; // to restore List entry selection upon un-minimize
+  uuid_array_t m_TUUIDSelectedAtMinimize; // to restore Tree entry selection upon un-minimize
+  StringX m_sxSelectedGroup;              // to restore Tree group selection upon un-minimize
+  uuid_array_t m_LUUIDVisibleAtMinimize;  // to restore List entry position  upon un-minimize
+  uuid_array_t m_TUUIDVisibleAtMinimize;  // to restore Tree entry position  upon un-minimize
+  StringX m_sxVisibleGroup;               // to restore Tree group position  upon un-minimize
+
   bool m_inExit; // help U3ExitNow
   std::vector<bool> m_vGroupDisplayState; // used to save/restore display state over minimize/restore
   StringX m_savedDBprefs;  // used across minimize/restore events

@@ -12,6 +12,7 @@
 #include <vector>
 
 namespace pws_os {
+  extern void AddDrive(stringT &path);
   extern bool FileExists(const stringT &filename);
   extern bool FileExists(const stringT &filename, bool &bReadOnly);
   extern bool RenameFile(const stringT &oldname, const stringT &newname);
@@ -19,14 +20,14 @@ namespace pws_os {
   extern bool DeleteAFile(const stringT &filename);
   extern void FindFiles(const stringT &filter, std::vector<stringT> &res);
   extern bool LockFile(const stringT &filename, stringT &locker,
-                                         HANDLE &lockFileHandle, int &LockCount);
+                       HANDLE &lockFileHandle, int &LockCount);
   extern bool IsLockedFile(const stringT &filename);
   extern void UnlockFile(const stringT &filename,
-                                           HANDLE &lockFileHandle, int &LockCount);
+                         HANDLE &lockFileHandle, int &LockCount);
 
   extern std::FILE *FOpen(const stringT &filename, const TCHAR *mode);
   extern long fileLength(std::FILE *fp);
-  extern const TCHAR *PathSeparator; // slash for Unix, backslash for Windows
+  extern const TCHAR PathSeparator; // slash for Unix, backslash for Windows
 };
 #endif /* __FILE_H */
 //-----------------------------------------------------------------------------

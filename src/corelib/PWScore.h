@@ -15,7 +15,6 @@
 #include "ItemData.h"
 #include "StringX.h"
 #include "PWSfile.h"
-#include "PWSAttfile.h"
 #include "PWSFilters.h"
 #include "UUIDGen.h"
 #include "Report.h"
@@ -130,24 +129,6 @@ public:
   int WriteV2File(const StringX &filename)
   {return WriteFile(filename, PWSfile::V20);}
 
-  // Attachment public members
-  bool DBHasAttachments()
-  {return m_MM_entry_uuid_atr.size() > 0;}
-  size_t HasAttachments(const uuid_array_t &entry_uuid);
-  unsigned char * GetAttachment(const ATRecord &atr, int &status);
-  size_t GetAttachments(const uuid_array_t &entry_uuid, ATRVector &vATRecords);
-  size_t GetAllAttachments(ATRExVector &vATRecordsEx);
-  void SetAttachments(const uuid_array_t &entry_uuid, ATRVector &vATRecords);
-  int WriteAttachmentFile(const bool bCleanup = false,
-                           PWSAttfile::VERSION version = PWSAttfile::VCURRENT);
-  int DuplicateAttachments(const uuid_array_t &old_entry_uuid, 
-                           const uuid_array_t &new_entry_uuid,
-                           PWSAttfile::VERSION version = PWSAttfile::VCURRENT);
-  void SaveAttachmentStatusAtSave()
-  {m_MM_entry_uuid_atr_saved = m_MM_entry_uuid_atr;}
-  void RestoreAttachmentStatusAtLastSave()
-  {m_MM_entry_uuid_atr = m_MM_entry_uuid_atr_saved;}
-
   // R/O file status
   void SetReadOnly(bool state) {m_IsReadOnly = state;}
   bool IsReadOnly() const {return m_IsReadOnly;};
@@ -250,8 +231,8 @@ public:
   void Redo();
   void ClearCommands();
   void ResetStateAfterSave();
-  bool AnyToUndo();
-  bool AnyToRedo();
+  bool AnyToUndo() const;
+  bool AnyToRedo() const;
 
   // Find in m_pwlist by group, title and user name, exact match
   ItemListIter Find(const StringX &a_group,
@@ -339,7 +320,7 @@ public:
 
   void GetRUEList(UUIDList &RUElist)
   {RUElist = m_RUEList;}
-  void SetRUEList(const UUIDList RUElist)
+  void SetRUEList(const UUIDList &RUElist)
   {m_RUEList = RUElist;}
 
 private:
@@ -376,17 +357,7 @@ private:
                                       SavePWHistoryMap &mapSavedHistory);
   virtual void UndoUpdatePasswordHistory(SavePWHistoryMap &mapSavedHistory);
 
-  // Attachment
-  virtual void AddAttachment(const ATRecord &atr);
-  virtual void AddAttachments(ATRVector &vNewATRecords);
-  virtual void ChangeAttachment(const ATRecord &atr);
-  virtual bool MarkAttachmentForDeletion(const ATRecord &atr);
-  virtual bool UnMarkAttachmentForDeletion(const ATRecord &atr);
-  virtual void MarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid);
-  virtual void UnMarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid);
-
   // End of Command Interface implementations
-
   void ResetAllAliasPasswords(const uuid_array_t &base_uuid);
   
   StringX GetPassKey() const; // returns cleartext - USE WITH CARE
@@ -410,16 +381,13 @@ private:
 
   stringT m_AppNameAndVersion;
   PWSfile::VERSION m_ReadFileVersion;
-  PWSAttfile::VERSION m_ReadAttFileVersion;
 
   bool m_bDBChanged;
   bool m_bDBPrefsChanged;
-  bool m_bAtachmentsChanged;
   bool m_IsReadOnly;
   bool m_bUniqueGTUValidated;
 
   PWSfile::HeaderRecord m_hdr;
-  PWSAttfile::AttHeaderRecord m_atthdr;
   std::vector<bool> m_OrigDisplayStatus;
 
   // THE password database
@@ -449,10 +417,10 @@ private:
   // Changed groups
   std::vector<StringX> m_vnodes_modified;
   // Following are private in PWScore, public in CommandInterface:
-  virtual const std::vector<StringX> &GetVNodesModified() const
+  virtual const std::vector<StringX> &GetVnodesModified() const
   {return m_vnodes_modified;}
-  virtual void SetVNodesModified(const std::vector<StringX> &vnm)
-  {m_vnodes_modified = vnm;}
+  virtual void SetVnodesModified(const std::vector<StringX> &mvm)
+  {m_vnodes_modified = mvm;}
   void AddChangedNodes(StringX path);
 
   UnknownFieldList m_UHFL;
@@ -475,13 +443,6 @@ private:
   std::vector<Command *> m_vpcommands;
   std::vector<Command *>::iterator m_undo_iter;
   std::vector<Command *>::iterator m_redo_iter;
-
-  // Attachments
-  int ReadAttachmentFile(const bool bVerify = false);
-  void SetupAttachmentHeader();
-  int SaveAttachmentFile(const stringT &tempfilename);
-  UUIDATRMMap m_MM_entry_uuid_atr; // std::multimap key = entry_uuid, value = attachment record
-  UUIDATRMMap m_MM_entry_uuid_atr_saved;  // As above but status as per the last save.
 
   static Reporter *m_pReporter; // set as soon as possible to show errors
   static Asker *m_pAsker;

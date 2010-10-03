@@ -41,6 +41,43 @@ $RC2FILE = "${PATHNAME}.rc2";
 $CPPFILE = "${PATHNAME}_st.cpp";
 $HFILE = "${PATHNAME}_st.h";
 
+# Get last modified dates to see if we need to recreate the files.
+# If we do re-create them when they haven't changed, then VS will
+# want to rebuild the core libray for no reason
+my $dateRC2;
+my $dateCPP;
+my $dateH;
+my $sizeCPP;
+
+if (-e $RC2FILE) {
+    $dateRC2 = (stat $RC2FILE)[9];
+} else {
+    print "Resource file not found\n";
+    exit 1;
+}
+
+# Verify that the source and neader files are newer than the rc file
+# However, need to also verify that the source file contains good info
+# even if newer.  Size should be ~21KB not the default one of < 1KB.
+if (-e $CPPFILE) {
+    $dateCPP = (stat $CPPFILE)[9];
+    $sizeCPP = (stat $CPPFILE)[7];
+} else {
+    $dateCPP = -1;
+    $sizeCPP = 0;
+}
+
+if (-e $HFILE) {
+    $dateH = (stat $HFILE)[9];
+} else {
+    $dateH = -1;;
+}
+
+if ($dateRC2 < $dateCPP && $dateRC2 < $dateH && $sizeCPP > 1024) {
+  # Nothing has changed - exit cleanuly
+  exit 0;
+}
+
 my $BASE;
 my $dummy;
 ($BASE, $dummy, $dummy) = fileparse($RC2FILE, qr{\.rc2});

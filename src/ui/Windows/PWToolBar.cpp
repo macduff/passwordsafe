@@ -69,7 +69,7 @@ const CString CPWToolBar::m_csMainButtons[] = {
   L"saveas", L"compare", L"merge", L"synchronize", L"undo", L"redo",
   L"passwordsubset", L"browse+autotype", L"runcommand", L"sendemail",
   L"listtree", L"find", L"viewreports", 
-  L"applyfilters", L"setfilters", L"managefilters"
+  L"applyfilters", L"setfilters", L"managefilters", L"addgroup"
 };
 
 const UINT CPWToolBar::m_MainToolBarIDs[] = {
@@ -118,7 +118,8 @@ const UINT CPWToolBar::m_MainToolBarIDs[] = {
   ID_TOOLBUTTON_VIEWREPORTS,
   ID_MENUITEM_APPLYFILTER,
   ID_MENUITEM_EDITFILTER,
-  ID_MENUITEM_MANAGEFILTERS
+  ID_MENUITEM_MANAGEFILTERS,
+  ID_MENUITEM_ADDGROUP
 };
 
 // Additional Control IDs not on ToolBar
@@ -154,8 +155,7 @@ const UINT CPWToolBar::m_OtherIDs[] = {
   ID_MENUITEM_COMPVIEWEDIT,
   ID_MENUITEM_COPY_TO_ORIGINAL,
   ID_MENUITEM_EXPORTENT2PLAINTEXT,
-  ID_MENUITEM_EXPORTENT2XML,
-  ID_MENUITEM_VIEWATTACHMENTS
+  ID_MENUITEM_EXPORTENT2XML
 };
 
 const UINT CPWToolBar::m_MainToolBarClassicBMs[] = {
@@ -197,7 +197,8 @@ const UINT CPWToolBar::m_MainToolBarClassicBMs[] = {
   IDB_VIEWREPORTS_CLASSIC,
   IDB_APPLYFILTERS_CLASSIC,
   IDB_SETFILTERS_CLASSIC,
-  IDB_MANAGEFILTERS_CLASSIC
+  IDB_MANAGEFILTERS_CLASSIC,
+  IDB_ADDGROUP_CLASSIC
 };
 
 // Additional bitmaps not on ToolBar
@@ -234,7 +235,6 @@ const UINT CPWToolBar::m_OtherClassicBMs[] = {
   IDB_IMPORT_CLASSIC,
   IDB_EXPORTTEXT_CLASSIC,
   IDB_EXPORTXML_CLASSIC,
-  IDB_VIEW_ATTACHMENTS_CLASSIC
 };
 
 const UINT CPWToolBar::m_MainToolBarNewBMs[] = {
@@ -276,7 +276,8 @@ const UINT CPWToolBar::m_MainToolBarNewBMs[] = {
   IDB_VIEWREPORTS_NEW,
   IDB_APPLYFILTERS_NEW,
   IDB_SETFILTERS_NEW,
-  IDB_MANAGEFILTERS_NEW
+  IDB_MANAGEFILTERS_NEW,
+  IDB_ADDGROUP_NEW
 };
 
 const UINT CPWToolBar::m_MainToolBarNewDisBMs[] = {
@@ -318,7 +319,8 @@ const UINT CPWToolBar::m_MainToolBarNewDisBMs[] = {
   IDB_VIEWREPORTS_NEW_D,
   IDB_APPLYFILTERS_NEW_D,
   IDB_SETFILTERS_NEW_D,
-  IDB_MANAGEFILTERS_NEW_D
+  IDB_MANAGEFILTERS_NEW_D,
+  IDB_ADDGROUP_NEW_D
 };
 
 // Additional bitmaps not on ToolBar
@@ -354,8 +356,7 @@ const UINT CPWToolBar::m_OtherNewBMs[] = {
   IDB_VIEWEDIT_NEW,
   IDB_IMPORT_NEW,
   IDB_EXPORTTEXT_NEW,
-  IDB_EXPORTXML_NEW,
-  IDB_VIEW_ATTACHMENTS_NEW
+  IDB_EXPORTXML_NEW
 };
 
 // Additional bitmaps not on ToolBar
@@ -391,8 +392,7 @@ const UINT CPWToolBar::m_OtherNewDisBMs[] = {
   IDB_VIEWEDIT_NEW_D,
   IDB_IMPORT_NEW_D,
   IDB_EXPORTTEXT_NEW_D,
-  IDB_EXPORTXML_NEW_D,
-  IDB_VIEW_ATTACHMENTS_NEW_D
+  IDB_EXPORTXML_NEW_D
 };
 
 IMPLEMENT_DYNAMIC(CPWToolBar, CToolBar)

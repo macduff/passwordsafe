@@ -33,6 +33,8 @@
 #include "corelib/PWSdirs.h"
 #include "corelib/PWSAuxParse.h"
 
+#include "os/dir.h"
+
 using namespace std;
 
 #ifdef _DEBUG
@@ -70,6 +72,16 @@ int DboxMain::BackupSafe()
 
   CString cs_text(MAKEINTRESOURCE(IDS_PICKBACKUP));
   CString cs_temp, cs_title;
+
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   //SaveAs-type dialog box
   while (1) {
     CPWFileDialog fd(FALSE,
@@ -79,12 +91,14 @@ int DboxMain::BackupSafe()
                         OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
                      CString(MAKEINTRESOURCE(IDS_FDF_BU)),
                      this);
+
     fd.m_ofn.lpstrTitle = cs_text;
-    std::wstring dir = PWSdirs::GetSafeDir();
+
     if (!dir.empty())
       fd.m_ofn.lpstrInitialDir = dir.c_str();
 
     rc = fd.DoModal();
+
     if (m_inExit) {
       // If U3ExitNow called while in CPWFileDialog,
       // PostQuitMessage makes us return here instead
@@ -131,6 +145,16 @@ int DboxMain::RestoreSafe()
 
   CString cs_text, cs_temp, cs_title;
   cs_text.LoadString(IDS_PICKRESTORE);
+
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   //Open-type dialog box
   while (1) {
     CPWFileDialog fd(TRUE,
@@ -139,12 +163,14 @@ int DboxMain::RestoreSafe()
                      OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
                      CString(MAKEINTRESOURCE(IDS_FDF_BUS)),
                      this);
+
     fd.m_ofn.lpstrTitle = cs_text;
-    std::wstring dir = PWSdirs::GetSafeDir();
+
     if (!dir.empty())
       fd.m_ofn.lpstrInitialDir = dir.c_str();
 
     INT_PTR rc2 = fd.DoModal();
+
     if (m_inExit) {
       // If U3ExitNow called while in CPWFileDialog,
       // PostQuitMessage makes us return here instead
@@ -342,6 +368,8 @@ void DboxMain::OnOptions()
     GetPref(PWSprefs::HighlightChanges);
   save_highlightchanges = display.m_highlightchanges;
 
+  misc.m_confirmdelete = prefs->
+    GetPref(PWSprefs::DeleteQuestion) ? FALSE : TRUE;
   misc.m_maintaindatetimestamps = prefs->
     GetPref(PWSprefs::MaintainDateTimeStamps) ? TRUE : FALSE;
   misc.m_escexits = prefs->
@@ -422,10 +450,6 @@ void DboxMain::OnOptions()
     GetPref(PWSprefs::LockDBOnIdleTimeout) ? TRUE : FALSE;
   security.m_IdleTimeOut = prevLockInterval = prefs->
     GetPref(PWSprefs::IdleTimeout);
-  security.m_csEraserLocation = prefs->
-    GetPref(PWSprefs::EraseProgram).c_str();
-  security.m_csEraseCmdLineParms = prefs->
-    GetPref(PWSprefs::ErasePgmCmdLineParms).c_str();
 
   shortcuts.m_iColWidth = prefs->
     GetPref(PWSprefs::OptShortcutColumnWidth);
@@ -439,6 +463,8 @@ void DboxMain::OnOptions()
     GetPref(PWSprefs::MaxREItems);
   system.m_usesystemtray = prefs->
     GetPref(PWSprefs::UseSystemTray) ? TRUE : FALSE;
+  system.m_hidesystemtray = prefs->
+    GetPref(PWSprefs::HideSystemTray) ? TRUE : FALSE;
   system.m_maxmruitems = prefs->
     GetPref(PWSprefs::MaxMRUItems);
   system.m_mruonfilemenu = prefs->
@@ -448,6 +474,7 @@ void DboxMain::OnOptions()
     GetPref(PWSprefs::DefaultOpenRO) ? TRUE : FALSE;
   system.m_multipleinstances = prefs->
     GetPref(PWSprefs::MultipleInstances) ? TRUE : FALSE;
+  system.m_initialhotkeystate = save_hotkey_enabled;
 
   optionsPS.AddPage(&backup);
   optionsPS.AddPage(&display);
@@ -491,6 +518,11 @@ void DboxMain::OnOptions()
                    (unsigned int)backup.m_backupsuffix);
     prefs->SetPref(PWSprefs::BackupMaxIncremented,
                    backup.m_maxnumincbackups);
+    if (!backup.m_userbackupotherlocation.IsEmpty()) {
+      // Make sure it ends in a slash!
+      if (backup.m_userbackupotherlocation.Right(1) != L'\\')
+        backup.m_userbackupotherlocation += L'\\';
+    }
     prefs->SetPref(PWSprefs::BackupDir,
                    LPCWSTR(backup.m_userbackupotherlocation));
 
@@ -523,6 +555,8 @@ void DboxMain::OnOptions()
       RefreshViews();
     }
 
+    prefs->SetPref(PWSprefs::DeleteQuestion,
+                   misc.m_confirmdelete == FALSE);
     prefs->SetPref(PWSprefs::EscExits,
                    misc.m_escexits == TRUE);
     // by strange coincidence, the values of the enums match the indices
@@ -599,13 +633,17 @@ void DboxMain::OnOptions()
                    security.m_confirmcopy == FALSE);
     prefs->SetPref(PWSprefs::LockOnWindowLock,
                    security.m_LockOnWindowLock == TRUE);
-    prefs->SetPref(PWSprefs::EraseProgram,
-                   LPCWSTR(security.m_csEraserLocation));
-    prefs->SetPref(PWSprefs::ErasePgmCmdLineParms,
-                   LPCWSTR(security.m_csEraseCmdLineParms));
 
     prefs->SetPref(PWSprefs::UseSystemTray,
                    system.m_usesystemtray == TRUE);
+    prefs->SetPref(PWSprefs::HideSystemTray,
+                   system.m_hidesystemtray == TRUE);
+
+    if (system.m_usesystemtray == FALSE)
+      app.HideIcon();
+    else
+      app.ShowIcon();
+
     UpdateSystemMenu();
     prefs->SetPref(PWSprefs::MaxREItems,
                    system.m_maxreitems);
@@ -786,13 +824,6 @@ void DboxMain::OnOptions()
         prefs->GetPref(PWSprefs::ExplorerTypeTree))
       SaveGroupDisplayState();
 
-    if (system.m_usesystemtray == TRUE) {
-      if (app.IsIconVisible() == FALSE)
-        app.ShowIcon();
-    } else { // user doesn't want to display
-      if (app.IsIconVisible() == TRUE)
-        app.HideIcon();
-    }
     m_RUEList.SetMax(system.m_maxreitems);
 
     if (system.m_startup != StartupShortcutExists) {
@@ -913,9 +944,10 @@ void DboxMain::OnOptions()
       ChangeOkUpdate();
     }
 
+    brc = FALSE;
     // JHF no hotkeys under WinCE
 #if !defined(POCKET_PC)
-    // Restore hotkey as it was or as user changed it - if he/she pressed OK
+    // Restore hotkey as it was or as user changed it - if user pressed OK
     if (save_hotkey_enabled == TRUE) {
       WORD wVirtualKeyCode = WORD(save_hotkey_value & 0xffff);
       WORD mod = WORD(save_hotkey_value >> 16);
@@ -935,6 +967,16 @@ void DboxMain::OnOptions()
       }
     }
 #endif
+    if (prefs->GetPref(PWSprefs::UseSystemTray)) { 
+      if (prefs->GetPref(PWSprefs::HideSystemTray) && 
+          prefs->GetPref(PWSprefs::HotKeyEnabled) &&
+          prefs->GetPref(PWSprefs::HotKey) > 0)
+        app.HideIcon();
+      else if (app.IsIconVisible() == FALSE)
+        app.ShowIcon();
+    } else {
+      app.HideIcon();
+    }
   }  // rc == IDOK
 }
 

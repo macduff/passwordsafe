@@ -9,7 +9,7 @@
 // MFileXMLProcessor.cpp : implementation file
 //
 
-#include "../XMLDefs.h"
+#include "../XMLDefs.h"    // Required if testing "USE_XML_LIBRARY"
 
 #if USE_XML_LIBRARY == MSXML
 
@@ -25,12 +25,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <comutil.h>
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
 
 MFileXMLProcessor::MFileXMLProcessor(PWScore *pcore,
                                      UUIDVector *pPossible_Aliases,

@@ -20,15 +20,6 @@ public:
   enum {PP_DATA_CHANGED = 0, PP_UPDATE_VARIABLES, PP_UPDATE_PWPOLICY, PP_UPDATE_TIMES};
 
   DECLARE_DYNAMIC(CPWPropertyPage)
-
-protected:
-  // Generated message map functions
-  //{{AFX_MSG(CPWPropertyPage)
-  afx_msg int OnMouseActivate(CWnd*, UINT, UINT );    // Silly bug with CListCtrls
-  afx_msg void OnMouseMove(UINT flags, CPoint point); // Silly bug with CListCtrls
-  //}}AFX_MSG
-
-  DECLARE_MESSAGE_MAP()
 };
 //-----------------------------------------------------------------------------
 // Local variables:

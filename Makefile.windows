@@ -8,8 +8,8 @@
 #
 # Oh, this works with GNU make under Cygwin. YMMV on other makes...
 
-RELEASENUM = 3.22.1
-RELEASE_SPECIAL =
+RELEASENUM = 3.23.1
+RELEASE_SPECIAL = 
 RELEASENAME = $(RELEASENUM)$(RELEASE_SPECIAL)
 
 RELEASEDIR = /cygdrive/c/local/src/PasswordSafe/Releases
@@ -51,12 +51,12 @@ HELP_DIR = ./help
 BIN_DIR = ./build/bin/pwsafe/releasem
 RELNOTES := $(CURDIR)/docs/ReleaseNotes.txt
 
-BIN_MANIFEST = README.txt docs/ReleaseNotes.txt LICENSE \
+BIN_MANIFEST = README.txt docs/ReleaseNotes.txt docs/ReleaseNotes.html LICENSE \
     xml/pwsafe.xsd xml/pwsafe_filter.xsd xml/pwsafe.xsl \
 		docs/ChangeLog.txt $(BIN_DIR)/pwsafe.exe $(BIN_DIR)/pws_at.dll \
 		$(BIN_DIR)/pws_osk.dll help/default/pwsafe.chm \
 		docs/pad_file.xml
-I18N_MANIFEST = help/pwsafeDE/pwsafeDE.chm help/pwsafeZH/pwsafeZH.chm \
+I18N_MANIFEST = help/pwsafeDE/pwsafeDE.chm help/pwsafeZH/pwsafeZH.chm help/pwsafeES/pwsafeES.chm\
 								$(I18N_DLL_DIR)/pwsafeDE.dll $(I18N_DLL_DIR)/pwsafeES.dll \
 								$(I18N_DLL_DIR)/pwsafePL.dll $(I18N_DLL_DIR)/pwsafeRU.dll \
 	              $(I18N_DLL_DIR)/pwsafeSV.dll $(I18N_DLL_DIR)/pwsafeZH.dll \

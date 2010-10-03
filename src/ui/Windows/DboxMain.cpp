@@ -28,6 +28,7 @@
 #include "ExpPWListDlg.h"
 #include "GeneralMsgBox.h"
 #include "InfoDisplay.h"
+#include "PasskeySetup.h"
 
 // Set Ctrl/Alt/Shift strings for menus
 #include "MenuShortcuts.h"
@@ -41,6 +42,8 @@
 #include "corelib/PWSdirs.h"
 #include "corelib/PWSFilters.h"
 #include "corelib/PWSAuxParse.h"
+
+#include "corelib/XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 
 #include "os/file.h"
 #include "os/env.h"
@@ -137,10 +140,20 @@ DboxMain::DboxMain(CWnd* pParent)
   m_bDeleteCtrl(false), m_bDeleteShift(false),
   m_bRenameCtrl(false), m_bRenameShift(false),
   m_bAutotypeCtrl(false), m_bAutotypeShift(false),
-  m_bInAT(false)
+  m_bInAT(false), m_bInRestoreWindowsData(false), m_bSetup(false)
 {
-  // Need to do this as using the direct calls will fail for Windows versions before Vista
-  m_hUser32 = ::LoadLibrary(L"User32.dll");
+  // Need to do the following as using the direct calls will fail for Windows versions before Vista
+  // (Load Library using absolute path to avoid dll poisoning attacks)
+  TCHAR szFileName[ MAX_PATH ];
+  memset( szFileName, 0, MAX_PATH );
+  GetSystemDirectory( szFileName, MAX_PATH );
+  int nLen = _tcslen( szFileName );
+  if (nLen > 0) {
+    if (szFileName[ nLen - 1 ] != '\\')
+      _tcscat_s( szFileName, MAX_PATH, L"\\" );
+  }
+  _tcscat_s( szFileName, MAX_PATH, L"User32.dll" );
+  m_hUser32 = ::LoadLibrary(szFileName);
   if (m_hUser32 != NULL) {
     m_pfcnShutdownBlockReasonCreate = (PSBR_CREATE)::GetProcAddress(m_hUser32, "ShutdownBlockReasonCreate"); 
     m_pfcnShutdownBlockReasonDestroy = (PSBR_DESTROY)::GetProcAddress(m_hUser32, "ShutdownBlockReasonDestroy");
@@ -158,17 +171,20 @@ DboxMain::DboxMain(CWnd* pParent)
   }
 
   // Set menus to be rebuilt with user's shortcuts
-  for (int i = 0; i < NUMPOPUPMENUS; i++) {
+  for (int i = 0; i < NUMPOPUPMENUS; i++)
     m_bDoShortcuts[i] = true;
-  }
 
   m_hIcon = app.LoadIcon(IDI_CORNERICON);
   m_hIconSm = (HICON) ::LoadImage(app.m_hInstance, MAKEINTRESOURCE(IDI_CORNERICON),
                                   IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 
-  // Zero entry UUID set at minimize and group text
-  memset(m_UUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
+  // Zero entry UUID selected and first visible at minimize and group text
+  memset(m_LUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
+  memset(m_TUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
+  memset(m_LUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
+  memset(m_TUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
   m_sxSelectedGroup.clear();
+  m_sxVisibleGroup.clear();
 
   ClearData();
 
@@ -395,7 +411,6 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_REDO, OnRedo)
   ON_COMMAND(ID_MENUITEM_EXPORTENT2PLAINTEXT, OnExportEntryText)
   ON_COMMAND(ID_MENUITEM_EXPORTENT2XML, OnExportEntryXML)
-  ON_COMMAND(ID_MENUITEM_EXTRACT_ATTACHMENT, OnExtractAttachment)
 
   // View Menu
   ON_COMMAND(ID_MENUITEM_LIST_VIEW, OnListView)
@@ -419,7 +434,6 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_PASSWORDSUBSET, OnDisplayPswdSubset)
   ON_COMMAND(ID_MENUITEM_REFRESH, OnRefreshWindow)
   ON_COMMAND(ID_MENUITEM_SHOWHIDE_UNSAVED, OnShowUnsavedEntries)
-  ON_COMMAND(ID_MENUITEM_VIEWATTACHMENTS, OnViewAttachments)
 
   // Manage Menu
   ON_COMMAND(ID_MENUITEM_CHANGECOMBO, OnPasswordChange)
@@ -515,7 +529,6 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_MESSAGE(PWS_MSG_EDIT_APPLY, OnApplyEditChanges)
   ON_MESSAGE(WM_QUERYENDSESSION, OnQueryEndSession)
   ON_MESSAGE(WM_ENDSESSION, OnEndSession)
-  ON_MESSAGE(PWS_MSG_EXTRACT_ATTACHMENT, OnExtractAttachment)
 
   ON_COMMAND(ID_MENUITEM_CUSTOMIZETOOLBAR, OnCustomizeToolbar)
 
@@ -606,7 +619,6 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_REDO, true, false, true, false},
   {ID_MENUITEM_EXPORTENT2PLAINTEXT, true, true, false, false},
   {ID_MENUITEM_EXPORTENT2XML, true, true, false, false},
-  {ID_MENUITEM_EXTRACT_ATTACHMENT, true, true, false, false},
   // View menu
   {ID_MENUITEM_LIST_VIEW, true, true, true, false},
   {ID_MENUITEM_TREE_VIEW, true, true, true, false},
@@ -633,7 +645,6 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_PASSWORDSUBSET, true, true, false, false},
   {ID_MENUITEM_REFRESH, true, true, false, false},
   {ID_MENUITEM_SHOWHIDE_UNSAVED, true, false, false, false},
-  {ID_MENUITEM_VIEWATTACHMENTS,  true, false, false, false},
   // Manage menu
   {ID_MENUITEM_CHANGECOMBO, true, false, true, false},
   {ID_MENUITEM_BACKUPSAFE, true, true, true, false},
@@ -1069,7 +1080,40 @@ BOOL DboxMain::OnInitDialog()
   }
 
   if (!m_IsStartClosed && !m_IsStartSilent) {
-    OpenOnInit();
+    if (m_bSetup) { // --setup flag passed?
+      // If default dbase exists, DO NOT overwrite it, else
+      // prompt for new combination, create it.
+      // Meant for use when running after install
+      CString cf(MAKEINTRESOURCE(IDS_DEFDBNAME));
+      std::wstring fname = PWSUtil::GetNewFileName(LPCWSTR(cf),
+                                                   DEFAULT_SUFFIX);
+      std::wstring dir = PWSdirs::GetSafeDir();
+      if (dir[dir.length()-1] != TCHAR('\\')) dir += L"\\";
+      fname = dir + fname;
+      if (pws_os::FileExists(fname)) 
+        OpenOnInit();
+      else { // really first install!
+        CPasskeySetup dbox_pksetup(this);
+        INT_PTR rc = dbox_pksetup.DoModal();
+        if (rc == IDCANCEL) {
+          PostQuitMessage(0);
+          return FALSE;
+        }
+        m_core.SetCurFile(fname.c_str());
+        m_core.NewFile(dbox_pksetup.m_passkey);
+        m_core.SetReadOnly(false); 
+        rc = m_core.WriteCurFile();
+        if (rc == PWScore::CANT_OPEN_FILE) {
+          CGeneralMsgBox gmb;
+          CString cs_temp, cs_title(MAKEINTRESOURCE(IDS_FILEWRITEERROR));
+          cs_temp.Format(IDS_CANTOPENWRITING, m_core.GetCurFile().c_str());
+          gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
+          PostQuitMessage(0); // can we do something better here?
+          return FALSE;
+        }
+      } // first install
+    } else
+      OpenOnInit();
     // No need for another RefreshViews as OpenOnInit does one via PostOpenProcessing
   }
 
@@ -1886,15 +1930,17 @@ void DboxMain::OnSysCommand(UINT nID, LPARAM lParam)
         m_vGroupDisplayState = GetGroupDisplayState();
       }
       break;
+    case SC_MAXIMIZE:
     case SC_RESTORE:
-      if (!RestoreWindowsData(true))
-        return; // password bad or cancel pressed
+      if (app.GetSystemTrayState() == ThisMfcApp::LOCKED) {
+        if (!RestoreWindowsData(true))
+          return; // password bad or cancel pressed
 
-      RestoreDisplayAfterMinimize();
+        RestoreDisplayAfterMinimize();
+      }
       break;
     case SC_SIZE:
     case SC_MOVE:
-    case SC_MAXIMIZE:
     case SC_SCREENSAVE:
       break;
   }
@@ -1976,8 +2022,17 @@ bool DboxMain::RestoreWindowsData(bool bUpdateWindows, bool bShow)
   // This restores the data in the main dialog.
   // If currently locked, it checks the user knows the correct passphrase first
   // Note: bUpdateWindows = true only when called from within OnSysCommand-SC_RESTORE
+  // and via the Restore menu item via the SystemTray (OnRestore)
 
-  pws_os::Trace(L"RestoreWindowsData:bUpdateWindows = %s\n", bUpdateWindows ? L"true" : L"false");
+  pws_os::Trace(L"RestoreWindowsData:bUpdateWindows = %s; bInRestoreWindowsData\n",
+                bUpdateWindows ? L"true" : L"false",
+                m_bInRestoreWindowsData ? L"true" : L"false");
+
+  // We should not be called by a routine we call - only duplicates refreshes etc.
+  if (m_bInRestoreWindowsData)
+    return false;
+
+  m_bInRestoreWindowsData = true;
   bool brc(false);
 
   // First - no database is currently open
@@ -1999,12 +2054,12 @@ bool DboxMain::RestoreWindowsData(bool bUpdateWindows, bool bShow)
           ShowWindow(SW_RESTORE);
           UpdateSystemTray(UNLOCKED);
         }
-        return false;
+        goto exit;  // return false
       } // m_IsStartSilent
       ShowWindow(SW_RESTORE);
     } // bUpdateWindows == true
     UpdateSystemTray(CLOSED);
-    return false;
+    goto exit;  // return false
   }
 
   // Case 1 - data available but is currently locked
@@ -2017,31 +2072,34 @@ bool DboxMain::RestoreWindowsData(bool bUpdateWindows, bool bShow)
     int rc_passphrase;
     // Verify passphrase (dialog shows only OK, CANCEL & HELP)
     rc_passphrase = GetAndCheckPassword(m_core.GetCurFile(), passkey, GCP_RESTORE);
-    if (rc_passphrase != PWScore::SUCCESS)
-      return false;  // don't even think of restoring window!
+    if (rc_passphrase != PWScore::SUCCESS) {
+      goto exit;  // return false - don't even think of restoring window!
+    }
 
     app.SetSystemTrayState(ThisMfcApp::UNLOCKED);
     if (bUpdateWindows) {
       RefreshViews();
       ShowWindow(SW_RESTORE);
     }
-    return true;
+    brc = true;
+    goto exit;
   }
 
   // Case 2 - data unavailable
   if (m_bInitDone && m_bDBNeedsReading) {
     StringX passkey;
     int rc_passphrase(PWScore::USER_CANCEL), rc_readdatabase;
-    const bool useSysTray = PWSprefs::GetInstance()->
-                            GetPref(PWSprefs::UseSystemTray);
+    const bool bUseSysTray = PWSprefs::GetInstance()->
+                             GetPref(PWSprefs::UseSystemTray);
 
     // Hide the Window while asking for the passphrase
     if (IsWindowVisible()) {
       ShowWindow(SW_HIDE);
     }
+
     if (m_bOpen)
       rc_passphrase = GetAndCheckPassword(m_core.GetCurFile(), passkey,
-                               useSysTray ? GCP_RESTORE : GCP_WITHEXIT,
+                               bUseSysTray ? GCP_RESTORE : GCP_WITHEXIT,
                                m_core.IsReadOnly() ? GCP_READONLY : 0);
 
     CGeneralMsgBox gmb;
@@ -2092,13 +2150,18 @@ bool DboxMain::RestoreWindowsData(bool bUpdateWindows, bool bShow)
       if (bUpdateWindows)
         RestoreWindows();
     } else {
-      ShowWindow(useSysTray ? SW_HIDE : SW_MINIMIZE);
+      ShowWindow(bUseSysTray ? SW_HIDE : SW_MINIMIZE);
     }
-    return brc;
+    goto exit;
   }
 
+  // Case 3 - data available and not locked
   if (bUpdateWindows)
     RestoreWindows();
+  brc = true;
+
+exit:
+  m_bInRestoreWindowsData = false;
   return brc;
 }
 
@@ -2929,9 +2992,6 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
     case ID_MENUITEM_SHOWHIDE_UNSAVED:
       if (!m_core.IsChanged() || (m_core.IsChanged() && m_bFilterActive && !m_bUnsavedDisplayed))
         iEnable = FALSE;
-      break;
-    case ID_MENUITEM_VIEWATTACHMENTS:
-      iEnable = m_core.DBHasAttachments() ? TRUE : FALSE;
       break;
     case ID_MENUITEM_CLEAR_MRU:
       if (app.GetMRU()->IsMRUEmpty())

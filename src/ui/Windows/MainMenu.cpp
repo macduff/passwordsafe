@@ -594,7 +594,6 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
     pPopupMenu->CheckMenuRadioItem(ID_MENUITEM_NEW_TOOLBAR,
                                    ID_MENUITEM_OLD_TOOLBAR,
                                    m_toolbarMode, MF_BYCOMMAND);
-
     goto exit;
   }  // View menu
 
@@ -650,7 +649,6 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
         if (!bReadOnly) {
           pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
                                  ID_MENUITEM_ADD, tc_dummy);
-          pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
           pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
                                  ID_MENUITEM_ADDGROUP, tc_dummy);
           pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
@@ -696,9 +694,9 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
     }
 
     // Scenario 3 - Entry selected
-    //   Tree View - <Entry Items>, Sep, Add Group, Sep, Clear Clipboard, Sep
+    //   Tree View - <Entry Items>, Sep, Add Entry, Add Group, Sep, Clear Clipboard, Sep,
     //               Entry functions (copy to clipboard, browse, run etc)
-    //   List View - <Entry Items>, Sep, Clear Clipboard, Sep
+    //   List View - <Entry Items>, Sep, Add Entry, Sep, Clear Clipboard, Sep,
     //               Entry functions (copy to clipboard, browse, run etc)
     if (pci != NULL) {
       // Entry is selected
@@ -731,8 +729,8 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
       if (!bReadOnly) {
         pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
                                ID_MENUITEM_DUPLICATEENTRY, tc_dummy);
+        pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
         if (!m_IsListView) {
-          pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
           pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
                                  ID_MENUITEM_ADDGROUP, tc_dummy);
         }
@@ -832,14 +830,6 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
                              ID_MENUITEM_EXPORTENT2PLAINTEXT, tc_dummy); 
       pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
                              ID_MENUITEM_EXPORTENT2XML, tc_dummy);
-
-      uuid_array_t entry_uuid;
-      pci->GetUUID(entry_uuid);
-      if (m_core.HasAttachments(entry_uuid) > 0) {
-        // Add all attachments to popup
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_EXTRACT_ATTACHMENT, tc_dummy);
-      }
     } else {
       // Must be List view with no entry selected
       pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
@@ -1044,9 +1034,9 @@ void DboxMain::OnInitMenuPopup(CMenu* pPopupMenu, UINT, BOOL)
 void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
 {
 #if defined(POCKET_PC)
-  DWORD dwTrackPopupFlags = TPM_LEFTALIGN;
+  const DWORD dwTrackPopupFlags = TPM_LEFTALIGN;
 #else
-  DWORD dwTrackPopupFlags = TPM_LEFTALIGN | TPM_RIGHTBUTTON;
+  const DWORD dwTrackPopupFlags = TPM_LEFTALIGN | TPM_RIGHTBUTTON;
 #endif
 
   BOOL brc;
@@ -1137,6 +1127,9 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
   }
 
   // RClick over TreeView
+  if (!m_bOpen)
+    return;
+
   if (m_ctlItemTree.IsWindowVisible()) {
     // currently in tree view
     m_ctlItemTree.GetWindowRect(&rect);
@@ -1253,45 +1246,8 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
       pPopup->RemoveMenu(ID_MENUITEM_RUNCOMMAND, MF_BYCOMMAND);
     }
 
-    uuid_array_t entry_uuid;
-    ATRVector vATRecords;
-    pci->GetUUID(entry_uuid);
-    int num_att = (int)m_core.GetAttachments(entry_uuid, vATRecords);
-    if (num_att == 0) {
-      pPopup->RemoveMenu(ID_EXTRACTMENU, MF_BYCOMMAND);
-    } else {
-      // Add file names - we generate our own menu control IDs (max is 64K - 1 = 65535)
-      // We will start at 50,000 (support 15535 attachments per entry - no chance!)
-      int iExtract = app.FindMenuItem(pPopup, ID_EXTRACTMENU);
-      CMenu *pMenu = pPopup->GetSubMenu(iExtract);
-      // Remove dummy separator
-      pMenu->RemoveMenu(0, MF_BYPOSITION);
-
-      // Now add all the file names
-      for (int i = 0; i < num_att; i++) {
-        pMenu->InsertMenu(i, MF_BYPOSITION | MF_STRING,
-                          50000 + i, vATRecords[i].filename.c_str());
-      }
-
-      // Since we generated our own menu item IDs, we need control back
-      dwTrackPopupFlags |= (TPM_NONOTIFY | TPM_RETURNCMD);
-    }
-
-    UINT uiID = pPopup->TrackPopupMenu(dwTrackPopupFlags,
-                                       screen.x, screen.y, this);
-
-    // Note: uiID == 0 menas user cancelled menu
-    // Only need to do the work if we added file attachments
-    if (num_att > 0 && uiID != 0) {
-      // Process user selected menu items
-      if (uiID < 50000) {
-        // Not an attachment - send on the message
-        SendMessage(WM_COMMAND, MAKEWPARAM(uiID, 0), 0);
-      } else {
-        // Go do the extraction
-        DoAttachmentExtraction(vATRecords[uiID - 50000]);
-      }
-    }
+    // use this DboxMain for commands
+    pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);
   } // if (item >= 0)
 }
 

@@ -65,7 +65,7 @@ private:
   EFilterValidator *m_pValidator;
 
   // To ensure filtername is unique
-  std::set<const stringT> m_unique_filternames;
+  std::set<stringT> m_unique_filternames;
 
   // Local variables
   st_filters *cur_filter;
@@ -78,7 +78,7 @@ private:
   int m_iErrorCode;
   int m_fieldlen;
   int m_iXMLVersion;
-  bool m_bentrybeingprocessed;
+  bool m_bEntryBeingProcessed;
   bool m_bErrors;
   unsigned char m_ctype;
   unsigned char *m_pfield;

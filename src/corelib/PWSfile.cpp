@@ -165,7 +165,7 @@ size_t PWSfile::ReadCBC(unsigned char &type, unsigned char* &data,
                         unsigned int &length)
 {
   unsigned char *buffer = NULL;
-  unsigned int buffer_len = 0;
+  size_t buffer_len = 0;
   size_t retval;
 
   ASSERT(m_fish != NULL && m_IV != NULL);
@@ -262,10 +262,11 @@ ErrorMessages()
 }
 
 // Following specific for PWSfile::Encrypt
-#define SAFE_FWRITE(p, sz, cnt, stream) do { \
+#define SAFE_FWRITE(p, sz, cnt, stream) \
+  { \
     size_t _ret = fwrite(p, sz, cnt, stream); \
     if (_ret != cnt) { status = false; goto exit;} \
-  } while (0)
+  }
 
 bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess)
 {
@@ -352,7 +353,7 @@ bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess
 
 bool PWSfile::Decrypt(const stringT &fn, const StringX &passwd, stringT &errmess)
 {
-  unsigned int len;
+  size_t len;
   unsigned char* buf = NULL;
   bool status = true;
   unsigned char salt[SaltLength];

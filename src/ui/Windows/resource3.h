@@ -36,7 +36,6 @@
 #define IDS_FDF_BU                      5056
 #define IDS_FDF_BUS                     5057
 #define IDS_FDF_PR_ALL                  5058
-#define IDS_FDF_ALL                     5059
 
 // Tooltips
 #define IDS_RESETPWHISTORYOFF           5100
@@ -283,6 +282,7 @@
 #define IDS_NOFIELDSFORSEARCH           5443
 #define IDS_NUMCHILD                    5444
 #define IDS_NUMCHILDREN                 5445
+#define IDS_DELENT                      5446
 #define IDS_EXTERNAL_EDITOR_WARNING     5447
 #define IDS_NOTES_IN_EXTERNAL_EDITOR    5448
 #define IDS_CPF_TVDD                    5449
@@ -488,6 +488,7 @@
 #define IDS_LAUNCH                      5667
 #define IDS_LAUNCHPLUS                  5668
 #define IDS_CLICKTOGOPLUS               5669
+#define IDS_DELGRP                      5670
 #define IDS_GROUPCOPIED                 5671
 #define IDS_TITLECOPIED                 5672
 #define IDS_USERCOPIED                  5673
@@ -618,23 +619,3 @@
 #define IDS_INVALIDFUTUREDATE           5799
 #define IDS_REGISTRY                    5801
 #define IDS_MISSINGPASSKEY              5804
-#define IDS_ATT_TOOLTIP0                5805
-#define IDS_ATT_TOOLTIP1                5806
-#define IDS_ATT_TOOLTIP2                5807
-#define IDS_CHOOSEATTACHMENT            5808
-#define IDS_SELECTERASER                5809
-#define IDS_EXTRACTTITLE                5810
-#define IDS_WILLNOTEXTRACT              5811
-#define IDS_NOERASEPGM                  5812
-#define IDS_NOTREMOVEABLE               5813
-#define IDS_ATTACHMENT_EXTN             5814
-#define IDS_EXTRACTED                   5815
-#define IDS_EXTRACTOK                   5816
-#define IDS_CANTCREATEFILE              5817
-#define IDS_BADATTACHMENTWRITE          5818
-#define IDS_CANTGETATTACHMENT           5819
-#define IDS_CRCHASHERROR                5820
-#define IDS_CONTINUEEXTRACT             5821
-#define IDS_NOZEROSIZEEXTRACT           5822
-#define IDS_WILLNOTATTACH               5823
-#define IDS_ADDFILE                     5824

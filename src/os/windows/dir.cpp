@@ -61,10 +61,10 @@ bool pws_os::splitpath(const stringT &path,
   TCHAR tname[_MAX_FNAME];
   TCHAR text[_MAX_EXT];
 
-  memset(tdrv, 0, sizeof(tdrv));
-  memset(tdir, 0, sizeof(tdir));
-  memset(tname, 0, sizeof(tname));
-  memset(text, 0, sizeof(text));
+  wmemset(tdrv, 0, sizeof(tdrv)/sizeof(TCHAR));
+  wmemset(tdir, 0, sizeof(tdir)/sizeof(TCHAR));
+  wmemset(tname, 0, sizeof(tname)/sizeof(TCHAR));
+  wmemset(text, 0, sizeof(text)/sizeof(TCHAR));
 
   if (_tsplitpath_s(path.c_str(), tdrv, tdir, tname, text) == 0) {
     drive = tdrv;
@@ -82,7 +82,7 @@ stringT pws_os::makepath(const stringT &drive, const stringT &dir,
   stringT retval;
   TCHAR path[_MAX_PATH];
 
-  memset(path, 0, sizeof(path));
+  wmemset(path, 0, sizeof(path)/sizeof(TCHAR));
   if (_tmakepath_s(path, drive.c_str(), dir.c_str(),
                    file.c_str(), ext.c_str()) == 0)
     retval = path;
@@ -174,13 +174,32 @@ stringT pws_os::getuserprefsdir()
     if (PathFileExists(retval.c_str()) == FALSE)
       if (_tmkdir(retval.c_str()) != 0)
         retval = _T(""); // couldn't create dir!?
+  } else if (uiDT == DRIVE_REMOVABLE) {
+    stringT::size_type index = sDir.rfind(_T("Program\\"));
+    if (index != stringT::npos)
+      retval = getexecdir().substr(0, getexecdir().length() - 8);
   }
   return retval;
 }
 
 stringT pws_os::getsafedir(void)
 {
-  stringT sLocalSafePath, retval;
+  stringT sDrive, sDir, sName, sExt, retval;
+
+  pws_os::splitpath(getexecdir(), sDrive, sDir, sName, sExt);
+  const stringT sDriveT = sDrive + _T("\\"); // Trailing slash required.
+
+  const UINT uiDT = ::GetDriveType(sDriveT.c_str());
+  if (uiDT == DRIVE_REMOVABLE) { 
+    stringT::size_type index = sDir.rfind(_T("Program\\"));
+    if (index != stringT::npos) {
+      sDir.replace(index, 8, stringT(_T("Safes\\")));
+      retval = sDrive + sDir;
+      if (PathFileExists(retval.c_str()) == TRUE)
+        return retval;
+    }
+  }
+  stringT sLocalSafePath;
   if (GetLocalDir(CSIDL_PERSONAL, sLocalSafePath)) {
     retval = sLocalSafePath + _T("\\My Safes");
     if (PathFileExists(retval.c_str()) == FALSE)
@@ -188,4 +207,24 @@ stringT pws_os::getsafedir(void)
         retval = _T(""); // couldn't create dir!?
   }
   return retval;
+}
+
+stringT pws_os::getxmldir(void)
+{
+  stringT sDrive, sDir, sName, sExt;
+
+  pws_os::splitpath(getexecdir(), sDrive, sDir, sName, sExt);
+  const stringT sDriveT = sDrive + _T("\\"); // Trailing slash required.
+
+  const UINT uiDT = ::GetDriveType(sDriveT.c_str());
+  if (uiDT == DRIVE_REMOVABLE) { 
+    stringT::size_type index = sDir.rfind(_T("Program\\"));
+    if (index != stringT::npos) {
+      sDir.replace(index, 8, stringT(_T("xml\\")));
+      stringT retval = sDrive + sDir;
+      if (PathFileExists(retval.c_str()) == TRUE)
+        return retval;
+    }
+  }
+  return getexecdir();
 }

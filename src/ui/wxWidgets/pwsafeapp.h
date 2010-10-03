@@ -78,14 +78,18 @@ public:
 	void OnActivate(wxActivateEvent& actEvent);
 	void OnActivityTimer(wxTimerEvent& timerEvent);
 
+  void SaveFrameCoords(void);
+  void RestoreFrameCoords(void);
+  
  private:
     PWScore m_core;
     wxTimer* m_activityTimer;
     PasswordSafeFrame* m_frame;
     enum { ACTIVITY_TIMER_ID = 33 } ; 
+    CRecentDBList *m_recentDatabases;
     
  public:
-    CRecentDBList m_recentDatabases;
+    CRecentDBList &recentDatabases();
 };
 
 /*!

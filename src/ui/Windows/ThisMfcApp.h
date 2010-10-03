@@ -47,7 +47,9 @@ public:
 
   virtual BOOL InitInstance();
   virtual int ExitInstance();
-  WCE_DEL  virtual BOOL ProcessMessageFilter(int code, LPMSG lpMsg);
+#if !defined(POCKET_PC)
+  virtual BOOL ProcessMessageFilter(int code, LPMSG lpMsg);
+#endif
 
   void EnableAccelerator() { m_bUseAccelerator = true; }
   void DisableAccelerator() { m_bUseAccelerator = false; }
@@ -104,8 +106,9 @@ private:
   CString m_csFileVersionString;
   CString m_csCopyrightString;
   CString m_csHelpFile;
-  bool m_noSysEnvWarnings; // set by '-q' command line argument
-  bool m_bPermitTestdump;
+  // Following set by command line arguments
+  bool m_noSysEnvWarnings; // '-q'
+  bool m_bPermitTestdump;  // '--testdump'
 };
 //-----------------------------------------------------------------------------
 // Local variables:

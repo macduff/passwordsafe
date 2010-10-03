@@ -11,10 +11,7 @@
 /* based on SHA-1 in C By Steve Reid <steve@edmweb.com> */
 
 #include "PwsPlatform.h"
-
-// SHA1HANDSOFF - Copies data before messing with it - now needed as we use
-// SHA1 for getting the digest of attachments!
-#define SHA1HANDSOFF
+//#define SHA1HANDSOFF Copies data before messing with it.
 
 #include <stdio.h>
 #include <string.h>

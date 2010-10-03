@@ -386,7 +386,7 @@ void ThisMfcApp::LoadLocalizedStuff()
     cs_HelpPath.Format(L"%spwsafe%s.chm", cs_HelpDir, cs_PWS_HELP);
     if (PathFileExists(cs_HelpPath)) {
       helpFileFound = true;
-      if (m_pszHelpFilePath != NULL) free((void*)m_pszHelpFilePath);
+      free((void*)m_pszHelpFilePath);
       m_pszHelpFilePath = _wcsdup(cs_HelpPath);
       pws_os::Trace(L"Help file overriden by user. Using %s.\n", cs_HelpPath);
     }
@@ -427,8 +427,7 @@ void ThisMfcApp::LoadLocalizedStuff()
     pws_os::Trace(L"Using help file: %s\n", cs_HelpPath);
   }
 
-  if (m_pszHelpFilePath != NULL)
-    free((void*)m_pszHelpFilePath);
+  free((void*)m_pszHelpFilePath);
 
   m_pszHelpFilePath = _wcsdup(cs_HelpPath);
   pws_os::Trace(L"Using help file: %s\n", cs_HelpPath);
@@ -488,6 +487,16 @@ bool ThisMfcApp::ParseCommandLine(DboxMain &dbox, bool &allDone)
         // If a normal flag is not recognised - show Usage
         if ((*arg) == L"--testdump") {
           m_bPermitTestdump = true;
+        } else if ((*arg) == L"--setup") {
+          /**
+           * '--setup' is meant to be used whien invoking PasswordSafe at the end of the installation process.
+           * It will cause the application to create a new database with the default name at the default location,
+           * prompting the user for the safe combination.
+           * State of m_bSetup is accessible via public IsSetup() member function
+           */
+          dbox.SetSetup();
+        } else {
+          // unrecognized extended flag. Silently ignore.
         }
         arg++;
         continue;
@@ -715,8 +724,11 @@ BOOL ThisMfcApp::InitInstance()
   SHInitExtraControls();
 #endif
 
-  if (m_core.GetCurFile().empty())
-    m_core.SetCurFile(prefs->GetPref(PWSprefs::CurrentFile));
+  if (m_core.GetCurFile().empty()) {
+    stringT path = prefs->GetPref(PWSprefs::CurrentFile).c_str();
+    pws_os::AddDrive(path);
+    m_core.SetCurFile(path.c_str());
+  }
 
   int nMRUItems = prefs->GetPref(PWSprefs::MaxMRUItems);
   m_mruonfilemenu = prefs->GetPref(PWSprefs::MRUOnFileMenu);

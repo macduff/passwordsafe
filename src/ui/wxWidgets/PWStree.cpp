@@ -49,7 +49,7 @@
  * PWSTreeCtrl type definition
  */
 
-IMPLEMENT_DYNAMIC_CLASS( PWSTreeCtrl, wxTreeCtrl )
+IMPLEMENT_CLASS( PWSTreeCtrl, wxTreeCtrl )
 
 // Image Indices - these match the order images are added
 //                 in PWSTreeCtrl::CreateControls()

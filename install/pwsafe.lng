@@ -15,7 +15,7 @@
 ; This script is distributed AS IS.  All warranties are explicitly
 ; disclaimed, including, but not limited to, the implied warranties of
 ; MERCHANTABILITY and FITNESS FOR A PARTICULAR PURPOSE.
-
+ 
 ;================================================================================================
 ;Reserve Files
 
@@ -56,7 +56,7 @@ LangString RESERVE_FIELD1 ${LANG_ENGLISH} "Regular (uses Registry, suitable for 
 LangString RESERVE_FIELD1 ${LANG_GERMAN}  "Standard (verwendet Registry, einsetzbar am normalen ArbeitsPC)"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString RESERVE_FIELD1 ${LANG_SIMPCHINESE} "³£¹æ (Ê¹ÓÃ×¢²á±í£¬ÊÊºÏ¼ÒÍ¥»ò¸öÈËÓÃ»§ PC)"
+LangString RESERVE_FIELD1 ${LANG_SIMPCHINESE} "³£¹æ£¨Ê¹ÓÃ×¢²á±í£¬ÊÊºÏ¼ÒÍ¥»ò¸öÈËÓÃ»§ PC£©"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString RESERVE_FIELD1 ${LANG_SPANISH} "Regular (uses Registry, suitable for home or single user PC) [ES]"
@@ -68,7 +68,7 @@ LangString RESERVE_FIELD1 ${LANG_SWEDISH} "Standard (använder Registret, passar 
 LangString RESERVE_FIELD1 ${LANG_DUTCH} "Regular (uses Registry, suitable for home or single user PC) [NL]"
 !endif
 !ifdef LANGUAGE_FRENCH
-LangString RESERVE_FIELD1 ${LANG_FRENCH} "Régulière (utilise le Registre, adapté pour la maison ou utilisation sur un seul PC)"
+LangString RESERVE_FIELD1 ${LANG_FRENCH} "Régulière (utilise le Registre, adapt?pour la maison ou utilisation sur un seul PC)"
 !endif
 !ifdef LANGUAGE_RUSSIAN
 LangString RESERVE_FIELD1 ${LANG_RUSSIAN} "Îáû÷íàÿ (äàííûå îá óñòàíîâêå õðàíÿòñÿ â ðååñòðå)"
@@ -88,7 +88,7 @@ LangString RESERVE_FIELD2 ${LANG_ENGLISH} "Green (for Disk-on-Key; does not use 
 LangString RESERVE_FIELD2 ${LANG_GERMAN}  "Grün (für Disk-on-Key; verwendet keine lokale Registry)"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString RESERVE_FIELD2 ${LANG_SIMPCHINESE} "ÂÌÉ« (ÊÊºÏ U ÅÌ£¬²»Ê¹ÓÃÖ÷»ú×¢²á±í)"
+LangString RESERVE_FIELD2 ${LANG_SIMPCHINESE} "ÂÌÉ«£¨ÊÊºÏ U ÅÌ£¬²»Ê¹ÓÃÖ÷»ú×¢²á±í£©"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString RESERVE_FIELD2 ${LANG_SPANISH} "Green (for Disk-on-Key; does not use host Registry) [ES]"
@@ -100,7 +100,7 @@ LangString RESERVE_FIELD2 ${LANG_SWEDISH} "Grön (for Disk-on-Key; använder inte 
 LangString RESERVE_FIELD2 ${LANG_DUTCH} "Green (for Disk-on-Key; does not use host Registry) [NL]"
 !endif
 !ifdef LANGUAGE_FRENCH
-LangString RESERVE_FIELD2 ${LANG_FRENCH} "Verte (pour Disque-sur-Clé; n'utilise pas le Registre)"
+LangString RESERVE_FIELD2 ${LANG_FRENCH} "Verte (pour Disque-sur-Cl? n'utilise pas le Registre)"
 !endif
 !ifdef LANGUAGE_RUSSIAN
 LangString RESERVE_FIELD2 ${LANG_RUSSIAN} "Ïîðòàòèâíàÿ (íå èñïîëüçîâàòü ðååñòð äëÿ õðàíåíèÿ äàííûõ îá óñòàíîâêå)"
@@ -123,7 +123,7 @@ LangString PROGRAM_FILES ${LANG_ENGLISH} "Program Files"
 LangString PROGRAM_FILES ${LANG_GERMAN}  "Programm Dateien"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString PROGRAM_FILES ${LANG_SIMPCHINESE} "³ÌÐòÎÄ¼þ "
+LangString PROGRAM_FILES ${LANG_SIMPCHINESE} "³ÌÐòÎÄ¼þ"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString PROGRAM_FILES ${LANG_SPANISH} "Program Files [ES]"
@@ -190,7 +190,7 @@ LangString START_AUTO ${LANG_DANISH} "Start automatisk"
 
 LangString START_SHOW ${LANG_ENGLISH} "Show in start menu"
 !ifdef LANGUAGE_GERMAN
-LangString START_SHOW ${LANG_GERMAN}  "Im Startmenü anzeigen"
+LangString START_SHOW ${LANG_GERMAN}  "Im Startmen?anzeigen"
 !endif
 !ifdef LANGUAGE_CHINESE
 LangString START_SHOW ${LANG_SIMPCHINESE} "ÔÚ¿ªÊ¼²Ëµ¥ÏÔÊ¾"
@@ -234,7 +234,7 @@ LangString START_SHORTCUT ${LANG_SIMPCHINESE} "°²×°×ÀÃæ¿ì½Ý·½Ê½"
 LangString START_SHORTCUT ${LANG_SPANISH} "Install desktop shortcut [ES]"
 !endif
 !ifdef LANGUAGE_SWEDISH
-LangString START_SHORTCUT ${LANG_SWEDISH} "Installera genväg på skrivbordet"
+LangString START_SHORTCUT ${LANG_SWEDISH} "Installera genväg p?skrivbordet"
 !endif
 !ifdef LANGUAGE_DUTCH
 LangString START_SHORTCUT ${LANG_DUTCH} "Install desktop shortcut [NL]"
@@ -252,7 +252,7 @@ LangString START_SHORTCUT ${LANG_POLISH} "Install desktop shortcut [PL]"
 LangString START_SHORTCUT ${LANG_ITALIAN} "Install desktop shortcut [IT]"
 !endif
 !ifdef LANGUAGE_DANISH
-LangString START_SHORTCUT ${LANG_DANISH} "Installer genvej på skrivebordet"
+LangString START_SHORTCUT ${LANG_DANISH} "Installer genvej p?skrivebordet"
 !endif
 
 ;--------------------------------
@@ -263,7 +263,7 @@ LangString UNINSTALL_SHORTCUT ${LANG_ENGLISH} "Uninstall shortcut"
 LangString UNINSTALL_SHORTCUT ${LANG_GERMAN}  "Verknüpfung zum Deinstallieren"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString UNINSTALL_SHORTCUT ${LANG_SIMPCHINESE} "Uninstall shortcut [ZH]"
+LangString UNINSTALL_SHORTCUT ${LANG_SIMPCHINESE} "Ð¶ÔØ¿ì½Ý·½Ê½"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString UNINSTALL_SHORTCUT ${LANG_SPANISH} "Uninstall shortcut [ES]"
@@ -311,7 +311,7 @@ LangString DESC_ProgramFiles ${LANG_SWEDISH} "Installera de basfiler som är nödv
 LangString DESC_ProgramFiles ${LANG_DUTCH} "Installs the basic files necessary to run Password Safe. [NL]"
 !endif
 !ifdef LANGUAGE_FRENCH
-LangString DESC_ProgramFiles ${LANG_FRENCH} "Installe les fichiers de base nécessaires à PasswordSafe."
+LangString DESC_ProgramFiles ${LANG_FRENCH} "Installe les fichiers de base nécessaires ?PasswordSafe."
 !endif
 !ifdef LANGUAGE_RUSSIAN
 LangString DESC_ProgramFiles ${LANG_RUSSIAN} "Îñíîâíûå ôàéëû, íåîáõîäèìûå äëÿ ðàáîòû Password Safe."
@@ -360,7 +360,7 @@ LangString DESC_StartUp ${LANG_DANISH} "Starter Password Safe som en del af Wind
 
 LangString DESC_StartMenu ${LANG_ENGLISH} "Creates an entry in the start menu for Password Safe."
 !ifdef LANGUAGE_GERMAN
-LangString DESC_StartMenu ${LANG_GERMAN} "Erstellt ein Eintrag im Start Menü für Password Safe."
+LangString DESC_StartMenu ${LANG_GERMAN} "Erstellt ein Eintrag im Start Men?für Password Safe."
 !endif
 !ifdef LANGUAGE_CHINESE
 LangString DESC_StartMenu ${LANG_SIMPCHINESE} "ÔÚ¿ªÊ¼²Ëµ¥´´½¨Ò»¸ö Password Safe ÌõÄ¿¡£"
@@ -395,13 +395,13 @@ LangString DESC_DesktopShortcut ${LANG_ENGLISH} "Places a shortcut to Password S
 LangString DESC_DesktopShortcut ${LANG_GERMAN} "Erzeugt eine Verknüpfung zu Password Safe auf der Benutzeroberfläche."
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString DESC_DesktopShortcut ${LANG_SIMPCHINESE} "ÔÚÄãµÄ×ÀÃæ·ÅÖÃÒ»¸ö Password Safe ¿ì½Ý·½Ê½¡£"
+LangString DESC_DesktopShortcut ${LANG_SIMPCHINESE} "ÔÚ×ÀÃæ·ÅÖÃÒ»¸ö Password Safe ¿ì½Ý·½Ê½¡£"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString DESC_DesktopShortcut ${LANG_SPANISH} "Places a shortcut to Password Safe on your desktop. [ES]"
 !endif
 !ifdef LANGUAGE_SWEDISH
-LangString DESC_DesktopShortcut ${LANG_SWEDISH} "Placerar en genväg till Password Safe på ditt skrivbord."
+LangString DESC_DesktopShortcut ${LANG_SWEDISH} "Placerar en genväg till Password Safe p?ditt skrivbord."
 !endif
 !ifdef LANGUAGE_DUTCH
 LangString DESC_DesktopShortcut ${LANG_DUTCH} "Places a shortcut to Password Safe on your desktop. [NL]"
@@ -419,15 +419,15 @@ LangString DESC_DesktopShortcut ${LANG_POLISH} "Places a shortcut to Password Sa
 LangString DESC_DesktopShortcut ${LANG_ITALIAN} "Places a shortcut to Password Safe on your desktop. [IT]"
 !endif
 !ifdef LANGUAGE_DANISH
-LangString DESC_DesktopShortcut ${LANG_DANISH} "Opretter en genvej til Password Safe på dit skrivebord."
+LangString DESC_DesktopShortcut ${LANG_DANISH} "Opretter en genvej til Password Safe p?dit skrivebord."
 !endif
 
 LangString DESC_UninstallMenu ${LANG_ENGLISH} "Places a shortcut in the start menu to Uninstall Password Safe."
 !ifdef LANGUAGE_GERMAN
-LangString DESC_UninstallMenu ${LANG_GERMAN} "Erzeugt eine Verknüpfung im Start Menü zum Deinstallieren von Password Safe."
+LangString DESC_UninstallMenu ${LANG_GERMAN} "Erzeugt eine Verknüpfung im Start Men?zum Deinstallieren von Password Safe."
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString DESC_UninstallMenu ${LANG_SIMPCHINESE} "Places a shortcut in the start menu to Uninstall Password Safe. [ZH]"
+LangString DESC_UninstallMenu ${LANG_SIMPCHINESE} "ÔÚ¿ªÊ¼²Ëµ¥·ÅÖÃÒ»¸öÐ¶ÔØ Password Safe µÄ¿ì½Ý·½Ê½¡£"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString DESC_UninstallMenu ${LANG_SPANISH} "Places a shortcut in the start menu to Uninstall Password Safe. [ES]"
@@ -493,13 +493,13 @@ LangString TEXT_GC_SUBTITLE ${LANG_ENGLISH} "Choose Regular for use on a single 
 LangString TEXT_GC_SUBTITLE ${LANG_GERMAN} "Wählen Sie Standard zur Verwendung in einem PC und Grün für eine portable Installation. Wenn Sie nicht sicher sind, wählen Sie 'Standard' aus."
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString TEXT_GC_SUBTITLE ${LANG_SIMPCHINESE} "Ñ¡Ôñ³£¹æÊÊºÏÊ¹ÓÃÔÚ¸öÈË PC ÉÏ£¬ÂÌÉ«ÊÊºÏ±ãÐ¯Éè±¸¡£Èç¹ûÄã²»È·¶¨£¬ÄÇÃ´Ñ¡Ôñ¡°³£¹æ¡±±ã¿É¡£"
+LangString TEXT_GC_SUBTITLE ${LANG_SIMPCHINESE} "Ñ¡Ôñ³£¹æÓÃÓÚ¸öÈË PC ÉÏ£¬ÂÌÉ«ÊÊºÏ±ãÐ¯Éè±¸¡£Èç¹ûÄã²»È·¶¨£¬ÄÇÃ´Ñ¡Ôñ¡°³£¹æ¡±±ã¿É¡£"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString TEXT_GC_SUBTITLE ${LANG_SPANISH} "Choose Regular for use on a single PC, Green for portable installation. If you're not sure, 'Regular' is fine. [ES]"
 !endif
 !ifdef LANGUAGE_SWEDISH
-LangString TEXT_GC_SUBTITLE ${LANG_SWEDISH} "Välj Standard för användning på en vanlig PC, Grön för mobil installation. Om du inte är säker är 'Standard' bra."
+LangString TEXT_GC_SUBTITLE ${LANG_SWEDISH} "Välj Standard för användning p?en vanlig PC, Grön för mobil installation. Om du inte är säker är 'Standard' bra."
 !endif
 !ifdef LANGUAGE_DUTCH
 LangString TEXT_GC_SUBTITLE ${LANG_DUTCH} "Choose Regular for use on a single PC, Green for portable installation. If you're not sure, 'Regular' is fine. [NL]"
@@ -517,7 +517,7 @@ LangString TEXT_GC_SUBTITLE ${LANG_POLISH} "Choose Regular for use on a single P
 LangString TEXT_GC_SUBTITLE ${LANG_ITALIAN} "Choose Regular for use on a single PC, Green for portable installation. If you're not sure, 'Regular' is fine. [IT]"
 !endif
 !ifdef LANGUAGE_DANISH
-LangString TEXT_GC_SUBTITLE ${LANG_DANISH} "Vælg Standart for brug på en enkelt PC, Grøn for bærbar installation. Er du ikke sikker, er 'Standart' fint."
+LangString TEXT_GC_SUBTITLE ${LANG_DANISH} "Vælg Standart for brug p?en enkelt PC, Grøn for bærbar installation. Er du ikke sikker, er 'Standart' fint."
 !endif
 
 LangString PSWINI_TITLE ${LANG_ENGLISH} "Choose Installation Type"
@@ -569,7 +569,7 @@ LangString PSWINI_TEXT1 ${LANG_SWEDISH} "Vanlig(använder Registret, passar för h
 LangString PSWINI_TEXT1 ${LANG_DUTCH} "Regular (uses Registry, suitable for home or single user PC) [NL]"
 !endif
 !ifdef LANGUAGE_FRENCH
-LangString PSWINI_TEXT1 ${LANG_FRENCH} "Régulière (utilise le Registre, adapté pour la maison ou utilisation sur un seul PC)"
+LangString PSWINI_TEXT1 ${LANG_FRENCH} "Régulière (utilise le Registre, adapt?pour la maison ou utilisation sur un seul PC)"
 !endif
 !ifdef LANGUAGE_RUSSIAN
 LangString PSWINI_TEXT1 ${LANG_RUSSIAN} "Îáû÷íàÿ (äàííûå îá óñòàíîâêå õðàíÿòñÿ â ðååñòðå)"
@@ -601,7 +601,7 @@ LangString PSWINI_TEXT2 ${LANG_SWEDISH} "Grön (för Disk-on-Key; använder inte vä
 LangString PSWINI_TEXT2 ${LANG_DUTCH} "Green (for Disk-on-Key; does not use host Registry) [NL]"
 !endif
 !ifdef LANGUAGE_FRENCH
-LangString PSWINI_TEXT2 ${LANG_FRENCH} "Verte (pour Disque-sur-Clé; n'utilise pas le Registre)"
+LangString PSWINI_TEXT2 ${LANG_FRENCH} "Verte (pour Disque-sur-Cl? n'utilise pas le Registre)"
 !endif
 !ifdef LANGUAGE_RUSSIAN
 LangString PSWINI_TEXT2 ${LANG_RUSSIAN} "Ïîðòàòèâíàÿ (íå èñïîëüçîâàòü ðååñòð äëÿ õðàíåíèÿ äàííûõ îá óñòàíîâêå)"
@@ -626,7 +626,7 @@ LangString RUNNING_INSTALL ${LANG_ENGLISH} "The installer is already running."
 LangString RUNNING_INSTALL ${LANG_GERMAN} "Das Installationsprogramm läuft bereits."
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString RUNNING_INSTALL ${LANG_SIMPCHINESE} "The installer is already running. [ZH]"
+LangString RUNNING_INSTALL ${LANG_SIMPCHINESE} "°²×°³ÌÐòÒÑÔÚÔËÐÐ¡£"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString RUNNING_INSTALL ${LANG_SPANISH} "The installer is already running. [ES]"
@@ -660,7 +660,7 @@ LangString RUNNING_APPLICATION ${LANG_ENGLISH} "Please exit all running instance
 LangString RUNNING_APPLICATION ${LANG_GERMAN} "Bitte schliessen Sie alle Instanzen von PasswordSafe, bevor Sie eine neue Version installieren"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString RUNNING_APPLICATION ${LANG_SIMPCHINESE} "Please exit all running instances of PasswordSafe before installing a new version [ZH]"
+LangString RUNNING_APPLICATION ${LANG_SIMPCHINESE} "°²×°ÐÂ°æ±¾Ö®Ç°£¬ÇëÍË³öËùÓÐÔËÐÐÖÐµÄ PasswordSafe¡£"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString RUNNING_APPLICATION ${LANG_SPANISH} "Please exit all running instances of PasswordSafe before installing a new version [ES]"
@@ -694,7 +694,7 @@ LangString LANG_INSTALL ${LANG_ENGLISH} "Installation Language"
 LangString LANG_INSTALL ${LANG_GERMAN} "Sprache der Installation"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString LANG_INSTALL ${LANG_SIMPCHINESE} "Installation Language [ZH]"
+LangString LANG_INSTALL ${LANG_SIMPCHINESE} "°²×°ÓïÑÔ"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString LANG_INSTALL ${LANG_SPANISH} "Installation Language [ES]"
@@ -729,7 +729,7 @@ LangString LANG_SELECT ${LANG_ENGLISH} "Please select the language for the insta
 LangString LANG_SELECT ${LANG_GERMAN} "Bitte wählen Sie die Sprache für die Installation"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString LANG_SELECT ${LANG_SIMPCHINESE} "Please select the language for the installation [ZH]"
+LangString LANG_SELECT ${LANG_SIMPCHINESE} "ÇëÑ¡Ôñ°²×°ÓïÑÔ"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString LANG_SELECT ${LANG_SPANISH} "Please select the language for the installation [ES]"
@@ -764,7 +764,7 @@ LangString SORRY_NO_95 ${LANG_ENGLISH} "Sorry, Windows 95 is no longer supported
 LangString SORRY_NO_95 ${LANG_GERMAN} "Schade, aber Windows 95 wieder nicht mehr unterstützt. Versuchen Sie PasswordSafe 2.16"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString SORRY_NO_95 ${LANG_SIMPCHINESE} "Sorry, Windows 95 is no longer supported. Try PasswordSafe 2.16 [ZH]"
+LangString SORRY_NO_95 ${LANG_SIMPCHINESE} "±§Ç¸£¬Windows 95 ÒÑ²»ÔÙÖ§³Ö£¡³¢ÊÔ PasswordSafe 2.16¡£"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString SORRY_NO_95 ${LANG_SPANISH} "Sorry, Windows 95 is no longer supported. Try PasswordSafe 2.16 [ES]"
@@ -798,7 +798,7 @@ LangString SORRY_NO_98 ${LANG_ENGLISH} "Sorry, Windows 98 is no longer supported
 LangString SORRY_NO_98 ${LANG_GERMAN} "Schade, aber Windows 98 wieder nicht mehr unterstützt. Versuchen Sie PasswordSafe 2.16"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString SORRY_NO_98 ${LANG_SIMPCHINESE} "Sorry, Windows 98 is no longer supported. Try PasswordSafe 2.16 [ZH]"
+LangString SORRY_NO_98 ${LANG_SIMPCHINESE} "±§Ç¸£¬Windows 98 ²»ÔÙÖ§³Ö£¡³¢ÊÔ PasswordSafe 2.16¡£"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString SORRY_NO_98 ${LANG_SPANISH} "Sorry, Windows 98 is no longer supported. Try PasswordSafe 2.16 [ES]"
@@ -832,7 +832,7 @@ LangString SORRY_NO_ME ${LANG_ENGLISH} "Sorry, Windows ME is no longer supported
 LangString SORRY_NO_ME ${LANG_GERMAN} "Schade, aber Windows ME wieder nicht mehr unterstützt. Versuchen Sie PasswordSafe 2.16"
 !endif
 !ifdef LANGUAGE_CHINESE
-LangString SORRY_NO_ME ${LANG_SIMPCHINESE} "Sorry, Windows ME is no longer supported. Try PasswordSafe 2.16 [ZH]"
+LangString SORRY_NO_ME ${LANG_SIMPCHINESE} "±§Ç¸£¬Windows ME ²»ÔÙÖ§³Ö£¡³¢ÊÔ PasswordSafe 2.16¡£"
 !endif
 !ifdef LANGUAGE_SPANISH
 LangString SORRY_NO_ME ${LANG_SPANISH} "Sorry, Windows ME is no longer supported. Try PasswordSafe 2.16 [ES]"

@@ -98,7 +98,7 @@ public:
     MultipleInstances, ShowDragbar,
     ClearClipboardOnMinimize, ClearClipboardOnExit,
     ShowFindToolBarOnOpen, NotesWordWrap, LockDBOnIdleTimeout,
-    HighlightChanges,
+    HighlightChanges, HideSystemTray,
     NumBoolPrefs};
   enum IntPrefs {Column1Width, Column2Width, Column3Width, Column4Width,
     SortedColumn, PWDefaultLength, MaxMRUItems, IdleTimeout,
@@ -113,7 +113,6 @@ public:
     ColumnWidths, DefaultAutotypeString, AltBrowserCmdLineParms,
     MainToolBarButtons, PasswordFont, TreeListSampleText, PswdSampleText,
     LastUsedKeyboard, VKeyboardFontName, VKSampleText, AltNotesEditor,
-    EraseProgram, ErasePgmCmdLineParms,
     NumStringPrefs};
 
   // for DoubleClickAction
@@ -195,7 +194,7 @@ public:
   int GetConfigIndicator() const;
 
   // Get & set vector of user shortcuts (only in XML cnfig file)
-  std::vector<st_prefShortcut> GetPrefShortcuts() {return m_vShortcuts;}
+  std::vector<st_prefShortcut> GetPrefShortcuts() const {return m_vShortcuts;}
   void SetPrefShortcuts(const std::vector<st_prefShortcut> &vShortcuts);
 
   // for OptionSystem property sheet - support removing registry traces

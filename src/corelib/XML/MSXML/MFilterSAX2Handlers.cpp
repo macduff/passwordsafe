@@ -9,7 +9,7 @@
 // MFilterSAX2Filters.cpp : implementation file
 //
 
-#include "../XMLDefs.h"
+#include "../XMLDefs.h"    // Required if testing "USE_XML_LIBRARY"
 
 #if USE_XML_LIBRARY == MSXML
 
@@ -193,7 +193,7 @@ unsigned long __stdcall MFilterSAX2ContentHandler::Release()
 HRESULT STDMETHODCALLTYPE MFilterSAX2ContentHandler::startDocument ( )
 {
   m_strXMLErrors = _T("");
-  m_bentrybeingprocessed = false;
+  m_bEntryBeingProcessed = false;
   return S_OK;
 }
 
@@ -288,7 +288,7 @@ HRESULT STDMETHODCALLTYPE MFilterSAX2ContentHandler::startElement(
     cur_filterentry = new st_FilterRow;
     cur_filterentry->Empty();
     cur_filterentry->bFilterActive = true;
-    m_bentrybeingprocessed = true;
+    m_bEntryBeingProcessed = true;
   }
 
   if (bfilter || bfilter_entry) {

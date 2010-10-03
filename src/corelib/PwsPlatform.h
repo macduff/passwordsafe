@@ -74,7 +74,7 @@
 
 #if defined(_WIN32)
 #ifdef BIG_ENDIAN
-#define PWD_BIG_ENDIAN
+#define PWS_BIG_ENDIAN
 #endif
 #ifdef LITTLE_ENDIAN
 #define PWS_LITTLE_ENDIAN
@@ -143,7 +143,7 @@
 // **********************************************
 #elif defined(__linux)
 #define PWS_PLATFORM "Linux"
-#if defined(__i386__) || defined(__i486__)
+#if defined(__i386__) || defined(__i486__) || defined(__x86_64__)
 #define PWS_LITTLE_ENDIAN
 #endif
 // **********************************************
@@ -154,6 +154,24 @@
 #if defined(__i386__) || defined(__i486__)
 #define PWS_LITTLE_ENDIAN
  #endif
+/* http://predef.sourceforge.net/preos.html*/
+#elif defined (macintosh) || defined(Macintosh) || defined(__APPLE__) || defined(__MACH__)
+#define PWS_PLATFORM "Mac"
+#define __PWS_MACINTOSH__
+/* following line was added to avoid "Impossible constraint in 'asm'" errors in ROLc() 
+   and RORc() functions below, just like it is defined for Linux and cygwin above */
+#define LTC_NO_ROLC
+#if defined(__APPLE__) && defined(__MACH__)
+#define PWS_PLATFORM_EX MacOSX
+#else
+#define PWS_PLATFORM_EX MacOS9
+#endif
+/* gcc shipped with snow leopard defines this.  Try "cpp -dM dummy.h"*/
+#if defined (__LITTLE_ENDIAN__) && (__LITTLE_ENDIAN__ == 1)
+#define PWS_LITTLE_ENDIAN
+#else
+#define PWS_BIG_ENDIAN
+#endif
 // **********************************************
 // * Add other platforms here...                *
 // **********************************************
@@ -547,5 +565,9 @@ static inline unsigned long ROR64c(unsigned long word, const int i)
 #endif   
 
 #define NumberOf(array) ((sizeof array)/sizeof(array[0]))
+
+#if !defined(_MFC_VER) && !defined(_WIN32)
+#define UNREFERENCED_PARAMETER(P)
+#endif
 
 #endif /* __PWSPLATFORM_H */

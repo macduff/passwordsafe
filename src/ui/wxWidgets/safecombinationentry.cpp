@@ -31,11 +31,11 @@
 #include "corelib/PWSdirs.h"
 #include "os/file.h"
 ////@begin XPM images
-////@end XPM images
 #include "../graphics/wxWidgets/cpane.xpm"
 #include "../graphics/wxWidgets/psafetxt.xpm"
+////@end XPM images
 #include "pwsafeapp.h"
-
+#include "SafeCombinationCtrl.h"
 
 /*!
  * CSafeCombinationEntry type definition
@@ -58,7 +58,6 @@ BEGIN_EVENT_TABLE( CSafeCombinationEntry, wxDialog )
   EVT_BUTTON( wxID_OK, CSafeCombinationEntry::OnOk )
 
   EVT_BUTTON( wxID_CANCEL, CSafeCombinationEntry::OnCancel )
-
 ////@end CSafeCombinationEntry event table entries
 
 END_EVENT_TABLE()
@@ -127,6 +126,8 @@ void CSafeCombinationEntry::Init()
   m_readOnly = m_core.IsReadOnly();
   m_filename = m_core.GetCurFile().c_str();
 ////@begin CSafeCombinationEntry member initialisation
+  m_version = NULL;
+  m_filenameCB = NULL;
 ////@end CSafeCombinationEntry member initialisation
 }
 
@@ -143,10 +144,7 @@ void CSafeCombinationEntry::CreateControls()
   wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxHORIZONTAL);
   itemDialog1->SetSizer(itemBoxSizer2);
 
-  wxStaticBitmap* itemStaticBitmap3 = new wxStaticBitmap(itemDialog1, wxID_STATIC,
-                                                         wxBitmap(cpane_xpm),
-                                                         wxDefaultPosition,
-                                                         itemDialog1->ConvertDialogToPixels(wxSize(49, 46)), 0 );
+  wxStaticBitmap* itemStaticBitmap3 = new wxStaticBitmap( itemDialog1, wxID_STATIC, itemDialog1->GetBitmapResource(wxT("../graphics/wxWidgets/cpane.xpm")), wxDefaultPosition, itemDialog1->ConvertDialogToPixels(wxSize(49, 46)), 0 );
   itemBoxSizer2->Add(itemStaticBitmap3, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   wxBoxSizer* itemBoxSizer4 = new wxBoxSizer(wxVERTICAL);
@@ -155,18 +153,11 @@ void CSafeCombinationEntry::CreateControls()
   wxBoxSizer* itemBoxSizer5 = new wxBoxSizer(wxHORIZONTAL);
   itemBoxSizer4->Add(itemBoxSizer5, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
-  wxStaticBitmap* itemStaticBitmap6 = new wxStaticBitmap(itemDialog1, wxID_STATIC,
-                                                          wxBitmap(psafetxt_xpm),
-                                                         wxDefaultPosition,
-                                                         itemDialog1->ConvertDialogToPixels(wxSize(111, 16)), 0 );
+  wxStaticBitmap* itemStaticBitmap6 = new wxStaticBitmap( itemDialog1, wxID_STATIC, itemDialog1->GetBitmapResource(wxT("../graphics/wxWidgets/psafetxt.xpm")), wxDefaultPosition, itemDialog1->ConvertDialogToPixels(wxSize(111, 16)), 0 );
   itemBoxSizer5->Add(itemStaticBitmap6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
-  wxStaticText* itemStaticText7 = new wxStaticText(itemDialog1, wxID_STATIC,
-                                                   wxString::Format(_("Version %d.%d"),
-                                                                    MAJORVERSION,
-                                                                    MINORVERSION),
-                                                   wxDefaultPosition, wxDefaultSize, 0 );
-  itemBoxSizer5->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+  m_version = new wxStaticText( itemDialog1, wxID_STATIC, _("VX.YY"), wxDefaultPosition, wxDefaultSize, 0 );
+  itemBoxSizer5->Add(m_version, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   wxStaticText* itemStaticText8 = new wxStaticText( itemDialog1, wxID_STATIC, _("Open Password Database:"), wxDefaultPosition, wxDefaultSize, 0 );
   itemBoxSizer4->Add(itemStaticText8, 0, wxALIGN_LEFT|wxALL, 3);
@@ -174,11 +165,9 @@ void CSafeCombinationEntry::CreateControls()
   wxBoxSizer* itemBoxSizer9 = new wxBoxSizer(wxHORIZONTAL);
   itemBoxSizer4->Add(itemBoxSizer9, 50, wxGROW|wxALL, 5);
 
-  wxArrayString itemComboBox10Strings;
-  wxGetApp().m_recentDatabases.GetAll(itemComboBox10Strings);
-  wxComboBox* itemComboBox10 = new wxComboBox( itemDialog1, ID_DBASECOMBOBOX, _T(""), wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(140, -1)).x, -1), itemComboBox10Strings, wxCB_DROPDOWN );
-  itemBoxSizer9->Add(itemComboBox10, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 0);
-  itemComboBox10->SetFocus();
+  wxArrayString m_filenameCBStrings;
+  m_filenameCB = new wxComboBox( itemDialog1, ID_DBASECOMBOBOX, wxEmptyString, wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(140, -1)).x, -1), m_filenameCBStrings, wxCB_DROPDOWN );
+  itemBoxSizer9->Add(m_filenameCB, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 0);
 
   wxButton* itemButton11 = new wxButton( itemDialog1, ID_ELLIPSIS, _("..."), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT );
   itemBoxSizer9->Add(itemButton11, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -186,8 +175,8 @@ void CSafeCombinationEntry::CreateControls()
   wxStaticText* itemStaticText12 = new wxStaticText( itemDialog1, wxID_STATIC, _("Safe Combination:"), wxDefaultPosition, wxDefaultSize, 0 );
   itemBoxSizer4->Add(itemStaticText12, 0, wxALIGN_LEFT|wxALL, 3);
 
-  wxTextCtrl* itemTextCtrl13 = new wxTextCtrl( itemDialog1, ID_PASSWORD, _T(""), wxDefaultPosition, wxSize(itemDialog1->ConvertDialogToPixels(wxSize(160, -1)).x, -1), wxTE_PASSWORD );
-  itemBoxSizer4->Add(itemTextCtrl13, 0, wxGROW|wxRIGHT|wxTOP|wxBOTTOM, 5);
+  CSafeCombinationCtrl* combinationEntry = new CSafeCombinationCtrl(itemDialog1, ID_COMBINATION);
+  itemBoxSizer4->Add(combinationEntry, 0, wxGROW|wxRIGHT|wxTOP|wxBOTTOM, 5);
 
   wxBoxSizer* itemBoxSizer14 = new wxBoxSizer(wxHORIZONTAL);
   itemBoxSizer4->Add(itemBoxSizer14, 0, wxGROW|wxALL, 5);
@@ -217,15 +206,26 @@ void CSafeCombinationEntry::CreateControls()
   itemStdDialogButtonSizer18->Realize();
 
   // Set validators
-  itemComboBox10->SetValidator( wxGenericValidator(& m_filename) );
-  itemTextCtrl13->SetValidator( wxGenericValidator(& m_password) );
+  m_filenameCB->SetValidator( wxGenericValidator(& m_filename) );
+  combinationEntry->textCtrl->SetValidator( wxGenericValidator(& m_password) );
   itemCheckBox15->SetValidator( wxGenericValidator(& m_readOnly) );
 ////@end CSafeCombinationEntry content construction
+#if (REVISION == 0)
+  m_version->SetLabel(wxString::Format(_("V%d.%02d %s"),
+                                       MAJORVERSION, MINORVERSION, SPECIALBUILD));
+#else
+  m_version->SetLabel(wxString::Format(_("V%d.%02d.%d %s"),
+                                       MAJORVERSION, MINORVERSION,
+                                       REVISION, SPECIALBUILD));
+#endif
+  wxArrayString recentFiles;
+  wxGetApp().recentDatabases().GetAll(recentFiles);
+  m_filenameCB->Append(recentFiles);
   // if m_readOnly, then don't allow user to change it
   itemCheckBox15->Enable(!m_readOnly);
   // if filename field not empty, set focus to password:
   if (!m_filename.empty()) {
-    FindWindow(ID_PASSWORD)->SetFocus();
+    FindWindow(ID_COMBINATION)->SetFocus();
   }
 }
 
@@ -248,14 +248,14 @@ wxBitmap CSafeCombinationEntry::GetBitmapResource( const wxString& name )
   // Bitmap retrieval
 ////@begin CSafeCombinationEntry bitmap retrieval
   wxUnusedVar(name);
-  if (name == _T("../graphics/cpane.bmp"))
+  if (name == _T("../graphics/wxWidgets/cpane.xpm"))
   {
-    wxBitmap bitmap(_T("../graphics/cpane.bmp"), wxBITMAP_TYPE_BMP);
+    wxBitmap bitmap(cpane_xpm);
     return bitmap;
   }
-  else if (name == _T("../graphics/psafetxt.bmp"))
+  else if (name == _T("../graphics/wxWidgets/psafetxt.xpm"))
   {
-    wxBitmap bitmap(_T("../graphics/psafetxt.bmp"), wxBITMAP_TYPE_BMP);
+    wxBitmap bitmap(psafetxt_xpm);
     return bitmap;
   }
   return wxNullBitmap;
@@ -307,14 +307,14 @@ void CSafeCombinationEntry::OnOk( wxCommandEvent& )
       wxMessageDialog err(this, errmess,
                           _("Error"), wxOK | wxICON_EXCLAMATION);
       err.ShowModal();
-      wxTextCtrl *txt = (wxTextCtrl *)FindWindow(ID_PASSWORD);
+      wxTextCtrl *txt = (wxTextCtrl *)FindWindow(ID_COMBINATION);
       txt->SetSelection(-1,-1);
       txt->SetFocus();
       return;
     }
     m_core.SetReadOnly(m_readOnly);
     m_core.SetCurFile(m_filename.c_str());
-    wxGetApp().m_recentDatabases.AddFileToHistory(m_filename);
+    wxGetApp().recentDatabases().AddFileToHistory(m_filename);
     EndModal(wxID_OK);
   }
 }
@@ -324,11 +324,11 @@ void CSafeCombinationEntry::OnOk( wxCommandEvent& )
  * wxEVT_COMMAND_BUTTON_CLICKED event handler for wxID_CANCEL
  */
 
-void CSafeCombinationEntry::OnCancel( wxCommandEvent& evt )
+void CSafeCombinationEntry::OnCancel( wxCommandEvent& event )
 {
 ////@begin wxEVT_COMMAND_BUTTON_CLICKED event handler for wxID_CANCEL in CSafeCombinationEntry.
   // Before editing this code, remove the block markers.
-  evt.Skip();
+  event.Skip();
 ////@end wxEVT_COMMAND_BUTTON_CLICKED event handler for wxID_CANCEL in CSafeCombinationEntry. 
 }
 
@@ -389,8 +389,8 @@ void CSafeCombinationEntry::OnNewDbClick( wxCommandEvent& /* evt */ )
 
   // 3. Set m_filespec && m_passkey to returned value!
   m_core.SetCurFile(newfile.c_str());
-  m_password = pksetup.GetPassword();
-  wxGetApp().m_recentDatabases.AddFileToHistory(newfile);
+  m_core.SetPassKey(pksetup.GetPassword().c_str());
+  wxGetApp().recentDatabases().AddFileToHistory(newfile);
   EndModal(wxID_OK);
 }
 

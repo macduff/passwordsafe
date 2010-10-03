@@ -358,6 +358,16 @@ void CPasskeyEntry::OnCreateDb()
   CString cf(MAKEINTRESOURCE(IDS_DEFDBNAME)); // reasonable default for first time user
   std::wstring v3FileName = PWSUtil::GetNewFileName(LPCWSTR(cf), DEFAULT_SUFFIX);
 
+  std::wstring dir;
+  DboxMain *pDbx = (DboxMain*)GetParent();
+  if (pDbx->GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(pDbx->GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   while (1) {
     CPWFileDialog fd(FALSE,
                      DEFAULT_SUFFIX,
@@ -366,11 +376,14 @@ void CPasskeyEntry::OnCreateDb()
                         OFN_LONGNAMES | OFN_OVERWRITEPROMPT,
                      CString(MAKEINTRESOURCE(IDS_FDF_V3_ALL)),
                      this);
+
     fd.m_ofn.lpstrTitle = cs_text;
-    std::wstring dir = PWSdirs::GetSafeDir();
+
     if (!dir.empty())
       fd.m_ofn.lpstrInitialDir = dir.c_str();
+
     rc = fd.DoModal();
+
     if (((DboxMain*) GetParent())->ExitRequested()) {
       // If U3ExitNow called while in CPWFileDialog,
       // PostQuitMessage makes us return here instead
@@ -510,7 +523,10 @@ void CPasskeyEntry::UpdateRO()
       m_PKE_ReadOnly = TRUE;
       GetDlgItem(IDC_READONLY)->EnableWindow(FALSE);
     } else { // no file or write-enabled
-      m_PKE_ReadOnly = FALSE;
+      if (m_index == GCP_FIRST)
+        m_PKE_ReadOnly = PWSprefs::GetInstance()->GetPref(PWSprefs::DefaultOpenRO) ? TRUE : FALSE;
+      else
+        m_PKE_ReadOnly = FALSE;
       GetDlgItem(IDC_READONLY)->EnableWindow(TRUE);
     }
     UpdateData(FALSE);
@@ -522,6 +538,7 @@ void CPasskeyEntry::OnComboEditChange()
   m_MRU_combo.m_edit.GetWindowText(m_filespec);
   m_pctlPasskey->EnableWindow(TRUE);
   m_ctlOK.EnableWindow(TRUE);
+
   UpdateRO();
 }
 
@@ -530,6 +547,7 @@ void CPasskeyEntry::OnComboSelChange()
   CRecentFileList *mru = app.GetMRU();
   int curSel = m_MRU_combo.GetCurSel();
   const int N = mru->GetSize();
+
   if (curSel == CB_ERR || curSel >= N) {
     ASSERT(0);
   } else {
@@ -539,9 +557,11 @@ void CPasskeyEntry::OnComboSelChange()
     else
       m_filespec = m_orig_filespec;
   }
+
   m_pctlPasskey->EnableWindow(TRUE);
   m_pctlPasskey->SetFocus();
   m_ctlOK.EnableWindow(TRUE);
+
   UpdateRO();
 }
 
@@ -556,17 +576,30 @@ void CPasskeyEntry::OnOpenFileBrowser()
                    OFN_FILEMUSTEXIST | OFN_LONGNAMES,
                    CString(MAKEINTRESOURCE(IDS_FDF_DB_BU_ALL)),
                    this);
+
   fd.m_ofn.lpstrTitle = cs_text;
+
   if (PWSprefs::GetInstance()->GetPref(PWSprefs::DefaultOpenRO))
       fd.m_ofn.Flags |= OFN_READONLY;
     else
       fd.m_ofn.Flags &= ~OFN_READONLY;
-  std::wstring dir = PWSdirs::GetSafeDir();
+
+  std::wstring dir;
+  DboxMain *pDbx = (DboxMain*)GetParent();
+  if (pDbx->GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(pDbx->GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
   if (!dir.empty())
     fd.m_ofn.lpstrInitialDir = dir.c_str();
 
   INT_PTR rc = fd.DoModal();
-  if (((DboxMain*) GetParent())->ExitRequested()) {
+
+  if (((DboxMain*)GetParent())->ExitRequested()) {
     // If U3ExitNow called while in CPWFileDialog,
     // PostQuitMessage makes us return here instead
     // of exiting the app. Try resignalling

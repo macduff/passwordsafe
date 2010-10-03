@@ -74,7 +74,7 @@ class PasswordSafeSearch;
 #define ID_SHOWHIDE_TOOLBAR 10037
 #define ID_SHOWHIDE_DRAGBAR 10038
 #define ID_EXPANDALL 10039
-#define ID_COLLAPESALL 10040
+#define ID_COLLAPSEALL 10040
 #define ID_FILTERMENU 10041
 #define ID_EDITFILTER 10042
 #define ID_APPLYFILTER 10043
@@ -180,6 +180,9 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_SAVE
   void OnSaveClick( wxCommandEvent& evt);
 
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_SAVEAS
+  void OnSaveAsClick(wxCommandEvent& evt);
+
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_PROPERTIES
   void OnPropertiesClick( wxCommandEvent& evt);
 
@@ -265,6 +268,23 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_CLEAR_MRU
   void OnClearRecentHistory(wxCommandEvent& evt);
 
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_IMPORT_PLAINTEXT
+  void OnImportText(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_IMPORT_XML
+  void OnImportXML(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_IMPORT_KEEPASS
+  void OnImportKeePass(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for EXPORT2OLD1XFORMAT & ID_EXPORT2V2FORMAT
+  void OnExportVx(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_EXPORT2PLAINTEXT
+  void OnExportPlainText(wxCommandEvent& evt);
+
+  /// .wxEVT_COMMAND_MENU_SELECTED event handler for ID_EXPORT2XML
+  void OnExportXml(wxCommandEvent& evt);
 
   /// called when one of the MRU db's is selected from File menu
   void OnOpenRecentDB(wxCommandEvent& evt);
@@ -280,6 +300,25 @@ public:
 
   /// wxEVT_ICONIZE event handler
   void OnIconize(wxIconizeEvent& evt);
+  
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_UNDO
+  void OnUndo(wxCommandEvent& evt);
+
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_REDO
+  void OnRedo(wxCommandEvent& evt);
+
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_EXPANDALL
+  void OnExpandAll(wxCommandEvent& /*evt*/);
+
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_COLLAPSEALL
+  void OnCollapseAll(wxCommandEvent& /*evt*/);
+
+  void OnChangeTreeFont(wxCommandEvent& /*evt*/);
+  void OnChangePasswordFont(wxCommandEvent& /*evt*/);
+
+  void OnShowHideToolBar(wxCommandEvent& /*evt*/);
+  void OnShowHideDragBar(wxCommandEvent& /*evt*/);
+
 ////@begin PasswordSafeFrame member function declarations
 
   /// Retrieves bitmap resources
@@ -304,9 +343,11 @@ public:
 
     ItemListConstIter GetEntryIter() const {return m_core.GetEntryIter();}
     ItemListConstIter GetEntryEndIter() const {return m_core.GetEntryEndIter();}
-    
+
+    void Execute(Command *pcmd, PWScore *pcore = NULL);
+
     bool IsTreeView() const {return m_currentView == TREE;}
-    void RefreshView() {if (IsTreeView()) ShowTree(); else ShowGrid();}
+    void RefreshViews() {if (IsTreeView()) ShowTree(); else ShowGrid();}
     void FlattenTree(OrderedItemList& olist);
 
     void DispatchDblClickAction(CItemData &item); //called by grid/tree
@@ -331,7 +372,10 @@ public:
 
     void ClearRUEList() { m_RUEList.ClearEntries(); }
     void OnUpdateClearRecentHistory();
-    
+
+    void ViewReport(CReport& rpt);
+
+  CItemData *GetSelectedEntry() const;
 ////@begin PasswordSafeFrame member variables
   PWSGrid* m_grid;
   PWSTreeCtrl* m_tree;
@@ -350,15 +394,18 @@ public:
   void CleanupAfterReloadFailure(bool tellUser);
   Command *Delete(CItemData *pci);
   Command *Delete(wxTreeItemId tid); // for group delete
-  CItemData *GetSelectedEntry() const;
   CItemData* GetBaseOfSelectedEntry(); //traverses to the base item if the selected item is a shortcut 
   void UpdateAccessTime(CItemData &ci);
+  enum ChangeType {Clear, Data, TimeStamp, DBPrefs, ClearDBPrefs};
+  void SetChanged(ChangeType changed);
   void CreateMainToolbar();
   bool IsRUEEvent(const wxCommandEvent& evt) {
     long index = evt.GetExtraLong();
     return index && index < 256 && size_t(index) < m_RUEList.GetCount(); 
   }
   long GetRUEIndex(const wxCommandEvent& evt) { return evt.GetExtraLong(); }
+  void RebuildGUI(const int iView = iBothViews);
+  void CreateDragBar();
 
   // Do* member functions for dbl-click and menu-accessible actions
   void DoCopyPassword(CItemData &item);
@@ -372,6 +419,9 @@ public:
   void DoBrowse(CItemData &item);
   void DoRun(CItemData &item);
   void DoEmail(CItemData &item);
+
+  template <class ExportType>
+  void DoExportText();
   
   PWScore &m_core;
   enum {TREE, GRID} m_currentView;
@@ -380,6 +430,8 @@ public:
   bool m_exitFromMenu; 
   CRUEList m_RUEList;
   GUIInfo* m_guiInfo;
+  bool m_bTSUpdated;
+  enum {iListOnly = 1, iTreeOnly = 2, iBothViews = 3};
 };
 
 #endif

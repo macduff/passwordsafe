@@ -370,10 +370,11 @@ void PWSfileV3::StretchKey(const unsigned char *salt, unsigned long saltLen,
 const short VersionNum = 0x0307;
 
 // Following specific for PWSfileV3::WriteHeader
-#define SAFE_FWRITE(p, sz, cnt, stream) do { \
+#define SAFE_FWRITE(p, sz, cnt, stream) \
+  { \
     size_t _ret = fwrite(p, sz, cnt, stream); \
     if (_ret != cnt) { status = FAILURE; goto end;} \
-  } while (0)
+  }
 
 int PWSfileV3::WriteHeader()
 {
@@ -825,12 +826,11 @@ int PWSfileV3::ReadHeader()
         pfield = new unsigned char[sizeof(uuid_array_t) + sizeof(int)];
         for (int n = 0; n < num; n++) {
           uuid_array_t uuid;
-          int nscanned = 0;
           for (size_t i = 0; i < sizeof(uuid_array_t); i++) {
 #if (_MSC_VER >= 1400)
-            nscanned += _stscanf_s(lpsz_string, _T("%02x"), &pfield[i]);
+            _stscanf_s(lpsz_string, _T("%02x"), &pfield[i]);
 #else
-            nscanned += _stscanf(lpsz_string, _T("%02x"), &pfield[i]);
+            _stscanf(lpsz_string, _T("%02x"), &pfield[i]);
 #endif
             lpsz_string += 2;
           }

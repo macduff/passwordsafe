@@ -350,10 +350,3 @@ BEGIN
   IDSC_USERONHOST          "%s on %s"
   IDSC_UNKNOWNFIELDS       "In Headers(%s)/In Entries("
 END
-
-STRINGTABLE
-BEGIN
-  IDSC_ATT_ERRORS          "Encountered errors reading attachment files"
-  IDSC_ATT_HDRMISMATCH     "Mismatch of fields in attachment file headers"
-  IDSC_ATT_UNKNOWNERROR    "Unknown error reading attachment files %d"
-END

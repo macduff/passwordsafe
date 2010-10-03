@@ -375,7 +375,7 @@ CVKeyBoardDlg::CVKeyBoardDlg(CWnd* pParent, LPCWSTR wcKLID)
     size_t non_hex = sKLID.find_first_not_of(wc_hex);
 
     // Make sure it is 8 hex characters and convert to a UINT
-    if (sKLID.length() == 8 && non_hex == std::wstring.npos) {
+    if (sKLID.length() == 8 && non_hex == std::wstring::npos) {
       std::wstring s(L"0x");
       s += sKLID;
       std::wistringstream iss(s);
@@ -401,8 +401,7 @@ CVKeyBoardDlg::~CVKeyBoardDlg()
     m_pPassphraseFont = NULL;
   }
 
-  if (m_pToolTipCtrl != NULL)
-    delete m_pToolTipCtrl;
+  delete m_pToolTipCtrl;
 
   FreeLibrary(m_OSK_module);
 

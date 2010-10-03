@@ -83,7 +83,7 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
   {_T("PWUseHexDigits"), false, ptDatabase},                // database
   {_T("PWUseEasyVision"), false, ptDatabase},               // database
   {_T("dontaskquestion"), false, ptApplication},            // application
-  {_T("deletequestion"), false, ptObsolete},                // obsolete in 3.21 - as user can now do Undo
+  {_T("deletequestion"), false, ptApplication},             // application
   {_T("DCShowsPassword"), false, ptApplication},            // application
   {_T("DontAskMinimizeClearYesNo"), true, ptObsolete},      // obsolete in 3.13 - replaced by 2 separate entries
   {_T("DatabaseClear"), false, ptApplication},              // application
@@ -122,6 +122,7 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
   {_T("NotesWordWrap"), false, ptApplication},              // application
   {_T("LockDBOnIdleTimeout"), true, ptDatabase},            // database
   {_T("HighlightChanges"), true, ptApplication},            // application
+  {_T("HideSystemTray"), false, ptApplication},             // application
 };
 
 // Default value = -1 means set at runtime
@@ -178,8 +179,6 @@ const PWSprefs::stringPref PWSprefs::m_string_prefs[NumStringPrefs] = {
   {_T("VKeyboardFontName"), _T(""), ptApplication},                 // application
   {_T("VKSampleText"), _T("AaBbYyZz 0O1IlL"), ptApplication},       // application
   {_T("AltNotesEditor"), _T(""), ptApplication},                    // application
-  {_T("EraseProgram"), _T(""), ptDatabase},                         // database
-  {_T("ErasePgmCmdLineParms"), _T(""), ptDatabase},                 // database
 };
 
 PWSprefs *PWSprefs::GetInstance()
@@ -1232,7 +1231,8 @@ void PWSprefs::SaveApplicationPreferences()
     // Here we need to explicitly lock from before
     // load to after store
     m_pXML_Config = new CXMLprefs(m_configfilename.c_str());
-    if (!m_pXML_Config->Lock()) {
+    stringT locker;
+    if (!m_pXML_Config->Lock(locker)) {
       // punt to registry!
       m_ConfigOption = CF_REGISTRY;
       delete m_pXML_Config;
@@ -1405,7 +1405,8 @@ void PWSprefs::SaveShortcuts()
     // Here we need to explicitly lock from before
     // load to after store
     m_pXML_Config = new CXMLprefs(m_configfilename.c_str());
-    if (!m_pXML_Config->Lock()) {
+    stringT locker;
+    if (!m_pXML_Config->Lock(locker)) {
       // punt to registry!
       m_ConfigOption = CF_REGISTRY;
       delete m_pXML_Config;

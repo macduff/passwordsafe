@@ -102,10 +102,11 @@ int PWSfileV1V2::ReadV2Header()
 }
 
 // Following specific for PWSfileV1V2::Open
-#define SAFE_FWRITE(p, sz, cnt, stream) do { \
+#define SAFE_FWRITE(p, sz, cnt, stream) \
+  { \
     size_t _ret = fwrite(p, sz, cnt, stream); \
     if (_ret != cnt) { status = FAILURE; goto exit;} \
-  } while (0)
+  }
 
 int PWSfileV1V2::Open(const StringX &passkey)
 {
@@ -123,7 +124,8 @@ int PWSfileV1V2::Open(const StringX &passkey)
   unsigned char *pstr;
 
 #ifdef UNICODE
-  pstr = new unsigned char[3*passLen];
+  unsigned long pstr_len = 3*passLen;
+  pstr = new unsigned char[pstr_len];
   size_t len = pws_os::wcstombs((char *)pstr, 3 * passLen, passstr, passLen, false);
   ASSERT(len != 0);
   passLen = len;
@@ -159,7 +161,7 @@ int PWSfileV1V2::Open(const StringX &passkey)
     status = CheckPasskey(m_filename, m_passkey, m_fd);
     if (status != SUCCESS) {
 #ifdef UNICODE
-      trashMemory(pstr, 3*passLen);
+      trashMemory(pstr, pstr_len);
       delete[] pstr;
 #endif
       Close();
@@ -177,7 +179,7 @@ int PWSfileV1V2::Open(const StringX &passkey)
   if (status != SUCCESS)
     Close();
 #ifdef UNICODE
-  trashMemory(pstr, 3*passLen);
+  trashMemory(pstr, pstr_len);
   delete[] pstr;
 #endif
   return status;
