@@ -56,8 +56,8 @@ private:
 };
 
 // Thread parameters
-enum {INVALID = -1, READ, WRITE, DUPLICATE, IMPORT_COMPLETE,
-                       IMPORT_WRITE, GET};
+enum {INVALID = -1, READ, WRITE, DUPLICATE, COMPLETE_XML_IMPORT,
+                       XML_EXPORT, GET};
 
 struct ATThreadParms {
   ATThreadParms()

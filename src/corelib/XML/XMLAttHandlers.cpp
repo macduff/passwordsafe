@@ -6,21 +6,6 @@
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
 
-/*
-* This routine processes Filter XML using the STANDARD and UNMODIFIED
-* Expat library V2.0.1 released on June 5, 2007
-*
-* See http://expat.sourceforge.net/
-*
-* Note: This is a cross-platform library and can be linked in as a
-* Static library or used as a dynamic library e.g. DLL in Windows.
-*
-* NOTE: EXPAT is a NON-validating XML Parser.  All conformity with the
-* scheam must be performed in the handlers.  Also, the concept of pre-validation
-* before importing is not available.
-* As per XML parsing rules, any error stops the parsing immediately.
-*/
-
 #include "XMLDefs.h"    // Required if testing "USE_XML_LIBRARY"
 
 #ifdef USE_XML_LIBRARY
@@ -136,7 +121,7 @@ void XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 
   // Note: all XML elements are in the order specified in the schema.
   // In particular, we need to know {group, title, username} and associated entry uuid
-  // first in order to decide if we cancel imprting this attachment.
+  // first in order to decide if we cancel importing this attachment.
   switch (icurrent_element) {
     case XLA_ATTACHMENT:
       if (m_bIgnoreThisAttachment) {
@@ -156,7 +141,6 @@ void XMLAttHandlers::ProcessEndElement(const int icurrent_element)
         m_strSkippedList += cs_error;
         m_numAttachmentsSkipped++;
       } else {
-        m_ventries.push_back(cur_entry);
         m_numAttachments++;
       }
       delete cur_entry;

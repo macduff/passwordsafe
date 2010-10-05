@@ -946,7 +946,7 @@ private:
   // Address of progress dialog to use SendMessage directly
   CAttProgressDlg *m_pProgressDlg;
   CWinThread *m_AttThread; // attachment worker thread
-  int DoAttachmentThread(ATThreadParms *pthdpms);
+  int DoAttachmentThread(ATThreadParms * &pthdpms);
   bool m_bNoAttachments;
 
   // The following is for saving information over an execute/undo/redo

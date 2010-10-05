@@ -7,8 +7,8 @@
 */
 
 /*
-* Common data fields for all File XML import implementations
-* This file is included by the pre-processor into the appropriate File
+* Common data fields for all Attachment XML import implementations
+* This file is included by the pre-processor into the appropriate Attachment
 * XML validation routine [E|M|X]FileValidator.cpp
 */
 

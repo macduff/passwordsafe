@@ -790,6 +790,7 @@ int DboxMain::ReadAttachmentFile(bool bVerify)
 
   int status = DoAttachmentThread(pthdpms);
 
+  delete pthdpms;
   return status;
 }
 
@@ -806,6 +807,7 @@ int DboxMain::WriteAttachmentFile(const bool bCleanup,
 
   int status = DoAttachmentThread(pthdpms);
 
+  delete pthdpms;
   return status;
 }
 
@@ -824,6 +826,7 @@ int DboxMain::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
 
   int status = DoAttachmentThread(pthdpms);
 
+  delete pthdpms;
   return status;
 }
 
@@ -834,7 +837,7 @@ int DboxMain::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
     return PWSRC::SUCCESS;
 
   ATThreadParms *pthdpms = new ATThreadParms;
-  pthdpms->function = IMPORT_WRITE;
+  pthdpms->function = XML_EXPORT;
   pthdpms->filename = filename;
   pthdpms->vatf = vatf;
   pthdpms->vAIRecordExs = vAIRecordExs;
@@ -843,6 +846,7 @@ int DboxMain::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
   int status = DoAttachmentThread(pthdpms);
 
   num_exported = pthdpms->num_exported;
+  delete pthdpms;
   return status;
 }
 
@@ -858,6 +862,7 @@ int DboxMain::GetAttachment(const stringT &newfile, const ATRecord &atr)
 
   int status = DoAttachmentThread(pthdpms);
 
+  delete pthdpms;
   return status;
 }
 
@@ -868,12 +873,13 @@ int DboxMain::CompleteImportFile(const stringT &filename,
     return PWSRC::SUCCESS;
 
   ATThreadParms *pthdpms = new ATThreadParms;
-  pthdpms->function = IMPORT_COMPLETE;
+  pthdpms->function = COMPLETE_XML_IMPORT;
   pthdpms->filename = filename.c_str();
   pthdpms->version = version;
 
   int status = DoAttachmentThread(pthdpms);
 
+  delete pthdpms;
   return status;
 }
 
@@ -894,11 +900,11 @@ static UINT AttachmentThread(LPVOID pParam)
                                                     pthdpms->new_entry_uuid,
                                                     pthdpms->version);
       break;
-    case IMPORT_COMPLETE:
+    case COMPLETE_XML_IMPORT:
       status = pthdpms->pcore->CompleteImportFile(pthdpms->impfilename,
                                                   pthdpms->version);
       break;
-    case IMPORT_WRITE:
+    case XML_EXPORT:
       status = pthdpms->pcore->WriteXMLAttachmentFile(pthdpms->filename, pthdpms->vatf,
                                                       pthdpms->vAIRecordExs,
                                                       pthdpms->num_exported);
@@ -919,7 +925,7 @@ static UINT AttachmentThread(LPVOID pParam)
   return 0;
 }
 
-int DboxMain::DoAttachmentThread(ATThreadParms *pthdpms)
+int DboxMain::DoAttachmentThread(ATThreadParms * &pthdpms)
 {
   pthdpms->pDbx = this;
   pthdpms->pcore = &m_core;
@@ -968,11 +974,11 @@ int DboxMain::DoAttachmentThread(ATThreadParms *pthdpms)
       case DUPLICATE:
         cs_function = L"DUPLICATE";
         break;
-      case IMPORT_COMPLETE:
-        cs_function = L"IMPORT_COMPLETE";
+      case COMPLETE_XML_IMPORT:
+        cs_function = L"COMPLETE_XML_IMPORT";
         break;
-      case IMPORT_WRITE:
-        cs_function = L"IMPORT_WRITE";
+      case XML_EXPORT:
+        cs_function = L"XML_EXPORT";
         break;
       case GET:
         cs_function = L"GET";
@@ -995,11 +1001,6 @@ int DboxMain::DoAttachmentThread(ATThreadParms *pthdpms)
     gmb.AfxMessageBox(cs_msg, cs_title, MB_OK | MB_ICONEXCLAMATION);
   }
 
-  // Delete thread parameters structure and return
-  // Before deleting it - clear pointer to PWScore
-  pthdpms->pcore = NULL;
-  delete pthdpms;
-  pthdpms = NULL;
   return status;
 }
 

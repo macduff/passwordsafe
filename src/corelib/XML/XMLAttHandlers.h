@@ -116,8 +116,6 @@ public:
   int getNumEntries() const {return m_numAttachments;}
   int getNumSkipped() const {return m_numAttachmentsSkipped;}
 
-  vatt_entries & getVAtt_Entries() {return m_ventries;}
-
 protected:
   bool ProcessStartElement(const int icurrent_element);
   void ProcessEndElement(const int icurrent_element);

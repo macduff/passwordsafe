@@ -926,6 +926,13 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
       }
     }
 
+    atr.Clear();
+    st_atpg.function = ATT_PROGRESS_START;
+    LoadAString(st_atpg.function_text, IDSC_ATT_COPYFILE);
+    st_atpg.atr = atr;
+    st_atpg.value = 0;
+    AttachmentProgress(st_atpg);
+
     // First process all existing attachments
     bool go(true);
     while (go && in != NULL) {
@@ -961,8 +968,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
               atr.flags = iter->second.flags;
               atr.description = iter->second.description;
 
-              st_atpg.function = ATT_PROGRESS_START;
-              LoadAString(st_atpg.function_text, IDSC_ATT_COPYFILE);
+              st_atpg.function = ATT_PROGRESS_PROCESSFILE;
               st_atpg.atr = atr;
               st_atpg.value = 0;
               AttachmentProgress(st_atpg);
@@ -2037,7 +2043,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
       num_exported++;
       ofs << "\t<attachment id=\"" << dec << num_exported << "\" >" << endl;
 
-      // NOTE - ORDER MAUST CORRESPOND TO ORDER IN SCHEMA
+      // NOTE - ORDER ***MUST*** CORRESPOND TO ORDER IN SCHEMA
       if (!atrex.sxGroup.empty())
         PWSUtil::WriteXMLField(ofs, "group", atrex.sxGroup, utf8conv);
 
