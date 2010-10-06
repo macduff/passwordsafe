@@ -1231,6 +1231,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML\Expat\EAttHandlers.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Expat\EAttValidator.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Expat\EAttXMLProcessor.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML\EXPAT\EFileHandlers.cpp"
 				>
 			</File>
@@ -1419,6 +1431,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML\Xerces\XAttSAX2Handlers.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Xerces\XAttValidator.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Xerces\XAttXMLProcessor.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML\XERCES\XFileSAX2Handlers.cpp"
 				>
 			</File>
@@ -1497,6 +1521,22 @@
 			</File>
 			<File
 				RelativePath=".\corelib_st.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Expat\EAttHandlers.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Expat\EAttValidator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Expat\EAttValidatorDefs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Expat\EAttXMLProcessor.h"
 				>
 			</File>
 			<File
@@ -1717,6 +1757,18 @@
 			</File>
 			<File
 				RelativePath=".\VerifyFormat.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Xerces\XAttSAX2Handlers.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Xerces\XAttValidator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XML\Xerces\XAttXMLProcessor.h"
 				>
 			</File>
 			<File

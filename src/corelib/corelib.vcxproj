@@ -742,6 +742,9 @@
     <ClCompile Include="corelib_st.cpp" />
     <ClCompile Include="PWSAttfile.cpp" />
     <ClCompile Include="PWSAttfileV3.cpp" />
+    <ClCompile Include="XML\Expat\EAttHandlers.cpp" />
+    <ClCompile Include="XML\Expat\EAttValidator.cpp" />
+    <ClCompile Include="XML\Expat\EAttXMLProcessor.cpp" />
     <ClCompile Include="XML\EXPAT\EFileHandlers.cpp" />
     <ClCompile Include="XML\EXPAT\EFileValidator.cpp" />
     <ClCompile Include="XML\EXPAT\EFileXMLProcessor.cpp" />
@@ -787,6 +790,9 @@
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="UUIDGen.cpp" />
     <ClCompile Include="VerifyFormat.cpp" />
+    <ClCompile Include="XML\Xerces\XAttSAX2Handlers.cpp" />
+    <ClCompile Include="XML\Xerces\XAttValidator.cpp" />
+    <ClCompile Include="XML\Xerces\XAttXMLProcessor.cpp" />
     <ClCompile Include="XML\XERCES\XFileSAX2Handlers.cpp" />
     <ClCompile Include="XML\Xerces\XFileValidator.cpp" />
     <ClCompile Include="XML\XERCES\XFileXMLProcessor.cpp" />
@@ -810,6 +816,10 @@
     <ClInclude Include="corelib_st.h" />
     <ClInclude Include="PWSAttfile.h" />
     <ClInclude Include="PWSAttfileV3.h" />
+    <ClInclude Include="XML\Expat\EAttHandlers.h" />
+    <ClInclude Include="XML\Expat\EAttValidator.h" />
+    <ClInclude Include="XML\Expat\EAttValidatorDefs.h" />
+    <ClInclude Include="XML\Expat\EAttXMLProcessor.h" />
     <ClInclude Include="XML\EXPAT\EFileHandlers.h" />
     <ClInclude Include="XML\EXPAT\EFileValidator.h" />
     <ClInclude Include="XML\EXPAT\EFileValidatorDefs.h" />
@@ -862,6 +872,9 @@
     <ClInclude Include="Util.h" />
     <ClInclude Include="UUIDGen.h" />
     <ClInclude Include="VerifyFormat.h" />
+    <ClInclude Include="XML\Xerces\XAttSAX2Handlers.h" />
+    <ClInclude Include="XML\Xerces\XAttValidator.h" />
+    <ClInclude Include="XML\Xerces\XAttXMLProcessor.h" />
     <ClInclude Include="XML\XERCES\XFileSAX2Handlers.h" />
     <ClInclude Include="XML\Xerces\XFileValidator.h" />
     <ClInclude Include="XML\XERCES\XFileXMLProcessor.h" />

@@ -20,7 +20,7 @@
 #ifndef __MFILEVALIDATOR_H
 #define __MFILEVALIDATOR_H
 
-// XML File Import constants - used by Expat and Xerces and will be by MSXML
+// XML File Import constants - used by Expat, Xerces and MSXML
 #include "../XMLFileValidation.h"
 
 class MFileValidator : public XMLFileValidation

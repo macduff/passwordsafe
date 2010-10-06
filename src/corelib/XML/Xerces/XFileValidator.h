@@ -17,7 +17,7 @@
 #ifndef __XFILEVALIDATOR_H
 #define __XFILEVALIDATOR_H
 
-// XML File Import constants - used by Expat and Xerces and will be by MSXML
+// XML File Import constants - used by Expat, Xerces and MSXML
 #include "../XMLFileValidation.h"
 
 // PWS includes

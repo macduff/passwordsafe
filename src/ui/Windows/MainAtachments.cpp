@@ -866,7 +866,7 @@ int DboxMain::GetAttachment(const stringT &newfile, const ATRecord &atr)
   return status;
 }
 
-int DboxMain::CompleteImportFile(const stringT &filename,
+int DboxMain::CompleteImportFile(const stringT &impfilename,
                                  PWSAttfile::VERSION version)
 {
   if (m_bNoAttachments)
@@ -874,7 +874,7 @@ int DboxMain::CompleteImportFile(const stringT &filename,
 
   ATThreadParms *pthdpms = new ATThreadParms;
   pthdpms->function = COMPLETE_XML_IMPORT;
-  pthdpms->filename = filename.c_str();
+  pthdpms->impfilename = impfilename.c_str();
   pthdpms->version = version;
 
   int status = DoAttachmentThread(pthdpms);

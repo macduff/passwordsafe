@@ -69,8 +69,8 @@ unsigned long __stdcall MAttSAX2ErrorHandler::Release()
 }
 
 HRESULT STDMETHODCALLTYPE MAttSAX2ErrorHandler::error(struct ISAXLocator * pLocator,
-                                                       const wchar_t * pwchErrorMessage,
-                                                       HRESULT hrErrorCode )
+                                                      const wchar_t * pwchErrorMessage,
+                                                      HRESULT hrErrorCode )
 {
   TCHAR szErrorMessage[MAX_PATH * 2] = {0};
   TCHAR szFormatString[MAX_PATH * 2] = {0};
@@ -112,15 +112,15 @@ HRESULT STDMETHODCALLTYPE MAttSAX2ErrorHandler::error(struct ISAXLocator * pLoca
 }
 
 HRESULT STDMETHODCALLTYPE MAttSAX2ErrorHandler::fatalError(struct ISAXLocator * pLocator,
-                                                            const wchar_t * pwchErrorMessage,
-                                                            HRESULT hrErrorCode )
+                                                           const wchar_t * pwchErrorMessage,
+                                                           HRESULT hrErrorCode )
 {
   return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE MAttSAX2ErrorHandler::ignorableWarning(struct ISAXLocator * pLocator,
-                                                                  const wchar_t * pwchErrorMessage,
-                                                                  HRESULT hrErrorCode )
+                                                                 const wchar_t * pwchErrorMessage,
+                                                                 HRESULT hrErrorCode )
 {
   return S_OK;
 }
@@ -254,10 +254,10 @@ HRESULT STDMETHODCALLTYPE MAttSAX2ContentHandler::startElement(
   switch (icurrent_element) {
     case XLA_ATTACHMENT:
       {
-        TCHAR *lpValue2 = AttProcessAttributes(pAttributes, _T("id"));
-        if (lpValue2 != NULL) {
-          cur_entry->id = _ttoi(lpValue2) ;
-          free(lpValue2);
+        TCHAR *lpValue = AttProcessAttributes(pAttributes, _T("id"));
+        if (lpValue != NULL) {
+          cur_entry->id = _ttoi(lpValue) ;
+          free(lpValue);
         }
       }
       break;

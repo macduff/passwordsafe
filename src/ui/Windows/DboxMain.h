@@ -774,7 +774,7 @@ private:
                            PWSAttfile::VERSION version = PWSAttfile::VCURRENT);
   int WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf, 
                              ATRExVector &vAIRecordExs, size_t &num_exported);
-  int CompleteImportFile(const stringT &filename, PWSAttfile::VERSION version);
+  int CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION version);
 
   static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 

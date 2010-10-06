@@ -7,26 +7,34 @@
 */
 
 /*
-* This routine doesn't do anything as MS XML is a validating XML Parser.
+* This routine doesn't do anything as Xerces is a validating XML Parser.
 * However, it is present to mimic Expat's version and contains similar data
 * to streamline import processing.
 *
-* Non-unicode builds will need convert any results from parsing the XML
-* document from UTF-16 to ASCII.  This is done in the XFileSAX2Handlers routines:
-* 'startelement' for attributes and 'characters' & 'ignorableWhitespace'
-* for element data.
+* Note: Xerces uses wchar_t even in non-Unicode mode.
 */
 
-#ifndef __MATTVALIDATOR_H
-#define __MATTVALIDATOR_H
+#ifndef __XATTVALIDATOR_H
+#define __XATTVALIDATOR_H
 
 // XML Attachment Import constants - used by Expat, Xerces and MSXML
 #include "../XMLAttValidation.h"
 
-class MAttValidator : public XMLAttValidation
+// PWS includes
+#include "../../StringX.h"
+
+#include <vector>
+#include <map>
+
+// Xerces includes
+#include <xercesc/util/XercesDefs.hpp>
+
+XERCES_CPP_NAMESPACE_USE
+
+class XAttValidator : public XMLAttValidation
 {
 public:
-  MAttValidator();
+  XAttValidator();
 };
 
-#endif /* __MATTVALIDATOR_H */
+#endif /* __XATTVALIDATOR_H */
