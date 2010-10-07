@@ -18,8 +18,6 @@
 
 #include <vector>
 
-typedef std::vector<CUUIDGen> UUIDVector;
-
 class PWScore;
 class PWSAttfile;
 

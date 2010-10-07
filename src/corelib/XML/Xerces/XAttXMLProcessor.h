@@ -52,8 +52,6 @@
 #include <iostream.h>
 #endif
 
-typedef std::vector<CUUIDGen> UUIDVector;
-
 class PWScore;
 class PWSAttfile;
 

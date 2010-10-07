@@ -175,7 +175,8 @@ bool XAttXMLProcessor::Process(const bool &bvalidation,
            strResultText.c_str());
   } else {
     if (m_bValidation) {
-      m_numAttachmentsValidated = pSAX2Handler->m_numAttachments;
+      m_strXMLErrors = pSAX2Handler->getValidationResult();
+      m_numEntriesValidated = pSAX2Handler->getNumEntries();
     } else {
       // Get numbers (may have been modified by AddEntries
       m_numAttachmentsImported = pSAX2Handler->m_numAttachments;

@@ -49,13 +49,6 @@
   </xs:sequence>
 </xs:complexType>
 
-<xs:simpleType name="fieldType">
-  <xs:restriction base="xs:int">
-    <xs:minInclusive value="15" />
-    <xs:maxExclusive value="253" />
-  </xs:restriction>
-</xs:simpleType>
-
 <xs:simpleType name="fileuuidType">
   <xs:restriction base="xs:string">
     <xs:pattern value="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA­F]{12}" />
