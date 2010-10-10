@@ -59,8 +59,8 @@ End of Entry                 0xff        [empty]
 #define ATT_ATTACHMENT_DELETED  0x40
 // Unused                       0x3f
 
-// Max file size (memory allocation restrictions) - 32MB
-#define ATT_MAXSIZE             32
+// Max file size - 1GB (1024MB - 2^30)
+#define ATT_MAXSIZE             1024
 
 // Function calls to GetAttachment
 enum {OPENFILE, GETPRE, GETDATA, GETPOST, CLOSEFILE};
