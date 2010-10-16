@@ -15,41 +15,49 @@
 
 namespace PWSRC {
   enum {
-    SUCCESS = 0,                              // 0x00 = 0
-    FAILURE,                                  // 0x01 = 1
+    SUCCESS = 0,                              // 0x0000 =    0
+    FAILURE,                                  // 0x0001 =    1
+    USER_CANCEL,                              // 0x0002 =    2
+    USER_EXIT,                                // 0x0003 =    3
+    LIMIT_REACHED,                            // 0x0004 =    4
+ 
+    // Files
+    CANT_OPEN_FILE = 0x0020,                  // 0x0020 =   32
+    NOT_PWS3_FILE,                            // 0x0021 =   33
+    UNSUPPORTED_VERSION,                      // 0x0022 =   34
+    WRONG_VERSION,                            // 0x0023 =   35
+    UNKNOWN_VERSION,                          // 0x0024 =   36
+    INVALID_FORMAT,                           // 0x0025 =   37
+    END_OF_FILE,                              // 0x0026 =   38
+    ALREADY_OPEN,                             // 0x0027 =   39
+    WRONG_PASSWORD,                           // 0x0028 =   40
+    BAD_DIGEST,                               // 0x0029 =   41
 
-    CANT_OPEN_FILE = 0x10,                    // 0x10 = 16
-    NOT_PWS3_FILE,                            // 0x11 = 17
-    UNSUPPORTED_VERSION,                      // 0x12 = 18
-    WRONG_VERSION,                            // 0x13 = 19
-    UNKNOWN_VERSION,                          // 0x14 = 20
-    INVALID_FORMAT,                           // 0x15 = 21
-    END_OF_FILE,                              // 0x16 = 22
-    ALREADY_OPEN,                             // 0x17 = 23
+    // XML import/export
+    XML_FAILED_VALIDATION = 0x0040,           // 0x4000 =   64
+    XML_FAILED_IMPORT,                        // 0x0041 =   65
+    NO_ENTRIES_EXPORTED,                      // 0x0042 =   66
+    DB_HAS_DUPLICATES,                        // 0x0043 =   67
+    OK_WITH_ERRORS,                           // 0x0044 =   68
 
-    WRONG_PASSWORD = 0x20,                    // 0x20 = 32
-    BAD_DIGEST,                               // 0x21 = 33
+    // Preferences
+    XML_LOAD_FAILED = 0x0060,                 // 0x0060 =   96
+    XML_NODE_NOT_FOUND,                       // 0x0061 =   97
+    XML_PUT_TEXT_FAILED,                      // 0x0062 =   98
+    XML_SAVE_FAILED,                          // 0x0063 =   99
 
-    USER_CANCEL = 0x30,                       // 0x30 = 48
-    USER_EXIT,                                // 0x31 = 49
+    // Attachments
+    HEADERS_INVALID = 0x0100,                 // 0x0100 =  256
+    BAD_ATTACHMENT,                           // 0x0101 =  257
+    END_OF_DATA,                              // 0x0102 =  258
+    BADTARGETDEVICE,                          // 0x0103 =  259
+    CANTCREATEFILE,                           // 0x0104 =  260
+    CANTFINDATTACHMENT,                       // 0x0105 =  261
+    BADDATA,                                  // 0x0106 =  262
+    BADATTACHMENTWRITE,                       // 0x0107 =  263
+    BADCRCDIGEST,                             // 0x0108 =  264
 
-    XML_FAILED_VALIDATION = 0x40,             // 0x40 = 64
-    XML_FAILED_IMPORT,                        // 0x41 = 65
-    LIMIT_REACHED,                            // 0x42 = 66
-    NO_ENTRIES_EXPORTED,                      // 0x43 = 67
-    DB_HAS_DUPLICATES,                        // 0x44 = 68
-    OK_WITH_ERRORS,                           // 0x45 = 69
-
-    XML_LOAD_FAILED = 0x50,                   // 0x50 = 80
-    XML_NODE_NOT_FOUND,                       // 0x51 = 81
-    XML_PUT_TEXT_FAILED,                      // 0x52 = 82
-    XML_SAVE_FAILED,                          // 0x53 = 83
-    
-    HEADERS_INVALID = 0x80,                   // 0x80 = 128
-    BAD_ATTACHMENT,                           // 0x81 = 129
-    END_OF_DATA,                              // 0x82 = 130
-
-    UNIMPLEMENTED = 0xF0,                     // 0xF0 = 240
+    UNIMPLEMENTED = 0x0FFF,                   // 0x0FFF = 4095
   };
 };
 

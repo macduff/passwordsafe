@@ -216,6 +216,7 @@
 #define IDSC_ENTRIES                    3395
 #define IDSC_LARGEENTRIES               3396
 #define IDSC_RELATIVE                   3397
+#define IDSC_FILE_UNREADABLE            3398
 
 #define IDSC_DELETEBASET                3400
 #define IDSC_DELETEABASE                3401
@@ -238,10 +239,12 @@
 #define IDSC_ATT_APPEND_DUPS            3512
 #define IDSC_ATT_SEARCHFILE             3513
 #define IDSC_ATT_EXTRACTINGFILE         3514
-#define IDSC_ATT_SKIPPINGFILE           3515
+#define IDSC_ATT_SKIPPINGDELFILE        3515
 #define IDSC_ATT_APPEND_NEW             3516
 #define IDSC_ATT_CREATEIMPFILE          3517
 #define IDSC_ATT_APPEND_IMP             3518
+#define IDSC_ATT_SKIPPINGFILE           3519
+#define IDSC_ATT_EXPORTINGFILE          3520
 
 // Keep DCA together
 #define IDSC_CURRENTDEFAULTDCA          4000

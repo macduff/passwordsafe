@@ -114,10 +114,11 @@ bool XMLAttHandlers::ProcessStartElement(const int icurrent_element)
   return true;
 }
 
-void XMLAttHandlers::ProcessEndElement(const int icurrent_element)
+bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 {
   StringX buffer(_T(""));
   ItemListIter iter1, iter2;
+  bool bRC = true;
 
   // Note: all XML elements are in the order specified in the schema.
   // In particular, we need to know {group, title, username} and associated entry uuid
@@ -197,12 +198,12 @@ void XMLAttHandlers::ProcessEndElement(const int icurrent_element)
       cur_entry->atr.cmpsize = _wtoi(m_strElemContent.c_str());
       break;
     case XLA_CRC:
-      {
+    {
       wchar_t *p;
       StringX hex_string = StringX(_T("0x")) + m_strElemContent;
       cur_entry->atr.CRC = wcstoul(hex_string.c_str(), &p, 16);
-      }
       break;
+    }
     case XLA_ODIGEST:
       ConvertFromHex(m_strElemContent, sizeof(cur_entry->atr.odigest),
                      cur_entry->atr.odigest);
@@ -314,7 +315,12 @@ void XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 
       st_atpg.function = ATT_PROGRESS_PROCESSFILE;
       st_atpg.value = (int)((cur_entry->datalength * 1.0E02) / cur_entry->atr.uncsize);
-      m_pXMLcore->AttachmentProgress(st_atpg);
+      int rc = m_pXMLcore->AttachmentProgress(st_atpg);
+      if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+        bRC = false;
+        m_bIgnoreThisAttachment = true;
+        break;
+      }
 
       delete [] pData;
       break;
@@ -357,7 +363,12 @@ void XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 
       st_atpg.function = ATT_PROGRESS_PROCESSFILE;
       st_atpg.value = 100;
-      m_pXMLcore->AttachmentProgress(st_atpg);
+      int rc = m_pXMLcore->AttachmentProgress(st_atpg);
+      if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+        bRC = false;
+        m_bIgnoreThisAttachment = true;
+        break;
+      }
 
       if (cur_entry->atr.cmpsize != cur_entry->datalength) {
         cur_entry->err_flags |= ATT_ERR_SIZEDIFFERENT;
@@ -380,6 +391,14 @@ void XMLAttHandlers::ProcessEndElement(const int icurrent_element)
     default:
       break;
   }
+
+  if (!bRC) {
+    m_pimport3->Close();
+    delete m_pimport3;
+    m_pimport3 =  NULL;
+    m_pimport = NULL;
+  }
+  return bRC;
 }
 
 void XMLAttHandlers::ValidateImportData(att_entry * &cur_entry)

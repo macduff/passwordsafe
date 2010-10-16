@@ -5,6 +5,8 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+// AddEdit_PropertySheet.cpp : implementation file
+//
 
 #include "PasswordSafe.h"
 #include "DboxMain.h"
@@ -14,6 +16,7 @@
 
 #include "corelib/ItemData.h"
 #include "corelib/PWSprefs.h"
+#include "corelib/return_codes.h"
 
 IMPLEMENT_DYNAMIC(CAddEdit_PropertySheet, CPWPropertySheet)
 
@@ -207,7 +210,9 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
 {
   // There is no OnOK for classes derived from CPropertySheet,
   // so we make our own!
+  int rc(PWSRC::SUCCESS);
   const int iCID = LOWORD(wParam);
+
   if (iCID == IDOK || iCID == IDC_AEAPPLY) {
     // First send a message to all loaded pages using base class function.
     // We want them all to update their variables in the Master Data area.
@@ -369,19 +374,34 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
       // Just end it
       CPWPropertySheet::EndDialog(IDOK);
     } else {
-      // Send message to DboxMain to update entry
-      m_AEMD.pDbx->SendMessage(PWS_MSG_EDIT_APPLY, (WPARAM)this, NULL);
+      // Send message to DboxMain to update entry but stop any other changes!
+      EnableWindow(FALSE);
+      rc = m_AEMD.pDbx->SendMessage(PWS_MSG_EDIT_APPLY, (WPARAM)this, NULL);
+      EnableWindow(TRUE);
 
       // Now make the original equal to new intermediate state
       *(m_AEMD.pci_original) = *(m_AEMD.pci);
 
       // Now Reset starting values
       SetupInitialValues();
+
+      if (rc == PWSRC::SUCCESS) {
+        // Insert new attachments to existing attachments
+        //m_AEMD.vATRecords.insert(m_AEMD.vATRecords.end(), 
+        //                         m_AEMD.vNewATRecords.begin(), m_AEMD.vNewATRecords.end());
+
+        // Clear mew attachments that should have already been added via above SendMessage
+        m_AEMD.vNewATRecords.clear();
+
+        m_pp_attachments->UpdateLists();
+        SetAttachmentsChanged(false);
+      }
+
       SetChanged(false);
     }
     m_AEMD.entrysize = m_AEMD.pci->GetSize();
     m_pp_datetimes->UpdateStats();
-    return TRUE;
+    return rc == PWSRC::SUCCESS ? TRUE : FALSE;
   }
 
   return CPWPropertySheet::OnCommand(wParam, lParam);
@@ -546,15 +566,15 @@ void CAddEdit_PropertySheet::SetupInitialValues()
       pbci->GetUUID(original_base_uuid);
       memcpy(m_AEMD.base_uuid, original_base_uuid, sizeof(uuid_array_t));
       CSecString cs_base = L"[" +
-                           pbci->GetGroup() + L":" +
-                           pbci->GetTitle() + L":" +
-                           pbci->GetUser()  + L"]";
+                               pbci->GetGroup() + L":" +
+                               pbci->GetTitle() + L":" +
+                               pbci->GetUser()  +
+                           L"]";
       m_AEMD.base = cs_base;
       m_AEMD.original_entrytype = CItemData::ET_ALIAS;
     }
   } // IsAlias
 
-  // Get current attachments
-  // m_AEMD.entry_uuid
+  // Get current attachments based on m_AEMD.entry_uuid
   m_AEMD.pcore->GetAttachments(m_AEMD.entry_uuid, m_AEMD.vATRecords);
 }

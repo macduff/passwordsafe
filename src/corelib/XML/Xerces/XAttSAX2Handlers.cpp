@@ -135,8 +135,8 @@ void XAttSAX2Handlers::ignorableWhitespace(const XMLCh* const chars,
 }
 
 void XAttSAX2Handlers::endElement(const XMLCh* const /* uri */,
-                                   const XMLCh* const /* localname */,
-                                   const XMLCh* const qname)
+                                  const XMLCh* const /* localname */,
+                                  const XMLCh* const qname)
 {
   USES_XMLCH_STR
   
@@ -153,7 +153,7 @@ void XAttSAX2Handlers::endElement(const XMLCh* const /* uri */,
 
   // The rest is only processed in Import mode (not Validation mode)
   const int icurrent_element = m_bAttachmentBeingProcessed ? edata.element_entry_code : edata.element_code;
-  XMLAttHandlers::ProcessEndElement(icurrent_element);
+  bool bRC = XMLAttHandlers::ProcessEndElement(icurrent_element);
 }
 
 void XAttSAX2Handlers::FormatError(const SAXParseException& e, const int type)

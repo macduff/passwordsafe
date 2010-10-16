@@ -141,7 +141,6 @@ public:
   bool AttMatches(const ATRecordEx &atrex, const ATFVector &atfv);
   bool AttMatches(const ATRecordEx &atrex, const int &iObject, const int &iFunction,
                   const stringT &value) const;
-  void AddAttachment(const ATRecord &atr);
   void ChangeAttachment(const ATRecord &atr);
   PWSAttfile *CreateImportFile(stringT &impfilename,    
                                PWSAttfile::VERSION version = PWSAttfile::VCURRENT);
@@ -493,8 +492,8 @@ private:
   // Attachments
   void SetupAttachmentHeader();
   int SaveAttachmentFile(const stringT &tempfilename);
-  UUIDATRMMap m_MM_entry_uuid_atr;        // std::multimap key = entry_uuid, value = attachment record
-  UUIDATRMMap m_MM_entry_uuid_atr_saved;  // As above but status as per the last save.
+  UUIDATRMMap m_MM_entry_uuid_atr;          // std::multimap key = entry_uuid, value = attachment record
+  UUIDATRMMap m_MM_entry_uuid_atr_saved;    // As above but status as per the last save.
 
   static Reporter *m_pReporter; // set as soon as possible to show errors
   static Asker *m_pAsker;

@@ -810,6 +810,7 @@
 #define IDC_STATIC_FILENAME             1496
 #define IDC_STATIC_DESCRIPTION          1497
 #define IDC_STATIC_FUNCTION             1498
+#define IDC_PAUSERESUME                 1499
 
 // Next default values for new objects
 // 
@@ -817,7 +818,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        517
 #define _APS_NEXT_COMMAND_VALUE         30001
-#define _APS_NEXT_CONTROL_VALUE         1499
+#define _APS_NEXT_CONTROL_VALUE         1500
 #define _APS_NEXT_SYMED_VALUE           166
 #endif
 #endif

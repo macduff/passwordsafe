@@ -273,7 +273,7 @@ void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
           newfile = fd.GetPathName();
           break;
         } else
-          goto exit;
+          return;
       } // while (1)
 
       ATRExVector vAIRecordExs;
@@ -284,8 +284,11 @@ void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
       rc = WriteXMLAttachmentFile(newfile, vatf, vAIRecordExs, num_exported);
 
       if (rc != PWSRC::SUCCESS) {
-        //DisplayFileWriteError(rc, newfile);
-        ASSERT(0);
+        pws_os::DeleteAFile(newfile.c_str());
+        cs_text.LoadString(IDS_USERABORTEDXMLEXPORT);
+        cs_title.LoadString(IDS_EXPORTED);
+        gmb.MessageBox(cs_text, cs_title, MB_OK | MB_ICONEXCLAMATION);
+        return;
       }
     } else {
       gmb.AfxMessageBox(IDS_BADPASSKEY);
@@ -296,8 +299,6 @@ void DboxMain::DoExportAttachmentsXML(ATRecordEx *pATREx)
   cs_text.Format(IDS_EXPORTOK, num_exported);
   cs_title.LoadString(IDS_EXPORTED);
   gmb.MessageBox(cs_text, cs_title, MB_OK | MB_ICONINFORMATION);
-
-exit:
   return;
 }
 
@@ -480,7 +481,7 @@ void DboxMain::DoAttachmentExtraction(const ATRecord &atr)
   StringX sxFile;
   std::wstring sDrv, sDir, sFname, sExt, sxFilter, wsNewName(L"");
 
-  GetAttachmentStatus ga_status(OK);
+  int ga_status(PWSRC::SUCCESS);
 
   // If user mandated that a secure delete program is there, first check that they have
   // specified one and then check it exists on this system.
@@ -536,7 +537,7 @@ void DboxMain::DoAttachmentExtraction(const ATRecord &atr)
         UINT uiDT = GetDriveType(wsNewDrive.c_str());
         // Do not allow unless to a removeable device
         if (uiDT != DRIVE_REMOVABLE && uiDT != DRIVE_RAMDISK) {
-          ga_status = BADTARGETDEVICE;
+          ga_status = PWSRC::BADTARGETDEVICE;
           goto exit;
         }
       } else {
@@ -550,34 +551,38 @@ void DboxMain::DoAttachmentExtraction(const ATRecord &atr)
     return;
 
   // Invoke thread
-  ga_status = (GetAttachmentStatus)GetAttachment(wsNewName, atr);
+  ga_status = GetAttachment(wsNewName, atr);
 
 exit:
   UINT uiTitle(0), uiMSG(0);
   int flags(MB_OK | MB_ICONEXCLAMATION);
   switch (ga_status) {
-    case OK:
+    case PWSRC::SUCCESS:
       uiTitle = IDS_EXTRACTED;
       uiMSG = IDS_COMPLETEDOK;
       flags = MB_OK | MB_ICONINFORMATION;
       break;
-    case BADTARGETDEVICE:
+    case PWSRC::USER_CANCEL:
+      uiTitle = IDS_EXTRACTED;
+      uiMSG = IDS_USERCANCELLEDEXTRACT;
+      break;
+    case PWSRC::BADTARGETDEVICE:
       uiTitle = IDS_WILLNOTEXTRACT;
       uiMSG = IDS_NOTREMOVEABLE;
       break;
-    case CANTCREATEFILE:
+    case PWSRC::CANTCREATEFILE:
       uiTitle =IDS_WILLNOTEXTRACT;
       uiMSG = IDS_CANTCREATEFILE;
       break;
-    case CANTFINDATTACHMENT:
+    case PWSRC::CANTFINDATTACHMENT:
       uiTitle = IDS_WILLNOTEXTRACT;
       uiMSG = IDS_CANTGETATTACHMENT;
       break;
-    case BADCRCDIGEST:
+    case PWSRC::BADCRCDIGEST:
       uiTitle = IDS_CRCHASHERROR;
       uiMSG = IDS_CONTINUEEXTRACT;
       break;
-    case BADATTACHMENTWRITE:
+    case PWSRC::BADATTACHMENTWRITE:
       uiTitle = IDS_EXTRACTED;
       uiMSG = IDS_BADATTACHMENTWRITE;
       break;
@@ -606,15 +611,12 @@ int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
   SHA1 context;
   BOOL brc;
 
-  GetAttachmentStatus ga_status(OK);
-
   // Open the file
   hFile = CreateFile(newfile.c_str(), GENERIC_WRITE,
                          0, 0, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
   if (hFile == INVALID_HANDLE_VALUE) {
-    ga_status = CANTCREATEFILE;
-    goto exit;
+    return PWSRC::CANTCREATEFILE;
   }
 
   // Long job
@@ -627,8 +629,7 @@ int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
 
   if (status != PWSRC::SUCCESS) {
     // Error message to user
-    ga_status = CANTFINDATTACHMENT;
-    EndWaitCursor();
+    status = PWSRC::CANTFINDATTACHMENT;
     goto exit;
   }
 
@@ -637,15 +638,18 @@ int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
   status = m_core.GetAttachment(atr, GETPRE, pUncData, unclength, readtype);
 
   if (status != PWSRC::SUCCESS) {
-    // Error message to user - exit will do te CLOSEFILE
-    ga_status = CANTFINDATTACHMENT;
-    EndWaitCursor();
+    // Error message to user - exit will do the CLOSEFILE
     goto exit;
   }
 
   // We now have it - go get all the data
   do {
     status = m_core.GetAttachment(atr, GETDATA, pUncData, unclength, readtype);
+    if (status == PWSRC::USER_CANCEL) {
+      // Error message to user - exit will do the CLOSEFILE
+      goto exit;
+    }
+
     uncsize += unclength;
 
     // Now update CRC and SHA1 hash of data retrieved
@@ -664,32 +668,33 @@ int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
     }
 
     if (brc == 0 || (unsigned int)numwritten != unclength) {
-      ga_status = BADATTACHMENTWRITE;
-      EndWaitCursor();
+      status = PWSRC::BADATTACHMENTWRITE;
       goto exit;
     }
   } while (status == PWSRC:: SUCCESS && readtype != PWSAttfile::ATTMT_LASTDATA);
 
   if (status != PWSRC::SUCCESS || readtype != PWSAttfile::ATTMT_LASTDATA) {
     // Error message to user
-    ga_status = BADDATA;
-    EndWaitCursor();
+    status = PWSRC::BADDATA;
     goto exit;
   }
 
   // Get the final data to check CRC and digest
   status = m_core.GetAttachment(atr, GETPOST, pUncData, unclength, readtype);
+  if (status == PWSRC::USER_CANCEL) {
+    // Error message to user - exit will do the CLOSEFILE
+    goto exit;
+  }
+
   CRC = PWSUtil::Get_CRC_Incremental_Final();
   context.Final(odigest);
-
-  EndWaitCursor();
 
   if (CRC != atr.CRC ||
       memcmp(odigest, atr.odigest, SHA1::HASHLEN) != 0) {
     // Need  our own CGeneralMsgBox as may use one defined above at end and
     // it can only be used once.
     // CRC and/or SHA1 Hash mis-match, ask user whether to continue anyway
-    ga_status = BADCRCDIGEST;
+    status = PWSRC::BADCRCDIGEST;
   }
 
   ASSERT(uncsize == atr.uncsize);
@@ -712,16 +717,19 @@ int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
 
   //write the new creation, accessed, and last written time
   SetFileTime(hFile, &ct, &at, &mt);
-  CloseHandle(hFile);
-  hFile = INVALID_HANDLE_VALUE;
 
 exit:
+  EndWaitCursor();
   if (hFile != INVALID_HANDLE_VALUE)
     CloseHandle(hFile);
 
   // Close attachment database
   m_core.GetAttachment(atr, CLOSEFILE, pUncData, unclength, readtype);
-  return (int)ga_status;
+  if (status != PWSRC::SUCCESS && hFile != INVALID_HANDLE_VALUE) {
+    // Delete the file
+    pws_os::DeleteAFile(newfile);
+  }
+  return status;
 }
 
 bool DboxMain::AnyAttachments(HTREEITEM hItem)
@@ -751,21 +759,21 @@ bool DboxMain::AnyAttachments(HTREEITEM hItem)
 
 int DboxMain::AttachmentProgress(const ATTProgress &st_atpg)
 {
-  int rc = 0;
+  int rc = ATT_PROGRESS_CONTINUE;
   if (m_pProgressDlg != NULL) {
     m_pProgressDlg->SendMessage(ATTPRG_UPDATE_GUI, (WPARAM)&st_atpg, 0);
 
     if (m_bStopVerify)
-      rc = 1;
+      rc = ATT_PROGRESS_STOPVERIFY;
     if (m_bAttachmentCancel)
-      rc += 2;
+      rc += ATT_PROGRESS_CANCEL;
   }
   return rc;
 }
 
 int DboxMain::ReadAttachmentFile(bool bVerify)
 {
-  if (m_bNoAttachments)
+  if (m_bNoChangeToAttachments)
     return PWSRC::SUCCESS;
 
   if (m_core.GetCurFile().empty()) {
@@ -797,7 +805,7 @@ int DboxMain::ReadAttachmentFile(bool bVerify)
 int DboxMain::WriteAttachmentFile(const bool bCleanup,
                                   PWSAttfile::VERSION version)
 {
-  if (m_bNoAttachments)
+  if (m_bNoChangeToAttachments)
     return PWSRC::SUCCESS;
 
   ATThreadParms *pthdpms = new ATThreadParms;
@@ -815,7 +823,7 @@ int DboxMain::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
                                    const uuid_array_t &new_entry_uuid,
                                    PWSAttfile::VERSION version)
 {
-  if (m_bNoAttachments)
+  if (m_bNoChangeToAttachments)
     return PWSRC::SUCCESS;
 
   ATThreadParms *pthdpms = new ATThreadParms;
@@ -833,7 +841,7 @@ int DboxMain::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
 int DboxMain::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
                                      ATRExVector &vAIRecordExs, size_t &num_exported)
 {
-  if (m_bNoAttachments)
+  if (m_bNoChangeToAttachments)
     return PWSRC::SUCCESS;
 
   ATThreadParms *pthdpms = new ATThreadParms;
@@ -852,7 +860,7 @@ int DboxMain::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
 
 int DboxMain::GetAttachment(const stringT &newfile, const ATRecord &atr)
 {
-  if (m_bNoAttachments)
+  if (m_bNoChangeToAttachments)
     return PWSRC::SUCCESS;
 
   ATThreadParms *pthdpms = new ATThreadParms;
@@ -869,7 +877,7 @@ int DboxMain::GetAttachment(const stringT &newfile, const ATRecord &atr)
 int DboxMain::CompleteImportFile(const stringT &impfilename,
                                  PWSAttfile::VERSION version)
 {
-  if (m_bNoAttachments)
+  if (m_bNoChangeToAttachments)
     return PWSRC::SUCCESS;
 
   ATThreadParms *pthdpms = new ATThreadParms;
@@ -931,22 +939,24 @@ int DboxMain::DoAttachmentThread(ATThreadParms * &pthdpms)
   pthdpms->pcore = &m_core;
 
   m_bStopVerify = m_bAttachmentCancel = false;
-  m_pProgressDlg = new CAttProgressDlg(this,
+  m_pProgressDlg = new CAttProgressDlg(this, &m_bAttachmentCancel,
                  pthdpms->function == READ ? &m_bStopVerify : NULL,
-                 pthdpms->function == READ ? &m_bAttachmentCancel : NULL);
+                 pthdpms);
 
   pthdpms->pProgressDlg = m_pProgressDlg;
 
-  m_AttThread = AfxBeginThread(AttachmentThread, pthdpms, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED);
+  m_pAttThread = AfxBeginThread(AttachmentThread, pthdpms,
+                                THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED);
 
-  if (m_AttThread == NULL) {
+  if (m_pAttThread == NULL) {
     pws_os::Trace(_T("Unable to create Attachment thread\n"));
     return PWSRC::FAILURE;
   }
 
   // Stop automatic deletion and then resume thread
-  m_AttThread->m_bAutoDelete = FALSE;
-  m_AttThread->ResumeThread();
+  m_pAttThread->m_bAutoDelete = FALSE;
+  m_pAttThread->ResumeThread();
+  m_pProgressDlg->SetThread(m_pAttThread);
 
   // Show the progress dialog
   m_pProgressDlg->DoModal();
@@ -954,7 +964,7 @@ int DboxMain::DoAttachmentThread(ATThreadParms * &pthdpms)
   // Only ever gets here when thread ends - even if user presses cancel,
   // it goes back to the thread which will end.
   if (pthdpms->function == READ && m_bAttachmentCancel)
-    m_bNoAttachments = true;
+    m_bNoChangeToAttachments = true;
 
   delete m_pProgressDlg;
   m_pProgressDlg = NULL;
@@ -991,10 +1001,16 @@ int DboxMain::DoAttachmentThread(ATThreadParms * &pthdpms)
 #endif
     CString cs_msg, cs_title;
     cs_title.LoadString(IDSC_ATT_ERRORS);
-    if (pthdpms->status == PWSRC::HEADERS_INVALID)
-      cs_msg.LoadString(IDSC_ATT_HDRMISMATCH);
-    else
-      cs_msg.Format(IDSC_ATT_UNKNOWNERROR, pthdpms->status);
+    switch (pthdpms->status) {
+      case PWSRC::HEADERS_INVALID:
+        cs_msg.LoadString(IDSC_ATT_HDRMISMATCH);
+        break;
+      case PWSRC::USER_CANCEL:
+        cs_msg.LoadString(IDS_CANCELATTACHMENT);
+        break;
+      default:
+        cs_msg.Format(IDSC_ATT_UNKNOWNERROR, pthdpms->status);
+    }
 
     // Tell user
     CGeneralMsgBox gmb;
@@ -1009,14 +1025,14 @@ LRESULT DboxMain::OnAttachmentThreadEnded(WPARAM wParam, LPARAM )
   ATThreadParms *pthdpms = (ATThreadParms *)wParam;
 
   // Wait for it
-  WaitForSingleObject(m_AttThread->m_hThread, INFINITE);
+  WaitForSingleObject(m_pAttThread->m_hThread, INFINITE);
 
   // Thread ended - send message to progress dialog to end
   pthdpms->pProgressDlg->SendMessage(ATTPRG_THREAD_ENDED);
 
   // Now tidy up (m_bAutoDelete was set to FALSE)
-  delete m_AttThread;
-  m_AttThread = NULL;
+  delete m_pAttThread;
+  m_pAttThread = NULL;
 
   return 0L;
 }

@@ -331,9 +331,9 @@ HRESULT STDMETHODCALLTYPE MAttSAX2ContentHandler::endElement(
 
   // The rest is only processed in Import mode (not Validation mode)
   const int icurrent_element = m_bAttachmentBeingProcessed ? edata.element_entry_code : edata.element_code;
-  XMLAttHandlers::ProcessEndElement(icurrent_element);
+  bool bRC = XMLAttHandlers::ProcessEndElement(icurrent_element);
 
-  return S_OK;
+  return bRC ? S_OK : S_FALSE;
 }
 
 //  ---------------------------------------------------------------------------

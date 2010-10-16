@@ -26,6 +26,7 @@
 #include "corelib/pwsprefs.h"
 #include "corelib/PWSAuxParse.h"
 #include "corelib/Command.h"
+#include "corelib/return_codes.h"
 
 #include "os/dir.h"
 #include "os/run.h"
@@ -342,7 +343,7 @@ void DboxMain::OnDelete()
   // Check preconditions, possibly prompt user for confirmation, then call Delete()
   // to do the heavy lifting.
   // easiest way to avoid asking stupid questions... (and if user cancelled reading attachment file)
-  if (m_core.GetNumEntries() == 0 || m_bNoAttachments)
+  if (m_core.GetNumEntries() == 0 || m_bNoChangeToAttachments)
     return;
 
   bool bAskForDeleteConfirmation = !(PWSprefs::GetInstance()->
@@ -588,11 +589,11 @@ LRESULT DboxMain::OnApplyEditChanges(WPARAM wParam, LPARAM )
   // Called if user does 'Apply' on the Add/Edit property sheet via
   // Windows Message PWS_MSG_EDIT_APPLY
   CAddEdit_PropertySheet *pentry_psh = (CAddEdit_PropertySheet *)wParam;
-  UpdateEntry(pentry_psh);
-  return 0L;
+  int rc = UpdateEntry(pentry_psh);
+  return rc;
 }
 
-void DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
+int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
 {
   // Called by EditItem on return from Edit but
   // also called if user does 'Apply' on the Add/Edit property sheet via
@@ -601,6 +602,7 @@ void DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
   PWScore *pcore = pentry_psh->GetCore();
   CItemData *pci_original = pentry_psh->GetOriginalCI();
   CItemData *pci_new = pentry_psh->GetNewCI();
+  int rc(PWSRC::SUCCESS);
 
   // Most of the following code handles special cases of alias/shortcut/base
   // But the common case is simply to replace the original entry
@@ -726,15 +728,13 @@ void DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
   pmulticmds->Add(pcmd);
 
   Execute(pmulticmds, pcore);
+  pmulticmds->GetRC(pcmd, rc);
 
   if (bAddAttachments) {
-    if (vATRecords.size() == 0) {
-      // Newly had attachments
-      UpdateEntryImages(*(pci_new));
-    }
     EndWaitCursor();
   }
 
+  UpdateEntryImages(*(pci_new));
   SetChanged(Data);
   ChangeOkUpdate();
 
@@ -756,6 +756,7 @@ void DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
     SetDCAText(pci_new);
 
   UpdateToolBarForSelectedItem(pci_new);
+  return rc;
 }
 
 bool DboxMain::EditShortcut(CItemData *pci, PWScore *pcore)

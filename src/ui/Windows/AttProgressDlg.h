@@ -13,14 +13,7 @@
 #include "stdafx.h"
 #include "PWDialog.h"
 #include "resource.h"
-
-#include "corelib/UUIDGen.h"  // for uuid_array_t
-#include "corelib/StringX.h"
-#include "corelib/attachments.h"
-#include "corelib/PWSAttfile.h"
-
-class DboxMain;
-class PWScore;
+#include "AttThreadParms.h"
 
 // CAttProgressDlg dialog
 
@@ -32,8 +25,11 @@ class CAttProgressDlg : public CPWDialog
   DECLARE_DYNAMIC(CAttProgressDlg)
 
 public:
-  CAttProgressDlg(CWnd* pParent, bool *pbStopVerify = NULL,
-  bool *pbAttachmentCancel = NULL);
+  CAttProgressDlg(CWnd* pParent, bool *pbAttachmentCancel = NULL,
+                  bool *pbStopVerify = NULL, ATThreadParms *pthdpms = NULL);
+
+  void SetThread(CWinThread *pAttThread)
+  {m_pAttThread = pAttThread;}
 
 // Dialog Data
   enum { IDD = IDD_ATTPROGRESS };
@@ -44,6 +40,7 @@ protected:
   virtual BOOL OnInitDialog();
   afx_msg void OnStopVerify();
   afx_msg void OnCancel();
+  afx_msg void OnPauseResume();
   LRESULT OnUpdateProgress(WPARAM wparam, LPARAM );
   LRESULT OnThreadFinished(WPARAM , LPARAM );
 
@@ -51,97 +48,9 @@ protected:
 
 private:
   DboxMain *m_pDbx;
+  CWinThread *m_pAttThread;
+
   CString m_function, m_owner, m_filename, m_description;
-  bool *m_pbStopVerify, *m_pbAttachmentCancel;
-};
-
-// Thread parameters
-enum {INVALID = -1, READ, WRITE, DUPLICATE, COMPLETE_XML_IMPORT,
-                       XML_EXPORT, GET};
-
-struct ATThreadParms {
-  ATThreadParms()
-  : status(0), function(INVALID), pDbx(NULL), pProgressDlg(NULL), pcore(NULL),
-  bVerify(false), bCleanup(false), impfilename(_T("")), newfile(_T("")),
-  filename(_T("")), num_exported(0), version(PWSAttfile::VCURRENT)
-
-  {
-    memset(old_entry_uuid, 0, sizeof(uuid_array_t));
-    memset(new_entry_uuid, 0, sizeof(uuid_array_t));
-  }
-
-  ATThreadParms(const ATThreadParms &thpms)
-    : status(thpms.status), function(thpms.function), pDbx(thpms.pDbx),
-    pProgressDlg(thpms.pProgressDlg), pcore(thpms.pcore),
-    bVerify(thpms.bVerify), bCleanup(thpms.bCleanup),
-    impfilename(thpms.impfilename), newfile(thpms.newfile),
-    atr(thpms.atr), filename(thpms.filename), vatf(thpms.vatf),
-    vAIRecordExs(thpms.vAIRecordExs), num_exported(thpms.num_exported),
-    version(thpms.version)
-  {
-    memcpy(old_entry_uuid, thpms.old_entry_uuid, sizeof(uuid_array_t));
-    memcpy(new_entry_uuid, thpms.new_entry_uuid, sizeof(uuid_array_t));
-  }
-
-  ATThreadParms &operator=(const ATThreadParms &thpms)
-  {
-    if (this != &thpms) {
-      status = thpms.status;
-      function = thpms.function;
-      pDbx = thpms.pDbx;
-      pProgressDlg = thpms.pProgressDlg;
-      pcore = thpms.pcore;
-
-      bVerify = thpms.bVerify;
-      bCleanup = thpms.bCleanup;
-
-      impfilename = thpms.impfilename;
-
-      newfile = thpms.newfile;
-      atr = thpms.atr;
-
-      filename = thpms.filename;
-      vatf = thpms.vatf;
-      vAIRecordExs = thpms.vAIRecordExs;
-      num_exported = thpms.num_exported;
-
-      version = thpms.version;
-
-      memcpy(old_entry_uuid, thpms.old_entry_uuid, sizeof(uuid_array_t));
-      memcpy(new_entry_uuid, thpms.new_entry_uuid, sizeof(uuid_array_t));
-    }
-    return *this;
-  }
-
-  int function;
-  int status;
-  DboxMain *pDbx;
-  CAttProgressDlg *pProgressDlg;
-  PWScore *pcore;
-
-  // Read Attachment file
-  bool bVerify;
-
-  // Write Attachment file
-  bool bCleanup;
-
-  // Duplicate Attachments
-  uuid_array_t old_entry_uuid;
-  uuid_array_t new_entry_uuid;
-
-  // Complete XML Import
-  stringT impfilename;
-
-  // Get Attachment
-  ATRecord atr;
-  stringT newfile;
-
-  // Write Attachment XML File
-  StringX filename;
-  ATFVector vatf;
-  ATRExVector vAIRecordExs;
-  size_t num_exported;
-
-  // Version used by: WRITE, Duplicate, Complete XML,
-  PWSAttfile::VERSION version;
+  bool *m_pbStopVerify, *m_pbAttachmentCancel, m_bPause;
+  ATThreadParms *m_pthdpms;
 };

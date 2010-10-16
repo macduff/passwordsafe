@@ -496,7 +496,7 @@ int DboxMain::Close(const bool bTrySave)
   m_bFilterActive = false;
 
   // Reset attachments
-  m_bNoAttachments = false;
+  m_bNoChangeToAttachments = false;
 
   // Set Dragbar images correctly
   m_DDGroup.SetStaticState(false);
@@ -820,8 +820,11 @@ void DboxMain::PostOpenProcessing()
 #endif
   // Get attachments - unless user cancels the read!
   if (ReadAttachmentFile(true) == PWSRC::USER_CANCEL) {
-    m_bNoAttachments = true;
+    m_bNoChangeToAttachments = true;
   }
+
+  // Save current status of attachments (Open == Save in this context)
+  m_core.SaveAttachmentStatusAtSave();
 
   std::wstring drive, dir, name, ext;
   pws_os::splitpath(m_core.GetCurFile().c_str(), drive, dir, name, ext);
@@ -3444,6 +3447,9 @@ void DboxMain::SavePreferencesOnExit()
 
 int DboxMain::SaveDatabaseOnExit(const SaveType saveType)
 {
+  if (!m_bOpen)
+    return PWSRC::SUCCESS;
+
   int rc;
 
   if (saveType == ST_FAILSAFESAVE &&
@@ -3489,6 +3495,7 @@ int DboxMain::SaveDatabaseOnExit(const SaveType saveType)
             return PWSRC::USER_CANCEL;
 
           // Now save attachment file
+          m_core.RestoreAttachmentStatusAtLastSave();
           WriteAttachmentFile(true);
           // Drop through to reset bAutoSave to prevent multiple saves
         case IDNO:
@@ -3520,9 +3527,14 @@ int DboxMain::SaveDatabaseOnExit(const SaveType saveType)
       rc = Save(saveType);
       if (rc != PWSRC::SUCCESS)
         return PWSRC::USER_CANCEL;
-      // Now save attachment file
-      WriteAttachmentFile(true);
     }
+    // Now save attachment file
+    // Just in case user has changed the database since the last save but didn't
+    // want to keep those changes - restore the attachment status at the point of the
+    // last save
+    m_core.RestoreAttachmentStatusAtLastSave();
+    WriteAttachmentFile(true);
+
     return PWSRC::SUCCESS;
   } // ST_NORMALEXIT
   

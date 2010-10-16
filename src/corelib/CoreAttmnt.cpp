@@ -270,13 +270,15 @@ int PWScore::ReadAttachmentFile(bool bVerify)
   ItemMap mp_entry_uuid;        // std::map key = st_attmt_uuid, value = entry_uuid
 
   // Also from attachment records
-  UUIDATRMMap mm_entry_uuid_atr; // std::multimap key = entry_uuid, value = attachment record
+  // std::multimap key = entry_uuid, value = attachment record
+  UUIDATRMMap mm_entry_uuid_atr;
 
   ATTProgress st_atpg;
 
   st_atpg.function = ATT_PROGRESS_START;
   LoadAString(st_atpg.function_text, IDSC_ATT_READVERIFY);
-  st_atpg.value = bVerify ? -1 : 0;  // If in verify mode - allow user to stop verification
+  // If in verify mode - allow user to stop verification
+  st_atpg.value = bVerify ? -1 : 0;
   AttachmentProgress(st_atpg);
   st_atpg.function_text.clear();
 
@@ -340,7 +342,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
           st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
           // Update progress dialog and check if user cancelled verification
           int rc = AttachmentProgress(st_atpg);
-          if (rc == 1) {
+          if ((rc & ATT_PROGRESS_STOPVERIFY) == ATT_PROGRESS_STOPVERIFY) {
             // Cancel verification
             bVerify = false;
             // Update progress dialog window text
@@ -348,8 +350,8 @@ int PWScore::ReadAttachmentFile(bool bVerify)
             st_atpg.value = -1;  // Get Window text updated but not progress bar
             AttachmentProgress(st_atpg);
             st_atpg.function_text.clear();
-          } else
-          if (rc == 2) {
+          }
+          if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
             // Cancel reading attachment file
             bCancel = true;
             go = false;
@@ -413,13 +415,6 @@ int PWScore::ReadAttachmentFile(bool bVerify)
   AttachmentProgress(st_atpg);
 
   return bCancel ? PWSRC::USER_CANCEL : PWSRC::SUCCESS;
-}
-
-void PWScore::AddAttachment(const ATRecord &atr)
-{
-  // Add attachment record using the DB entry UUID as key
-  st_UUID stuuid(atr.entry_uuid);
-  m_MM_entry_uuid_atr.insert(make_pair(stuuid, atr));
 }
 
 void PWScore::AddAttachments(ATRVector &vNewATRecords)
@@ -518,7 +513,17 @@ void PWScore::UnMarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid)
 size_t PWScore::HasAttachments(const uuid_array_t &entry_uuid)
 {
   st_UUID stuuid(entry_uuid);
-  return m_MM_entry_uuid_atr.count(entry_uuid);
+  size_t num = m_MM_entry_uuid_atr.count(entry_uuid);
+
+  std::pair<UAMMiter, UAMMiter> uuidairpair;
+  uuidairpair = m_MM_entry_uuid_atr.equal_range(entry_uuid);
+
+  // Now reduce by any marked for deletion
+  for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
+    if ((iter->second.uiflags & ATT_ATTACHMENT_DELETED) == ATT_ATTACHMENT_DELETED)
+      num--;
+  }
+  return num;
 }
 
 int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
@@ -621,7 +626,10 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
 
         st_atpg.function = ATT_PROGRESS_SEARCHFILE;
         st_atpg.value = (int)((cmpsize * 1.0E02) / atr.cmpsize);
-        AttachmentProgress(st_atpg);
+        int rc = AttachmentProgress(st_atpg);
+        if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+          return PWSRC::USER_CANCEL;
+        }
       } while (status == PWSRC::SUCCESS && readtype != PWSAttfileV3::ATTMT_LASTDATA);
 
       // Read post-data for this attachment
@@ -656,7 +664,10 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
     cmpsize += uiCmpLen;
     st_atpg.function = ATT_PROGRESS_EXTRACTFILE;
     st_atpg.value = (int)((cmpsize * 1.0E02) / atr.cmpsize);
-    AttachmentProgress(st_atpg);
+    int rc = AttachmentProgress(st_atpg);
+    if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+      return PWSRC::USER_CANCEL;
+    }
 
     // Save the data pointer and length
     pUncData = new unsigned char[atr.blksize + 1];
@@ -699,9 +710,6 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
   }
 
   if (ifunction == CLOSEFILE) {
-    st_atpg.function = ATT_PROGRESS_END;
-    AttachmentProgress(st_atpg);
-
     ahr.Clear();
     atr.Clear();
 
@@ -717,10 +725,10 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
     AttachmentProgress(st_atpg);
     return PWSRC::SUCCESS;
   }
-  ASSERT(0);
 
   st_atpg.function = ATT_PROGRESS_END;
   AttachmentProgress(st_atpg);
+  ASSERT(0);
   return PWSRC::FAILURE;
 }
 
@@ -803,20 +811,20 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
   */
 
   // First check if anything to do!
-  // 1. Yes - if there are new entries not yet added to attachment file
-  // 2. Yes - if there are existing entries with changed flags
-  // 3. Yes - if there are existing entries that are no longer required or missing
-  //   otherwise No!
+  //   1. Yes - if there are new entries not yet added to attachment file
+  //   2. Yes - if there are existing entries with changed flags
+  //   3. Yes - if there are existing entries that are no longer required or missing
+  // Otherwise No!
 
   bool bContinue(false);
   for (UAMMciter citer = m_MM_entry_uuid_atr.begin(); citer != m_MM_entry_uuid_atr.end();
        citer++) {
     ATRecord atr = citer->second;
-    bool bDelete = bCleanup && ((atr.uiflags & ATT_ATTACHMENT_DELETED) != 0);
+    bool bDelete = ((atr.uiflags & ATT_ATTACHMENT_DELETED) != 0);
     bool bChanged = (atr.uiflags & ATT_ATTACHMENT_FLGCHGD) == ATT_ATTACHMENT_FLGCHGD;
 
-    if ((!bDelete && atr.uncsize != 0) ||
-        (bCleanup && bChanged)) {
+    // 'atr.cmpsize == 0' implies a new attachment; or cleaning up and work to do
+    if (atr.cmpsize == 0 || (bCleanup && (bDelete || bChanged))) {
       bContinue = true;
       break;
     }
@@ -895,12 +903,6 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
       }
     }
 
-    st_atpg.function = ATT_PROGRESS_START;
-    LoadAString(st_atpg.function_text, IDSC_ATT_COPYFILE);
-    st_atpg.value = 0;
-    AttachmentProgress(st_atpg);
-    st_atpg.function_text.clear();
-
     std::pair<UAMMciter, UAMMciter> uuidairpair;
 
     // Time stamp for date added for new attachments
@@ -934,7 +936,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
     AttachmentProgress(st_atpg);
 
     // First process all existing attachments
-    bool go(true);
+    bool go(true), bCancel(false);
     while (go && in != NULL) {
       atr.Clear();
       status = in->ReadAttmntRecordPreData(atr);
@@ -997,9 +999,24 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
                 count += atr.blksize;
                 st_atpg.function = ATT_PROGRESS_PROCESSFILE;
                 st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
-                AttachmentProgress(st_atpg);
-              } while (readtype != PWSAttfile::ATTMT_LASTDATA);
+                int rc = AttachmentProgress(st_atpg);
+                if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+                  bCancel = true;
+                }
+              } while (!bCancel && readtype != PWSAttfile::ATTMT_LASTDATA);
 
+              if (bCancel) {
+                in->Close();
+                delete in;
+                out3->Close();
+                delete out3;
+
+                pws_os::DeleteAFile(tempfilename);
+
+                st_atpg.function = ATT_PROGRESS_END;
+                AttachmentProgress(st_atpg);
+                return PWSRC::USER_CANCEL;
+              }
               ASSERT(readtype == PWSAttfile::ATTMT_LASTDATA);
 
               // Read in post-date
@@ -1019,7 +1036,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
           } else {
             // We don't want this one - so we must skip over its data
             st_atpg.function = ATT_PROGRESS_START;
-            LoadAString(st_atpg.function_text, IDSC_ATT_SKIPPINGFILE);
+            LoadAString(st_atpg.function_text, IDSC_ATT_SKIPPINGDELFILE);
             st_atpg.atr = atr;
             st_atpg.value = 0;
             AttachmentProgress(st_atpg);
@@ -1035,8 +1052,24 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
               count += atr.blksize;
               st_atpg.function = ATT_PROGRESS_PROCESSFILE;
               st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+              int rc = AttachmentProgress(st_atpg);
+              if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+                bCancel = true;
+              }
+            } while (!bCancel && readtype != PWSAttfile::ATTMT_LASTDATA);
+
+            if (bCancel) {
+              in->Close();
+              delete in;
+              out3->Close();
+              delete out3;
+
+              pws_os::DeleteAFile(tempfilename);
+
+              st_atpg.function = ATT_PROGRESS_END;
               AttachmentProgress(st_atpg);
-            } while (readtype != PWSAttfile::ATTMT_LASTDATA);
+              return PWSRC::USER_CANCEL;
+            }
 
             ASSERT(readtype == PWSAttfile::ATTMT_LASTDATA);
 
@@ -1055,7 +1088,19 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
       } // switch
     };
 
+    if (in != NULL) {
+      in->Close();
+      delete in;
+    }
+
+    st_atpg.function = ATT_PROGRESS_START;
+    LoadAString(st_atpg.function_text, IDSC_ATT_APPEND_NEW);
+    st_atpg.value = 0;
+    AttachmentProgress(st_atpg);
+    st_atpg.function_text.clear();
+
     int num_new(0);
+    bCancel = false;
     // Now process new attachments
     for (UAMMiter iter = m_MM_entry_uuid_atr.begin(); iter != m_MM_entry_uuid_atr.end();
          iter++) {
@@ -1064,10 +1109,9 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
       if (atr.cmpsize == 0) {
         if (num_new == 0) {
           st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-          LoadAString(st_atpg.function_text, IDSC_ATT_APPEND_NEW);
-          st_atpg.value = -1;
+          st_atpg.atr = atr;
+          st_atpg.value = 0;
           AttachmentProgress(st_atpg);
-          st_atpg.function_text.clear();
         }
 
         num_new++;
@@ -1080,7 +1124,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         int irc = _taccess(fname.c_str(), F_OK);
         if (irc != 0) {
           // irc = -1 ->
-          //   errno = ENOENT (2) - file not found!
+          //   errno = ENOENT (2)  - file not found!
           //         = EACCES (13) - no access
           //         = EINVAL (22) - invalid parameter
           pws_os::Trace(_T("Attachment file _taccess failed. RC=%d, errno=%d\n"), irc, errno);
@@ -1190,8 +1234,24 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
 
             // Update progress dialog
             st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+            int rc = AttachmentProgress(st_atpg);
+            if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+              bCancel = true;
+            }
+          } while (!bCancel && count < atr.uncsize - atr.blksize);
+
+          if (bCancel) {
+            out3->Close();
+            delete out3;
+            pws_os::DeleteAFile(tempfilename);
+
+            st_atpg.function = ATT_PROGRESS_END;
             AttachmentProgress(st_atpg);
-          } while (count < atr.uncsize - atr.blksize);
+
+            fclose(fh);
+            vATRWritten.clear();
+            return PWSRC::USER_CANCEL;
+          }
 
           // Write out the rump
           if (num_left > 0) {
@@ -1241,10 +1301,8 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         if (totalread != atr.uncsize) {
           pws_os::Trace(_T("Attachment file fread - mismatch of data read. Expected=%d, Read=%d\n"),
                    atr.uncsize, totalread);
+          ASSERT(0);
         }
-
-        st_atpg.function = ATT_PROGRESS_END;
-        AttachmentProgress(st_atpg);
 
         // Update in-memory records
         iter->second.dtime = atr.dtime;
@@ -1264,10 +1322,6 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
     AttachmentProgress(st_atpg);
 
   } catch (...) {
-    if (in != NULL) {
-      in->Close();
-      delete in;
-    }
     out3->Close();
     delete out3;
     pws_os::DeleteAFile(tempfilename);
@@ -1277,10 +1331,6 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
     return PWSRC::FAILURE;
   }
 
-  if (in != NULL) {
-    in->Close();
-    delete in;
-  }
   out3->Close();
   delete out3;
 
@@ -1462,7 +1512,7 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
     }
 
     // First process all existing attachments
-    bool go(true);
+    bool go(true), bCancel(false);
     while (go && in != NULL) {
       atr.Clear();
       status = in->ReadAttmntRecordPreData(atr);
@@ -1544,11 +1594,31 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
                 count += atr.blksize;
                 st_atpg.function = ATT_PROGRESS_PROCESSFILE;
                 st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
-                AttachmentProgress(st_atpg);
-              } while(status_r == PWSRC::SUCCESS &&
+                int rc = AttachmentProgress(st_atpg);
+                if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+                  bCancel = true;
+                }
+              } while(!bCancel && status_r == PWSRC::SUCCESS &&
                       status_w == PWSRC::SUCCESS &&
                       status_d == PWSRC::SUCCESS &&
                       readtype != PWSAttfileV3::ATTMT_LASTDATA);
+
+              if (bCancel) {
+                in->Close();
+                delete in;
+                out3->Close();
+                delete out3;
+                dup3->Close();
+                delete dup3;
+
+                pws_os::DeleteAFile(tempfilename);
+                pws_os::DeleteAFile(dupfilename);
+
+                st_atpg.function = ATT_PROGRESS_END;
+                AttachmentProgress(st_atpg);
+
+                return PWSRC::USER_CANCEL;
+              }
 
               // Write out post-data
               in->ReadAttmntRecordPostData(atr);
@@ -1885,6 +1955,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
   if (!ofs)
     return PWSRC::CANT_OPEN_FILE;
 
+  bool bCancel(false);
   ATTProgress st_atpg;
   int status;
 
@@ -1991,6 +2062,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
   ofs << endl;
 
   st_atpg.function = ATT_PROGRESS_START;
+  LoadAString(st_atpg.function_text, IDSC_ATT_READFILE);
   st_atpg.value = 0;
   AttachmentProgress(st_atpg);
 
@@ -2018,10 +2090,6 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
       return status;
     }
 
-    st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-    st_atpg.value = 0;
-    AttachmentProgress(st_atpg);
-
     // Now find this in the in-storage copy (so we don't have to wait till the
     // end of the data to get items we need to write now!
     st_UUID stuuid(atr.attmt_uuid);
@@ -2041,6 +2109,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
                     vAIRecordExs.end());
     if (bMatches) {
       num_exported++;
+      LoadAString(st_atpg.function_text, IDSC_ATT_EXPORTINGFILE);
       ofs << "\t<attachment id=\"" << dec << num_exported << "\" >" << endl;
 
       // NOTE - ORDER ***MUST*** CORRESPOND TO ORDER IN SCHEMA
@@ -2103,7 +2172,18 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
           ofs << "\t\t\t<eraseondatabaseclose>1</eraseondatabaseclose>" << endl;
         ofs << "\t\t</flags>" << endl;
       }
+    } else {
+      LoadAString(st_atpg.function_text, IDSC_ATT_SKIPPINGFILE);
     }
+
+    st_atpg.function = ATT_PROGRESS_START;
+    st_atpg.value = 0;
+    AttachmentProgress(st_atpg);
+
+    st_atpg.function = bMatches ? ATT_PROGRESS_EXPORTFILE : ATT_PROGRESS_SEARCHFILE;
+    st_atpg.atr = atr;
+    st_atpg.value = 0;
+    AttachmentProgress(st_atpg);
 
     // Read all data
     unsigned int uiCmpLen;
@@ -2144,8 +2224,29 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
       st_atpg.atr = atrex.atr;
       st_atpg.function = bMatches ? ATT_PROGRESS_EXPORTFILE : ATT_PROGRESS_SEARCHFILE;
       st_atpg.value = (int)((cmpsize * 1.0E02) / atrex.atr.cmpsize);
+      int rc = AttachmentProgress(st_atpg);
+      if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+        bCancel = true;
+      }
+    } while (!bCancel && status == PWSRC::SUCCESS &&
+             readtype != PWSAttfileV3::ATTMT_LASTDATA);
+
+    if (bCancel) {
+      st_atpg.function = ATT_PROGRESS_END;
       AttachmentProgress(st_atpg);
-    } while (status == PWSRC::SUCCESS && readtype != PWSAttfileV3::ATTMT_LASTDATA);
+
+      ahr.Clear();
+
+      // Close the data file
+      in->Close();
+      delete in;
+      in = NULL;
+
+      ofs << "***USER ABORTED***" << endl;
+      ofs.close();
+
+      return PWSRC::USER_CANCEL;
+    }
 
     // Read post-data for this attachment
     status = in->ReadAttmntRecordPostData(atr);
@@ -2289,6 +2390,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
   stringT sDrive, sDir, sName, sExt;
   time_t time_now;
   int status;
+  bool go(true), bCancel(false);
 
   // Generate temporary names
   time(&time_now);
@@ -2453,11 +2555,27 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
                 count += atr.blksize;
                 st_atpg.function = ATT_PROGRESS_PROCESSFILE;
                 st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
-                AttachmentProgress(st_atpg);
-              } while(status_r == PWSRC::SUCCESS &&
+                int rc = AttachmentProgress(st_atpg);
+                if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+                  bCancel = true;
+                }
+              } while(!bCancel && status_r == PWSRC::SUCCESS &&
                       status_w == PWSRC::SUCCESS &&
                       readtype != PWSAttfileV3::ATTMT_LASTDATA);
 
+              if (bCancel) {
+                in->Close();
+                delete in;
+                out3->Close();
+                delete out3;
+
+                pws_os::DeleteAFile(tempfilename);
+                pws_os::DeleteAFile(impfilename);
+
+                st_atpg.function = ATT_PROGRESS_END;
+                AttachmentProgress(st_atpg);
+                return PWSRC::USER_CANCEL;
+              }
               // Write out post-data
               in->ReadAttmntRecordPostData(atr);
               out3->WriteAttmntRecordPostData(atr);
@@ -2536,7 +2654,8 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
     st_atpg.function_text.clear();
 
     // Process all imported attachments and append to output file
-    bool go(true);
+    go = true;
+    bCancel = false;
     ATRecord atr;
     while (go && imp != NULL) {
       atr.Clear();
@@ -2588,10 +2707,28 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
             // Update progress dialog
             count += atr.blksize;
             st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
-            AttachmentProgress(st_atpg);
-          } while(status_r == PWSRC::SUCCESS &&
+            int rc = AttachmentProgress(st_atpg);
+            if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+              // Cancel reading attachment file
+              bCancel = true;
+            }
+          } while(!bCancel && status_r == PWSRC::SUCCESS &&
                   status_w == PWSRC::SUCCESS &&
                   readtype != PWSAttfileV3::ATTMT_LASTDATA);
+
+          if (bCancel) {
+            out3->Close();
+            delete out3;
+            imp3->Close();
+            delete imp3;
+
+            pws_os::DeleteAFile(tempfilename);
+            pws_os::DeleteAFile(impfilename);
+
+            st_atpg.function = ATT_PROGRESS_END;
+            AttachmentProgress(st_atpg);
+            return PWSRC::USER_CANCEL;
+          }
 
           // Write out post-data
           imp3->ReadAttmntRecordPostData(atr);

@@ -237,6 +237,11 @@ struct ATFilter {
 #define ATT_PROGRESS_ERROR       0x80
 #define ATT_PROGRESS_END         0xFF
 
+// Return codes - note powers of 2 so that they can be OR'd
+#define ATT_PROGRESS_CONTINUE    0
+#define ATT_PROGRESS_STOPVERIFY  1
+#define ATT_PROGRESS_CANCEL      2
+
 struct ATTProgress {
   ATTProgress()
   : function(0), value(0), function_text(_T(""))

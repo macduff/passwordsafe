@@ -135,6 +135,7 @@ void CPWAttLC::Init(const LCType lct, CWnd *pWnd, const bool bReadOnly)
     cs_text.LoadStringW(IDS_USERNAME);
     InsertColumn(ncol, cs_text); ncol++;
   }
+
   cs_text.LoadString(IDS_ERASE);
   InsertColumn(ncol, cs_text); ncol++;
   cs_text.LoadString(IDS_REMOVEABLE);
@@ -145,6 +146,11 @@ void CPWAttLC::Init(const LCType lct, CWnd *pWnd, const bool bReadOnly)
   InsertColumn(ncol, cs_text); ncol++;
   cs_text.LoadStringW(IDS_PATH);
   InsertColumn(ncol, cs_text); ncol++;
+
+  if (m_lct == VIEW) {
+    cs_text.LoadStringW(IDS_DATEADDED);
+    InsertColumn(ncol, cs_text); ncol++;
+  }
 
   int numcols = GetHeaderCtrl()->GetItemCount();
   m_pbColTT = new bool[numcols];
@@ -926,6 +932,7 @@ void CPWAttLC::AddAttachment(const size_t &num, ATRecord &atr,
 {
   // Title is a mandatory field so must always not be NULL.
   // This is used to determine if called from View or Add/Edit or Extract
+  // NOTE: Only "View" uses the Group/Title/User fields
   int newID = m_numattachments;
   CString cs_text;
   StringX sx_text;
@@ -934,22 +941,28 @@ void CPWAttLC::AddAttachment(const size_t &num, ATRecord &atr,
   int ncol(0);
 
   if (m_lct == EXISTING) {
-    InsertItem(newID, L""); ncol++;                          // ATT_DELETE_BUTTON
-    SetItemText(newID, ncol, L""); ncol++;                   // ATT_ERSRQD_BUTTON
+    InsertItem(newID, L""); ncol++;
+    SetItemText(newID, ncol, L""); ncol++;
   } else
   if (m_lct == VIEW) {
     ASSERT(szTitle != NULL);
-    InsertItem(newID, szGroup); ncol++;                      // ENTRY - group
-    SetItemText(newID, ncol, szTitle); ncol++;               // ENTRY - title
-    SetItemText(newID, ncol, szUser); ncol++;                // ENTRY - user
-    SetItemText(newID, ncol, L""); ncol++;                   // ATT_ERSRQD_BUTTON
+    InsertItem(newID, szGroup); ncol++;
+    SetItemText(newID, ncol, szTitle); ncol++;
+    SetItemText(newID, ncol, szUser); ncol++;
+    SetItemText(newID, ncol, L""); ncol++;
   } else {
-    InsertItem(newID, L""); ncol++;                          // ATT_ERSRQD_BUTTON
+    InsertItem(newID, L""); ncol++;
   }
-  SetItemText(newID, ncol, L""); ncol++;                     // ATT_REMDRV_BUTTON
-  SetItemText(newID, ncol, atr.filename.c_str()); ncol++;    // ATT_FILENAME
-  SetItemText(newID, ncol, atr.description.c_str()); ncol++; // ATT_DESCRIPTION
-  SetItemText(newID, ncol, atr.path.c_str()); ncol++;        // ATT_PATH
+
+  SetItemText(newID, ncol, L""); ncol++;
+  SetItemText(newID, ncol, atr.filename.c_str()); ncol++;
+  SetItemText(newID, ncol, atr.description.c_str()); ncol++;
+  SetItemText(newID, ncol, atr.path.c_str()); ncol++;
+
+  if (m_lct == VIEW) {
+    sx_text = PWSUtil::ConvertToDateTimeString(atr.dtime, TMC_LOCALE);
+    SetItemText(newID, ncol, sx_text.c_str()); ncol++;
+  }
 
   SetItemData(newID, num);
 

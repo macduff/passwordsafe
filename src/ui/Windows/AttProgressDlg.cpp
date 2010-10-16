@@ -20,9 +20,11 @@
 
 IMPLEMENT_DYNAMIC(CAttProgressDlg, CPWDialog)
 
-CAttProgressDlg::CAttProgressDlg(CWnd* pParent, bool *pbStopVerify, bool *pbAttachmentCancel)
-  : CPWDialog(CAttProgressDlg::IDD, pParent), m_pbStopVerify(pbStopVerify),
-  m_pbAttachmentCancel(pbAttachmentCancel)
+CAttProgressDlg::CAttProgressDlg(CWnd* pParent, bool *pbAttachmentCancel,
+                                 bool *pbStopVerify, ATThreadParms *pthdpms)
+  : CPWDialog(CAttProgressDlg::IDD, pParent),
+  m_pbAttachmentCancel(pbAttachmentCancel), m_pbStopVerify(pbStopVerify),
+  m_pthdpms(pthdpms), m_pAttThread(NULL), m_bPause(false)
 {
   m_pDbx = static_cast<DboxMain *>(pParent);
 }
@@ -42,6 +44,7 @@ BEGIN_MESSAGE_MAP(CAttProgressDlg, CPWDialog)
   ON_MESSAGE(ATTPRG_UPDATE_GUI, OnUpdateProgress)
   ON_MESSAGE(ATTPRG_THREAD_ENDED, OnThreadFinished)
   ON_BN_CLICKED(IDCANCEL, OnCancel)
+  ON_BN_CLICKED(IDC_PAUSERESUME, OnPauseResume)
   ON_BN_CLICKED(IDC_STOPVERIFY, OnStopVerify)
 END_MESSAGE_MAP()
 
@@ -58,9 +61,14 @@ BOOL CAttProgressDlg::OnInitDialog()
     // Don't allow user to cancel the dialog
     GetDlgItem(IDC_STOPVERIFY)->ShowWindow(SW_HIDE);
     GetDlgItem(IDC_STOPVERIFY)->EnableWindow(FALSE);
+  } else {
+    // Don't allow user to pause/resume the dialog
+    GetDlgItem(IDC_PAUSERESUME)->ShowWindow(SW_HIDE);
+    GetDlgItem(IDC_PAUSERESUME)->EnableWindow(FALSE);
   }
 
-  if (m_pbAttachmentCancel == NULL) {
+  if (m_pbAttachmentCancel == NULL ||
+      m_pthdpms->function == WRITE && m_pthdpms->bCleanup) {
     // Don't allow user to cancel the dialog
     GetDlgItem(IDCANCEL)->ShowWindow(SW_HIDE);
     GetDlgItem(IDCANCEL)->EnableWindow(FALSE);
@@ -92,6 +100,7 @@ LRESULT CAttProgressDlg::OnUpdateProgress(WPARAM wparam, LPARAM )
       case ATT_PROGRESS_PROCESSFILE:
       case ATT_PROGRESS_SEARCHFILE:
       case ATT_PROGRESS_EXTRACTFILE:
+      case ATT_PROGRESS_EXPORTFILE:
       {
         if (!patpg->function_text.empty()) {
           m_function = patpg->function_text.c_str();
@@ -140,15 +149,45 @@ void CAttProgressDlg::OnCancel()
   if (m_pbAttachmentCancel == NULL)
     return;
 
-  CGeneralMsgBox gmb;
-  CString cs_msg(MAKEINTRESOURCE(IDS_CANCELATTACHMENTWARNING));
-  CString cs_title(MAKEINTRESOURCE(IDS_CANCELATTACHMENTREAD));
-  if (gmb.MessageBox(cs_msg, cs_title, MB_YESNO | MB_ICONSTOP) == IDYES) {
-    // Do NOT cancel the dialog - let the thread end
+  INT_PTR rc = IDYES;
+  if (m_pthdpms->function == READ) {
+    CGeneralMsgBox gmb;
+    CString cs_msg(MAKEINTRESOURCE(IDS_CANCELATTACHMENTWARNING));
+    CString cs_title(MAKEINTRESOURCE(IDS_CANCELATTACHMENTREAD));
+    rc = gmb.MessageBox(cs_msg, cs_title, MB_YESNO | MB_ICONSTOP);
+  }
+  if (rc == IDYES) {
+    // Do NOT cancel the dialog - let the thread detect the cancel, tidy up and end
     (*m_pbAttachmentCancel) = true;
     GetDlgItem(IDCANCEL)->EnableWindow(FALSE);
     GetDlgItem(IDC_STOPVERIFY)->EnableWindow(FALSE);
+    GetDlgItem(IDC_PAUSERESUME)->EnableWindow(FALSE);
   }
+}
+
+void CAttProgressDlg::OnPauseResume()
+{
+  // If user cancels - do not allow adding new attachments or deletion of entries
+  if (m_pbAttachmentCancel == NULL)
+    return;
+
+  CString cs_text;
+  if (m_bPause) {
+    // Resume thread
+    if (m_pAttThread != NULL) {
+      m_pAttThread->ResumeThread();
+      cs_text.LoadString(IDS_PAUSE);
+      GetDlgItem(IDC_PAUSERESUME)->SetWindowText(cs_text);
+    }
+  } else {
+    // Suspend thread;
+    if (m_pAttThread != NULL) {
+      m_pAttThread->SuspendThread();
+      cs_text.LoadString(IDS_RESUME);
+      GetDlgItem(IDC_PAUSERESUME)->SetWindowText(cs_text);
+    }
+  }
+  m_bPause = !m_bPause;
 }
 
 LRESULT CAttProgressDlg::OnThreadFinished(WPARAM , LPARAM )

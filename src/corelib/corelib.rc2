@@ -154,6 +154,7 @@ BEGIN
   IDSC_NOMOREHANDLES      "Internal error: Out of file handles"
   IDSC_BADPASSWORD        "Incorrect password"
   IDSC_FILEWRITEERROR     "Error while writing file! Try saving in a different location"
+  IDSC_FILE_UNREADABLE    "Cannot read file. Please check file permissions."
 END
 
 // Status Bar
@@ -345,7 +346,7 @@ END
 
 STRINGTABLE
 BEGIN
-  IDSC_ATT_ERRORS          "Encountered errors reading attachment files"
+  IDSC_ATT_ERRORS          "Encountered errors processing attachment function"
   IDSC_ATT_HDRMISMATCH     "Mismatch of fields in attachment file headers"
   IDSC_ATT_UNKNOWNERROR    "Unknown error reading attachment files %d"
   IDSC_ATT_READVERIFY      "Reading attachment file and verifying data"
@@ -353,8 +354,10 @@ BEGIN
   IDSC_ATT_COPYFILE        "Copying attachment file"
   IDSC_ATT_APPEND_DUPS     "Appending duplicate attachments to attachment file"
   IDSC_ATT_SEARCHFILE      "Searching for requested attachment"
-  IDSC_ATT_EXTRACTINGFILE  "Extracting for requested attachment"
-  IDSC_ATT_SKIPPINGFILE    "Skipping deleted attachment"
+  IDSC_ATT_EXTRACTINGFILE  "Extracting requested attachment"
+  IDSC_ATT_EXPORTINGFILE   "Exporting requested attachment"
+  IDSC_ATT_SKIPPINGDELFILE "Skipping deleted attachment"
+  IDSC_ATT_SKIPPINGFILE    "Skipping attachment"
   IDSC_ATT_APPEND_NEW      "Appending new attachments to attachment file"
   IDSC_ATT_CREATEIMPFILE   "Creating Import atatchment file"
   IDSC_ATT_APPEND_IMP      "Appending imported attachments to attachment file"

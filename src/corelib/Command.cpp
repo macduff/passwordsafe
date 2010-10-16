@@ -11,6 +11,7 @@
 #include "CommandInterface.h"
 #include "Command.h"
 #include "PWSprefs.h"
+#include "return_codes.h"
 
 #include <algorithm>
 
@@ -306,7 +307,7 @@ AddEntryCommand::~AddEntryCommand()
 {
 }
 
-int AddEntryCommand::Execute(const bool bRedo)
+int AddEntryCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
   pws_os::Trace(_T("Command DoAddEntry\n"));
@@ -317,12 +318,7 @@ int AddEntryCommand::Execute(const bool bRedo)
   // Add entry
   m_pcomInt->DoAddEntry(m_ci);
 
-  // Only add attachments if first execute - not on Redo as deleted attachments
-  // are not removed from the file until the associated database is closed
-  if (!bRedo && !m_vNewATRecords.empty()) {
-    m_pcomInt->AddAttachments(m_vNewATRecords);
-    m_pcomInt->XWriteAttachmentFile(false);
-  }
+  // Only add attachments on Edit - not Add - so no code here
 
   m_pcomInt->AddChangedNodes(m_ci.GetGroup());
 
@@ -522,9 +518,10 @@ int EditEntryCommand::Execute(const bool bRedo)
 {
   SaveState();
   pws_os::Trace(_T("EditEntry::Execute\n"));
+  int rc = 0;
 
   if (m_pcomInt->IsReadOnly())
-    return 0;
+    return rc;
 
   m_pcomInt->DoReplaceEntry(m_old_ci, m_new_ci);
 
@@ -537,13 +534,6 @@ int EditEntryCommand::Execute(const bool bRedo)
     m_pcomInt->NotifyGUINeedsUpdating(gac, m_entry_uuid);
   }
 
-  // Only add attachments if first execute - not on Redo as deleted attachments
-  // are not removed from the file until the associated database is closed
-  if (!bRedo && !m_vNewATRecords.empty()) {
-    m_pcomInt->AddAttachments(m_vNewATRecords);
-    m_pcomInt->XWriteAttachmentFile(false);
-  }
-
   // Delete/change some old attachments
   for (size_t i = 0; i < m_vATRecords.size(); i++) {
     if ((m_vATRecords[i].uiflags & ATT_ATTACHMENT_DELETED) == ATT_ATTACHMENT_DELETED) {
@@ -554,8 +544,18 @@ int EditEntryCommand::Execute(const bool bRedo)
     }
   }
 
+  // Only add attachments if first execute - not on Redo as deleted attachments
+  // are not removed from the file until the associated database is closed
+  if (!bRedo && !m_vNewATRecords.empty()) {
+    m_pcomInt->AddAttachments(m_vNewATRecords);
+    rc = m_pcomInt->XWriteAttachmentFile(false);
+  }
+
+  if (rc != PWSRC::SUCCESS)
+    return rc;
+
   m_bState = true;
-  return 0;
+  return rc;
 }
 
 int EditEntryCommand::Redo()

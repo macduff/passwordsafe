@@ -11,15 +11,15 @@
 //-----------------------------------------------------------------------------
 #include "PWDialog.h"
 
-//Globally useful values...
-enum
-{
-  TAR_OK,
-  TAR_INVALID,
-  TAR_NEW,
-  TAR_OPEN,
-  TAR_CANCEL,
-  TAR_EXIT
+// Globally useful values...
+//   MUST be different to PWSRC values, so made negative
+enum {
+  TAR_OK      = -1,
+  TAR_INVALID = -2,
+  TAR_NEW     = -3,
+  TAR_OPEN    = -4,
+  TAR_CANCEL  = -5,
+  TAR_EXIT    = -6
 };
 
 //-----------------------------------------------------------------------------

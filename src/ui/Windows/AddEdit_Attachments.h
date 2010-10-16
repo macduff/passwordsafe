@@ -32,6 +32,7 @@ public:
 
   CStaticExtn m_stc_warning;
   void OnDropFiles(HDROP hDrop);
+  void UpdateLists();
 
   // ClassWizard generate virtual function overrides
   //{{AFX_VIRTUAL(CAddEdit_Attachments)

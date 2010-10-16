@@ -118,7 +118,7 @@ public:
 
 protected:
   bool ProcessStartElement(const int icurrent_element);
-  void ProcessEndElement(const int icurrent_element);
+  bool ProcessEndElement(const int icurrent_element);
 
   vatt_entries m_ventries;
   att_entry *cur_entry;

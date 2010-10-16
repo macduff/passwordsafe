@@ -184,9 +184,6 @@ enum {GCP_READONLY = 1,
       GCP_FORCEREADONLY = 2,
       GCP_HIDEREADONLY = 4};
 
-enum GetAttachmentStatus {OK, BADTARGETDEVICE, CANTCREATEFILE,  CANTFINDATTACHMENT,
-                          BADDATA, BADATTACHMENTWRITE, BADCRCDIGEST};
-
 //-----------------------------------------------------------------------------
 class DboxMain : public CDialog, public UIInterFace
 {
@@ -413,7 +410,7 @@ public:
   void DoAttachmentExtraction(const ATRecord &atr);
   bool AnyAttachments(HTREEITEM hItem);
   bool AllowAttachments()
-  {return !m_bNoAttachments;}
+  {return !m_bNoChangeToAttachments;}
 
   // ClassWizard generated virtual function overrides
   //{{AFX_VIRTUAL(DboxMain)
@@ -557,7 +554,7 @@ protected:
 
   void AutoType(const CItemData &ci);
   bool EditItem(CItemData *pci, PWScore *pcore = NULL);
-  void UpdateEntry(CAddEdit_PropertySheet *pentry_psh);
+  int UpdateEntry(CAddEdit_PropertySheet *pentry_psh);
   bool EditShortcut(CItemData *pci, PWScore *pcore = NULL);
   void ViewReport(const CString &cs_ReportFileName);
   void ViewReport(CReport &rpt);
@@ -945,9 +942,9 @@ private:
   bool m_bStopVerify, m_bAttachmentCancel;
   // Address of progress dialog to use SendMessage directly
   CAttProgressDlg *m_pProgressDlg;
-  CWinThread *m_AttThread; // attachment worker thread
+  CWinThread *m_pAttThread; // attachment worker thread
   int DoAttachmentThread(ATThreadParms * &pthdpms);
-  bool m_bNoAttachments;
+  bool m_bNoChangeToAttachments;
 
   // The following is for saving information over an execute/undo/redo
   // Might need to add more e.g. if filter is active and which one?

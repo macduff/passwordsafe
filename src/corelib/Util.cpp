@@ -300,26 +300,15 @@ size_t _readcbc(FILE *fp,
   }
 
   buffer_len = length;
-  buffer = new unsigned char[(length / BS) * BS + 2 * BS]; // round upwards
-  unsigned char *b = buffer;
-
-  // Initialize memory.  (Lockheed Martin) Secure Coding  11-14-2007
-  memset(b, 0, (length / BS) * BS + 2 * BS);
-
-  if (BS == 16) {
-    // length block contains up to 11 (= 16 - 4 - 1) bytes of data
-    const int len1 = (length > 11) ? 11 : length;
-    memcpy(b, lengthblock + 5, len1);
-    length -= len1;
-    b += len1;
-  }
+  // If BS == 16, length block contains up to 11 (= 16 - 4 - 1) bytes of data
+  const int len11 = (BS != 16) ? 0 : ((length > 11) ? 11 : length);
+  length -= len11;
 
   unsigned int BlockLength = ((length + (BS - 1)) / BS) * BS;
 
-  // Following is meant for lengths < BS,
-  // but results in a block being read even
-  // if length is zero. This is wasteful,
-  // but fixing it would break all existing pre-3.0 databases.
+  // Following is meant for lengths < BS, but results in a block being read even
+  // if length is zero. This is wasteful, but fixing it would break all existing
+  // pre-3.0 databases.
   if (BlockLength == 0 && BS == 8)
     BlockLength = BS;
 
@@ -334,9 +323,22 @@ size_t _readcbc(FILE *fp,
     ASSERT(num_read == BS);
 
     // Get out now
-    delete [] buffer;
+    trashMemory(lengthblock, BS);
     buffer = NULL;
     return BlockLength + BS;
+  }
+
+  // Allocate buffer using original length
+  buffer = new unsigned char[(buffer_len / BS) * BS + 2 * BS]; // round upwards
+  unsigned char *b = buffer;
+
+  // Initialize memory.  (Lockheed Martin) Secure Coding  11-14-2007
+  memset(b, 0, (buffer_len / BS) * BS + 2 * BS);
+
+  if (len11 > 0) {
+    // Process length block
+    memcpy(b, lengthblock + 5, len11);
+    b += len11;
   }
 
   trashMemory(lengthblock, BS);
@@ -353,9 +355,8 @@ size_t _readcbc(FILE *fp,
     }
   }
 
-  if (buffer_len == 0 || (bSkip && pSkipTypes != NULL && pSkipTypes[type] != 0)) {
-    // delete[] buffer here since caller will see zero length or has asked for data
-    // to be skipped
+  if (buffer_len == 0) {
+    // delete[] buffer here since caller will see zero length
     delete [] buffer;
     buffer = NULL;
   }

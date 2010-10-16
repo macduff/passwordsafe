@@ -142,7 +142,7 @@ DboxMain::DboxMain(CWnd* pParent)
   m_bRenameCtrl(false), m_bRenameShift(false),
   m_bAutotypeCtrl(false), m_bAutotypeShift(false),
   m_bInAT(false), m_bInRestoreWindowsData(false), m_bSetup(false),
-   m_pProgressDlg(NULL), m_AttThread(NULL), m_bNoAttachments(false)
+   m_pProgressDlg(NULL), m_pAttThread(NULL), m_bNoChangeToAttachments(false)
 {
   // Need to do the following as using the direct calls will fail for Windows versions before Vista
   // (Load Library using absolute path to avoid dll poisoning attacks)
@@ -1294,6 +1294,7 @@ void DboxMain::Execute(Command *pcmd, PWScore *pcore)
 {
   if (pcore == NULL)
     pcore = &m_core;
+
   SaveGUIStatus();
   pcore->Execute(pcmd);
   UpdateToolBarDoUndo();
@@ -2790,7 +2791,7 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
 #endif
 
   // If user cancelled reading the attachment file - prevent deletion of entries
-  if (m_bNoAttachments &&
+  if (m_bNoChangeToAttachments &&
       (nID == ID_MENUITEM_DELETE || nID == ID_MENUITEM_DELETEENTRY || nID == ID_MENUITEM_DELETEGROUP))
     return FALSE;
 

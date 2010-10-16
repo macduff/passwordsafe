@@ -13,42 +13,6 @@
 #include "corelib/Itemdata.h"
 #include "corelib/attachments.h"
 
-// Subitem indices for New attachments.
-#define ATTNEW_ERSRQD_BUTTON     0
-#define ATTNEW_REMDRV_BUTTON     1
-#define ATTNEW_FILENAME          2
-#define ATTNEW_DESCRIPTION       3
-#define ATTNEW_PATH              4
-#define ATTNEW_NUM_COLUMNS       5
-
-// Subitem indices for Existing attachments.
-#define ATT_DELETE_BUTTON        0
-#define ATT_ERSRQD_BUTTON        1
-#define ATT_REMDRV_BUTTON        2
-#define ATT_FILENAME             3
-#define ATT_DESCRIPTION          4
-#define ATT_PATH                 5
-#define ATT_NUM_COLUMNS          6
-
-// Subitem indices for Extract attachments.
-#define ATTEXTRACT_ERSRQD_BUTTON 0
-#define ATTEXTRACT_REMDRV_BUTTON 1
-#define ATTEXTRACT_FILENAME      2
-#define ATTEXTRACT_DESCRIPTION   3
-#define ATTEXTRACT_PATH          4
-#define ATTEXTRACT_NUM_COLUMNS   5
-
-// Subitem indices for View attachments.
-#define ATTVIEW_GROUP            0
-#define ATTVIEW_TITLE            1
-#define ATTVIEW_USERNAME         2
-#define ATTVIEW_ERSRQD_BUTTON    3
-#define ATTVIEW_REMDRV_BUTTON    4
-#define ATTVIEW_FILENAME         5
-#define ATTVIEW_DESCRIPTION      6
-#define ATTVIEW_PATH             7
-#define ATTVIEW_NUM_COLUMNS      8
-
 // ATT_ERASURE_REQUIRED = ATT_ERASEPGMEXISTS | ATT_ERASEONDBCLOSE
 #define ATT_ERASURE_REQUIRED    0x60
 

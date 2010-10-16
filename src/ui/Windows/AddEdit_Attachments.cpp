@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* All rights reserved. Use of the code is allowed under the
+* Artistic License 2.0 terms, as specified in the LICENSE file
+* distributed with this code, or available from
+* http://www.opensource.org/licenses/artistic-license-2.0.php
+*/
+
 // AddEdit_Attachments.cpp : implementation file
 //
 
@@ -142,11 +150,6 @@ HBRUSH CAddEdit_Attachments::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
 BOOL CAddEdit_Attachments::OnApply()
 {
-  /*
-  if (M_uicaller() == IDS_VIEWENTRY)
-    return CAddEdit_PropertyPage::OnApply();
-  */
-
   return CAddEdit_PropertyPage::OnApply();
 }
 
@@ -193,6 +196,26 @@ LRESULT CAddEdit_Attachments::OnQuerySiblings(WPARAM wParam, LPARAM)
 }
 
 // CAddEdit_Attachments message handlers
+
+void CAddEdit_Attachments::UpdateLists()
+{
+
+  m_AttLC.DeleteAllItems();
+  m_AttLC.m_vATRecords.clear();
+  m_AttLC.AddAttachments(M_vATRecords());
+
+  m_vAttFlags.clear();
+  // Save initial flags for existing attachments - used to check if changed
+  for (ATRViter iter = M_vATRecords().begin(); iter != M_vATRecords().end(); iter++) {
+    m_vAttFlags.push_back(iter->flags);
+  }
+
+  //m_AttLC.Invalidate();
+
+  m_NewAttLC.DeleteAllItems();
+  m_NewAttLC.m_vATRecords.clear();
+  //m_NewAttLC.Invalidate();
+}
 
 void CAddEdit_Attachments::OnAddNewAttachment()
 {

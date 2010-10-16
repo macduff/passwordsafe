@@ -169,10 +169,7 @@ int CALLBACK CViewAttachments::AttCompareFunc(LPARAM lParam1, LPARAM lParam2,
       if ((b1 && b2) || (!b1 && !b2))
         iResult = 0;
       else
-      if (b1 && !b2)
-        iResult = -1;
-      else
-        iResult = 1;
+        iResult = (b1 && !b2) ? -1 : 1;
       break;
     case 4:
       // Flag column - Extract to removeable drive only
@@ -181,10 +178,7 @@ int CALLBACK CViewAttachments::AttCompareFunc(LPARAM lParam1, LPARAM lParam2,
       if ((b1 && b2) || (!b1 && !b2))
         iResult = 0;
       else
-      if (b1 && !b2)
-        iResult = -1;
-      else
-        iResult = 1;
+        iResult = (b1 && !b2) ? -1 : 1;
       break;
     case 5:
       // Filename
@@ -197,6 +191,10 @@ int CALLBACK CViewAttachments::AttCompareFunc(LPARAM lParam1, LPARAM lParam2,
     case 7:
       // Path
       iResult = pLHS->atr.path.compare(pRHS->atr.path);
+      break;
+    case 8:
+      // Date Added
+      iResult = pLHS->atr.dtime < pRHS->atr.dtime ? -1 : 1;
       break;
     default:
       iResult = 0; // should never happen - just keep compiler happy
