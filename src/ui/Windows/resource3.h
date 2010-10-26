@@ -663,3 +663,8 @@
 #define IDS_USERABORTEDXMLEXPORT        5845
 #define IDS_USERCANCELLEDEXTRACT        5846
 #define IDS_CANCELATTACHMENT            5847
+#define IDS_NODIRECTORIES               5848
+#define IDS_SHORTCUTORTARGET            5849
+#define IDS_ADDSHORTCUT                 5850
+#define IDS_ADDTARGET                   5851
+#define IDS_NOREADACCESS                5852

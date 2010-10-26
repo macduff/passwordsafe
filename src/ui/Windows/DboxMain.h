@@ -457,7 +457,7 @@ protected:
 
   // Used for Advanced functions
   CItemData::FieldBits m_bsFields;
-  bool m_bAdvanced;
+  BOOL m_bAdvanced;
   CString m_subgroup_name;
   int m_subgroup_set, m_subgroup_object, m_subgroup_function;
   int m_treatwhitespaceasempty;
@@ -750,8 +750,9 @@ protected:
 
   int GetAndCheckPassword(const StringX &filename, StringX& passkey,
                           int index, int flags = 0,
-                          PWScore *pcore = 0, 
-                          CAdvancedDlg::Type adv_type = CAdvancedDlg::ADV_INVALID);
+                          PWScore *pcore = NULL, 
+                          CAdvancedDlg::Type adv_type = CAdvancedDlg::ADV_INVALID,
+                          st_SaveAdvValues *pst_SADV = NULL);
 
 private:
   // UIInterFace implementations:
@@ -945,6 +946,9 @@ private:
   CWinThread *m_pAttThread; // attachment worker thread
   int DoAttachmentThread(ATThreadParms * &pthdpms);
   bool m_bNoChangeToAttachments;
+
+  // Save Advanced settings
+  st_SaveAdvValues m_SaveAdvValues[CAdvancedDlg::ADV_LAST];
 
   // The following is for saving information over an execute/undo/redo
   // Might need to add more e.g. if filter is active and which one?

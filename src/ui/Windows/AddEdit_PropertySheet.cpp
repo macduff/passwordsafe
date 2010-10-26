@@ -386,11 +386,8 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
       SetupInitialValues();
 
       if (rc == PWSRC::SUCCESS) {
-        // Insert new attachments to existing attachments
-        //m_AEMD.vATRecords.insert(m_AEMD.vATRecords.end(), 
-        //                         m_AEMD.vNewATRecords.begin(), m_AEMD.vNewATRecords.end());
-
-        // Clear mew attachments that should have already been added via above SendMessage
+        // Clear mew attachments that should have already been added
+        // the via above SendMessage
         m_AEMD.vNewATRecords.clear();
 
         m_pp_attachments->UpdateLists();

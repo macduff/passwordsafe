@@ -41,6 +41,7 @@ public:
   CMenu* m_pMainMenu;
   BOOL m_mruonfilemenu;
   HINSTANCE m_hInstResDLL;
+  DWORD m_dwHHCookie;
 
   static const UINT m_uiRegMsg;
   static const UINT m_uiWH_SHELL;

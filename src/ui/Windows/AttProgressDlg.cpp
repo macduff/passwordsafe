@@ -69,9 +69,19 @@ BOOL CAttProgressDlg::OnInitDialog()
 
   if (m_pbAttachmentCancel == NULL ||
       m_pthdpms->function == WRITE && m_pthdpms->bCleanup) {
-    // Don't allow user to cancel the dialog
+    // Don't allow user to see cancel button or use it!
     GetDlgItem(IDCANCEL)->ShowWindow(SW_HIDE);
     GetDlgItem(IDCANCEL)->EnableWindow(FALSE);
+ 
+    // Centre pause/resume button in the dialog
+    CRect btnRect, dlgRect;
+    GetClientRect(&dlgRect);
+
+    GetDlgItem(IDC_PAUSERESUME)->GetWindowRect(&btnRect);
+    ScreenToClient(&btnRect);
+
+    int ixleft = dlgRect.Width() / 2 - btnRect.Width() / 2;
+    GetDlgItem(IDC_PAUSERESUME)->SetWindowPos(NULL, ixleft, btnRect.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER);
   }
 
   SetForegroundWindow();

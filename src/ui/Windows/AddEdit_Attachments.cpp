@@ -18,6 +18,13 @@
 #include "GeneralMsgBox.h"
 #include "DboxMain.h"
 
+#include "os/dir.h"
+
+// Local routines
+bool IsShortcut(LPCTSTR pszPath);
+HRESULT ResolveShortcut(LPCWSTR lpszShortcutPath,
+                        LPWSTR lpszFilePath);
+
 // CAddEdit_Attachments dialog
 
 IMPLEMENT_DYNAMIC(CAddEdit_Attachments, CAddEdit_PropertyPage)
@@ -110,6 +117,7 @@ BOOL CAddEdit_Attachments::OnInitDialog()
   // Save initial flags for existing attachments - used to check if changed
   for (ATRViter iter = M_vATRecords().begin(); iter != M_vATRecords().end(); iter++) {
     m_vAttFlags.push_back(iter->flags);
+    m_vAttUIFlags.push_back(iter->uiflags & (~ATT_ATTACHMENT_FLGCHGD));
   }
 
   // Add existing attachments
@@ -202,19 +210,24 @@ void CAddEdit_Attachments::UpdateLists()
 
   m_AttLC.DeleteAllItems();
   m_AttLC.m_vATRecords.clear();
-  m_AttLC.AddAttachments(M_vATRecords());
+  m_AttLC.AddAttachments(M_vATRecords(), true);
+  // Force refresh and then do it now
+  m_AttLC.Invalidate();
+  m_AttLC.UpdateWindow();
 
   m_vAttFlags.clear();
-  // Save initial flags for existing attachments - used to check if changed
+  m_vAttUIFlags.clear();
+  // Re-save initial flags for existing attachments - used to check if changed
   for (ATRViter iter = M_vATRecords().begin(); iter != M_vATRecords().end(); iter++) {
     m_vAttFlags.push_back(iter->flags);
+    m_vAttUIFlags.push_back(iter->uiflags & (~ATT_ATTACHMENT_FLGCHGD));
   }
-
-  //m_AttLC.Invalidate();
 
   m_NewAttLC.DeleteAllItems();
   m_NewAttLC.m_vATRecords.clear();
-  //m_NewAttLC.Invalidate();
+  // Force refresh and then do it now
+  m_NewAttLC.Invalidate();
+  m_NewAttLC.UpdateWindow();
 }
 
 void CAddEdit_Attachments::OnAddNewAttachment()
@@ -223,7 +236,7 @@ void CAddEdit_Attachments::OnAddNewAttachment()
   // attachments
   ATRecord atr;
 
-  //Disable PropertySheet and all PropertyPages whilst displaying FileDialog
+  // Disable PropertySheet and all PropertyPages whilst displaying FileDialog
   GetParent()->EnableWindow(FALSE);
   if (M_pDbx()->GetNewAttachmentInfo(atr, true)) {
     memcpy(atr.entry_uuid, M_entry_uuid(), sizeof(uuid_array_t));
@@ -231,7 +244,9 @@ void CAddEdit_Attachments::OnAddNewAttachment()
     M_vNewATRecords().push_back(atr);
     m_NewAttLC.AddNewAttachment(M_vNewATRecords().size() - 1, atr);
     m_ae_psh->SetAttachmentsChanged(true);
+    // Force refresh and then do it now
     m_NewAttLC.Invalidate();
+   m_NewAttLC.UpdateWindow();
   }
 
   // Re-enable everything
@@ -250,14 +265,17 @@ void CAddEdit_Attachments::OnDeleteNewAttachment()
     bool bChanged = AnyNewAttachments() || HasExistingChanged();
     m_ae_psh->SetAttachmentsChanged(bChanged);
     GetDlgItem(IDC_DELETE_ATTACHMENT)->EnableWindow(FALSE);
+    // Force refresh and then do it now
     m_NewAttLC.Invalidate();
+    m_NewAttLC.UpdateWindow();
   }
 }
 
 bool CAddEdit_Attachments::AnyNewAttachments()
 {
-  for (size_t i = 0; i < m_NewAttLC.m_vATRecords.size(); i++) {
-    if ((m_NewAttLC.m_vATRecords[i].uiflags & ATT_ATTACHMENT_DELETED) == 0)
+  // Look for non-deleted new attachments
+  for (size_t i = 0; i < M_vNewATRecords().size(); i++) {
+    if ((M_vNewATRecords()[i].uiflags & ATT_ATTACHMENT_DELETED) == 0)
       return true;
   }
   return false;
@@ -271,15 +289,14 @@ bool CAddEdit_Attachments::HasExistingChanged()
   BYTE flags, uiflags;
   for (size_t i = 0; i < M_vATRecords().size(); i++) {
     m_AttLC.GetAttachmentFlags(i, flags, uiflags);
-
     M_vATRecords()[i].flags = flags;
-    M_vATRecords()[i].uiflags = uiflags;
+    M_vATRecords()[i].uiflags = uiflags & (~ATT_ATTACHMENT_FLGCHGD);
   }
 
   // Check if existing attachment flags changed
   for (size_t i = 0; i < m_vAttFlags.size(); i++) {
     if (m_vAttFlags[i] != M_vATRecords()[i].flags ||
-        M_vATRecords()[i].uiflags != 0) {
+        m_vAttUIFlags[i] != M_vATRecords()[i].uiflags) {
       return true;
     }
   }
@@ -328,8 +345,11 @@ LRESULT CAddEdit_Attachments::OnAttachmentChanged(WPARAM wParam, LPARAM lParam)
     case CPWAttLC::EXISTING:
       ASSERT(lParam < m_AttLC.GetItemCount());
       m_AttLC.GetAttachmentFlags(lParam, flags, uiflags);
-      M_vATRecords()[lParam].flags = flags;
-      M_vATRecords()[lParam].uiflags = uiflags;
+      if (M_vATRecords()[lParam].flags != flags ||
+          M_vATRecords()[lParam].uiflags != uiflags) {
+        M_vATRecords()[lParam].flags = flags;
+        M_vATRecords()[lParam].uiflags = uiflags | ATT_ATTACHMENT_FLGCHGD;
+      }
       break;
     case CPWAttLC::NEW:
       ASSERT(lParam < m_NewAttLC.GetItemCount());
@@ -372,6 +392,48 @@ LRESULT CAddEdit_Attachments::DropFiles(WPARAM wParam, LPARAM)
     // Copy the pathname into the buffer
     DragQueryFile(hDrop, uiNumFilesDropped - uinum - 1, pszFile, uiPathnameSize + 1);
 
+    // We do not process directories themselves - only contents if user
+    // drops a directory!
+    CFileStatus filestatus;
+    CFile::GetStatus(pszFile, filestatus);
+
+    if ((filestatus.m_attribute & CFile::directory) ||
+        (filestatus.m_attribute & CFile::volume)) {
+      CGeneralMsgBox gmb;
+      CString cs_msg(MAKEINTRESOURCE(IDS_NODIRECTORIES)),
+              cs_title(MAKEINTRESOURCE(IDS_WILLNOTATTACH));
+      gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONQUESTION);
+      continue;
+    }
+
+    // Is it a shortcut - if so, try and resolve
+    if (IsShortcut(pszFile)) {
+      wchar_t sztarget[_MAX_PATH] = {0};
+      if (ResolveShortcut(pszFile, sztarget) != S_OK) {
+        continue;
+      }
+
+      CGeneralMsgBox gmb;
+      CString cs_msg, cs_title(MAKEINTRESOURCE(IDS_ADDFILE));
+      cs_msg.Format(IDS_SHORTCUTORTARGET, pszFile);
+      gmb.SetStandardIcon(MB_ICONQUESTION);
+      gmb.SetTitle(IDS_ADDFILE);
+      gmb.SetMsg(cs_msg);
+      gmb.AddButton(IDS_ADDSHORTCUT, IDS_ADDSHORTCUT);
+      gmb.AddButton(IDS_ADDTARGET, IDS_ADDTARGET, TRUE, TRUE);
+      INT_PTR rc = gmb.DoModal();
+
+      if (rc == IDS_ADDTARGET) {
+        // If buffer to small - get a bigger one!
+        const int nLinkLength = wcslen(sztarget) + 1;
+        if (nLinkLength > sizeof(pszFile + 1) / sizeof(wchar_t)) {
+         delete [] pszFile;
+         pszFile = new wchar_t[nLinkLength];
+        }
+        lstrcpyn(pszFile, sztarget, nLinkLength);
+      }
+    }
+
     ATRecord atr;
 
     atr.filename = pszFile;
@@ -390,10 +452,80 @@ LRESULT CAddEdit_Attachments::DropFiles(WPARAM wParam, LPARAM)
 
   if (bAddAttachment) {
     m_ae_psh->SetAttachmentsChanged(true);
+   // Force refresh and then do it now
     m_NewAttLC.Invalidate();
+    m_NewAttLC.UpdateWindow();
   }
 
   // clean up
   delete [] pszFile;
   return 0L;
+}
+
+bool IsShortcut(LPCTSTR pszPath)
+{
+  SHFILEINFO shFileInfo = { 0 };
+  return ((SHGetFileInfo(pszPath,
+                         0,
+                         &shFileInfo,
+                         sizeof(shFileInfo),
+                         SHGFI_ATTRIBUTES)) && (shFileInfo.dwAttributes & SFGAO_LINK) == SFGAO_LINK);
+}
+
+HRESULT ResolveShortcut(LPCWSTR lpszShortcutPath,
+                        LPWSTR lpszFilePath)
+{
+  HRESULT hRes = E_FAIL;
+  CComPtr<IShellLink> ipShellLink;
+  // buffer that receives the null-terminated string
+  // for the drive and path
+  TCHAR szPath[MAX_PATH];
+  // buffer that receives the null-terminated
+  // string for the description
+  TCHAR szDesc[MAX_PATH];
+
+  WCHAR wszTemp[MAX_PATH];
+
+  lpszFilePath[0] = L'\0';
+  // Get a pointer to the IShellLink interface
+  hRes = CoCreateInstance(CLSID_ShellLink,
+                          NULL,
+                          CLSCTX_INPROC_SERVER,
+                          IID_IShellLink,
+                          (void**)&ipShellLink);
+
+  if (SUCCEEDED(hRes)) {
+    // Get a pointer to the IPersistFile interface
+    CComQIPtr<IPersistFile> ipPersistFile(ipShellLink);
+    // IPersistFile is using LPCOLESTR,
+    // so make sure that the string is Unicode
+
+    wcsncpy(wszTemp, lpszShortcutPath, MAX_PATH);
+    // Open the shortcut file and initialize it from its contents
+
+    hRes = ipPersistFile->Load(wszTemp, STGM_READ);
+    if (SUCCEEDED(hRes)) {
+      // Try to find the target of a shortcut,
+      // even if it has been moved or renamed
+      hRes = ipShellLink->Resolve(NULL, SLR_UPDATE);
+      if (SUCCEEDED(hRes)) {
+        // structure that receives the information about the shortcut
+        WIN32_FIND_DATA wfd;
+        // Get the path to the shortcut target
+        hRes = ipShellLink->GetPath(szPath,
+                                    MAX_PATH, &wfd, SLGP_RAWPATH);
+        if (FAILED(hRes))
+          return hRes;
+
+        // Get the description of the target
+        hRes = ipShellLink->GetDescription(szDesc, MAX_PATH);
+        if (FAILED(hRes))
+          return hRes;
+
+        lstrcpyn(lpszFilePath, szPath, MAX_PATH);
+      }
+    }
+  }
+
+  return hRes;
 }

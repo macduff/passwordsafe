@@ -95,10 +95,8 @@ public:
 
     //A map of dialog titles (or tab names) vs help sections
     WX_DECLARE_STRING_HASH_MAP( wxString, StringToStringMap );
-    StringToStringMap m_helpmap;
+    StringToStringMap& GetHelpMap();
     wxHtmlHelpController* m_controller;
-    void LoadHelpMap();
-    void SaveHelpMap();
 
  public:
     CRecentDBList &recentDatabases();

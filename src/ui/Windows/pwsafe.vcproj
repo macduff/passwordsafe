@@ -1821,11 +1821,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\add.bmp"
+				RelativePath="..\graphics\toolbar\new\add.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\add.bmp"
+				RelativePath="..\graphics\toolbar\classic\add.bmp"
 				>
 			</File>
 			<File
@@ -1833,11 +1833,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\addgroup.bmp"
+				RelativePath="..\graphics\toolbar\new\addgroup.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\addgroup.bmp"
+				RelativePath="..\graphics\toolbar\classic\addgroup.bmp"
 				>
 			</File>
 			<File
@@ -1853,11 +1853,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\applyfilter.bmp"
+				RelativePath="..\graphics\toolbar\classic\applyfilter.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\applyfilter.bmp"
+				RelativePath="..\graphics\toolbar\new\applyfilter.bmp"
 				>
 			</File>
 			<File
@@ -1913,11 +1913,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\autotype.bmp"
+				RelativePath="..\graphics\toolbar\classic\autotype.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\autotype.bmp"
+				RelativePath="..\graphics\toolbar\new\autotype.bmp"
 				>
 			</File>
 			<File
@@ -1941,11 +1941,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\browseurl.bmp"
+				RelativePath="..\graphics\toolbar\classic\browseurl.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\browseurl.bmp"
+				RelativePath="..\graphics\toolbar\new\browseurl.bmp"
 				>
 			</File>
 			<File
@@ -1977,11 +1977,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\changefont.bmp"
+				RelativePath="..\graphics\toolbar\classic\changefont.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\changefont.bmp"
+				RelativePath="..\graphics\toolbar\new\changefont.bmp"
 				>
 			</File>
 			<File
@@ -1989,11 +1989,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\changepswdfont.bmp"
+				RelativePath="..\graphics\toolbar\new\changepswdfont.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\changepswdfont.bmp"
+				RelativePath="..\graphics\toolbar\classic\changepswdfont.bmp"
 				>
 			</File>
 			<File
@@ -2001,11 +2001,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\changevkbdfont.bmp"
+				RelativePath="..\graphics\toolbar\new\changevkbdfont.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\changevkbdfont.bmp"
+				RelativePath="..\graphics\toolbar\classic\changevkbdfont.bmp"
 				>
 			</File>
 			<File
@@ -2021,11 +2021,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\clearclipboard.bmp"
+				RelativePath="..\graphics\toolbar\classic\clearclipboard.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\clearclipboard.bmp"
+				RelativePath="..\graphics\toolbar\new\clearclipboard.bmp"
 				>
 			</File>
 			<File
@@ -2045,11 +2045,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\collapseall.bmp"
+				RelativePath="..\graphics\toolbar\classic\collapseall.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\collapseall.bmp"
+				RelativePath="..\graphics\toolbar\new\collapseall.bmp"
 				>
 			</File>
 			<File
@@ -2081,11 +2081,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\copypassword.bmp"
+				RelativePath="..\graphics\toolbar\new\copypassword.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\copypassword.bmp"
+				RelativePath="..\graphics\toolbar\classic\copypassword.bmp"
 				>
 			</File>
 			<File
@@ -2093,11 +2093,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\copyuser.bmp"
+				RelativePath="..\graphics\toolbar\classic\copyuser.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\copyuser.bmp"
+				RelativePath="..\graphics\toolbar\new\copyuser.bmp"
 				>
 			</File>
 			<File
@@ -2141,11 +2141,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\delete.bmp"
+				RelativePath="..\graphics\toolbar\classic\delete.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\delete.bmp"
+				RelativePath="..\graphics\toolbar\new\delete.bmp"
 				>
 			</File>
 			<File
@@ -2153,11 +2153,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\duplicate.bmp"
+				RelativePath="..\graphics\toolbar\new\duplicate.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\duplicate.bmp"
+				RelativePath="..\graphics\toolbar\classic\duplicate.bmp"
 				>
 			</File>
 			<File
@@ -2173,11 +2173,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\dragbar\classic\emailx.bmp"
+				RelativePath="..\graphics\dragbar\new\emailX.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\dragbar\new\emailX.bmp"
+				RelativePath="..\graphics\dragbar\classic\emailx.bmp"
 				>
 			</File>
 			<File
@@ -2201,11 +2201,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\expandall.bmp"
+				RelativePath="..\graphics\toolbar\new\expandall.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\expandall.bmp"
+				RelativePath="..\graphics\toolbar\classic\expandall.bmp"
 				>
 			</File>
 			<File
@@ -2213,11 +2213,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\export.bmp"
+				RelativePath="..\graphics\toolbar\classic\export.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\export.bmp"
+				RelativePath="..\graphics\toolbar\new\export.bmp"
 				>
 			</File>
 			<File
@@ -2237,11 +2237,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\exportXML.bmp"
+				RelativePath="..\graphics\toolbar\classic\exportXML.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\exportXML.bmp"
+				RelativePath="..\graphics\toolbar\new\exportXML.bmp"
 				>
 			</File>
 			<File
@@ -2273,11 +2273,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\findcase_i.bmp"
+				RelativePath="..\graphics\toolbar\new\findadvancedon.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\graphics\toolbar\classic\findadvancedon.bmp"
 				>
 			</File>
 			<File
 				RelativePath="..\graphics\toolbar\classic\findcase_i.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\graphics\toolbar\new\findcase_i.bmp"
 				>
 			</File>
 			<File
@@ -2297,11 +2305,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\findclose.bmp"
+				RelativePath="..\graphics\toolbar\new\findclose.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\findclose.bmp"
+				RelativePath="..\graphics\toolbar\classic\findclose.bmp"
 				>
 			</File>
 			<File
@@ -2309,11 +2317,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\graphics\toolbar\classic\findreport.bmp"
+				>
+			</File>
+			<File
 				RelativePath="..\graphics\toolbar\new\findreport.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\findreport.bmp"
+				RelativePath="..\graphics\dragbar\classic\Group.bmp"
 				>
 			</File>
 			<File
@@ -2337,15 +2349,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\dragbar\classic\GroupX.bmp"
-				>
-			</File>
-			<File
 				RelativePath="..\graphics\dragbar\new\GroupX.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\help.bmp"
+				RelativePath="..\graphics\dragbar\classic\GroupX.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\graphics\dragbar\classic\GroupX.bmp"
 				>
 			</File>
 			<File
@@ -2353,7 +2365,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\graphics\toolbar\classic\help.bmp"
+				>
+			</File>
+			<File
 				RelativePath="..\graphics\toolbar\new\help_disabled.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\graphics\toolbar\classic\import.bmp"
 				>
 			</File>
 			<File
@@ -2369,11 +2389,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\importtext.bmp"
+				RelativePath="..\graphics\toolbar\new\importtext.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\importtext.bmp"
+				RelativePath="..\graphics\toolbar\classic\importtext.bmp"
 				>
 			</File>
 			<File
@@ -2381,11 +2401,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\importXML.bmp"
+				RelativePath="..\graphics\toolbar\new\importXML.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\importXML.bmp"
+				RelativePath="..\graphics\toolbar\classic\importXML.bmp"
 				>
 			</File>
 			<File
@@ -2393,11 +2413,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\graphics\toolbar\new\listtree.bmp"
+				>
+			</File>
+			<File
 				RelativePath="..\graphics\toolbar\classic\listtree.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\listtree.bmp"
+				RelativePath="..\graphics\toolbar\classic\listtree.bmp"
 				>
 			</File>
 			<File
@@ -2405,11 +2429,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\lock.bmp"
+				RelativePath="..\graphics\toolbar\new\lock.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\lock.bmp"
+				RelativePath="..\graphics\toolbar\classic\lock.bmp"
 				>
 			</File>
 			<File
@@ -2445,11 +2469,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\new.bmp"
+				RelativePath="..\graphics\toolbar\classic\new.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\new.bmp"
+				RelativePath="..\graphics\toolbar\new\new.bmp"
 				>
 			</File>
 			<File
@@ -2509,11 +2533,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\dragbar\new\Notes.bmp"
+				RelativePath="..\graphics\dragbar\classic\Notes.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\dragbar\classic\Notes.bmp"
+				RelativePath="..\graphics\dragbar\new\Notes.bmp"
 				>
 			</File>
 			<File
@@ -2561,11 +2585,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\passwordchars.bmp"
+				RelativePath="..\graphics\toolbar\new\passwordchars.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\passwordchars.bmp"
+				RelativePath="..\graphics\toolbar\classic\passwordchars.bmp"
 				>
 			</File>
 			<File
@@ -2649,10 +2673,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\dragbar\new\PasswordX.bmp"
-				>
-			</File>
-			<File
 				RelativePath="..\graphics\toolbar\classic\properties.bmp"
 				>
 			</File>
@@ -2673,11 +2693,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\redo.bmp"
+				RelativePath="..\graphics\toolbar\new\redo.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\redo.bmp"
+				RelativePath="..\graphics\toolbar\classic\redo.bmp"
 				>
 			</File>
 			<File
@@ -2697,11 +2717,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\runcmd.bmp"
+				RelativePath="..\graphics\toolbar\new\runcmd.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\runcmd.bmp"
+				RelativePath="..\graphics\toolbar\classic\runcmd.bmp"
 				>
 			</File>
 			<File
@@ -2721,11 +2741,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\saveas.bmp"
+				RelativePath="..\graphics\toolbar\classic\saveas.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\saveas.bmp"
+				RelativePath="..\graphics\toolbar\new\saveas.bmp"
 				>
 			</File>
 			<File
@@ -2757,11 +2777,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\sendemail.bmp"
+				RelativePath="..\graphics\toolbar\new\sendemail.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\sendemail.bmp"
+				RelativePath="..\graphics\toolbar\classic\sendemail.bmp"
 				>
 			</File>
 			<File
@@ -2769,11 +2789,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\setfilter.bmp"
+				RelativePath="..\graphics\toolbar\classic\setfilter.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\setfilter.bmp"
+				RelativePath="..\graphics\toolbar\new\setfilter.bmp"
 				>
 			</File>
 			<File
@@ -2789,11 +2809,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\synchronize.bmp"
+				RelativePath="..\graphics\toolbar\new\synchronize.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\synchronize.bmp"
+				RelativePath="..\graphics\toolbar\classic\synchronize.bmp"
 				>
 			</File>
 			<File
@@ -2845,11 +2865,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\undo.bmp"
+				RelativePath="..\graphics\toolbar\classic\undo.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\undo.bmp"
+				RelativePath="..\graphics\toolbar\new\undo.bmp"
 				>
 			</File>
 			<File
@@ -2857,11 +2877,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\unlock.bmp"
+				RelativePath="..\graphics\toolbar\classic\unlock.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\unlock.bmp"
+				RelativePath="..\graphics\toolbar\new\unlock.bmp"
 				>
 			</File>
 			<File
@@ -2873,11 +2893,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\dragbar\classic\URL.bmp"
+				RelativePath="..\graphics\dragbar\new\URL.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\dragbar\new\URL.bmp"
+				RelativePath="..\graphics\dragbar\classic\URL.bmp"
 				>
 			</File>
 			<File
@@ -2905,11 +2925,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\new\validate.bmp"
+				RelativePath="..\graphics\toolbar\classic\validate.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\graphics\toolbar\classic\validate.bmp"
+				RelativePath="..\graphics\toolbar\new\validate.bmp"
 				>
 			</File>
 			<File

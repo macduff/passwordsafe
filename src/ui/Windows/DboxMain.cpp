@@ -142,7 +142,7 @@ DboxMain::DboxMain(CWnd* pParent)
   m_bRenameCtrl(false), m_bRenameShift(false),
   m_bAutotypeCtrl(false), m_bAutotypeShift(false),
   m_bInAT(false), m_bInRestoreWindowsData(false), m_bSetup(false),
-   m_pProgressDlg(NULL), m_pAttThread(NULL), m_bNoChangeToAttachments(false)
+  m_pProgressDlg(NULL), m_pAttThread(NULL), m_bNoChangeToAttachments(false)
 {
   // Need to do the following as using the direct calls will fail for Windows versions before Vista
   // (Load Library using absolute path to avoid dll poisoning attacks)
@@ -711,6 +711,7 @@ void DboxMain::InitPasswordSafe()
 {
   pws_os::getosversion(m_WindowsMajorVersion, m_WindowsMinorVersion);
   PWSprefs *prefs = PWSprefs::GetInstance();
+
   // Real initialization done here
   // Requires OnInitDialog to have passed OK
   UpdateAlwaysOnTop();
@@ -721,6 +722,7 @@ void DboxMain::InitPasswordSafe()
   if (!m_IsStartSilent && !prefs->GetPref(PWSprefs::UseSystemTray))
     app.HideIcon();
 
+  m_RUEList.SetMainWindow(this);
   m_RUEList.SetMax(prefs->GetPref(PWSprefs::MaxREItems));
 
   // JHF : no hotkeys on WinCE
@@ -1583,7 +1585,8 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
                                   int index,
                                   int flags,
                                   PWScore *pcore,
-                                  CAdvancedDlg::Type adv_type)
+                                  CAdvancedDlg::Type adv_type,
+                                  st_SaveAdvValues *pst_SADV)
 {
   // index:
   //  GCP_FIRST      (0) first
@@ -1597,6 +1600,9 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
   // Called for an existing database. Prompt user
   // for password, verify against file. Lock file to
   // prevent multiple r/w access.
+  ASSERT((adv_type == CAdvancedDlg::ADV_INVALID && pst_SADV == NULL) ||
+         (adv_type != CAdvancedDlg::ADV_INVALID && pst_SADV != NULL));
+
   int retval;
   bool bFileIsReadOnly = false;
 
@@ -1632,11 +1638,13 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
   m_bsFields.set();
 
   ASSERT(dbox_pkentry == NULL); // should have been taken care of above
-  dbox_pkentry = new CPasskeyEntry(this, filename.c_str(),
-                                   index, bReadOnly || bFileIsReadOnly,
-                                   bFileIsReadOnly || bForceReadOnly,
-                                   bHideReadOnly,
-                                   adv_type);
+  dbox_pkentry = new CPasskeyEntry(this,
+    filename.c_str(),
+    index, bReadOnly || bFileIsReadOnly,
+    bFileIsReadOnly || bForceReadOnly,
+    bHideReadOnly,
+    adv_type,
+    adv_type == CAdvancedDlg::ADV_INVALID ? NULL : &m_SaveAdvValues[adv_type]);
 
   int nMajor(0), nMinor(0), nBuild(0);
   DWORD dwMajorMinor = app.GetFileVersionMajorMinor();
@@ -1658,13 +1666,13 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
 
   if (rc == IDOK && index == GCP_ADVANCED) {
     m_bAdvanced = dbox_pkentry->m_bAdvanced;
-    m_bsFields = dbox_pkentry->m_bsFields;
-    m_subgroup_set = dbox_pkentry->m_subgroup_set;
-    m_treatwhitespaceasempty = dbox_pkentry->m_treatwhitespaceasempty;
+    m_bsFields = pst_SADV->bsFields;
+    m_subgroup_set = pst_SADV->subgroup_set;
+    m_treatwhitespaceasempty = pst_SADV->treatwhitespaceasempty;
     if (m_subgroup_set == BST_CHECKED) {
-      m_subgroup_name = dbox_pkentry->m_subgroup_name;
-      m_subgroup_object = dbox_pkentry->m_subgroup_object;
-      m_subgroup_function = dbox_pkentry->m_subgroup_function;
+      m_subgroup_name = pst_SADV->subgroup_name;
+      m_subgroup_object = pst_SADV->subgroup_object;
+      m_subgroup_function = pst_SADV->subgroup_function;
     }
   }
 

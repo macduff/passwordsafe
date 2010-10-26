@@ -437,6 +437,13 @@ void PWScore::ChangeAttachment(const ATRecord &atr)
   std::pair<UAMMiter, UAMMiter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(atr.entry_uuid);
 
+  // Verify that it is there!
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+      (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+    ASSERT(0);
+    return;
+  }
+
   // Now find this specific attachment record
   for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
     if (memcmp(iter->second.attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t)) == 0) {
@@ -457,6 +464,13 @@ bool PWScore::MarkAttachmentForDeletion(const ATRecord &atr)
   std::pair<UAMMiter, UAMMiter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(atr.entry_uuid);
 
+  // Verify that it is there!
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+      (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+    ASSERT(0);
+    return false;
+  }
+
   // Now find this specific attachment record
   for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
     if (memcmp(iter->second.attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t)) == 0) {
@@ -475,6 +489,13 @@ bool PWScore::UnMarkAttachmentForDeletion(const ATRecord &atr)
   std::pair<UAMMiter, UAMMiter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(atr.entry_uuid);
 
+  // Verify that it is there!
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+      (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+    ASSERT(0);
+    return false;
+  }
+
   // Now find this specific attachment record
   for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
     if (memcmp(iter->second.attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t)) == 0) {
@@ -492,6 +513,13 @@ void PWScore::MarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid)
   std::pair<UAMMiter, UAMMiter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(entry_uuid);
 
+  // Verify that it is there!
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+      (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+    ASSERT(0);
+    return;
+  }
+
   // Now update all attachment records
   for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
     iter->second.uiflags |= (ATT_ATTACHMENT_FLGCHGD | ATT_ATTACHMENT_DELETED);
@@ -504,6 +532,13 @@ void PWScore::UnMarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid)
   std::pair<UAMMiter, UAMMiter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(entry_uuid);
 
+  // Verify that it is there!
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+      (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+    ASSERT(0);
+    return;
+  }
+
   // Now update all attachment records
   for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
     iter->second.uiflags &= ~(ATT_ATTACHMENT_FLGCHGD | ATT_ATTACHMENT_DELETED);
@@ -514,6 +549,8 @@ size_t PWScore::HasAttachments(const uuid_array_t &entry_uuid)
 {
   st_UUID stuuid(entry_uuid);
   size_t num = m_MM_entry_uuid_atr.count(entry_uuid);
+  if (num == 0)
+    return 0;
 
   std::pair<UAMMiter, UAMMiter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(entry_uuid);
@@ -735,17 +772,18 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
 size_t PWScore::GetAttachments(const uuid_array_t &entry_uuid,
                                ATRVector &vATRecords)
 {
-  std::pair<UAMMciter, UAMMciter> uuidairpair;
   vATRecords.clear();
 
   st_UUID stuuid(entry_uuid);
   size_t num = m_MM_entry_uuid_atr.count(stuuid);
+  if (num == 0)
+    return 0;
+
+  std::pair<UAMMciter, UAMMciter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(stuuid);
-  if (uuidairpair.first != m_MM_entry_uuid_atr.end()) {
-    for (UAMMciter citer = uuidairpair.first; citer != uuidairpair.second; ++citer) {
-      if ((citer->second.uiflags & ATT_ATTACHMENT_DELETED) != ATT_ATTACHMENT_DELETED)
-        vATRecords.push_back(citer->second);
-    }
+  for (UAMMciter citer = uuidairpair.first; citer != uuidairpair.second; ++citer) {
+    if ((citer->second.uiflags & ATT_ATTACHMENT_DELETED) != ATT_ATTACHMENT_DELETED)
+      vATRecords.push_back(citer->second);
   }
   return num;
 }
@@ -1341,6 +1379,13 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
       continue;
 
     uuidairpair = m_MM_entry_uuid_atr.equal_range(vATRWritten[i].entry_uuid);
+    // Verify that it is there!
+    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+        (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+      ASSERT(0);
+      continue;
+    }
+
     // Now find this specific attachment record
     for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
       if (memcmp(iter->second.attmt_uuid, vATRWritten[i].attmt_uuid, sizeof(uuid_array_t)) == 0) {
@@ -1817,6 +1862,13 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
       continue;
 
     uuidairpair = m_MM_entry_uuid_atr.equal_range(vATRWritten[i].entry_uuid);
+    // Verify that it is there!
+    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+        (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+      ASSERT(0);
+      continue;
+    }
+
     // Now find this specific attachment record
     for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
       if (memcmp(iter->second.attmt_uuid, vATRWritten[i].attmt_uuid, sizeof(uuid_array_t)) == 0) {
@@ -2777,6 +2829,13 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
       continue;
 
     uuidairpair = m_MM_entry_uuid_atr.equal_range(vATRWritten[i].entry_uuid);
+    // Verify that it is there!
+    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+        (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+      ASSERT(0);
+      continue;
+    }
+
     // Now find this specific attachment record
     for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
       if (memcmp(iter->second.attmt_uuid, vATRWritten[i].attmt_uuid, sizeof(uuid_array_t)) == 0) {

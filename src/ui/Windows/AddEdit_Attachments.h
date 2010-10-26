@@ -68,7 +68,7 @@ private:
   CPWAttLC m_AttLC, m_NewAttLC;
   CPWHdrCtrlNoChng m_AttLCHeader, m_NewAttLCHeader;
 
-  std::vector<BYTE> m_vAttFlags;
+  std::vector<BYTE> m_vAttFlags, m_vAttUIFlags;
   uuid_array_t m_entry_uuid;
   bool m_bInitdone;
 

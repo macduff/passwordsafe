@@ -43,7 +43,7 @@ public:
   void Init(const LCType lct, CWnd *pWnd, const bool bReadOnly = false);
   
   void AddAttachments(ATRExVector &vatrex);
-  void AddAttachments(ATRVector &vatr);
+  void AddAttachments(ATRVector &vatr, const bool bInitialize = false);
   void AddNewAttachment(const size_t &num, ATRecord &atr);
   void GetAttachmentFlags(const size_t num, BYTE &flags, BYTE &uiflags)
   {flags = m_vATRecords[num].flags; uiflags = m_vATRecords[num].uiflags;}

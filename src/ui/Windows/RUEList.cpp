@@ -41,7 +41,7 @@ bool RUEntry::operator()(const RUEntry &re)
 
 //-----------------------------------------------------------------------------
 
-CRUEList::CRUEList() : m_core(app.m_core), m_maxentries(0), m_pDbx(app.m_maindlg)
+CRUEList::CRUEList() : m_core(app.m_core), m_maxentries(0), m_pDbx(NULL)
 {
 }
 
@@ -149,7 +149,8 @@ bool CRUEList::DeleteRUEntry(const uuid_array_t &RUEuuid)
   return true;
 }
 
-bool CRUEList::GetPWEntry(size_t index, CItemData &ci){
+bool CRUEList::GetPWEntry(size_t index, CItemData &ci)
+{
   if ((m_maxentries == 0) || m_RUEList.empty() ||
      (index > (m_maxentries - 1)) ||
      (index > (m_RUEList.size() - 1)))

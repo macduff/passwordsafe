@@ -97,7 +97,7 @@ ThisMfcApp::ThisMfcApp() :
   m_HotKeyPressed(false), m_hMutexOneInstance(NULL),
   m_ghAccelTable(NULL), m_pMainMenu(NULL),
   m_bACCEL_Table_Created(false), m_noSysEnvWarnings(false),
-  m_bPermitTestdump(false), m_hInstResDLL(NULL)
+  m_bPermitTestdump(false), m_hInstResDLL(NULL), m_dwHHCookie(NULL)
 {
   // Get application version information
   GetApplicationVersionData();
@@ -157,11 +157,19 @@ ThisMfcApp::ThisMfcApp() :
 #endif
   // Set this process to be one of the first to be shut down:
   SetProcessShutdownParameters(0x3ff, 0);
+
+  // Set up MFC functions to talk to user
   PWSprefs::SetReporter(&aReporter);
   PWScore::SetReporter(&aReporter);
   PWScore::SetAsker(&anAsker);
+
   EnableHtmlHelp();
-  CoInitialize(NULL); // Initializes the COM library (for XML processing)
+#if !defined(POCKET_PC)
+  ::HtmlHelp(NULL, NULL, HH_INITIALIZE, m_dwHHCookie);
+#endif
+
+  // Initializes the COM library (for XML processing)
+  CoInitialize(NULL);
   AfxOleInit();
 }
 
@@ -190,6 +198,7 @@ ThisMfcApp::~ThisMfcApp()
   // WinApp::HtmlHelp asserts that main windows is valid, which (1) isn't true
   // here, and (2) is irrelevant for HH_CLOSE_ALL, so we call ::HtmlHelp
   ::HtmlHelp(NULL, NULL, HH_CLOSE_ALL, 0);
+  ::HtmlHelp(NULL, NULL, HH_UNINITIALIZE, m_dwHHCookie);
 #endif
 
 #ifndef _DEBUG
@@ -925,7 +934,6 @@ BOOL ThisMfcApp::InitInstance()
                                m_LockedIcon, dbox.m_RUEList,
                                PWS_MSG_ICON_NOTIFY, IDR_POPTRAY);
   m_TrayIcon->SetTarget(&dbox);
-
 #endif
 
   // Set up an Accelerator table

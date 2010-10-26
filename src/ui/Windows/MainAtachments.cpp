@@ -40,6 +40,15 @@ static char THIS_FILE[] = __FILE__;
 
 bool DboxMain::GetNewAttachmentInfo(ATRecord &atr, const bool bGetFileName)
 {
+  // Check if we have read access - if not - quick exit
+  if (!bGetFileName && _waccess_s(atr.filename.c_str(), R_OK) != 0) {
+    CGeneralMsgBox gmb;
+    CString cs_msg, cs_title(MAKEINTRESOURCE(IDS_WILLNOTATTACH));
+    cs_msg.Format(IDS_NOREADACCESS, atr.filename.c_str());
+    gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONEXCLAMATION);
+    return false;
+  }
+
   StringX sx_Filename;
   CString cs_text(MAKEINTRESOURCE(IDS_CHOOSEATTACHMENT));
   std::wstring dir = L"";
@@ -86,13 +95,23 @@ bool DboxMain::GetNewAttachmentInfo(ATRecord &atr, const bool bGetFileName)
     }
 
     if (rc2 == IDOK) {
+      // Quick exit if we don't have read access (but only if
+      // we had to find the file namse as already checked if given it)
+      if (bGetFileName && _waccess_s(sFullFileName.c_str(), R_OK) != 0) {
+        CGeneralMsgBox gmb;
+        CString cs_msg, cs_title(MAKEINTRESOURCE(IDS_WILLNOTATTACH));
+        cs_msg.Format(IDS_NOREADACCESS, sFullFileName.c_str());
+        gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONEXCLAMATION);
+        return false;
+      }
+
       struct _stat stat_buffer;
       int irc = _wstat(sFullFileName.c_str(), &stat_buffer);
       if (irc == 0) {
         CGeneralMsgBox gmb;
         if (stat_buffer.st_size == 0) {
           CString cs_msg(MAKEINTRESOURCE(IDS_NOZEROSIZEEXTRACT)),
-              cs_title(MAKEINTRESOURCE(IDS_WILLNOTATTACH));
+                  cs_title(MAKEINTRESOURCE(IDS_WILLNOTATTACH));
           gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONSTOP);
         } else {
           if (stat_buffer.st_size > (ATT_MAXSIZE << 20)) {
@@ -126,7 +145,7 @@ bool DboxMain::GetNewAttachmentInfo(ATRecord &atr, const bool bGetFileName)
         }
       }
     } else {
-      // Can inly be the user pressed cancel
+      // Can only be the user pressed cancel
       return false;
     }
   }

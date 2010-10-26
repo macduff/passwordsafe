@@ -316,7 +316,7 @@ void CPWAttLC::OnLButtonDown(UINT nFlags, CPoint point)
     m_iItem = iItem;
   }
 
-  if ((iItem >= 0)    && (iItem < m_numattachments) &&
+  if ((iItem    >= 0) && (iItem < m_numattachments) &&
       (iSubItem >= 0) && (iSubItem < m_pHeaderCtrl->GetItemCount())) {
     num = GetItemData(m_iItem);
     switch (m_lct) {
@@ -903,8 +903,12 @@ void CPWAttLC::AddAttachments(ATRExVector &vatrex)
   }
 }
     
-void CPWAttLC::AddAttachments(ATRVector &vatr)
+void CPWAttLC::AddAttachments(ATRVector &vatr, const bool bInitialize)
 {
+  if (bInitialize) {
+    m_numattachments = 0;
+  }
+
   // Called by Add/Edit Attachments and Extract Attachments
   m_vATRecords = vatr;
   for (size_t i = 0; i < m_vATRecords.size(); i++) {

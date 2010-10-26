@@ -353,31 +353,44 @@ void DboxMain::OnDelete()
   size_t num_atts = 0;
 
   // Find number of child items, ask for confirmation if > 0
-  HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
-  if (hStartItem != NULL) {
-    if (m_ctlItemTree.IsWindowVisible()) {
-      CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
-      if (pci == NULL) {  // group node
+  StringX sxGroup(L""), sxTitle(L""), sxUser(L"");
+  CItemData *pci(NULL);
+  if (m_ctlItemTree.IsWindowVisible()) {
+    // Tree view - could be a group
+    HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
+    if (hStartItem != NULL) {
+      if (m_ctlItemTree.GetItemData(hStartItem) == NULL) {
+        // Group node
         bAskForDeleteConfirmation = true; // ALWAYS ask if deleting a group
         num_children = m_ctlItemTree.CountChildren(hStartItem);
         num_atts = m_ctlItemTree.CountAttachments(hStartItem);
       } else {
-        uuid_array_t entry_uuid;
-        pci->GetUUID(entry_uuid);
-        num_atts = m_core.HasAttachments(entry_uuid);
+        // Entry
+        pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
       }
     } else {
-      CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
-      ASSERT(pci != NULL);
-      uuid_array_t entry_uuid;
-      pci->GetUUID(entry_uuid);
-      num_atts = m_core.HasAttachments(entry_uuid);
+      pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
     }
+  } else {
+    // List view - only entries
+    POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
+    if (pos != NULL) {
+      pci = (CItemData *)m_ctlItemList.GetItemData((int)pos - 1);
+    }
+  }
+
+  if (pci != NULL) {
+    uuid_array_t entry_uuid;
+    pci->GetUUID(entry_uuid);
+    num_atts = m_core.HasAttachments(entry_uuid);
+    sxGroup = pci->GetGroup();
+    sxTitle = pci->GetTitle();
+    sxUser = pci->GetUser();
   }
 
   // Confirm whether to delete the item
   if (bAskForDeleteConfirmation || num_atts > 0) {
-    CConfirmDeleteDlg deleteDlg(this, num_children, num_atts);
+    CConfirmDeleteDlg deleteDlg(this, num_children, num_atts, sxGroup, sxTitle, sxUser);
     INT_PTR rc = deleteDlg.DoModal();
     if (rc == IDCANCEL) {
       dodelete = false;

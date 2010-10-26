@@ -82,13 +82,14 @@ private:
   const int &m_subgroup_function;
 };
 
-int PWScore::TestForExport(const stringT &subgroup_name,
+int PWScore::TestForExport(const bool bAdvanced,
+                           const stringT &subgroup_name,
                            const int &subgroup_object,
                            const int &subgroup_function,
                            const OrderedItemList *il)
 {
   // Check if any pass restricting criteria
-  if (!subgroup_name.empty()) {
+  if (bAdvanced) {
     bool bAnyMatch(false);
     if (il != NULL) {
       if (find_if(il->begin(), il->end(),
@@ -106,6 +107,11 @@ int PWScore::TestForExport(const stringT &subgroup_name,
 
     if (!bAnyMatch)
       return PWSRC::NO_ENTRIES_EXPORTED;
+  } else {
+    if (il != NULL)
+      return (il->size() == 0) ? PWSRC::NO_ENTRIES_EXPORTED : PWSRC::SUCCESS;
+    else
+      return (m_pwlist.size() == 0) ? PWSRC::NO_ENTRIES_EXPORTED : PWSRC::SUCCESS;
   }
   return PWSRC::SUCCESS;
 }
@@ -208,8 +214,8 @@ StringX PWScore::BuildHeader(const CItemData::FieldBits &bsFields, const bool bI
   return hdr;
 }
 
-struct PutText {
-  PutText(const stringT &subgroup_name,
+struct TextRecordWriter {
+  TextRecordWriter(const stringT &subgroup_name,
           const int &subgroup_object, const int &subgroup_function,
           const CItemData::FieldBits &bsFields,
           const TCHAR &delimiter, ofstream &ofs, PWScore *pcore) :
@@ -245,7 +251,7 @@ struct PutText {
   }
 
 private:
-  PutText& operator=(const PutText&); // Do not implement
+  TextRecordWriter& operator=(const TextRecordWriter&); // Do not implement
   const stringT &m_subgroup_name;
   const int &m_subgroup_object;
   const int &m_subgroup_function;
@@ -304,7 +310,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
     ofs << endl;
   }
 
-  PutText put_text(subgroup_name, subgroup_object, subgroup_function,
+  TextRecordWriter put_text(subgroup_name, subgroup_object, subgroup_function,
                    bsFields, delimiter, ofs, this);
 
   if (il != NULL) {
