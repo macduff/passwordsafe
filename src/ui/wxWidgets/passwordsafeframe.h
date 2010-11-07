@@ -27,6 +27,8 @@
 #include "corelib/PWScore.h"
 #include "corelib/UIinterface.h"
 #include "RUEList.h"
+#include "./wxutils.h"
+
 /*!
  * Forward declarations
  */
@@ -119,6 +121,8 @@ enum {
   ID_SYSTRAY_CLOSE,
   ID_SYSTRAY_EXIT,
   ID_SYSTRAY_CLEAR_RUE,
+  ID_TRAYRECENT_ENTRY_HELP1,
+  ID_TRAYRECENT_ENTRY_HELP2,
   ID_TOOLBAR_NEW,
   ID_TOOLBAR_CLASSIC
 };
@@ -384,6 +388,8 @@ public:
     void ViewReport(CReport& rpt);
 
   CItemData *GetSelectedEntry() const;
+    wxString GetCurrentSafe() const { return towxstring(m_core.GetCurFile()); }
+    
 ////@begin PasswordSafeFrame member variables
   PWSGrid* m_grid;
   PWSTreeCtrl* m_tree;

@@ -32,8 +32,8 @@
 #include "corelib/PWSdirs.h"
 #include "os/file.h"
 ////@begin XPM images
-#include "../graphics/wxWidgets/cpane.xpm"
-#include "../graphics/wxWidgets/psafetxt.xpm"
+#include "./graphics/cpane.xpm"
+#include "./graphics/psafetxt.xpm"
 ////@end XPM images
 #include "pwsafeapp.h"
 #include "SafeCombinationCtrl.h"
@@ -145,7 +145,7 @@ void CSafeCombinationEntry::CreateControls()
   wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxHORIZONTAL);
   itemDialog1->SetSizer(itemBoxSizer2);
 
-  wxStaticBitmap* itemStaticBitmap3 = new wxStaticBitmap( itemDialog1, wxID_STATIC, itemDialog1->GetBitmapResource(wxT("../graphics/wxWidgets/cpane.xpm")), wxDefaultPosition, itemDialog1->ConvertDialogToPixels(wxSize(49, 46)), 0 );
+  wxStaticBitmap* itemStaticBitmap3 = new wxStaticBitmap( itemDialog1, wxID_STATIC, itemDialog1->GetBitmapResource(wxT("./graphics/cpane.xpm")), wxDefaultPosition, itemDialog1->ConvertDialogToPixels(wxSize(49, 46)), 0 );
   itemBoxSizer2->Add(itemStaticBitmap3, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   wxBoxSizer* itemBoxSizer4 = new wxBoxSizer(wxVERTICAL);
@@ -154,7 +154,7 @@ void CSafeCombinationEntry::CreateControls()
   wxBoxSizer* itemBoxSizer5 = new wxBoxSizer(wxHORIZONTAL);
   itemBoxSizer4->Add(itemBoxSizer5, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
-  wxStaticBitmap* itemStaticBitmap6 = new wxStaticBitmap( itemDialog1, wxID_STATIC, itemDialog1->GetBitmapResource(wxT("../graphics/wxWidgets/psafetxt.xpm")), wxDefaultPosition, itemDialog1->ConvertDialogToPixels(wxSize(111, 16)), 0 );
+  wxStaticBitmap* itemStaticBitmap6 = new wxStaticBitmap( itemDialog1, wxID_STATIC, itemDialog1->GetBitmapResource(wxT("./graphics/psafetxt.xpm")), wxDefaultPosition, itemDialog1->ConvertDialogToPixels(wxSize(111, 16)), 0 );
   itemBoxSizer5->Add(itemStaticBitmap6, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   m_version = new wxStaticText( itemDialog1, wxID_STATIC, _("VX.YY"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -191,20 +191,7 @@ void CSafeCombinationEntry::CreateControls()
   wxButton* itemButton17 = new wxButton( itemDialog1, ID_NEWDB, _("New\nDatabase"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT );
   itemBoxSizer14->Add(itemButton17, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM, 5);
 
-  wxStdDialogButtonSizer* itemStdDialogButtonSizer18 = new wxStdDialogButtonSizer;
-
-  itemBoxSizer4->Add(itemStdDialogButtonSizer18, 0, wxGROW|wxALL, 0);
-  wxButton* itemButton19 = new wxButton( itemDialog1, wxID_OK, _("OK"), wxDefaultPosition, wxDefaultSize, 0 );
-  itemButton19->SetDefault();
-  itemStdDialogButtonSizer18->AddButton(itemButton19);
-
-  wxButton* itemButton20 = new wxButton( itemDialog1, wxID_CANCEL, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0 );
-  itemStdDialogButtonSizer18->AddButton(itemButton20);
-
-  wxButton* itemButton21 = new wxButton( itemDialog1, wxID_HELP, _("&Help"), wxDefaultPosition, wxDefaultSize, 0 );
-  itemStdDialogButtonSizer18->AddButton(itemButton21);
-
-  itemStdDialogButtonSizer18->Realize();
+  itemBoxSizer4->Add(CreateStdDialogButtonSizer(wxOK|wxCANCEL|wxHELP), 0, wxGROW|wxALL, 0);
 
   // Set validators
   m_filenameCB->SetValidator( wxGenericValidator(& m_filename) );
@@ -249,12 +236,12 @@ wxBitmap CSafeCombinationEntry::GetBitmapResource( const wxString& name )
   // Bitmap retrieval
 ////@begin CSafeCombinationEntry bitmap retrieval
   wxUnusedVar(name);
-  if (name == _T("../graphics/wxWidgets/cpane.xpm"))
+  if (name == _T("./graphics/cpane.xpm"))
   {
     wxBitmap bitmap(cpane_xpm);
     return bitmap;
   }
-  else if (name == _T("../graphics/wxWidgets/psafetxt.xpm"))
+  else if (name == _T("./graphics/psafetxt.xpm"))
   {
     wxBitmap bitmap(psafetxt_xpm);
     return bitmap;

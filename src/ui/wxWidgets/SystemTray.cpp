@@ -9,6 +9,11 @@
 /** \file SystemTray.cpp
  * 
  */
+#include <wx/wxprec.h>
+
+#ifndef WX_PRECOMP
+#include "wx/wx.h"
+#endif
 
 #include "./passwordsafeframe.h"
 #include "./SystemTray.h"
@@ -18,23 +23,24 @@
 
 #include <wx/menu.h>
 
-#include "../graphics/wxWidgets/tray.xpm"
-#include "../graphics/wxWidgets/locked_tray.xpm"
-#include "../graphics/wxWidgets/unlocked_tray.xpm"
-#include "../graphics/toolbar/wxWidgets/copypassword.xpm"
-#include "../graphics/toolbar/wxWidgets/copyuser.xpm"
-#include "../graphics/toolbar/wxWidgets/copynotes.xpm"
-#include "../graphics/toolbar/wxWidgets/clearclipboard.xpm"
-#include "../graphics/toolbar/wxWidgets/autotype.xpm"
-#include "../graphics/toolbar/wxWidgets/browseurl.xpm"
-#include "../graphics/toolbar/wxWidgets/browseurlplus.xpm"
-#include "../graphics/toolbar/wxWidgets/sendemail.xpm"
-#include "../graphics/toolbar/wxWidgets/delete.xpm"
-#include "../graphics/toolbar/wxWidgets/about.xpm"
-#include "../graphics/toolbar/wxWidgets/exit.xpm"
-#include "../graphics/toolbar/wxWidgets/lock.xpm"
-#include "../graphics/toolbar/wxWidgets/unlock.xpm"
-#include "../graphics/toolbar/wxWidgets/close.xpm"
+#include "./graphics/tray.xpm"
+#include "./graphics/locked_tray.xpm"
+#include "./graphics/unlocked_tray.xpm"
+#include "./graphics/about.xpm"
+#include "./graphics/exit.xpm"
+#include "./graphics/lock.xpm"
+#include "./graphics/unlock.xpm"
+
+#include "./graphics/toolbar/new/copypassword.xpm"
+#include "./graphics/toolbar/new/copyuser.xpm"
+#include "./graphics/toolbar/new/copynotes.xpm"
+#include "./graphics/toolbar/new/clearclipboard.xpm"
+#include "./graphics/toolbar/new/autotype.xpm"
+#include "./graphics/toolbar/new/browseurl.xpm"
+#include "./graphics/toolbar/new/browseurlplus.xpm"
+#include "./graphics/toolbar/new/sendemail.xpm"
+#include "./graphics/toolbar/new/delete.xpm"
+#include "./graphics/toolbar/new/close.xpm"
 
 BEGIN_EVENT_TABLE( SystemTray, wxTaskBarIcon )
   EVT_MENU( ID_SYSTRAY_RESTORE, SystemTray::OnSysTrayMenuItem )
@@ -70,15 +76,15 @@ void SystemTray::SetTrayStatus(TrayStatus status)
   if (PWSprefs::GetInstance()->GetPref(PWSprefs::UseSystemTray)) {
      switch(status) {
        case TRAY_CLOSED:
-         SetIcon(iconClosed);
+         SetIcon(iconClosed, wxTheApp->GetAppName());
          break;
 
        case TRAY_UNLOCKED:
-         SetIcon(iconUnlocked);
+         SetIcon(iconUnlocked, m_frame->GetCurrentSafe());
          break;
 
        case TRAY_LOCKED:
-         SetIcon(iconLocked);
+         SetIcon(iconLocked, m_frame->GetCurrentSafe());
          break;
 
        default:
@@ -138,10 +144,13 @@ wxMenu* SystemTray::GetRecentHistory()
   wxMenu* menu = new wxMenu;
 
   menu->Append(ID_SYSTRAY_CLEAR_RUE, wxT("&Clear Recent History"));
-  menu->Append(wxID_NONE, wxT("Note: Entry format is »Group»Title»Username»"));
-  menu->Append(wxID_NONE, wxT("Note: Empty fields are shown as »*»"));
+  menu->Append(ID_TRAYRECENT_ENTRY_HELP1, wxT("Note: Entry format is »Group»Title»Username»"));
+  menu->Append(ID_TRAYRECENT_ENTRY_HELP2, wxT("Note: Empty fields are shown as »*»"));
   menu->AppendSeparator();
 
+  menu->Enable(ID_TRAYRECENT_ENTRY_HELP1, false);
+  menu->Enable(ID_TRAYRECENT_ENTRY_HELP2, false);
+  
   std::vector<RUEntryData> menulist;
   m_frame->GetAllMenuItemStrings(menulist);
 

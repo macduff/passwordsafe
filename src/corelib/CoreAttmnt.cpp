@@ -1735,6 +1735,7 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
   }
 
   dup3 = dynamic_cast<PWSAttfileV3 *>(dup);
+  bool bCancel(false);
   try { // exception thrown on write error
     // Open duplicate attachment file
     status = dup3->Open(GetPassKey());
@@ -1758,78 +1759,89 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
     AttachmentProgress(st_atpg);
     st_atpg.function_text.clear();
 
-  // Process all duplicate attachments and append to output file
-  bool go(true);
-  ATRecord atr;
-  while (go && dup != NULL) {
-    atr.Clear();
-    status = dup3->ReadAttmntRecordPreData(atr);
-    switch (status) {
-      case PWSRC::FAILURE:
-      {
-        // Show a useful (?) error message - better than
-        // silently losing data (but not by much)
-        // Best if title intact. What to do if not?
-        if (m_pReporter != NULL) {
-          stringT cs_msg, cs_caption;
-          LoadAString(cs_caption, IDSC_READ_ERROR);
-          Format(cs_msg, IDSC_ENCODING_PROBLEM, _T("???"));
-          cs_msg = cs_caption + _S(": ") + cs_caption;
-          (*m_pReporter)(cs_msg);
+    // Process all duplicate attachments and append to output file
+    bool go(true);
+    ATRecord atr;
+    while (go && dup != NULL) {
+      atr.Clear();
+      status = dup3->ReadAttmntRecordPreData(atr);
+      switch (status) {
+        case PWSRC::FAILURE:
+        {
+          // Show a useful (?) error message - better than
+          // silently losing data (but not by much)
+          // Best if title intact. What to do if not?
+          if (m_pReporter != NULL) {
+            stringT cs_msg, cs_caption;
+            LoadAString(cs_caption, IDSC_READ_ERROR);
+            Format(cs_msg, IDSC_ENCODING_PROBLEM, _T("???"));
+            cs_msg = cs_caption + _S(": ") + cs_caption;
+            (*m_pReporter)(cs_msg);
+          }
+          break;
         }
-        break;
-      }
-      case PWSRC::SUCCESS:
-      {
-        st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-        st_atpg.atr = atr;
-        st_atpg.value = 0;
-        AttachmentProgress(st_atpg);
-
-        unsigned char readtype(0);
-        unsigned char *pCmpData;
-        unsigned int uiCmpLen, count(0);
-        int status_r, status_w;
-
-        // Write out pre-data
-        out3->WriteAttmntRecordPreData(atr);
-
-        do {
-          // Read in data records
-          status_r = dup3->ReadAttmntRecordData(pCmpData, uiCmpLen, readtype, false);
-
-          // Write them back out
-          if (status_r == PWSRC::SUCCESS)
-            status_w = out3->WriteAttmntRecordData(pCmpData, uiCmpLen, readtype);
-
-          // tidy up
-          trashMemory(pCmpData, uiCmpLen);
-          delete [] pCmpData;
-          pCmpData = NULL;
-
-          // Update progress dialog
-          count += atr.blksize;
-          st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+        case PWSRC::SUCCESS:
+        {
+          st_atpg.function = ATT_PROGRESS_PROCESSFILE;
+          st_atpg.atr = atr;
+          st_atpg.value = 0;
           AttachmentProgress(st_atpg);
-        } while(status_r == PWSRC::SUCCESS &&
-                status_w == PWSRC::SUCCESS &&
-                readtype != PWSAttfileV3::ATTMT_LASTDATA);
 
-        // Write out post-data
-        dup3->ReadAttmntRecordPostData(atr);
-        out3->WriteAttmntRecordPostData(atr);
-        vATRWritten.push_back(atr);
+          unsigned char readtype(0);
+          unsigned char *pCmpData;
+          unsigned int uiCmpLen, count(0);
+          int status_r, status_w;
 
-        st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-        st_atpg.value = 100;
-        AttachmentProgress(st_atpg);
-        break;
-      }
-      case PWSRC::END_OF_FILE:
-        go = false;
-        break;
-    } // switch
-  };
+          // Write out pre-data
+          out3->WriteAttmntRecordPreData(atr);
+
+          do {
+            // Read in data records
+            status_r = dup3->ReadAttmntRecordData(pCmpData, uiCmpLen, readtype, false);
+
+            // Write them back out
+            if (status_r == PWSRC::SUCCESS)
+              status_w = out3->WriteAttmntRecordData(pCmpData, uiCmpLen, readtype);
+
+            // tidy up
+            trashMemory(pCmpData, uiCmpLen);
+            delete [] pCmpData;
+            pCmpData = NULL;
+
+            // Update progress dialog
+            count += atr.blksize;
+            st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+            int rc = AttachmentProgress(st_atpg);
+            if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+              // Cancel reading attachment file
+              bCancel = true;
+            }
+          } while(!bCancel &&
+                  status_r == PWSRC::SUCCESS &&
+                  status_w == PWSRC::SUCCESS &&
+                  readtype != PWSAttfileV3::ATTMT_LASTDATA);
+
+          if (bCancel) {
+            status = PWSRC::END_OF_FILE;
+            break;
+          }
+
+          // Write out post-data
+          dup3->ReadAttmntRecordPostData(atr);
+          out3->WriteAttmntRecordPostData(atr);
+          vATRWritten.push_back(atr);
+
+          st_atpg.function = ATT_PROGRESS_PROCESSFILE;
+          st_atpg.value = 100;
+          AttachmentProgress(st_atpg);
+          break;
+        }
+        case PWSRC::END_OF_FILE:
+          go = false;
+          break;
+      } // switch
+    };
+
   } catch (...) {
     out3->Close();
     delete out3;
@@ -1854,6 +1866,12 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
 
   // Delete temporary duplicates file
   pws_os::DeleteAFile(dupfilename);
+
+  if (bCancel) {
+    // Delete temporary file
+    pws_os::DeleteAFile(tempfilename);
+    return PWSRC::FAILURE;
+  }
 
   // Remove change flag now that records have been written
   std::pair<UAMMiter, UAMMiter> uuidairpair;
@@ -2611,7 +2629,8 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
                 if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
                   bCancel = true;
                 }
-              } while(!bCancel && status_r == PWSRC::SUCCESS &&
+              } while(!bCancel &&
+                      status_r == PWSRC::SUCCESS &&
                       status_w == PWSRC::SUCCESS &&
                       readtype != PWSAttfileV3::ATTMT_LASTDATA);
 
@@ -2764,7 +2783,8 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
               // Cancel reading attachment file
               bCancel = true;
             }
-          } while(!bCancel && status_r == PWSRC::SUCCESS &&
+          } while(!bCancel &&
+                  status_r == PWSRC::SUCCESS &&
                   status_w == PWSRC::SUCCESS &&
                   readtype != PWSAttfileV3::ATTMT_LASTDATA);
 

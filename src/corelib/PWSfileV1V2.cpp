@@ -130,7 +130,9 @@ int PWSfileV1V2::Open(const StringX &passkey)
   pstr = new unsigned char[pstr_len];
   size_t len = pws_os::wcstombs((char *)pstr, 3 * passLen, passstr, passLen, false);
   ASSERT(len != 0);
-  passLen = len;
+  // hack around OS-dependent semantics - too widespread to fix systematically :-(
+  pstr[len < pstr_len ? len : pstr_len - 1] = '\0';
+  passLen = strlen((const char *)pstr);
 #else
   pstr = (unsigned char *)passstr;
 #endif

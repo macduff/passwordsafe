@@ -23,7 +23,7 @@
 #include "SafeCombinationCtrl.h"
 #include "./wxutils.h"
 
-#include "../graphics/wxWidgets/vkbd.xpm"
+#include "./graphics/vkbd.xpm"
 
 //this is just on a hunch that the window name that wxWidgets accepts
 //as the last param could be the instance/class name of the X window object
@@ -73,7 +73,7 @@ CSafeCombinationCtrl::CSafeCombinationCtrl(wxWindow* parent,
 #endif
   
   textCtrl = new wxTextCtrl(parent, textCtrlID, wxEmptyString, wxDefaultPosition, wxDefaultSize, 
-                                                wxTE_PROCESS_ENTER|wxTE_PASSWORD,
+                                                wxTE_PASSWORD,
                                                 wxTextValidator(validatorStyle, valPtr));
   ApplyPasswordFont(textCtrl);
   Add(textCtrl, wxSizerFlags().Proportion(1).Expand());
