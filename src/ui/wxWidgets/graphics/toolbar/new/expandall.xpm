@@ -1,7 +1,9 @@
 /* XPM */
-static const char * expandall_xpm[] = {
+static const char *expandall_xpm[] = {
+/* columns rows colors chars-per-pixel */
 "16 16 113 2",
-"  	c #C0C0C0",
+/* colors */
+"  	c None",
 ". 	c #5171A9",
 "+ 	c #8DB1DD",
 "@ 	c #7BA7DC",
@@ -114,6 +116,7 @@ static const char * expandall_xpm[] = {
 "{.	c #5676AD",
 "].	c #5475AB",
 "^.	c #5373A9",
+/* pixels */
 "                                ",
 ". + @ # $ % & * = - ; > , ' .   ",
 ") ! ! ! ! ! ! ! ! ! ! ! ! ! ~   ",

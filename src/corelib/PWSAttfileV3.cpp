@@ -27,10 +27,10 @@
 #include <fcntl.h>
 #include <iomanip>
 
-extern bool pull_string(StringX &str, unsigned char *data, int len);
-extern bool pull_time(time_t &t, unsigned char *data, size_t len);
-extern bool pull_uint(unsigned int &uint, unsigned char *data, size_t len);
-extern bool pull_int(int &i, unsigned char *data, size_t len);
+extern bool pull_string(StringX &str, const unsigned char *data, int len);
+extern bool pull_time(time_t &t, const unsigned char *data, size_t len);
+extern bool pull_uint(unsigned int &uint, const unsigned char *data, size_t len);
+extern bool pull_int(int &i, const unsigned char *data, size_t len);
 
 using namespace std;
 

@@ -1,7 +1,9 @@
 /* XPM */
-static const char * unlock_xpm[] = {
+static const char *unlock_xpm[] = {
+/* columns rows colors chars-per-pixel */
 "16 16 157 2",
-"  	c #C0C0C0",
+/* colors */
+"  	c None",
 ". 	c #A4A4A4",
 "+ 	c #A1A1A1",
 "@ 	c #9A9A9A",
@@ -158,6 +160,7 @@ static const char * unlock_xpm[] = {
 "x.	c #CF7307",
 "y.	c #CF7004",
 "z.	c #CE6E01",
+/* pixels */
 "        . + @ @ # $             ",
 "      + % & * * = - ;           ",
 "    + > , ' $ $ ) ! $ ~         ",

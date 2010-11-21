@@ -19,6 +19,15 @@
 #include "./graphics/findtoolbar/new/findcase_s.xpm"
 #include "./graphics/findtoolbar/new/findclear.xpm"
 #include "./graphics/findtoolbar/new/findclose.xpm"
+//-- classic bitmaps...
+#include "./graphics/findtoolbar/classic/find.xpm"
+#include "./graphics/findtoolbar/classic/findreport.xpm"
+#include "./graphics/findtoolbar/classic/find_disabled.xpm"
+#include "./graphics/findtoolbar/classic/findadvanced.xpm"
+#include "./graphics/findtoolbar/classic/findcase_i.xpm"
+#include "./graphics/findtoolbar/classic/findcase_s.xpm"
+#include "./graphics/findtoolbar/classic/findclear.xpm"
+#include "./graphics/findtoolbar/classic/findclose.xpm"
 ////@end XPM images
 #include <wx/statline.h> 
 #include <wx/valgen.h>
@@ -167,7 +176,8 @@ void PasswordSafeSearch::HideSearchToolbar()
 {
   m_toolbar->Show(false);
   m_parentFrame->GetSizer()->Layout();
-
+  m_parentFrame->SetFocus();
+  
   wxMenu* editMenu = 0; // will be set by FindItem() below
   wxMenuItem* findNextItem = m_parentFrame->GetMenuBar()->FindItem(ID_EDITMENU_FIND_NEXT, &editMenu);
   if (editMenu) { //the menu might not have been modified if nothing was actually searched for
@@ -212,6 +222,46 @@ void PasswordSafeSearch::OnAdvancedSearchOptions(wxCommandEvent& /* evt */)
   }
 }
 
+void PasswordSafeSearch::RefreshButtons(void)
+{
+  if (!m_toolbar)
+    return;
+    
+  static struct _SearchBarInfo{
+    int id;
+    const char** bitmap_normal;
+    const char** bitmap_disabled;
+    const char** bitmap_classic;
+    const char** bitmap_classic_disabled;
+  } SearchBarButtons[] = {
+          { ID_FIND_CLOSE,            findclose_xpm,    NULL,               classic_findclose_xpm,    NULL                      },
+          { ID_FIND_NEXT,             find_xpm,         find_disabled_xpm,  classic_find_xpm,         classic_find_disabled_xpm },
+          { ID_FIND_IGNORE_CASE,      findcase_i_xpm,   findcase_s_xpm,     classic_findcase_i_xpm,   classic_findcase_s_xpm    },
+          { ID_FIND_ADVANCED_OPTIONS, findadvanced_xpm, NULL,               classic_findadvanced_xpm, NULL                      },
+          { ID_FIND_CREATE_REPORT,    findreport_xpm,   NULL,               classic_findreport_xpm,   NULL                      },
+          { ID_FIND_CLEAR,            findclear_xpm,    NULL,               classic_findclear_xpm,    NULL                      },
+  };
+
+  const char** _SearchBarInfo::* bitmap_normal;
+  const char** _SearchBarInfo::* bitmap_disabled;
+  
+  if (PWSprefs::GetInstance()->GetPref(PWSprefs::UseNewToolbar)) {
+    bitmap_normal = &_SearchBarInfo::bitmap_normal;
+    bitmap_disabled = &_SearchBarInfo::bitmap_normal;
+  } 
+  else {
+    bitmap_normal = &_SearchBarInfo::bitmap_classic;
+    bitmap_disabled = &_SearchBarInfo::bitmap_classic_disabled;
+  }
+  
+  for (size_t idx = 0; idx < NumberOf(SearchBarButtons); ++idx) {
+    m_toolbar->SetToolNormalBitmap(SearchBarButtons[idx].id, wxBitmap(SearchBarButtons[idx].*bitmap_normal));
+    if (SearchBarButtons[idx].*bitmap_disabled)
+      m_toolbar->SetToolDisabledBitmap(SearchBarButtons[idx].id, wxBitmap(SearchBarButtons[idx].*bitmap_disabled));
+  }
+}
+
+
 /*!
  * Creates the search bar and keeps it hidden
  */
@@ -221,15 +271,17 @@ void PasswordSafeSearch::CreateSearchBar()
 
   m_toolbar = new wxToolBar(m_parentFrame, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxTB_BOTTOM | wxTB_HORIZONTAL,  wxT("SearchBar"));
 
-  m_toolbar->AddTool(ID_FIND_CLOSE, wxT(""), wxBitmap(findclose), wxNullBitmap, wxITEM_NORMAL, wxT("Close Find Bar"));
+  m_toolbar->AddTool(ID_FIND_CLOSE, wxT(""), wxBitmap(findclose_xpm), wxNullBitmap, wxITEM_NORMAL, _("Close Find Bar"));
   wxTextCtrl* edit = new wxTextCtrl(m_toolbar, ID_FIND_EDITBOX, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
   m_toolbar->AddControl(edit);
-  m_toolbar->AddTool(ID_FIND_NEXT, wxT(""), wxBitmap(find), wxBitmap(find_disabled), wxITEM_NORMAL, wxT("Find Next"));
-  m_toolbar->AddCheckTool(ID_FIND_IGNORE_CASE, wxT(""), wxBitmap(findcase_i), wxBitmap(findcase_s), wxT("Case Insensitive Search"));
-  m_toolbar->AddTool(ID_FIND_ADVANCED_OPTIONS, wxT(""), wxBitmap(findadvanced), wxNullBitmap, wxITEM_NORMAL, wxT("Advanced Find Options"));
-  m_toolbar->AddTool(ID_FIND_CREATE_REPORT, wxT(""), wxBitmap(findreport), wxNullBitmap, wxITEM_NORMAL, wxT("Create report of previous Find search"));
-  m_toolbar->AddTool(ID_FIND_CLEAR, wxT(""), wxBitmap(findclear), wxNullBitmap, wxITEM_NORMAL, wxT("Clear Find"));
+  m_toolbar->AddTool(ID_FIND_NEXT, wxT(""), wxBitmap(find_xpm), wxBitmap(find_disabled_xpm), wxITEM_NORMAL, _("Find Next"));
+  m_toolbar->AddCheckTool(ID_FIND_IGNORE_CASE, wxT(""), wxBitmap(findcase_i_xpm), wxBitmap(findcase_s_xpm), _("Case Insensitive Search"));
+  m_toolbar->AddTool(ID_FIND_ADVANCED_OPTIONS, wxT(""), wxBitmap(findadvanced_xpm), wxNullBitmap, wxITEM_NORMAL, _("Advanced Find Options"));
+  m_toolbar->AddTool(ID_FIND_CREATE_REPORT, wxT(""), wxBitmap(findreport_xpm), wxNullBitmap, wxITEM_NORMAL, _("Create report of previous Find search"));
+  m_toolbar->AddTool(ID_FIND_CLEAR, wxT(""), wxBitmap(findclear_xpm), wxNullBitmap, wxITEM_NORMAL, _("Clear Find"));
   m_toolbar->AddControl(new wxStaticText(m_toolbar, ID_FIND_STATUS_AREA, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY));
+  
+  RefreshButtons();
   
   if (!m_toolbar->Realize())
     wxMessageBox(wxT("Could not create Search Bar"), wxT("Password Safe"));
@@ -358,7 +410,7 @@ void PasswordSafeSearch::FindMatches(const StringX& searchText, bool fCaseSensit
   for ( Iter itr = begin; itr != end; ++itr) {
     
     const int fn = (subgroupFunctionCaseSensitive? -subgroupFunction: subgroupFunction);
-    if (fUseSubgroups && !afn(itr).Matches((const charT*)subgroupText, subgroupObject, fn))
+    if (fUseSubgroups && !afn(itr).Matches(static_cast<const charT*>(subgroupText), subgroupObject, fn))
         continue;
 
     bool found = false;

@@ -134,7 +134,7 @@ struct st_FilterRow {
     : bFilterActive(true), bFilterComplete(false),
     ftype(FT_INVALID), mtype(PWSMatch::MT_INVALID), rule(PWSMatch::MR_INVALID),
     fnum1(0), fnum2(0),
-    fdate1((time_t)0), fdate2((time_t)0), fdatetype(0),
+    fdate1(time_t(0)), fdate2(time_t(0)), fdatetype(0),
     fstring(_T("")), fcase(false), fdca(-2),
     etype(CItemData::ET_INVALID),
     estatus(CItemData::ES_INVALID), funit(-1),
@@ -183,7 +183,7 @@ struct st_FilterRow {
     mtype = PWSMatch::MT_INVALID;
     rule = PWSMatch::MR_INVALID;
     fnum1 = fnum2 = 0;
-    fdate1 = fdate2 = (time_t)0;
+    fdate1 = fdate2 = time_t(0);
     fdatetype = 0;
     fstring = _T("");
     fcase = false;
@@ -268,7 +268,7 @@ struct ltfk {
   bool operator()(const st_Filterkey &fk1, const st_Filterkey &fk2) const
   {
     if (fk1.fpool != fk2.fpool)
-      return (int)fk1.fpool < (int)fk2.fpool;
+      return static_cast<int>(fk1.fpool) < static_cast<int>(fk2.fpool);
 
     return fk1.cs_filtername.compare(fk2.cs_filtername) < 0;
   }

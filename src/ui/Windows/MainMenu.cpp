@@ -631,6 +631,7 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
        List View - Add Entry, Sep, Clear Clipboard
      2. Group selected (Tree view only)
        Add Entry, Sep, <Group Items>, Sep, Clear Clipboard
+       Add Group, Duplicate Group
      3. Entry selected
        Tree View - <Entry Items>, Sep, Add Group, Sep, Clear Clipboard, Sep
                    Entry functions (copy to clipboard, browse, run etc)
@@ -684,6 +685,8 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
                                ID_MENUITEM_RENAMEGROUP, tc_dummy);
         pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
                                ID_MENUITEM_ADDGROUP, tc_dummy);
+        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_DUPLICATEGROUP, tc_dummy);
       }
       pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
       pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
@@ -1118,6 +1121,9 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
     return;
   }
 
+  if (!m_bOpen)
+    return;
+
   client = screen;
   // RClick over ListView
   if (m_ctlItemList.IsWindowVisible()) {
@@ -1142,9 +1148,6 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
   }
 
   // RClick over TreeView
-  if (!m_bOpen)
-    return;
-
   if (m_ctlItemTree.IsWindowVisible()) {
     // currently in tree view
     m_ctlItemTree.GetWindowRect(&rect);
@@ -1284,6 +1287,8 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
       // Since we generated our own menu item IDs, we need control back
       dwTrackPopupFlags |= (TPM_NONOTIFY |TPM_RETURNCMD);
     }
+    // Since an entry - remove Duplicate Group
+    pPopup->RemoveMenu(ID_MENUITEM_DUPLICATEGROUP, MF_BYCOMMAND);
 
     UINT uiID = pPopup->TrackPopupMenu(dwTrackPopupFlags,
                                        screen.x, screen.y, this);

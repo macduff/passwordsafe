@@ -246,7 +246,7 @@ bool PasswordSafeFrame::Create( wxWindow* parent, wxWindowID id, const wxString&
   wxFrame::Create( parent, id, caption, pos, size, style );
 
   CreateControls();
-  SetIcon(GetIconResource(wxT("./graphics/cpane.xpm")));
+  SetIcons(wxGetApp().GetAppIcons());
   Centre();
 ////@end PasswordSafeFrame creation
   m_search = new PasswordSafeSearch(this);
@@ -645,6 +645,11 @@ void PasswordSafeFrame::OnChangeToolbarType(wxCommandEvent& evt)
   if (GetMenuBar()->IsChecked(evt.GetId())) {
     PWSprefs::GetInstance()->SetPref(PWSprefs::UseNewToolbar, evt.GetId() == ID_TOOLBAR_NEW);
     RefreshToolbarButtons();
+    PWSDragBar* dragbar = GetDragBar();
+    wxCHECK_RET(dragbar, wxT("Could not find dragbar"));
+    dragbar->RefreshButtons();
+    wxCHECK_RET(m_search, wxT("Search object not created as expected"));
+    m_search->RefreshButtons();
   }
 }
 
@@ -734,7 +739,7 @@ void PasswordSafeFrame::OnShowHideToolBar(wxCommandEvent& evt)
   SendSizeEvent();
 }
 
-void PasswordSafeFrame::OnShowHideDragBar(wxCommandEvent& evt)
+PWSDragBar* PasswordSafeFrame::GetDragBar()
 {
   wxSizer* origSizer = GetSizer();
   
@@ -744,11 +749,17 @@ void PasswordSafeFrame::OnShowHideDragBar(wxCommandEvent& evt)
   
   wxSizerItem* dragbarItem = origSizer->GetItem(size_t(0));
   wxASSERT_MSG(dragbarItem && dragbarItem->IsWindow() && 
-                      dragbarItem->GetWindow()->IsKindOf(&PWSDragBar::ms_classInfo),
+                      wxIS_KIND_OF(dragbarItem->GetWindow(), PWSDragBar),
                     wxT("Found unexpected item while searching for DragBar"));
                     
   PWSDragBar* dragbar = wxDynamicCast(dragbarItem->GetWindow(), PWSDragBar);
-  wxASSERT(dragbar);
+  return dragbar;
+}
+
+void PasswordSafeFrame::OnShowHideDragBar(wxCommandEvent& evt)
+{
+  PWSDragBar* dragbar = GetDragBar();
+  wxCHECK_RET(dragbar, wxT("Could not find dragbar"));
   
   dragbar->Show(evt.IsChecked());
   PWSprefs::GetInstance()->SetPref(PWSprefs::ShowDragbar, evt.IsChecked());
@@ -813,6 +824,8 @@ int PasswordSafeFrame::SaveIfChanged()
         // Reset changed flag
         SetChanged(Clear);
         break;
+      default:
+        ASSERT(0);
     }
   }
   return PWScore::SUCCESS;
@@ -1064,6 +1077,7 @@ void PasswordSafeFrame::OnSaveClick( wxCommandEvent& /* evt */ )
 
 void PasswordSafeFrame::OnSaveAsClick(wxCommandEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   if (m_core.GetReadFileVersion() != PWSfile::VCURRENT &&
       m_core.GetReadFileVersion() != PWSfile::UNKNOWN_VERSION) {
     if (wxMessageBox( wxString::Format(_("The original database, '%s', is in pre-3.0 format. The data will now be written in the new format, which is unusable by old versions of PasswordSafe. To save the data in the old format, use the 'File->Export To-> Old (1.x or 2) format' command."),
@@ -1656,11 +1670,15 @@ void PasswordSafeFrame::UpdateGUI(UpdateGUICommand::GUI_Action ga,
                                   uuid_array_t &entry_uuid,
                                   CItemData::FieldType ft)
 {
+  UNREFERENCED_PARAMETER(ga);
+  UNREFERENCED_PARAMETER(entry_uuid);
+  UNREFERENCED_PARAMETER(ft);
   // XXX TBD
 }
 
 void PasswordSafeFrame::GUISetupDisplayInfo(CItemData &ci)
 {
+  UNREFERENCED_PARAMETER(ci);
   // XXX TBD
 }
 
@@ -1687,15 +1705,20 @@ void PasswordSafeFrame::UpdateGUI(UpdateGUICommand::GUI_Action ga,
   // "bUpdateGUI" is only used by GUI_DELETE_ENTRY when called as part
   // of the Edit Entry Command where the entry is deleted and then added and
   // the GUI should not be updated until after the Add.
+  
+  // TODO: bUpdateGUI processing in PasswordSafeFrame::UpdateGUI
+  UNREFERENCED_PARAMETER(ft);//remove after NOTYET 'll be done
+  UNREFERENCED_PARAMETER(bUpdateGUI);
+
   CItemData *pci(NULL);
 
   ItemListIter pos = m_core.Find(entry_uuid);
   if (pos != m_core.GetEntryEndIter()) {
     pci = &pos->second;
   }
-
+#ifdef NOTYET
   PWSprefs *prefs = PWSprefs::GetInstance();
-
+#endif
   switch (ga) {
     case UpdateGUICommand::GUI_ADD_ENTRY:
       m_tree->AddItem(*pci);
@@ -1773,6 +1796,7 @@ void PasswordSafeFrame::OnNewClick( wxCommandEvent& /* evt */ )
 
 void PasswordSafeFrame::OnClearRecentHistory(wxCommandEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   wxGetApp().recentDatabases().Clear();
 }
 
@@ -1834,6 +1858,8 @@ int PasswordSafeFrame::New()
       // Reset changed flag
       SetChanged(Clear);
       break;
+    default:
+      ASSERT(0);
     }
   }
 
@@ -2018,6 +2044,14 @@ bool PasswordSafeFrame::VerifySafeCombination(wxString& password)
   return false;
 }
 
+void PasswordSafeFrame::SetFocus()
+{
+  if (IsTreeView())
+    m_tree->SetFocus();
+  else
+    m_grid->SetFocus();
+}
+
 void PasswordSafeFrame::OnIconize(wxIconizeEvent& evt)
 {
   // being restored?
@@ -2103,6 +2137,7 @@ void PasswordSafeFrame::OnOpenRecentDB(wxCommandEvent& evt)
 //
 void PasswordSafeFrame::OnImportText(wxCommandEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   if (m_core.IsReadOnly()) {// disable in read-only mode
     wxMessageBox(wxT("The current database was opened in read-only mode.  You cannot import into it."),
                   wxT("Import text"), wxOK | wxICON_EXCLAMATION);
@@ -2220,6 +2255,7 @@ void PasswordSafeFrame::OnImportText(wxCommandEvent& evt)
 
 void PasswordSafeFrame::OnImportKeePass(wxCommandEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
 
@@ -2258,6 +2294,7 @@ void PasswordSafeFrame::OnImportKeePass(wxCommandEvent& evt)
 
 void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
 
@@ -2492,6 +2529,7 @@ struct ExportFullText
 
 void PasswordSafeFrame::OnExportPlainText(wxCommandEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   DoExportText<ExportFullText>();
 }
 
@@ -2528,6 +2566,7 @@ struct ExportFullXml {
 
 void PasswordSafeFrame::OnExportXml(wxCommandEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   DoExportText<ExportFullXml>();
 }
 
@@ -2568,7 +2607,11 @@ void PasswordSafeFrame::DoExportText()
     OrderedItemList orderedItemList;
     ExportType::MakeOrderedItemList(this, orderedItemList);
 
-#pragma message("Saurav - find out the reason for the first bool param to TestForExport")
+    /*
+     * First parameter indicates whether or not the user has specified
+     * 'Advanced' to filter the entries to be exported.
+     * Effectively, subgroup_* parameters are ignored if 1st param is false.
+     */
     switch(m_core.TestForExport(false, subgroup_name, subgroup_object,
                              subgroup_function, &orderedItemList)) {
       case PWScore::SUCCESS:
@@ -2620,6 +2663,7 @@ void PasswordSafeFrame::DoExportText()
 //
 void PasswordSafeFrame::OnMergeAnotherSafe(wxCommandEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   MergeDlg dlg(this, &m_core);
   if (dlg.ShowModal() == wxID_OK) {
     //this code comes from DboxMain::DoOtherDBProcessing()
@@ -2958,6 +3002,9 @@ void PasswordSafeFrame::Merge(const StringX &sx_Filename2, PWScore *pothercore, 
 
   RefreshViews();
 
+  //autosave, if anything changed
+  if (totalAdded > 0 || numConflicts > 0 || numAliasesAdded > 0 || numShortcutsAdded > 0)
+    SetChanged(Data);
 }
 
 int PasswordSafeFrame::MergeDependents(PWScore *pothercore, MultiCommands *pmulticmds,

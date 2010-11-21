@@ -22,6 +22,7 @@
 #include "../os/mem.h"
 
 #include <sstream>
+#include <stdarg.h>
 
 #define SaltLength 20
 #define StuffSize 10
@@ -70,17 +71,17 @@ inline int getInt32(const unsigned char buf[4])
   ASSERT(sizeof(int) == 4);
 #if defined(PWS_LITTLE_ENDIAN)
 #if defined(_DEBUG)
-  if ( *(int*) buf != (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
+  if ( *reinterpret_cast<const int*>(buf) != (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
   {
     pws_os::Trace0(_T("Warning: PWS_LITTLE_ENDIAN defined but architecture is big endian\n"));
   }
 #endif
-  return *(int *) buf;
+  return *reinterpret_cast<const int *>(buf);
 #elif defined(PWS_BIG_ENDIAN)
 #if defined(_DEBUG)
   // Folowing code works for big or little endian architectures but we'll warn anyway
   // if CPU is really little endian
-  if ( *(int*) buf == (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
+  if ( *reinterpret_cast<const int*>(buf) == (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
   {
     pws_os::Trace0(_T("Warning: PWS_BIG_ENDIAN defined but architecture is little endian\n"));
   }
@@ -98,9 +99,9 @@ inline void putInt32(unsigned char buf[4], const int val )
 {
   ASSERT(sizeof(int) == 4);
 #if defined(PWS_LITTLE_ENDIAN)
-  *(int32 *) buf = val;
+  *reinterpret_cast<int32 *>(buf) = val;
 #if defined(_DEBUG)
-  if ( *(int*) buf != (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
+  if ( *reinterpret_cast<int*>(buf) != (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
   {
     pws_os::Trace0(_T("Warning: PWS_LITTLE_ENDIAN defined but architecture is big endian\n"));
   }
@@ -156,7 +157,7 @@ namespace PWSUtil {
   void Get_CRC_Incremental_Init();
   void Get_CRC_Incremental_Update(unsigned char *pData, const unsigned int &iLen);
   unsigned int Get_CRC_Incremental_Final();
-};
+}
 
 ///////////////////////////////////////////////////////
 // Following two templates lets us use the two types
@@ -178,7 +179,7 @@ class dereference {
     const value_type& operator()(const_iterator itr) { return *itr; }
 };
 
-
+extern int GetStringBufSize(const TCHAR *fmt, va_list args);
 #endif /* __UTIL_H */
 //-----------------------------------------------------------------------------
 // Local variables:

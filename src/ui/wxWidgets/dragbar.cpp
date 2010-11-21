@@ -271,12 +271,14 @@ void CDragBar::OnMouseMove(wxMouseEvent& evt)
 
 void CDragBar::OnMouseLeave(wxMouseEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   RemoveToolTip(this);
   //wxLogDebug(wxT("Removed tooltip since mouse left the window"));
 }
 
 void CDragBar::OnUpdateUI(wxUpdateUIEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   for (size_t idx = 0; idx < m_items.size(); ++idx) {
     const bool status = m_provider->IsEnabled(m_items[idx].id);
     if (status != m_items[idx].enabled) {
@@ -286,6 +288,17 @@ void CDragBar::OnUpdateUI(wxUpdateUIEvent& evt)
   }
 }
 
+void CDragBar::SetToolBitmaps(int id, const wxBitmap& bmp, const wxBitmap& bmpDisabled /*= wxNullBitmap*/)
+{
+  for (size_t idx = 0; idx < m_items.size(); ++idx) {
+    if (m_items[idx].id == id) {
+      m_items[idx].bmp = bmp;
+      m_items[idx].bmpDisabled = bmpDisabled;
+      RefreshRect( wxRect( wxPoint(GetToolX(idx), GetToolY(idx)), wxSize(m_bmpWidth, m_bmpHeight)), true );
+      break;
+    }
+  }
+}
 
 #include <wx/arrimpl.cpp>
 WX_DEFINE_OBJARRAY(DragBarItemsArray)

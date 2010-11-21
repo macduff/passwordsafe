@@ -61,7 +61,7 @@ void trashMemory(void* buffer, size_t length)
 #endif
 void trashMemory(LPTSTR buffer, size_t length)
 {
-  trashMemory((unsigned char *) buffer, length * sizeof(buffer[0]));
+  trashMemory(reinterpret_cast<unsigned char *>(buffer), length * sizeof(buffer[0]));
 }
 
 
@@ -73,7 +73,7 @@ void burnStack(unsigned long len)
 {
   unsigned char buf[32];
   trashMemory(buf, sizeof(buf));
-  if (len > (unsigned long)sizeof(buf))
+  if (len > static_cast<unsigned long>(sizeof(buf)))
     burnStack(len - sizeof(buf));
 }
 
@@ -97,8 +97,8 @@ void ConvertString(const StringX &text,
   memset(&mbs, 0, sizeof(mbs));
   size_t len = wcsrtombs(NULL, &txtstr, 0, &mbs);
   txt = new unsigned char[len + 1];
-  len = wcsrtombs((char *)txt, &txtstr, len, &mbs);
-  ASSERT(len != (size_t)-1);
+  len = wcsrtombs(reinterpret_cast<char *>(txt), &txtstr, len, &mbs);
+  ASSERT(len != size_t(-1));
 #endif
   txtlen = len;
   txt[len] = '\0';
@@ -137,7 +137,7 @@ void GenRandhash(const StringX &a_passkey,
   BlowFish Cipher(tempSalt, sizeof(tempSalt));
 
   unsigned char tempbuf[StuffSize];
-  memcpy((char*)tempbuf, (char*)a_randstuff, StuffSize);
+  memcpy(reinterpret_cast<char*>(tempbuf), reinterpret_cast<const char*>(a_randstuff), StuffSize);
 
   for (int x=0; x<1000; x++)
     Cipher.Encrypt(tempbuf, tempbuf);
@@ -282,14 +282,6 @@ size_t _readcbc(FILE *fp,
 
   // new for 2.0 -- lengthblock[4..7] previously set to zero
   type = lengthblock[sizeof(int)]; // type is first byte after the length
-
-  if (length < 0) { // sanity check
-    pws_os::Trace0(_T("_readcbc: Read negative length - aborting\n"));
-    buffer = NULL;
-    buffer_len = 0;
-    trashMemory(lengthblock, BS);
-    return 0;
-  }
 
   if ((file_len != 0 && length >= file_len)) {
     pws_os::Trace0(_T("_readcbc: Read size larger than file length - aborting\n"));
@@ -474,7 +466,7 @@ void PWSUtil::GetTimeStamp(stringT &sTimeStamp)
   ostringstreamT *p_os;
   p_os = new ostringstreamT;
   *p_os << cmys_now << TCHAR('.') << setw(3) << setfill(TCHAR('0'))
-     << (unsigned int)ptimebuffer->millitm;
+     << static_cast<unsigned int>(ptimebuffer->millitm);
 
   sTimeStamp = p_os->str();
   delete ptimebuffer;
@@ -488,9 +480,9 @@ stringT PWSUtil::Base64Encode(const BYTE *strIn, const size_t len)
     _S("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
 
   for (size_t i = 0; i < len; i += 3) {
-    long l = ( ((long)strIn[i]) << 16 ) | 
-               (((i + 1) < len) ? (((long)strIn[i + 1]) << 8) : 0) | 
-               (((i + 2) < len) ? ((long)strIn[i + 2]) : 0);
+    long l = ( static_cast<long>(strIn[i]) << 16 ) | 
+               (((i + 1) < len) ? (static_cast<long>(strIn[i + 1]) << 8) : 0) | 
+               (((i + 2) < len) ? static_cast<long>(strIn[i + 2]) : 0);
 
     encoded += base64ABC[(l >> 18) & 0x3F];
     encoded += base64ABC[(l >> 12) & 0x3F];
@@ -503,6 +495,8 @@ stringT PWSUtil::Base64Encode(const BYTE *strIn, const size_t len)
       encoded += TCHAR('=');
     case 2:
       encoded += TCHAR('=');
+    default:
+      break;
   }
   return encoded;
 }
@@ -536,24 +530,24 @@ void PWSUtil::Base64Decode(const StringX &inString, BYTE* &decoded, size_t &buff
     }
 
     ASSERT(st_length <= buffer_len);
-    decoded[st_length] = ((BYTE)iDigits[0] << 2);
+    decoded[st_length] = (static_cast<BYTE>(iDigits[0]) << 2);
 
     if (iDigits[1] >= 0) {
-      decoded[st_length] += ((BYTE)iDigits[1] >> 4) & 0x3;
+      decoded[st_length] += (static_cast<BYTE>(iDigits[1]) >> 4) & 0x3;
     }
 
     st_length++;
 
     if (iDigits[2] >= 0) {
       ASSERT(st_length <= buffer_len);    
-      decoded[st_length++] = (((BYTE)iDigits[1] & 0x0f) << 4) |
-                              (((BYTE)iDigits[2] >> 2) & 0x0f);
+      decoded[st_length++] = ((static_cast<BYTE>(iDigits[1]) & 0x0f) << 4)
+        | ((static_cast<BYTE>(iDigits[2]) >> 2) & 0x0f);
     }
 
     if (iDigits[3] >= 0) {
       ASSERT(st_length <= buffer_len);
-      decoded[st_length++] = (((BYTE)iDigits[2] & 0x03) << 6) |
-                              ((BYTE)iDigits[3] & 0x3f);
+      decoded[st_length++] = ((static_cast<BYTE>(iDigits[2]) & 0x03) << 6)
+        | (static_cast<BYTE>(iDigits[3]) & 0x3f);
     }
   }
 
@@ -754,4 +748,44 @@ unsigned int PWSUtil::Get_CRC_Incremental_Final()
   // Modified for incremental usage
   // Exclusive OR the result with the beginning value.
   return (uiCRC ^ 0xffffffff);
+}
+
+/**
+ * Get TCHAR buffer size by format string with parameters
+ * @param[in] fmt - format string
+ * @param[in] args - arguments for format string
+ * @return buffer size including NULL-terminating character
+*/
+int GetStringBufSize(const TCHAR *fmt, va_list args)
+{
+  TCHAR *buffer=NULL;
+
+  int len=0;
+
+#ifdef _WIN32
+  len = _vsctprintf(fmt, args) + 1;
+#else
+  va_list ar;
+  va_copy(ar, args);
+  // Linux doesn't do this correctly :-(
+  int guess = 16;
+  while (1) {
+    len = guess;
+    buffer = new TCHAR[len];
+    len = _vstprintf_s(buffer, len, fmt, ar);
+    va_end(ar);//after using args we should reset list
+    va_copy(ar, args);
+    if (len++ > 0)
+      break;
+    else { // too small, resize & try again
+      delete[] buffer;
+      guess *= 2;
+    }
+  }
+  va_end(ar);
+#endif
+  if (buffer)
+    delete[] buffer;
+  ASSERT(len>0);
+  return len;
 }

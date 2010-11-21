@@ -1,7 +1,9 @@
 /* XPM */
-static const char * copyuser_xpm[] = {
+static const char *copyuser_xpm[] = {
+/* columns rows colors chars-per-pixel */
 "16 16 157 2",
-"  	c #C0C0C0",
+/* colors */
+"  	c None",
 ". 	c #6A3514",
 "+ 	c #8D4812",
 "@ 	c #904B10",
@@ -158,6 +160,7 @@ static const char * copyuser_xpm[] = {
 "x.	c #227C02",
 "y.	c #1E7B03",
 "z.	c #157900",
+/* pixels */
 "                                ",
 "        . + @ # $ %             ",
 "      & * = - ; > , '           ",

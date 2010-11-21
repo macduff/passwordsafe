@@ -720,19 +720,24 @@ int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
 
   // Set times back to original
   FILETIME ct, at, mt;
-  LONGLONG LL;  // Note that LONGLONG is a 64-bit integer value
+  ULONGLONG ulltime;  // Note that ULONGLONG is an unsigned 64-bit integer value
+  
+  // FILETIME is a 64-bit unsigned integer representing
+  // the number of 100-nanosecond intervals since January 1, 1601
+  // UNIX timestamp is number of seconds since January 1, 1970
+  // 116444736000000000 = 10000000 * [60 * 60 * 24 * 365 * 369 + 89 leap days (89 * 86400)]
 
-  LL = Int32x32To64(atr.ctime, 10000000) + 116444736000000000;
-  ct.dwLowDateTime = (DWORD)LL;
-  ct.dwHighDateTime = (DWORD)(LL >> 32);
+  ulltime = UInt32x32To64(atr.ctime, 10000000) + 116444736000000000ull;
+  ct.dwLowDateTime = (DWORD)ulltime;
+  ct.dwHighDateTime = (DWORD)(ulltime >> 32);
 
-  LL = Int32x32To64(atr.atime, 10000000) + 116444736000000000;
-  at.dwLowDateTime = (DWORD)LL;
-  at.dwHighDateTime = (DWORD)(LL >> 32);
+  ulltime = UInt32x32To64(atr.atime, 10000000) + 116444736000000000ull;
+  at.dwLowDateTime = (DWORD)ulltime;
+  at.dwHighDateTime = (DWORD)(ulltime >> 32);
 
-  LL = Int32x32To64(atr.mtime, 10000000) + 116444736000000000;
-  mt.dwLowDateTime = (DWORD)LL;
-  mt.dwHighDateTime = (DWORD)(LL >> 32);
+  ulltime = UInt32x32To64(atr.mtime, 10000000) + 116444736000000000ull;
+  mt.dwLowDateTime = (DWORD)ulltime;
+  mt.dwHighDateTime = (DWORD)(ulltime >> 32);
 
   //write the new creation, accessed, and last written time
   SetFileTime(hFile, &ct, &at, &mt);
@@ -988,8 +993,9 @@ int DboxMain::DoAttachmentThread(ATThreadParms * &pthdpms)
   delete m_pProgressDlg;
   m_pProgressDlg = NULL;
 
-  // Now get the attachment info (need to to set return code after deleting parms)
-  const int status = pthdpms->status;
+  // Now get the attachment thread return status as we set return code
+  // and the caller will delete the thread parms when we return
+  const int status = m_bAttachmentCancel ? PWSRC::USER_CANCEL : pthdpms->status;
   if (status != PWSRC::SUCCESS) {
 #ifdef _DEBUG
     CString cs_function;

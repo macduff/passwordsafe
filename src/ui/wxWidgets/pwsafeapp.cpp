@@ -49,6 +49,11 @@ using namespace std;
 #include <wx/textfile.h>
 
 ////@begin XPM images
+#include "./graphics/pwsafe8.xpm"
+#include "./graphics/pwsafe16.xpm"
+#include "./graphics/pwsafe32.xpm"
+#include "./graphics/pwsafe48.xpm"
+
 ////@end XPM images
 
 static const wxCmdLineEntryDesc cmdLineDesc[] = {
@@ -88,7 +93,7 @@ static const wxCmdLineEntryDesc cmdLineDesc[] = {
   {wxCMD_LINE_PARAM, NULL, NULL, wxT("database"),
    wxCMD_LINE_VAL_STRING,
    (wxCMD_LINE_PARAM_OPTIONAL | wxCMD_LINE_PARAM_MULTIPLE)},
-  {wxCMD_LINE_NONE}
+  {wxCMD_LINE_NONE, NULL, NULL, NULL, wxCMD_LINE_VAL_NONE, 0}
 };
 
 
@@ -278,6 +283,11 @@ bool PwsafeApp::OnInit()
     _("Error initializing help"), wxOK | wxICON_ERROR);
   m_controller->SetParentWindow(NULL); // try to de-modalize. Partially (?) successful
 
+  m_appIcons.AddIcon(pwsafe8);
+  m_appIcons.AddIcon(pwsafe16);
+  m_appIcons.AddIcon(pwsafe32);
+  m_appIcons.AddIcon(pwsafe48);
+
   m_frame = new PasswordSafeFrame(NULL, m_core);
 
   if (!cmd_closed) {
@@ -394,7 +404,7 @@ void PwsafeApp::OnHelp(wxCommandEvent& evt)
   if (win) {
     //The window associated with the event is typically the Help button.  Fail if
     //we can't get to its parent
-    if (win->GetId() == wxID_HELP && !(win = win->GetParent()))
+    if (win->GetId() == wxID_HELP && ((win = win->GetParent()) == NULL))
       return;
     
     wxString keyName, msg;

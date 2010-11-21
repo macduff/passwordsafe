@@ -39,6 +39,7 @@ class PWSTreeCtrl;
 class SystemTray;
 class GUIInfo;
 struct SelectionCriteria;
+class PWSDragBar;
 ////@end forward declarations
 class PasswordSafeSearch;
 
@@ -346,6 +347,7 @@ public:
     // Overriden virtuals
     virtual bool Show(bool show = true);
     virtual void SetTitle(const wxString& title);
+    virtual void SetFocus();
     
     // PasswordSafe specifics:
     int Load(const wxString &passwd);
@@ -421,6 +423,7 @@ public:
   void RebuildGUI(const int iView = iBothViews);
   void CreateDragBar();
   void RefreshToolbarButtons();
+  PWSDragBar* GetDragBar();
   
   void Merge(const StringX &sx_Filename2, PWScore *pothercore, const SelectionCriteria& selection);
   int MergeDependents(PWScore *pothercore, MultiCommands *pmulticmds,

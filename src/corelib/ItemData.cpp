@@ -72,7 +72,7 @@ CItemData::CItemData(const CItemData &that) :
   m_display_info(that.m_display_info == NULL ?
                  NULL : that.m_display_info->clone())
 {
-  memcpy((char*)m_salt, (char*)that.m_salt, SaltLength);
+  memcpy(reinterpret_cast<char*>(m_salt), reinterpret_cast<const char*>(that.m_salt), SaltLength);
   if (!that.m_URFL.empty())
     m_URFL = that.m_URFL;
   else
@@ -409,19 +409,19 @@ void CItemData::GetTime(int whichtime, time_t &t) const
 
   switch (whichtime) {
     case ATIME:
-      GetField(m_tttATime, (unsigned char *)in, tlen);
+      GetField(m_tttATime, in, tlen);
       break;
     case CTIME:
-      GetField(m_tttCTime, (unsigned char *)in, tlen);
+      GetField(m_tttCTime, in, tlen);
       break;
     case XTIME:
-      GetField(m_tttXTime, (unsigned char *)in, tlen);
+      GetField(m_tttXTime, in, tlen);
       break;
     case PMTIME:
-      GetField(m_tttPMTime, (unsigned char *)in, tlen);
+      GetField(m_tttPMTime, in, tlen);
       break;
     case RMTIME:
-      GetField(m_tttRMTime, (unsigned char *)in, tlen);
+      GetField(m_tttRMTime, in, tlen);
       break;
     default:
       ASSERT(0);
@@ -440,7 +440,7 @@ void CItemData::GetTime(int whichtime, time_t &t) const
 void CItemData::GetUUID(uuid_array_t &uuid_array) const
 {
   unsigned int length = sizeof(uuid_array);
-  GetField(m_UUID, (unsigned char *)uuid_array, length);
+  GetField(m_UUID, static_cast<unsigned char *>(uuid_array), length);
 }
 
 static void String2PWPolicy(const stringT &cs_pwp, PWPolicy &pwp)
@@ -494,7 +494,7 @@ void CItemData::GetXTimeInt(int &xint) const
   unsigned char in[TwoFish::BLOCKSIZE]; // required by GetField
   unsigned int tlen = sizeof(in); // ditto
 
-  GetField(m_XTimeInterval, (unsigned char *)in, tlen);
+  GetField(m_XTimeInterval, in, tlen);
 
   if (tlen != 0) {
     ASSERT(tlen == sizeof(int));
@@ -521,7 +521,7 @@ void CItemData::GetDCA(short &iDCA) const
   unsigned char in[TwoFish::BLOCKSIZE]; // required by GetField
   unsigned int tlen = sizeof(in); // ditto
 
-  GetField(m_DCA, (unsigned char *)in, tlen);
+  GetField(m_DCA, in, tlen);
 
   if (tlen != 0) {
     ASSERT(tlen == sizeof(short));
@@ -801,15 +801,15 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
   short i16;
 
   GetCTime(t);
-  if (bsExport.test(CItemData::CTIME) && (long)t != 0L)
+  if (bsExport.test(CItemData::CTIME) && t)
     oss << PWSUtil::GetXMLTime(2, "ctime", t, utf8conv);
 
   GetATime(t);
-  if (bsExport.test(CItemData::ATIME) && (long)t != 0L)
+  if (bsExport.test(CItemData::ATIME) && t)
     oss << PWSUtil::GetXMLTime(2, "atime", t, utf8conv);
 
   GetXTime(t);
-  if (bsExport.test(CItemData::XTIME) && (long)t != 0L)
+  if (bsExport.test(CItemData::XTIME) && t)
     oss << PWSUtil::GetXMLTime(2, "xtime", t, utf8conv);
 
   GetXTimeInt(i32);
@@ -817,11 +817,11 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
     oss << "\t\t<xtime_interval>" << dec << i32 << "</xtime_interval>" << endl;
 
   GetPMTime(t);
-  if (bsExport.test(CItemData::PMTIME) && (long)t != 0L)
+  if (bsExport.test(CItemData::PMTIME) && t)
     oss << PWSUtil::GetXMLTime(2, "pmtime", t, utf8conv);
 
   GetRMTime(t);
-  if (bsExport.test(CItemData::RMTIME) && (long)t != 0L)
+  if (bsExport.test(CItemData::RMTIME) && t)
     oss << PWSUtil::GetXMLTime(2, "rmtime", t, utf8conv);
 
   PWPolicy pwp;
@@ -1105,7 +1105,7 @@ void CItemData::UpdatePasswordHistory()
   time_t t;
   GetPMTime(t); // get mod time of last password
 
-  if ((long)t == 0L) // if never set - try creation date
+  if (!t) // if never set - try creation date
     GetCTime(t);
 
   PWHistEntry pwh_ent;
@@ -1143,7 +1143,7 @@ void CItemData::UpdatePasswordHistory()
   PWHistList::iterator iter;
   for (iter = pwhistlist.begin(); iter != pwhistlist.end(); iter++) {
     Format(buffer, _T("%08x%04x%s"),
-           (long) iter->changetttdate, iter->password.length(),
+           static_cast<long>(iter->changetttdate), iter->password.length(),
            iter->password.c_str());
     new_PWHistory += buffer;
     buffer = _T("");
@@ -1193,14 +1193,14 @@ void CItemData::SetGroup(const StringX &group)
   SetField(m_Group, group);
 }
 
-void CItemData::SetUUID(const uuid_array_t &UUID)
+void CItemData::SetUUID(const uuid_array_t &uuid)
 {
-  SetField(m_UUID, (const unsigned char *)UUID, sizeof(UUID));
+  SetField(m_UUID, static_cast<const unsigned char *>(uuid), sizeof(uuid));
 }
 
-void CItemData::SetURL(const StringX &URL)
+void CItemData::SetURL(const StringX &url)
 {
-  SetField(m_URL, URL);
+  SetField(m_URL, url);
 }
 
 void CItemData::SetAutoType(const StringX &autotype)
@@ -1217,22 +1217,22 @@ void CItemData::SetTime(int whichtime)
 
 void CItemData::SetTime(int whichtime, time_t t)
 {
-  int t32 = (int)t;
+  int t32 = static_cast<int>(t);
   switch (whichtime) {
     case ATIME:
-      SetField(m_tttATime, (const unsigned char *)&t32, sizeof(t32));
+      SetField(m_tttATime, reinterpret_cast<const unsigned char *>(&t32), sizeof(t32));
       break;
     case CTIME:
-      SetField(m_tttCTime, (const unsigned char *)&t32, sizeof(t32));
+      SetField(m_tttCTime, reinterpret_cast<const unsigned char *>(&t32), sizeof(t32));
       break;
     case XTIME:
-      SetField(m_tttXTime, (const unsigned char *)&t32, sizeof(t32));
+      SetField(m_tttXTime, reinterpret_cast<const unsigned char *>(&t32), sizeof(t32));
       break;
     case PMTIME:
-      SetField(m_tttPMTime, (const unsigned char *)&t32, sizeof(t32));
+      SetField(m_tttPMTime, reinterpret_cast<const unsigned char *>(&t32), sizeof(t32));
       break;
     case RMTIME:
-      SetField(m_tttRMTime, (const unsigned char *)&t32, sizeof(t32));
+      SetField(m_tttRMTime, reinterpret_cast<const unsigned char *>(&t32), sizeof(t32));
       break;
     default:
       ASSERT(0);
@@ -1255,7 +1255,7 @@ bool CItemData::SetTime(int whichtime, const stringT &time_str)
       if ((VerifyImportDateTimeString(time_str, t) ||
            VerifyXMLDateTimeString(time_str, t) ||
            VerifyASCDateTimeString(time_str, t)) &&
-          (t != (time_t)-1)  // checkerror despite all our verification!
+          (t != time_t(-1))  // checkerror despite all our verification!
           ) {
         SetTime(whichtime, t);
         return true;
@@ -1265,7 +1265,7 @@ bool CItemData::SetTime(int whichtime, const stringT &time_str)
 
 void CItemData::SetXTimeInt(int &xint)
 {
-   SetField(m_XTimeInterval, (const unsigned char *)&xint, sizeof(int));
+   SetField(m_XTimeInterval, reinterpret_cast<const unsigned char *>(&xint), sizeof(int));
 }
 
 bool CItemData::SetXTimeInt(const stringT &xint_str)
@@ -1292,7 +1292,7 @@ bool CItemData::SetXTimeInt(const stringT &xint_str)
 
 void CItemData::SetUnknownField(const unsigned char &type,
                                 const unsigned int &length,
-                                unsigned char * &ufield)
+                                const unsigned char * &ufield)
 {
   CItemField unkrfe(type);
   SetField(unkrfe, ufield, length);
@@ -1379,7 +1379,7 @@ void CItemData::SetEmail(const StringX &cs_email)
 void CItemData::SetDCA(const short &iDCA)
 {
    
-   SetField(m_DCA, (const unsigned char *)&iDCA, sizeof(short));
+   SetField(m_DCA, reinterpret_cast<const unsigned char *>(&iDCA), sizeof(short));
 }
 
 bool CItemData::SetDCA(const stringT &cs_DCA)
@@ -1672,7 +1672,7 @@ bool CItemData::Matches(time_t time1, time_t time2, int iObject,
       return false;
   }
 
-  const bool bValue = (tValue != (time_t)0);
+  const bool bValue = (tValue != time_t(0));
   if (iFunction == PWSMatch::MR_PRESENT || iFunction == PWSMatch::MR_NOTPRESENT) {
     return PWSMatch::Match(bValue, iFunction);
   }
@@ -1681,7 +1681,7 @@ bool CItemData::Matches(time_t time1, time_t time2, int iObject,
     return false;
   else {
     time_t testtime;
-    if (tValue != (time_t)0) {
+    if (tValue) {
       struct tm st;
 #if (_MSC_VER >= 1400)
       errno_t err;
@@ -1695,7 +1695,7 @@ bool CItemData::Matches(time_t time1, time_t time2, int iObject,
       st.tm_sec = 0;
       testtime = mktime(&st);
     } else
-      testtime = (time_t)0;
+      testtime = time_t(0);
     return PWSMatch::Match(time1, time2, testtime, iFunction);
   }
 }
@@ -1732,7 +1732,7 @@ bool CItemData::IsExpired() const
   time(&now);
 
   GetXTime(XTime);
-  return ((XTime != (time_t)0) && (XTime < now));
+  return (XTime && (XTime < now));
 }
 
 bool CItemData::WillExpire(const int numdays) const
@@ -1742,7 +1742,7 @@ bool CItemData::WillExpire(const int numdays) const
 
   GetXTime(XTime);
   // Check if there is an expiry date?
-  if (XTime == (time_t)0)
+  if (!XTime)
     return false;
 
   // Ignore if already expired
@@ -1759,20 +1759,19 @@ bool CItemData::WillExpire(const int numdays) const
 #endif
   st.tm_mday += numdays;
   exptime = mktime(&st);
-  if (exptime == (time_t)-1)
+  if (exptime == time_t(-1))
     exptime = now;
 
   // Will it expire in numdays?
   return (XTime < exptime);
 }
 
-bool pull_string(StringX &str, unsigned char *data, int len)
+bool pull_string(StringX &str, const unsigned char *data, int len)
 {
   CUTF8Conv utf8conv;
   vector<unsigned char> v(data, (data + len));
   v.push_back(0); // null terminate for FromUTF8.
-  bool utf8status = utf8conv.FromUTF8((unsigned char *)&v[0],
-    len, str);
+  bool utf8status = utf8conv.FromUTF8(&v[0], len, str);
   if (!utf8status) {
     pws_os::Trace(_T("CItemData::DeserializePlainText(): FromUTF8 failed!\n"));
   }
@@ -1780,14 +1779,14 @@ bool pull_string(StringX &str, unsigned char *data, int len)
   return utf8status;
 }
 
-bool pull_time(time_t &t, unsigned char *data, size_t len)
+bool pull_time(time_t &t, const unsigned char *data, size_t len)
 {
   if (len == sizeof(__time32_t)) {
-    t = *reinterpret_cast<__time32_t *>(data);
+    t = *reinterpret_cast<const __time32_t *>(data);
   } else if (len == sizeof(__time64_t)) {
     // convert from 64 bit time to currently supported 32 bit
     struct tm ts;
-    __time64_t *t64 = reinterpret_cast<__time64_t *>(data);
+    const __time64_t *t64 = reinterpret_cast<const __time64_t *>(data);
     if (_gmtime64_s(&ts, t64) != 0) {
       ASSERT(0); return false;
     }
@@ -1801,10 +1800,10 @@ bool pull_time(time_t &t, unsigned char *data, size_t len)
   return true;
 }
 
-bool pull_uint(unsigned int &uint, unsigned char *data, size_t len)
+bool pull_uint(unsigned int &uint, const unsigned char *data, size_t len)
 {
   if (len == sizeof(unsigned long)) {
-    uint = *reinterpret_cast<unsigned long *>(data);
+    uint = *reinterpret_cast<const unsigned long *>(data);
   } else {
     ASSERT(0);
     return false;
@@ -1812,10 +1811,10 @@ bool pull_uint(unsigned int &uint, unsigned char *data, size_t len)
   return true;
 }
 
-bool pull_int(int &i, unsigned char *data, size_t len)
+bool pull_int(int &i, const unsigned char *data, size_t len)
 {
   if (len == sizeof(int)) {
-    i = *reinterpret_cast<int *>(data);
+    i = *reinterpret_cast<const int *>(data);
   } else {
     ASSERT(0);
     return false;
@@ -1823,10 +1822,10 @@ bool pull_int(int &i, unsigned char *data, size_t len)
   return true;
 }
 
-bool pull_int16(short &i16, unsigned char *data, size_t len)
+bool pull_int16(short &i16, const unsigned char *data, size_t len)
 {
   if (len == sizeof(short)) {
-    i16 = *reinterpret_cast<short *>(data);
+    i16 = *reinterpret_cast<const short *>(data);
   } else {
     ASSERT(0);
     return false;
@@ -1849,7 +1848,7 @@ bool CItemData::DeserializePlainText(const std::vector<char> &v)
     if (type == END)
       return true; // happy end
 
-    unsigned int len = *((unsigned int *)&(*iter));
+    unsigned int len = *(reinterpret_cast<const unsigned int *>(&(*iter)));
     ASSERT(len < v.size()); // sanity check
     iter += sizeof(unsigned int);
 
@@ -1857,14 +1856,14 @@ bool CItemData::DeserializePlainText(const std::vector<char> &v)
       ASSERT(0);
       return false;
     }
-    if (!SetField(type, (unsigned char *)&(*iter), len))
+    if (!SetField(type, reinterpret_cast<const unsigned char *>(&(*iter)), len))
       return false;
     iter += len;
   }
   return false; // END tag not found!
 }
 
-bool CItemData::SetField(int type, unsigned char *data, int len)
+bool CItemData::SetField(int type, const unsigned char *data, int len)
 {
   StringX str;
   time_t t;
@@ -1969,7 +1968,7 @@ bool CItemData::SetField(int type, unsigned char *data, int len)
 static void push_length(vector<char> &v, unsigned int s)
 {
   v.insert(v.end(),
-    (char *)&s, (char *)&s + sizeof(s));
+    reinterpret_cast<char *>(&s), reinterpret_cast<char *>(&s) + sizeof(s));
 }
 
 static void push_string(vector<char> &v, char type,
@@ -1984,7 +1983,7 @@ static void push_string(vector<char> &v, char type,
     if (status) {
       v.push_back(type);
       push_length(v, utf8Len);
-      v.insert(v.end(), (char *)utf8, (char *)utf8 + utf8Len);
+      v.insert(v.end(), reinterpret_cast<const char *>(utf8), reinterpret_cast<const char *>(utf8) + utf8Len);
     } else
       pws_os::Trace(_T("ItemData::SerializePlainText:ToUTF8(%s) failed\n"),
             str.c_str());
@@ -1994,11 +1993,11 @@ static void push_string(vector<char> &v, char type,
 static void push_time(vector<char> &v, char type, time_t t)
 {
   if (t != 0) {
-    __time32_t t32 = (__time32_t)t;
+    __time32_t t32 = static_cast<__time32_t>(t);
     v.push_back(type);
     push_length(v, sizeof(t32));
     v.insert(v.end(),
-      (char *)&t32, (char *)&t32 + sizeof(t32));
+      reinterpret_cast<char *>(&t32), reinterpret_cast<char *>(&t32) + sizeof(t32));
   }
 }
 
@@ -2008,7 +2007,7 @@ static void push_int(vector<char> &v, char type, int i)
     v.push_back(type);
     push_length(v, sizeof(int));
     v.insert(v.end(),
-      (char *)&i, (char *)&i + sizeof(int));
+      reinterpret_cast<char *>(&i), reinterpret_cast<char *>(&i) + sizeof(int));
   }
 }
 
@@ -2018,7 +2017,7 @@ static void push_int16(vector<char> &v, char type, short i)
     v.push_back(type);
     push_length(v, sizeof(short));
     v.insert(v.end(),
-      (char *)&i, (char *)&i + sizeof(short));
+      reinterpret_cast<char *>(&i), reinterpret_cast<char *>(&i) + sizeof(short));
   }
 }
 
@@ -2081,9 +2080,9 @@ void CItemData::SerializePlainText(vector<char> &v,
     unsigned char *pdata = NULL;
     GetUnknownField(type, length, pdata, vi_IterURFE);
     if (length != 0) {
-      v.push_back((char)type);
+      v.push_back(static_cast<char>(type));
       push_length(v, length);
-      v.insert(v.end(), (char *)pdata, (char *)pdata + length);
+      v.insert(v.end(), reinterpret_cast<char *>(pdata), reinterpret_cast<char *>(pdata) + length);
       trashMemory(pdata, length);
     }
     delete[] pdata;

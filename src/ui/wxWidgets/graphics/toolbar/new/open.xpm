@@ -1,7 +1,9 @@
 /* XPM */
-static const char * open_xpm[] = {
+static const char *open_xpm[] = {
+/* columns rows colors chars-per-pixel */
 "16 16 155 2",
-"  	c #C0C0C0",
+/* colors */
+"  	c None",
 ". 	c #BCBCBC",
 "+ 	c #BBBBBB",
 "@ 	c #B9B9B9",
@@ -156,6 +158,7 @@ static const char * open_xpm[] = {
 "v.	c #D8862C",
 "w.	c #D8882D",
 "x.	c #D8872D",
+/* pixels */
 "              . + @ # $ % & *   ",
 "              = - ; > , ' ) !   ",
 "              ~ { ] > , { { ^   ",

@@ -215,6 +215,7 @@ void CSafeCombinationEntry::CreateControls()
   if (!m_filename.empty()) {
     FindWindow(ID_COMBINATION)->SetFocus();
   }
+  SetIcons(wxGetApp().GetAppIcons());
 }
 
 
@@ -345,7 +346,7 @@ void CSafeCombinationEntry::OnEllipsisClick( wxCommandEvent& /* evt */ )
   
   if (fd.ShowModal() == wxID_OK) {
     m_filename = fd.GetPath();
-    wxComboBox *cb = (wxComboBox *)FindWindow(ID_DBASECOMBOBOX);
+    wxComboBox *cb = dynamic_cast<wxComboBox *>(FindWindow(ID_DBASECOMBOBOX));
     cb->SetValue(m_filename);
   }
 }

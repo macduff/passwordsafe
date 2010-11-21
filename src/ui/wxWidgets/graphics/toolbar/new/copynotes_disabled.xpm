@@ -1,7 +1,9 @@
 /* XPM */
-static const char * copynotes_disabled_xpm[] = {
+static const char *copynotes_disabled_xpm[] = {
+/* columns rows colors chars-per-pixel */
 "16 16 96 2",
-"  	g #C0C0C0",
+/* colors */
+"  	g None",
 ". 	g #E4E4E4",
 "+ 	g #D8D8D8",
 "@ 	g #D7D7D7",
@@ -97,6 +99,7 @@ static const char * copynotes_disabled_xpm[] = {
 "..	g #515151",
 "+.	g #525252",
 "@.	g #4D4D4D",
+/* pixels */
 "                                ",
 "  . + @ # $ % & * = - ; >       ",
 "  , ' ' ' ' ' ) ) ' ' ) !       ",
