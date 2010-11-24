@@ -18,7 +18,7 @@
 #include "PWDialog.h"
 #include "AdvancedAttDlg.h"
 
-#include "corelib/attachments.h"
+#include "core/attachments.h"
 
 class CVKeyBoardDlg;
 

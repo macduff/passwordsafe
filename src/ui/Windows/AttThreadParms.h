@@ -14,10 +14,10 @@
 enum {INVALID = -1, READ, WRITE, DUPLICATE, COMPLETE_XML_IMPORT,
                        XML_EXPORT, GET};
 
-#include "corelib/UUIDGen.h"  // for uuid_array_t
-#include "corelib/StringX.h"
-#include "corelib/attachments.h"
-#include "corelib/PWSAttfile.h"
+#include "core/UUIDGen.h"  // for uuid_array_t
+#include "core/StringX.h"
+#include "core/attachments.h"
+#include "core/PWSAttfile.h"
 
 class DboxMain;
 class CAttProgressDlg;

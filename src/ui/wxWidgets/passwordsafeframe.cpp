@@ -37,8 +37,8 @@
 #include "safecombinationprompt.h"
 #include "properties.h"
 #include "optionspropsheet.h"
-#include "corelib/PWSprefs.h"
-#include "corelib/PWSdirs.h"
+#include "core/PWSprefs.h"
+#include "core/PWSdirs.h"
 #include "PasswordSafeSearch.h"
 #include "pwsclip.h"
 #include "SystemTray.h"
@@ -51,9 +51,9 @@
 #include "./ImportXmlDlg.h"
 #include "./ExportTextWarningDlg.h"
 #include "../../os/sleep.h"
-#include "../../corelib/XML/XMLDefs.h"
+#include "../../core/XML/XMLDefs.h"
 #include "./ViewReport.h"
-#include "corelib/XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
+#include "core/XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 #include <wx/fontdlg.h>
 #include "./PWSDragBar.h"
 #include "./MergeDlg.h"
@@ -148,6 +148,8 @@ BEGIN_EVENT_TABLE( PasswordSafeFrame, wxFrame )
 
   EVT_MENU( ID_CREATESHORTCUT, PasswordSafeFrame::OnCreateShortcut )
 
+  EVT_MENU( ID_DUPLICATEENTRY, PasswordSafeFrame::OnDuplicateEntry )
+  
   EVT_MENU( ID_IMPORT_PLAINTEXT, PasswordSafeFrame::OnImportText )
 
   EVT_MENU( ID_IMPORT_KEEPASS, PasswordSafeFrame::OnImportKeePass )
@@ -766,17 +768,108 @@ void PasswordSafeFrame::OnShowHideDragBar(wxCommandEvent& evt)
   DoLayout();
 }
 
-int PasswordSafeFrame::Save()
+int PasswordSafeFrame::Save(SaveType st /* = ST_INVALID*/)
 {
-  int rc = m_core.WriteCurFile();
-  if (rc != PWScore::SUCCESS) {
-    wxString msg(_("Failed to save database "));
-    msg += m_core.GetCurFile().c_str();
-    wxMessageDialog dlg(this, msg, GetTitle(),
-                        (wxICON_ERROR | wxOK));
-    dlg.ShowModal();
+  stringT bu_fname; // used to undo backup if save failed
+  PWSprefs *prefs = PWSprefs::GetInstance();
+  
+  // Save Application related preferences
+  prefs->SaveApplicationPreferences();
+  prefs->SaveShortcuts();
+
+  if (m_core.GetCurFile().empty())
+    return SaveAs();
+
+  switch (m_core.GetReadFileVersion()) {
+    case PWSfile::VCURRENT:
+      if (prefs->GetPref(PWSprefs::BackupBeforeEverySave)) {
+        int maxNumIncBackups = prefs->GetPref(PWSprefs::BackupMaxIncremented);
+        int backupSuffix = prefs->GetPref(PWSprefs::BackupSuffix);
+        std::wstring userBackupPrefix = prefs->GetPref(PWSprefs::BackupPrefixValue).c_str();
+        std::wstring userBackupDir = prefs->GetPref(PWSprefs::BackupDir).c_str();
+        if (!m_core.BackupCurFile(maxNumIncBackups, backupSuffix,
+                                  userBackupPrefix, userBackupDir, bu_fname)) {
+          switch (st) {
+            case ST_NORMALEXIT:
+              if (wxMessageBox(_("Unable to create intermediate backup.  Save database elsewhere or with another name?"
+                                 "\n\nClick 'No' to exit without saving."), 
+                               _("Write Error"), wxYES_NO | wxICON_EXCLAMATION) == wxID_NO)
+                return PWScore::SUCCESS;
+              else
+                return SaveAs();
+            case ST_INVALID:
+              // No particular end of PWS exit i.e. user clicked Save or
+              // saving a changed database before opening another
+              wxMessageBox(_("Unable to create intermediate backup."), _("Write Error"), wxOK|wxICON_ERROR);
+              return PWScore::USER_CANCEL;
+            default:
+              break;
+          }
+          wxMessageBox(_("Unable to create intermediate backup."), _("Write Error"), wxOK|wxICON_ERROR);
+          return SaveAs();
+        } // BackupCurFile failed
+      } // BackupBeforeEverySave
+      break;
+    case PWSfile::NEWFILE:
+    {
+      // file version mis-match
+      stringT NewName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(), DEFAULT_SUFFIX);
+
+      wxString msg( wxString::Format(_("The original database, \"%s\", is in pre-3.0 format."
+                                       " It will be unchanged.\nYour changes will be written as \"%s\" in the new format, which is unusable by old versions of PasswordSafe."
+                                       " To save your changes in the old format, use the \"File->Export To-> Old (1.x or 2) format\" command."),
+                                     m_core.GetCurFile().c_str(), NewName.c_str()));
+      if (wxMessageBox(msg, _("File version warning"), wxOK|wxCANCEL|wxICON_INFORMATION) == wxID_CANCEL)
+        return PWScore::USER_CANCEL;
+
+      m_core.SetCurFile(NewName.c_str());
+#if 0
+      m_titlebar = PWSUtil::NormalizeTTT(L"Password Safe - " +
+                                         m_core.GetCurFile()).c_str();
+      SetWindowText(LPCWSTR(m_titlebar));
+      app.SetTooltipText(m_core.GetCurFile().c_str());
+#endif
+      break;
+    }
+    default:
+      ASSERT(0);
+      break;
+  } // switch on file version
+
+  UUIDList RUElist;
+  m_RUEList.GetRUEList(RUElist);
+  m_core.SetRUEList(RUElist);
+
+  const int rc = m_core.WriteCurFile();
+
+  if (rc != PWScore::SUCCESS) { // Save failed!
+    // Restore backup, if we have one
+    if (!bu_fname.empty() && !m_core.GetCurFile().empty())
+      pws_os::RenameFile(bu_fname, m_core.GetCurFile().c_str());
+    // Show user that we have a problem
+    DisplayFileWriteError(rc, m_core.GetCurFile());
+    return rc;
   }
-  return rc;
+
+  m_core.ResetStateAfterSave();
+  m_core.ClearChangedNodes();
+  SetChanged(Clear);
+//  ChangeOkUpdate();
+
+  // Added/Modified entries now saved - reverse it & refresh display
+//  if (m_bUnsavedDisplayed)
+//    OnShowUnsavedEntries();
+
+//  if (m_bFilterActive && m_bFilterForStatus) {
+//    m_ctlItemList.Invalidate();
+//    m_ctlItemTree.Invalidate();
+//  }
+
+  // Only refresh views if not existing
+  if (st != ST_NORMALEXIT)
+    RefreshViews();
+
+  return PWScore::SUCCESS;
 }
 
 int PasswordSafeFrame::SaveIfChanged()
@@ -1078,12 +1171,17 @@ void PasswordSafeFrame::OnSaveClick( wxCommandEvent& /* evt */ )
 void PasswordSafeFrame::OnSaveAsClick(wxCommandEvent& evt)
 {
   UNREFERENCED_PARAMETER(evt);
+  SaveAs();
+}
+
+int PasswordSafeFrame::SaveAs()
+{
   if (m_core.GetReadFileVersion() != PWSfile::VCURRENT &&
       m_core.GetReadFileVersion() != PWSfile::UNKNOWN_VERSION) {
     if (wxMessageBox( wxString::Format(_("The original database, '%s', is in pre-3.0 format. The data will now be written in the new format, which is unusable by old versions of PasswordSafe. To save the data in the old format, use the 'File->Export To-> Old (1.x or 2) format' command."),
                                         m_core.GetCurFile().c_str()), _("File version warning"), 
                                         wxOK | wxCANCEL | wxICON_EXCLAMATION) == wxCANCEL) {
-      return;
+      return PWScore::USER_CANCEL;
     }
   }
 
@@ -1106,7 +1204,7 @@ void PasswordSafeFrame::OnSaveAsClick(wxCommandEvent& evt)
                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
                    
   if (fd.ShowModal() != wxID_OK) {
-    return;
+    return PWScore::USER_CANCEL;
   }
 
   StringX newfile = tostringx(fd.GetPath());
@@ -1116,7 +1214,7 @@ void PasswordSafeFrame::OnSaveAsClick(wxCommandEvent& evt)
   if (!m_core.LockFile2(newfile.c_str(), locker)) {
     wxMessageBox(wxString::Format(_("%s\n\nFile is currently locked by %s"), newfile.c_str(), locker.c_str()),
                     _("File lock error"), wxOK | wxICON_ERROR);
-    return;
+    return PWScore::CANT_OPEN_FILE;
   }
 
   // Save file UUID, clear it to generate new one, restore if necessary
@@ -1136,7 +1234,7 @@ void PasswordSafeFrame::OnSaveAsClick(wxCommandEvent& evt)
     m_core.SetFileUUID(file_uuid_array);
     m_core.UnlockFile2(newfile.c_str());
     DisplayFileWriteError(rc, newfile);
-    return;
+    return PWScore::CANT_OPEN_FILE;
   }
   if (!m_core.GetCurFile().empty())
     m_core.UnlockFile(m_core.GetCurFile().c_str());
@@ -1177,6 +1275,7 @@ void PasswordSafeFrame::OnSaveAsClick(wxCommandEvent& evt)
     m_core.SetReadOnly(false);
   }
 
+  return PWScore::SUCCESS;
 }
 
 /*!
@@ -2729,7 +2828,7 @@ bool MergeSyncGTUCompare(const StringX &elem1, const StringX &elem2);
 
 void PasswordSafeFrame::Merge(const StringX &sx_Filename2, PWScore *pothercore, const SelectionCriteria& selection)
 {
-  // XXX Move to corelib
+  // XXX Move to core
   const StringX &sx_Filename1 = m_core.GetCurFile();
 
   // Initialize set

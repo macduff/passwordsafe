@@ -15,7 +15,7 @@
 
 #include "resource.h"
 #include "resource3.h"
-#include "corelib/StringX.h"
+#include "core/StringX.h"
 
 #include <algorithm>
 #include <iomanip>

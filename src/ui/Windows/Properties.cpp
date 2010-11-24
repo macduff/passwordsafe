@@ -11,7 +11,7 @@
 #include "stdafx.h"
 #include "Properties.h"
 #include "NumUtilities.h"
-#include "corelib/StringXStream.h" // for ostringstreamT
+#include "core/StringXStream.h" // for ostringstreamT
 
 // CProperties dialog
 

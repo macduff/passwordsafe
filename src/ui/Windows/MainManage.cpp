@@ -29,10 +29,10 @@
 #include "OptionsBackup.h"
 #include "OptionsShortcuts.h"
 
-#include "corelib/pwsprefs.h"
-#include "corelib/PWSdirs.h"
-#include "corelib/PWSAuxParse.h"
-#include "corelib/return_codes.h"
+#include "core/pwsprefs.h"
+#include "core/PWSdirs.h"
+#include "core/PWSAuxParse.h"
+#include "core/return_codes.h"
 
 #include "os/dir.h"
 

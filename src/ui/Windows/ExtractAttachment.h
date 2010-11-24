@@ -13,7 +13,7 @@
 #include "PWDialog.h"
 #include "PWAttLC.h"
 #include "PWHdrCtrlNoChng.h"
-#include "corelib/attachments.h"
+#include "core/attachments.h"
 
 class DboxMain;
 

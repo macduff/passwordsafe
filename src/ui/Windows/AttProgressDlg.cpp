@@ -13,8 +13,8 @@
 #include "DboxMain.h"
 #include "GeneralMsgBox.h"
 
-#include "corelib/attachments.h"
-#include "corelib/ItemData.h"
+#include "core/attachments.h"
+#include "core/ItemData.h"
 
 // CAttProgressDlg dialog
 

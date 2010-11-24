@@ -14,8 +14,8 @@
 #include "AddEdit_PropertyPage.h"
 #include "PWAttLC.h"
 #include "PWHdrCtrlNoChng.h"
-#include "corelib/ItemData.h"
-#include "corelib/attachments.h"
+#include "core/ItemData.h"
+#include "core/attachments.h"
 
 // CAddEdit_Attachments dialog
 

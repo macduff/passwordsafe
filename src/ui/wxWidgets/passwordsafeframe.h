@@ -24,8 +24,8 @@
 #include "wx/frame.h"
 ////@end includes
 #include "wx/treebase.h" // for wxTreeItemId
-#include "corelib/PWScore.h"
-#include "corelib/UIinterface.h"
+#include "core/PWScore.h"
+#include "core/UIinterface.h"
 #include "RUEList.h"
 #include "./wxutils.h"
 
@@ -273,6 +273,9 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_CREATESHORTCUT
   void OnCreateShortcut(wxCommandEvent& evt);
 
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_DUPLICATEENTRY
+  void OnDuplicateEntry(wxCommandEvent& evt);
+
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_CLEAR_MRU
   void OnClearRecentHistory(wxCommandEvent& evt);
 
@@ -397,11 +400,15 @@ public:
   PWSTreeCtrl* m_tree;
 ////@end PasswordSafeFrame member variables
  private:
+  enum SaveType {ST_INVALID = -1, ST_NORMALEXIT = 0, 
+                 ST_ENDSESSIONEXIT, ST_WTSLOGOFFEXIT, ST_FAILSAFESAVE};
+
   int New();
   int NewFile(StringX &fname);
   int Open(const wxString &fname); // prompt for password, try to Load.
   int SaveIfChanged();
-  int Save();
+  int SaveAs(void);
+  int Save(SaveType st = ST_INVALID);
   void ShowGrid(bool show = true);
   void ShowTree(bool show = true);
   void ClearData();

@@ -11,10 +11,10 @@
 #include "PWPropertyPage.h"
 #include "SecString.h"
 #include "ControlExtns.h"
-#include "corelib/ItemData.h"
-#include "corelib/PWSprefs.h"
-#include "corelib/PWHistory.h"
-#include "corelib/attachments.h"
+#include "core/ItemData.h"
+#include "core/PWSprefs.h"
+#include "core/PWHistory.h"
+#include "core/attachments.h"
 
 class CAddEdit_PropertySheet;
 

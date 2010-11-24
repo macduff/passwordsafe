@@ -10,8 +10,8 @@
 
 #include "CoolMenu.h"
 
-#include "corelib/Itemdata.h"
-#include "corelib/attachments.h"
+#include "core/Itemdata.h"
+#include "core/attachments.h"
 
 // ATT_ERASURE_REQUIRED = ATT_ERASEPGMEXISTS | ATT_ERASEONDBCLOSE
 #define ATT_ERASURE_REQUIRED    0x60

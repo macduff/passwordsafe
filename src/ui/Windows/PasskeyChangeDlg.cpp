@@ -15,11 +15,11 @@
 #include "PasskeyChangeDlg.h"
 #include "PwFont.h"
 
-#include "corelib/PwsPlatform.h"
-#include "corelib/PWScore.h"    // for error statuses from CheckPasskey()
-#include "corelib/PWCharPool.h" // for CheckPassword()
-#include "corelib/pwsprefs.h"
-#include "corelib/return_codes.h"
+#include "core/PwsPlatform.h"
+#include "core/PWScore.h"    // for error statuses from CheckPasskey()
+#include "core/PWCharPool.h" // for CheckPassword()
+#include "core/pwsprefs.h"
+#include "core/return_codes.h"
 
 #include "os/dir.h"
 

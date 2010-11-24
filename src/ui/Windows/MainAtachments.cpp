@@ -22,10 +22,10 @@
 
 #include "resource3.h"  // String resources
 
-#include "corelib/attachments.h"
-#include "corelib/PWSdirs.h"
-#include "corelib/corelib.h"
-#include "corelib/return_codes.h"
+#include "core/attachments.h"
+#include "core/PWSdirs.h"
+#include "core/core.h"
+#include "core/return_codes.h"
 
 #include "os/file.h"
 #include "os/dir.h"

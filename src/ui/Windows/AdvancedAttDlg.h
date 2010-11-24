@@ -13,7 +13,7 @@
 // CAdvancedAttDlg dialog
 
 #include "PWDialog.h"
-#include "corelib/attachments.h"
+#include "core/attachments.h"
 
 class CAdvancedAttDlg : public CPWDialog
 {

@@ -26,6 +26,7 @@
 		E690B56012984A1B007EA508 /* pwsafe.xsd in Resources */ = {isa = PBXBuildFile; fileRef = E690B55D12984A1A007EA508 /* pwsafe.xsd */; };
 		E690B56112984A1B007EA508 /* pwsafe.xsl in Resources */ = {isa = PBXBuildFile; fileRef = E690B55E12984A1A007EA508 /* pwsafe.xsl */; };
 		E690B95712984B1D007EA508 /* help.zip in Resources */ = {isa = PBXBuildFile; fileRef = E690B95612984B1D007EA508 /* help.zip */; };
+		E6919C641298FB25001F96D9 /* pwsafe.icns in Resources */ = {isa = PBXBuildFile; fileRef = E6919C631298FB25001F96D9 /* pwsafe.icns */; };
 		E69B7FA811F600BA0084F6C4 /* ImportXmlDlg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E69B7FA411F600BA0084F6C4 /* ImportXmlDlg.cpp */; };
 		E69B7FA911F600BA0084F6C4 /* OpenFilePickerValidator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E69B7FA611F600BA0084F6C4 /* OpenFilePickerValidator.cpp */; };
 		E6ADBA371195709A004E2BE5 /* about.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6ADB9A511957099004E2BE5 /* about.cpp */; };
@@ -78,7 +79,7 @@
 		E6EE841C11E87E9800B01518 /* CheckVersion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6EE839411E87E9700B01518 /* CheckVersion.cpp */; };
 		E6EE841D11E87E9800B01518 /* Command.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6EE839611E87E9700B01518 /* Command.cpp */; };
 		E6EE841E11E87E9800B01518 /* CoreImpExp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6EE839E11E87E9700B01518 /* CoreImpExp.cpp */; };
-		E6EE841F11E87E9800B01518 /* corelib_st.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6EE83A211E87E9700B01518 /* corelib_st.cpp */; };
+		E6EE841F11E87E9800B01518 /* core_st.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6EE83A211E87E9700B01518 /* core_st.cpp */; };
 		E6EE842011E87E9800B01518 /* hmac.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6EE83A511E87E9700B01518 /* hmac.cpp */; };
 		E6EE842111E87E9800B01518 /* ItemData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6EE83A711E87E9700B01518 /* ItemData.cpp */; };
 		E6EE842211E87E9800B01518 /* ItemField.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E6EE83A911E87E9700B01518 /* ItemField.cpp */; };
@@ -153,6 +154,7 @@
 		E690B55D12984A1A007EA508 /* pwsafe.xsd */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = pwsafe.xsd; path = ../xml/pwsafe.xsd; sourceTree = SOURCE_ROOT; };
 		E690B55E12984A1A007EA508 /* pwsafe.xsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = pwsafe.xsl; path = ../xml/pwsafe.xsl; sourceTree = SOURCE_ROOT; };
 		E690B95612984B1D007EA508 /* help.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; name = help.zip; path = ../help/default/help.zip; sourceTree = SOURCE_ROOT; };
+		E6919C631298FB25001F96D9 /* pwsafe.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = pwsafe.icns; path = ../src/ui/wxWidgets/graphics/pwsafe.icns; sourceTree = SOURCE_ROOT; };
 		E69B7FA411F600BA0084F6C4 /* ImportXmlDlg.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImportXmlDlg.cpp; sourceTree = "<group>"; };
 		E69B7FA511F600BA0084F6C4 /* ImportXmlDlg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImportXmlDlg.h; sourceTree = "<group>"; };
 		E69B7FA611F600BA0084F6C4 /* OpenFilePickerValidator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OpenFilePickerValidator.cpp; sourceTree = "<group>"; };
@@ -485,9 +487,9 @@
 		E6EE839811E87E9700B01518 /* CommandInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommandInterface.h; sourceTree = "<group>"; };
 		E6EE839D11E87E9700B01518 /* coredefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coredefs.h; sourceTree = "<group>"; };
 		E6EE839E11E87E9700B01518 /* CoreImpExp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CoreImpExp.cpp; sourceTree = "<group>"; };
-		E6EE839F11E87E9700B01518 /* corelib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = corelib.h; sourceTree = "<group>"; };
-		E6EE83A211E87E9700B01518 /* corelib_st.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = corelib_st.cpp; sourceTree = "<group>"; };
-		E6EE83A311E87E9700B01518 /* corelib_st.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = corelib_st.h; sourceTree = "<group>"; };
+		E6EE839F11E87E9700B01518 /* core.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = core.h; sourceTree = "<group>"; };
+		E6EE83A211E87E9700B01518 /* core_st.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = core_st.cpp; sourceTree = "<group>"; };
+		E6EE83A311E87E9700B01518 /* core_st.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = core_st.h; sourceTree = "<group>"; };
 		E6EE83A411E87E9700B01518 /* Fish.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Fish.h; sourceTree = "<group>"; };
 		E6EE83A511E87E9700B01518 /* hmac.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hmac.cpp; sourceTree = "<group>"; };
 		E6EE83A611E87E9700B01518 /* hmac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hmac.h; sourceTree = "<group>"; };
@@ -555,22 +557,6 @@
 		E6EE83E711E87E9800B01518 /* UUIDGen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UUIDGen.h; sourceTree = "<group>"; };
 		E6EE83E811E87E9800B01518 /* VerifyFormat.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VerifyFormat.cpp; sourceTree = "<group>"; };
 		E6EE83E911E87E9800B01518 /* VerifyFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VerifyFormat.h; sourceTree = "<group>"; };
-		E6EE83EC11E87E9800B01518 /* EFileHandlers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EFileHandlers.cpp; sourceTree = "<group>"; };
-		E6EE83ED11E87E9800B01518 /* EFileHandlers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EFileHandlers.h; sourceTree = "<group>"; };
-		E6EE83EE11E87E9800B01518 /* EFileValidator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EFileValidator.cpp; sourceTree = "<group>"; };
-		E6EE83EF11E87E9800B01518 /* EFileValidator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EFileValidator.h; sourceTree = "<group>"; };
-		E6EE83F011E87E9800B01518 /* EFileValidatorDefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EFileValidatorDefs.h; sourceTree = "<group>"; };
-		E6EE83F111E87E9800B01518 /* EFileXMLProcessor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EFileXMLProcessor.cpp; sourceTree = "<group>"; };
-		E6EE83F211E87E9800B01518 /* EFileXMLProcessor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EFileXMLProcessor.h; sourceTree = "<group>"; };
-		E6EE83F311E87E9800B01518 /* EFilterHandlers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EFilterHandlers.cpp; sourceTree = "<group>"; };
-		E6EE83F411E87E9800B01518 /* EFilterHandlers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EFilterHandlers.h; sourceTree = "<group>"; };
-		E6EE83F511E87E9800B01518 /* EFilterValidator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EFilterValidator.cpp; sourceTree = "<group>"; };
-		E6EE83F611E87E9800B01518 /* EFilterValidator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EFilterValidator.h; sourceTree = "<group>"; };
-		E6EE83F711E87E9800B01518 /* EFilterValidatorDefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EFilterValidatorDefs.h; sourceTree = "<group>"; };
-		E6EE83F811E87E9800B01518 /* EFilterXMLProcessor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EFilterXMLProcessor.cpp; sourceTree = "<group>"; };
-		E6EE83F911E87E9800B01518 /* EFilterXMLProcessor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EFilterXMLProcessor.h; sourceTree = "<group>"; };
-		E6EE83FA11E87E9800B01518 /* ESecMemMgr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ESecMemMgr.cpp; sourceTree = "<group>"; };
-		E6EE83FB11E87E9800B01518 /* ESecMemMgr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESecMemMgr.h; sourceTree = "<group>"; };
 		E6EE840811E87E9800B01518 /* XFileSAX2Handlers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = XFileSAX2Handlers.cpp; sourceTree = "<group>"; };
 		E6EE840911E87E9800B01518 /* XFileSAX2Handlers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XFileSAX2Handlers.h; sourceTree = "<group>"; };
 		E6EE840A11E87E9800B01518 /* XFileValidator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = XFileValidator.cpp; sourceTree = "<group>"; };
@@ -608,6 +594,7 @@
 		E690B1031297D76E007EA508 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				E6919C631298FB25001F96D9 /* pwsafe.icns */,
 				E690B95612984B1D007EA508 /* help.zip */,
 				E690B55C12984A1A007EA508 /* pwsafe_filter.xsd */,
 				E690B55D12984A1A007EA508 /* pwsafe.xsd */,
@@ -922,7 +909,7 @@
 			children = (
 				E690B1031297D76E007EA508 /* Resources */,
 				E6A11A2A1293D20E0060FB35 /* graphics */,
-				E6EE839111E87E9700B01518 /* corelib */,
+				E6EE839111E87E9700B01518 /* core */,
 				E6EE837D11E87CD200B01518 /* os */,
 				E6ADB9A411957099004E2BE5 /* wxWidgets */,
 				E6ADB80411956A93004E2BE5 /* Products */,
@@ -1075,7 +1062,7 @@
 			tabWidth = 2;
 			usesTabs = 0;
 		};
-		E6EE839111E87E9700B01518 /* corelib */ = {
+		E6EE839111E87E9700B01518 /* core */ = {
 			isa = PBXGroup;
 			children = (
 				E6EE839211E87E9700B01518 /* BlowFish.cpp */,
@@ -1087,9 +1074,9 @@
 				E6EE839811E87E9700B01518 /* CommandInterface.h */,
 				E6EE839D11E87E9700B01518 /* coredefs.h */,
 				E6EE839E11E87E9700B01518 /* CoreImpExp.cpp */,
-				E6EE839F11E87E9700B01518 /* corelib.h */,
-				E6EE83A211E87E9700B01518 /* corelib_st.cpp */,
-				E6EE83A311E87E9700B01518 /* corelib_st.h */,
+				E6EE839F11E87E9700B01518 /* core.h */,
+				E6EE83A211E87E9700B01518 /* core_st.cpp */,
+				E6EE83A311E87E9700B01518 /* core_st.h */,
 				E6EE83A411E87E9700B01518 /* Fish.h */,
 				E6EE83A511E87E9700B01518 /* hmac.cpp */,
 				E6EE83A611E87E9700B01518 /* hmac.h */,
@@ -1157,8 +1144,8 @@
 				E6EE841A11E87E9800B01518 /* XMLprefs.h */,
 			);
 			indentWidth = 4;
-			name = corelib;
-			path = ../src/corelib;
+			name = core;
+			path = ../src/core;
 			sourceTree = SOURCE_ROOT;
 			tabWidth = 2;
 			usesTabs = 0;
@@ -1190,29 +1177,6 @@
 			path = XML;
 			sourceTree = "<group>";
 		};
-		E6EE83EB11E87E9800B01518 /* Expat */ = {
-			isa = PBXGroup;
-			children = (
-				E6EE83EC11E87E9800B01518 /* EFileHandlers.cpp */,
-				E6EE83ED11E87E9800B01518 /* EFileHandlers.h */,
-				E6EE83EE11E87E9800B01518 /* EFileValidator.cpp */,
-				E6EE83EF11E87E9800B01518 /* EFileValidator.h */,
-				E6EE83F011E87E9800B01518 /* EFileValidatorDefs.h */,
-				E6EE83F111E87E9800B01518 /* EFileXMLProcessor.cpp */,
-				E6EE83F211E87E9800B01518 /* EFileXMLProcessor.h */,
-				E6EE83F311E87E9800B01518 /* EFilterHandlers.cpp */,
-				E6EE83F411E87E9800B01518 /* EFilterHandlers.h */,
-				E6EE83F511E87E9800B01518 /* EFilterValidator.cpp */,
-				E6EE83F611E87E9800B01518 /* EFilterValidator.h */,
-				E6EE83F711E87E9800B01518 /* EFilterValidatorDefs.h */,
-				E6EE83F811E87E9800B01518 /* EFilterXMLProcessor.cpp */,
-				E6EE83F911E87E9800B01518 /* EFilterXMLProcessor.h */,
-				E6EE83FA11E87E9800B01518 /* ESecMemMgr.cpp */,
-				E6EE83FB11E87E9800B01518 /* ESecMemMgr.h */,
-			);
-			path = Expat;
-			sourceTree = "<group>";
-		};
 		E6EE840711E87E9800B01518 /* Xerces */ = {
 			isa = PBXGroup;
 			children = (
@@ -1239,7 +1203,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = E6ADB80711956A94004E2BE5 /* Build configuration list for PBXNativeTarget "core" */;
 			buildPhases = (
-				E6CFEF1811EA41FB001402D8 /* Generate corelib_st */,
+				E6CFEF1811EA41FB001402D8 /* Generate core_st */,
 				E6ADB80011956A93004E2BE5 /* Sources */,
 			);
 			buildRules = (
@@ -1270,11 +1234,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = E6ADB9A31195706B004E2BE5 /* Build configuration list for PBXNativeTarget "pwsafe" */;
 			buildPhases = (
+				E690B5041297D80A007EA508 /* Resources */,
 				E6CFEEF711EA3E2F001402D8 /* Generate version.h */,
 				E6ADB99B1195706A004E2BE5 /* Sources */,
 				E6ADBAF3119577A7004E2BE5 /* Frameworks */,
-				E690B508129800DF007EA508 /* ShellScript */,
-				E690B5041297D80A007EA508 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -1322,29 +1285,13 @@
 				E690B56012984A1B007EA508 /* pwsafe.xsd in Resources */,
 				E690B56112984A1B007EA508 /* pwsafe.xsl in Resources */,
 				E690B95712984B1D007EA508 /* help.zip in Resources */,
+				E6919C641298FB25001F96D9 /* pwsafe.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		E690B508129800DF007EA508 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"../help/default/pwsafe.hh?",
-				"../help/default/html/*.html",
-				"../help/default/html/*.jpg",
-			);
-			outputPaths = (
-				../help/default/html/help.zip,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "cd ../help/default\necho `pwd`\nzip -r help.zip ./* --exclude \\.\\*";
-		};
 		E690B54212980CFC007EA508 /* Default English Help */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -1359,7 +1306,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd ../help/default\necho `pwd`\nzip -r help.zip ./* --exclude \\.\\*";
+			shellScript = "cd ../help/default\necho `pwd`\nzip -r help.zip ./* --exclude .\\*";
 		};
 		E6CFEEF711EA3E2F001402D8 /* Generate version.h */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1377,22 +1324,22 @@
 			shellPath = /bin/sh;
 			shellScript = "../Misc/mkversion.pl ../src/ui/wxWidgets/version.in ../src/ui/wxWidgets/version.h";
 		};
-		E6CFEF1811EA41FB001402D8 /* Generate corelib_st */ = {
+		E6CFEF1811EA41FB001402D8 /* Generate core_st */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				../src/corelib/corelib.rc2,
+				../src/core/core.rc2,
 			);
-			name = "Generate corelib_st";
+			name = "Generate core_st";
 			outputPaths = (
-				../src/corelib/corelib_st.h,
-				../src/corelib/corelib_st.cpp,
+				../src/core/core_st.h,
+				../src/core/core_st.cpp,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "echo \"Generating coelib_st.cpp and corelib_st.h ...\"\n../Misc/rc2cpp.pl ../src/corelib/corelib.rc2";
+			shellScript = "echo \"Generating coelib_st.cpp and core_st.h ...\"\n../Misc/rc2cpp.pl ../src/core/core.rc2";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1405,7 +1352,7 @@
 				E6EE841C11E87E9800B01518 /* CheckVersion.cpp in Sources */,
 				E6EE841D11E87E9800B01518 /* Command.cpp in Sources */,
 				E6EE841E11E87E9800B01518 /* CoreImpExp.cpp in Sources */,
-				E6EE841F11E87E9800B01518 /* corelib_st.cpp in Sources */,
+				E6EE841F11E87E9800B01518 /* core_st.cpp in Sources */,
 				E6EE842011E87E9800B01518 /* hmac.cpp in Sources */,
 				E6EE842111E87E9800B01518 /* ItemData.cpp in Sources */,
 				E6EE842211E87E9800B01518 /* ItemField.cpp in Sources */,

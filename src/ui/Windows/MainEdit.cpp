@@ -23,10 +23,10 @@
 #include "CreateShortcutDlg.h"
 #include "PasswordSubsetDlg.h"
 
-#include "corelib/pwsprefs.h"
-#include "corelib/PWSAuxParse.h"
-#include "corelib/Command.h"
-#include "corelib/return_codes.h"
+#include "core/pwsprefs.h"
+#include "core/PWSAuxParse.h"
+#include "core/Command.h"
+#include "core/return_codes.h"
 
 #include "os/dir.h"
 #include "os/run.h"

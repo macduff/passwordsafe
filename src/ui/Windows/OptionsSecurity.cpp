@@ -15,8 +15,8 @@
 #include "Options_PropertySheet.h"
 #include "PWFileDialog.h"
 
-#include "corelib/PwsPlatform.h"
-#include "corelib/PWSprefs.h"
+#include "core/PwsPlatform.h"
+#include "core/PWSprefs.h"
 
 #include "os/dir.h"
 

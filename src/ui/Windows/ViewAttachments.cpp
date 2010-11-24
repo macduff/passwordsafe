@@ -9,9 +9,9 @@
 
 #include "resource.h"
 #include "resource3.h"
-#include "corelib/StringX.h"
-#include "corelib/util.h"
-#include "corelib/sha1.h"
+#include "core/StringX.h"
+#include "core/util.h"
+#include "core/sha1.h"
 
 #include "os/file.h"
 #include "os/dir.h"

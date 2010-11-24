@@ -14,7 +14,7 @@
 #include "GeneralMsgBox.h"
 #include "AdvancedAttDlg.h"
 
-#include "corelib/corelib.h"
+#include "core/core.h"
 
 #include "resource.h"
 #include "resource3.h"
