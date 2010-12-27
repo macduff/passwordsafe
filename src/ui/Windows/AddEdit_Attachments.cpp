@@ -425,12 +425,12 @@ LRESULT CAddEdit_Attachments::DropFiles(WPARAM wParam, LPARAM)
 
       if (rc == IDS_ADDTARGET) {
         // If buffer to small - get a bigger one!
-        const int nLinkLength = wcslen(sztarget) + 1;
+        const size_t nLinkLength = wcslen(sztarget) + 1;
         if (nLinkLength > sizeof(pszFile + 1) / sizeof(wchar_t)) {
          delete [] pszFile;
          pszFile = new wchar_t[nLinkLength];
         }
-        lstrcpyn(pszFile, sztarget, nLinkLength);
+        lstrcpyn(pszFile, sztarget, (int)nLinkLength);
       }
     }
 

@@ -57,7 +57,7 @@ void pws_os::AddDrive(stringT &path)
   // Adds a drive letter to the path if not there, unless
   // empty string  or it's a UNC path (\\host\sharename...)
   using namespace pws_os;
-  if(path.empty())
+  if (path.empty())
     return;
   if (!(path[0] == '\\' && path[1] == '\\')) {
     stringT drive, dir, file, ext;
@@ -106,7 +106,7 @@ static bool FileOP(const stringT &src, const stringT &dst,
   szDestination[dstD.length() + 1] = TCHAR('\0');
 
   SHFILEOPSTRUCT sfop;
-  memset(&sfop, 0, sizeof(sfop));
+  memset(&sfop, 0, sizeof(SHFILEOPSTRUCT));
   sfop.hwnd = GetActiveWindow();
   sfop.wFunc = wFunc;
   sfop.pFrom = szSource;
@@ -195,11 +195,11 @@ static void GetLocker(const stringT &lock_filename, stringT &locker)
  
   if (h2 != INVALID_HANDLE_VALUE) {
     DWORD bytesRead;
-    (void)::ReadFile(h2, lockerStr, sizeof(lockerStr)-1,
+    (void)::ReadFile(h2, lockerStr, sizeof(lockerStr) - 1,
                      &bytesRead, NULL);
     CloseHandle(h2);
     if (bytesRead > 0) {
-      lockerStr[bytesRead/sizeof(TCHAR)] = TCHAR('\0');
+      lockerStr[bytesRead / sizeof(TCHAR)] = TCHAR('\0');
       locker = lockerStr;
     } // read info from lock file
   }
@@ -297,22 +297,22 @@ bool pws_os::LockFile(const stringT &filename, stringT &locker,
     DWORD numWrit, sumWrit;
     BOOL write_status;
     write_status = ::WriteFile(lockFileHandle,
-                               user.c_str(), user.length() * sizeof(TCHAR),
+                               user.c_str(), (DWORD)(user.length() * sizeof(TCHAR)),
                                &sumWrit, NULL);
     write_status &= ::WriteFile(lockFileHandle,
-                                _T("@"), sizeof(TCHAR),
+                                _T("@"), (DWORD)(sizeof(TCHAR)),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     write_status &= ::WriteFile(lockFileHandle,
-                                host.c_str(), host.length() * sizeof(TCHAR),
+                                host.c_str(), (DWORD)(host.length() * sizeof(TCHAR)),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     write_status &= ::WriteFile(lockFileHandle,
-                                _T(":"), sizeof(TCHAR),
+                                _T(":"), (DWORD)(sizeof(TCHAR)),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     write_status &= ::WriteFile(lockFileHandle,
-                                pid.c_str(), pid.length() * sizeof(TCHAR),
+                                pid.c_str(), (DWORD)(pid.length() * sizeof(TCHAR)),
                                 &numWrit, NULL);
     sumWrit += numWrit;
     ASSERT(sumWrit > 0);

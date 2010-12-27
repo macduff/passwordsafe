@@ -123,9 +123,9 @@ int PWS_Deflate_Buffer(z_stream &strm,
                        const bool bLast)
 {
   // Deflate block
-  strm.avail_in = in_size;
+  strm.avail_in = static_cast<unsigned int>(in_size);
   strm.next_in = (Bytef *)in_buffer;
-  strm.avail_out = out_size;
+  strm.avail_out = static_cast<unsigned int>(out_size);
   strm.next_out = out_buffer;
 
   int ret = deflate(&strm, bLast ? Z_FINISH : Z_BLOCK); /* no bad return value */
@@ -166,9 +166,9 @@ int PWS_Inflate_Buffer(z_stream &strm,
                        const bool bLast)
 {
   // Inflate a block
-  strm.avail_in = in_size;
+  strm.avail_in = static_cast<unsigned int>(in_size);
   strm.next_in = (Bytef *)in_buffer;
-  strm.avail_out = out_size;
+  strm.avail_out = static_cast<unsigned int>(out_size);
   strm.next_out = (Bytef *)out_buffer;
 
   int ret = inflate(&strm, Z_NO_FLUSH);
@@ -319,7 +319,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
         }
 
         unsigned char readtype;
-        unsigned int cmpsize, count;
+        size_t cmpsize, count;
         unsigned char cdigest[SHA1::HASHLEN];
 
         // Get SHA1 hash and CRC of compressed data - only need one but..
@@ -330,7 +330,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
 
         // Read all data
         do {
-          unsigned int uiCmpLen;
+          size_t uiCmpLen;
           unsigned char *pCmpData(NULL);
 
           status = in->ReadAttmntRecordData(pCmpData, uiCmpLen, readtype, !bVerify);
@@ -358,7 +358,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
           }
 
           if (bVerify) {
-            ccontext.Update(pCmpData, uiCmpLen);
+            ccontext.Update(pCmpData, reinterpret_cast<unsigned int &>(uiCmpLen));
           }
           if (pCmpData != 0 && uiCmpLen > 0) {
              trashMemory(pCmpData, uiCmpLen);
@@ -586,7 +586,7 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
   static PWSAttfile::AttHeaderRecord ahr;
   static z_stream strm;
   static ATRecord atr;
-  static unsigned int cmpsize;
+  static size_t cmpsize;
   ATTProgress st_atpg;
   int status;
 
@@ -655,7 +655,7 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
       }
 
       // Not ours - read all 'unwanted' data
-      unsigned int uiCmpLen;
+      size_t uiCmpLen;
       unsigned char *pUnwantedData(NULL);
       do {
         status = in->ReadAttmntRecordData(pUnwantedData, uiCmpLen, readtype, true);
@@ -688,7 +688,7 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
     }
 
     unsigned char *pCmpData(NULL);
-    unsigned int uiCmpLen;
+    size_t uiCmpLen;
     status = in->ReadAttmntRecordData(pCmpData, uiCmpLen, readtype, false);
 
     if (status != PWSRC::SUCCESS) {
@@ -708,7 +708,7 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
 
     // Save the data pointer and length
     pUncData = new unsigned char[atr.blksize + 1];
-    unsigned int uiUncLength = atr.blksize + 1;
+    size_t uiUncLength = atr.blksize + 1;
     int zRC;
     zRC = PWS_Inflate_Buffer(strm, pCmpData, uiCmpLen,
                              pUncData, uiUncLength,
@@ -996,7 +996,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         case PWSRC::SUCCESS:
         {
           unsigned char readtype;
-          unsigned int count(0);
+          size_t count(0);
           int status_r, status_w;
 
           // Only need to write it out if we want to keep it
@@ -1018,7 +1018,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
 
               do {
                 unsigned char *pCmpData(NULL);
-                unsigned int uiCmpLen;
+                size_t uiCmpLen;
 
                 // Read in data records
                 status_r = in->ReadAttmntRecordData(pCmpData, uiCmpLen, readtype, false);
@@ -1080,7 +1080,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
             AttachmentProgress(st_atpg);
             do {
               unsigned char *pCmpData(NULL);
-              unsigned int uiCmpLen;
+              size_t uiCmpLen;
 
               // Read in data records
               status_r = in->ReadAttmntRecordData(pCmpData, uiCmpLen, readtype, true);
@@ -1183,15 +1183,15 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         else
           atr.blksize = atr.uncsize;
 
-        unsigned int uiUncLen(atr.blksize);
-        unsigned int uiCmpLen = compressBound(uiUncLen);
-        const unsigned int uiMaxCmpLen = uiCmpLen;
+        size_t uiUncLen(atr.blksize);
+        size_t uiCmpLen = compressBound(static_cast<uLong>(uiUncLen));
+        const size_t uiMaxCmpLen = uiCmpLen;
 
         BYTE *pUncData = new BYTE[atr.blksize];
         BYTE *pCmpData = new BYTE[uiMaxCmpLen];
 
-        const unsigned int num_left = atr.uncsize % atr.blksize;
-        unsigned int count(0), numread, totalread;
+        const size_t num_left = atr.uncsize % atr.blksize;
+        size_t count(0), numread, totalread;
         totalread = 0;
 
         // Write out pre-data fields
@@ -1214,17 +1214,17 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
           totalread = numread;
 
           // Calculate complete CRC and odigest
-          ocontext.Update(pUncData, atr.uncsize);
+          ocontext.Update(pUncData, reinterpret_cast<unsigned int &>(atr.uncsize));
           ocontext.Final(atr.odigest);
           atr.CRC = PWSUtil::Get_CRC(pUncData, atr.uncsize);
 
           int zRC;
-          unsigned long ulCmpLen(uiCmpLen);
-          zRC = compress(pCmpData, &ulCmpLen, pUncData, uiUncLen);
+          unsigned long ulCmpLen(static_cast<uLong>(uiCmpLen));
+          zRC = compress(pCmpData, &ulCmpLen, pUncData, static_cast<uLong>(uiUncLen));
           ASSERT(zRC == Z_OK);
 
           atr.cmpsize = ulCmpLen;
-          ccontext.Update(pCmpData, atr.cmpsize);
+          ccontext.Update(pCmpData, reinterpret_cast<unsigned int &>(atr.cmpsize));
           ccontext.Final(atr.cdigest);
 
           out3->WriteAttmntRecordData(pCmpData, atr.cmpsize,
@@ -1249,7 +1249,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
             totalread += numread;
 
             // Update CRC & odigest
-            ocontext.Update(pUncData, numread);
+            ocontext.Update(pUncData, reinterpret_cast<unsigned int &>(numread));
             PWSUtil::Get_CRC_Incremental_Update(pUncData, numread);
 
             count += atr.blksize;
@@ -1261,7 +1261,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
                                      (count == atr.uncsize) ? true : false);
 
             // Update CRC & cdigest
-            ccontext.Update(pCmpData, uiCmpLen);
+            ccontext.Update(pCmpData, reinterpret_cast<unsigned int &>(uiCmpLen));
 
             // Need to check - it just could be that the file size is an exact
             // multipe of the block size chosen!
@@ -1297,7 +1297,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
             ASSERT(numread == num_left);
             totalread += numread;
 
-            ocontext.Update(pUncData, numread);
+            ocontext.Update(pUncData, reinterpret_cast<unsigned int &>(numread));
             PWSUtil::Get_CRC_Incremental_Update(pUncData, numread);
 
             // Compress it - but first reset size of buffer available
@@ -1305,7 +1305,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
             zRC = PWS_Deflate_Buffer(strm, pUncData, numread,
                                      pCmpData, uiCmpLen,
                                      true);
-            ccontext.Update(pCmpData, uiCmpLen);
+            ccontext.Update(pCmpData, reinterpret_cast<unsigned int &>(uiCmpLen));
             atr.cmpsize += uiCmpLen;
             out3->WriteAttmntRecordData(pCmpData, uiCmpLen, PWSAttfileV3::ATTMT_LASTDATA);
           }
@@ -1596,7 +1596,7 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
 
               unsigned char readtype(0);
               unsigned char *pCmpData;
-              unsigned int uiCmpLen, count(0);
+              size_t uiCmpLen, count(0);
               int status_r, status_w, status_d;
 
               ATRecord atr_dup(atr);
@@ -1789,7 +1789,7 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
 
           unsigned char readtype(0);
           unsigned char *pCmpData;
-          unsigned int uiCmpLen, count(0);
+          size_t uiCmpLen, count(0);
           int status_r, status_w;
 
           // Write out pre-data
@@ -2012,7 +2012,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
 
   CUTF8Conv utf8conv;
   const unsigned char *utf8 = NULL;
-  int utf8Len = 0;
+  size_t utf8Len = 0;
 
 #ifdef UNICODE
   utf8conv.ToUTF8(filename, utf8, utf8Len);
@@ -2141,7 +2141,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
 
   // We will use in-storage copy of atr (as it has all the data we need)
   // but we have to read the attachment data from the file!
-  unsigned int cmpsize;
+  size_t cmpsize;
 
   do {
     ATRecordEx atrex;
@@ -2256,7 +2256,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
     AttachmentProgress(st_atpg);
 
     // Read all data
-    unsigned int uiCmpLen;
+    size_t uiCmpLen;
     unsigned char *pCmpData(NULL);
     cmpsize = 0;
     int num_data_records = 0;
@@ -2600,7 +2600,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
 
               unsigned char readtype(0);
               unsigned char *pCmpData;
-              unsigned int uiCmpLen, count(0);
+              size_t uiCmpLen, count(0);
               int status_r, status_w;
 
               // Write out pre-data
@@ -2750,7 +2750,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
         {
           unsigned char readtype(0);
           unsigned char *pCmpData;
-          unsigned int uiCmpLen, count(0);
+          size_t uiCmpLen, count(0);
           int status_r, status_w;
 
           st_atpg.function = ATT_PROGRESS_PROCESSFILE;

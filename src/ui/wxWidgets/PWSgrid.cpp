@@ -224,12 +224,12 @@ void PWSGrid::Remove(const uuid_array_t &uuid)
     DeleteRows(row);
 
     //move all the rows up by 1
-    for (size_t newRow = row+1; newRow < m_row_map.size(); ++newRow) {
-      m_row_map[newRow-1] = m_row_map[newRow];
+    for (size_t newRow = row + 1; newRow < m_row_map.size(); ++newRow) {
+      m_row_map[reinterpret_cast<int &>(newRow) - 1] = m_row_map[reinterpret_cast<int &>(newRow)];
     }
     
     //remove the last row, which is now extraneous
-    m_row_map.erase(m_row_map.size()-1);
+    m_row_map.erase(static_cast<int>(m_row_map.size()) - 1);
 
     //subtract the row values of all entries in uuid map if it is greater
     //than the row we just deleted
@@ -330,7 +330,7 @@ void PWSGrid::OnCellRightClick( wxGridEvent& evt )
   //
   SetGridCursor(evt.GetRow(), evt.GetCol());
   SelectRow(evt.GetRow());
-  dynamic_cast<PasswordSafeFrame*>(GetParent())->OnContextMenu(GetItem(evt.GetRow()));
+  dynamic_cast<PasswordSafeFrame *>(GetParent())->OnContextMenu(GetItem(evt.GetRow()));
 }
 
 /*!
@@ -343,7 +343,7 @@ void PWSGrid::OnContextMenu( wxContextMenuEvent& evt )
   if ( pos == wxDefaultPosition ) { //sent from keyboard?
     const int row = GetGridCursorRow();
     SelectRow(row);
-    dynamic_cast<PasswordSafeFrame*>(GetParent())->OnContextMenu(GetItem(row));
+    dynamic_cast<PasswordSafeFrame *>(GetParent())->OnContextMenu(GetItem(row));
   }
   else { //sent from mouse.  I don't know how to convert the mouse coords to grid's row,column
     wxASSERT_MSG(false, wxT("Unexpected wxContextMenuEvent from mouse click"));

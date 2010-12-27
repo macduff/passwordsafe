@@ -1,10 +1,10 @@
 # Makefile to create a Deb file for wxWidgets version of pwsafe
 
-RELNUM = 0.2-1
+RELNUM = 0.3
 DISTRO = $(shell echo $(word 2,$(shell lsb_release -d))| tr [:upper:] [:lower:])
 
-DEBNAME = passwordsafe-$(DISTRO)-$(RELNUM).deb
-
+DEBNAME32 = passwordsafe-$(DISTRO)-$(RELNUM).i686.deb
+DEBNAME64 = passwordsafe-$(DISTRO)-$(RELNUM).amd64.deb
 MKDIR = /bin/mkdir -p
 CAT = /bin/cat
 MV = /bin/mv
@@ -23,18 +23,22 @@ DOCS = ../../README.txt $(DOCSDIR)/ReleaseNotes.txt \
 	$(DOCSDIR)/ChangeLog.txt
 MANPAGE = $(DOCSDIR)/pwsafe.1
 XMLFILES = $(XMLDIR)/pwsafe.xsd $(XMLDIR)/pwsafe_filter.xsd $(XMLDIR)/pwsafe.xsl
-HELPZIP = /tmp/help.zip
-HELPFILES = $(HELPZIP)
+HELPFILES = $(HELPDIR)/help.zip
 
 INFILES = $(PWSAFE-BIN) $(DOCS) $(MANPAGE) $(XMLFILES) $(HELPFILES)
 
 .PHONY: all deb debtree clean
 
-all : $(DEBNAME)
+all : $(DEBNAME32) $(DEBNAME64)
 
-$(DEBNAME): $(INFILES)
-	@ln -sf control-$(DISTRO) control
-	$(MAKE) deb
+$(DEBNAME32): $(INFILES)
+	@ln -sf control-$(DISTRO).i686 control
+	$(MAKE) deb DEBNAME=$@
+	@$(RM) control
+
+$(DEBNAME64): $(INFILES)
+	@ln -sf control-$(DISTRO).amd64 control
+	$(MAKE) deb DEBNAME=$@
 	@$(RM) control
 
 deb: debtree
@@ -65,10 +69,9 @@ debtree:
 	@$(CP) ../graphics/pwsafe.png debian/tmp
 	@$(CP) postinst debian/DEBIAN
 	@$(CP) prerm debian/DEBIAN
-	@$(RM) $(HELPZIP)
 
-$(HELPZIP):
-	(cd $(HELPDIR)/default; $(ZIP) -qR $@ pwsafe.hh? *.html *.jpg)
+$(HELPFILES):
+	$(MAKE) -C $(HELPDIR)
 
 clean:
 	@$(RM) debian $(DEBNAME)

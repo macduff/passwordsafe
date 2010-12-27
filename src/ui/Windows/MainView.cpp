@@ -2902,7 +2902,7 @@ void DboxMain::OnViewReports()
     case IDS_RPTMERGE:
     case IDS_RPTSYNCH:
     case IDS_RPTVALIDATE:
-      uistring = rc;
+      uistring = (UINT)rc;
       break;
     default:
       return;
@@ -3460,7 +3460,7 @@ void DboxMain::SetEntryImage(const int &index, const int nImage, const bool bOne
   if (!m_bImageInLV)
     return;
 
-  const int iImage = (nImage >= 0) ? nImage : (abs(nImage) + m_numNormalImages);
+  const int iImage = (nImage >= 0) ? nImage : (abs(nImage) + (int)m_numNormalImages);
   m_ctlItemList.SetItem(index, 0, LVIF_IMAGE, NULL, iImage, 0, 0, 0);
 
   if (bOneEntry) {
@@ -3472,7 +3472,7 @@ void DboxMain::SetEntryImage(const int &index, const int nImage, const bool bOne
 
 void DboxMain::SetEntryImage(HTREEITEM &ti, const int nImage, const bool bOneEntry)
 {
-  const int iImage = (nImage >= 0) ? nImage : (abs(nImage) + m_numNormalImages);
+  const int iImage = (nImage >= 0) ? nImage : (abs(nImage) + (int)m_numNormalImages);
   m_ctlItemTree.SetItemImage(ti, iImage, iImage);
 
   if (bOneEntry) {
@@ -3764,7 +3764,7 @@ void DboxMain::OnShowUnsavedEntries()
     m_showunsavedfilter.vMfldata.push_back(fr);
     fr.estatus = CItemData::ES_MODIFIED;
     m_showunsavedfilter.vMfldata.push_back(fr);
-    m_showunsavedfilter.num_Mactive = m_showunsavedfilter.vMfldata.size();
+    m_showunsavedfilter.num_Mactive = (int)m_showunsavedfilter.vMfldata.size();
   }
 
   m_bFilterActive = !m_bFilterActive;

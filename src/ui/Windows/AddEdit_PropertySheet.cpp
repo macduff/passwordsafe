@@ -376,7 +376,7 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
     } else {
       // Send message to DboxMain to update entry but stop any other changes!
       EnableWindow(FALSE);
-      rc = m_AEMD.pDbx->SendMessage(PWS_MSG_EDIT_APPLY, (WPARAM)this, NULL);
+      rc = (int)m_AEMD.pDbx->SendMessage(PWS_MSG_EDIT_APPLY, (WPARAM)this, NULL);
       EnableWindow(TRUE);
 
       // Now make the original equal to new intermediate state
@@ -545,12 +545,12 @@ void CAddEdit_PropertySheet::SetupInitialValues()
     m_AEMD.pcore->GetAllDependentEntries(original_uuid, dependentslist,
                                   m_AEMD.pci_original->IsAliasBase() ?
                                   CItemData::ET_ALIAS : CItemData::ET_SHORTCUT);
-    int num_dependents = dependentslist.size();
+    size_t num_dependents = dependentslist.size();
     if (num_dependents > 0) {
       m_AEMD.pcore->SortDependents(dependentslist, csDependents);
     }
 
-    m_AEMD.num_dependents = num_dependents;
+    m_AEMD.num_dependents = (int)num_dependents;
     m_AEMD.original_entrytype = entrytype;
     m_AEMD.dependents = CSecString(csDependents);
     dependentslist.clear();

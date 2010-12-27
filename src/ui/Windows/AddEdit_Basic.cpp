@@ -280,7 +280,7 @@ BOOL CAddEdit_Basic::OnInitDialog()
     m_ex_group.AddString(iter->c_str());
   }
 
-  int num_unkwn(0);
+  size_t num_unkwn(0);
   if (M_uicaller() != IDS_ADDENTRY)
     num_unkwn = M_pci()->NumberUnknownFields();
 
@@ -983,7 +983,7 @@ LRESULT CAddEdit_Basic::OnCallExternalEditor(WPARAM, LPARAM)
 {
   // Warn the user about sensitive data lying around
   CGeneralMsgBox gmb;
-  int rc = gmb.AfxMessageBox(IDS_EXTERNAL_EDITOR_WARNING,
+  INT_PTR rc = gmb.AfxMessageBox(IDS_EXTERNAL_EDITOR_WARNING,
                          MB_YESNO | MB_ICONEXCLAMATION | MB_DEFBUTTON2);
   if (rc != IDYES)
     return 0L;
@@ -1047,9 +1047,9 @@ UINT CAddEdit_Basic::ExternalEditorThread(LPVOID me) // static method!
   STARTUPINFO si;
   PROCESS_INFORMATION pi;
 
-  ZeroMemory(&si, sizeof(si));
+  ZeroMemory(&si, sizeof(STARTUPINFO));
   si.cb = sizeof(si);
-  ZeroMemory(&pi, sizeof(pi));
+  ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
 
   DWORD dwCreationFlags(0);
   dwCreationFlags = CREATE_UNICODE_ENVIRONMENT;
@@ -1170,7 +1170,7 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
 
   // Copy data back before possibly returning
   ibasedata = pl.ibasedata;
-  memcpy(base_uuid, pl.base_uuid, sizeof(base_uuid));
+  memcpy(base_uuid, pl.base_uuid, sizeof(uuid_array_t));
   if (!brc)    
     return false;
 
@@ -1206,7 +1206,7 @@ bool CAddEdit_Basic::CheckNewPassword(const StringX &group, const StringX &title
     CString cs_msg;
     const CString cs_msgA(MAKEINTRESOURCE(IDS_ALIASNOTFOUNDA));
     const CString cs_msgZ(MAKEINTRESOURCE(IDS_ALIASNOTFOUNDZ));
-    int rc(IDNO);
+    INT_PTR rc(IDNO);
     switch (pl.ibasedata) {
       case -1: // [t] - must be title as this is the only mandatory field
         if (pl.bMultipleEntriesFound)

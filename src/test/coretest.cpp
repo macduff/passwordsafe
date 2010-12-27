@@ -5,11 +5,25 @@
 * distributed with this code, or available from
 * http://www.opensource.org/licenses/artistic-license-2.0.php
 */
+
+#ifdef WIN32
+#include "../ui/Windows/stdafx.h"
+#else
+#include <cstring>
+#endif
+
+using namespace std;
+
+#define TEST_BLOWFISH
 #define TEST_TWOFISH
 #define TEST_SHA256
 #define TEST_HMAC_SHA256
 #define TEST_STRINGX
+#define TEST_ITEMFIELD
 
+#ifdef TEST_BLOWFISH
+#include "BlowFishTest.h"
+#endif
 #ifdef TEST_TWOFISH
 #include "TwoFishTest.h"
 #endif
@@ -22,11 +36,21 @@
 #ifdef TEST_STRINGX
 #include "StringXTest.h"
 #endif
+#ifdef TEST_ITEMFIELD
+#include "ItemFieldTest.h"
+#endif
+
 #include <iostream>
 using namespace std;
 
 int main()
 {
+#ifdef TEST_BLOWFISH
+  CBlowFishTest t0;
+  t0.setStream(&cout);
+  t0.run();
+  t0.report();
+#endif
 #ifdef TEST_MYSTRING
   CMyStringTest t1;
   t1.setStream(&cout);
@@ -56,6 +80,12 @@ int main()
   t5.setStream(&cout);
   t5.run();
   t5.report();
+#endif
+#ifdef TEST_ITEMFIELD
+  ItemFieldTest t6;
+  t6.setStream(&cout);
+  t6.run();
+  t6.report();
 #endif
   return 0;
 }

@@ -550,7 +550,7 @@ void CPWAttLC::OnCustomDraw(NMHDR* pNotifyStruct, LRESULT* pResult)
   NMLVCUSTOMDRAW* pLVCD = reinterpret_cast<NMLVCUSTOMDRAW *>(pNotifyStruct);
 
   *pResult = CDRF_DODEFAULT;
-  const int iItem = pLVCD->nmcd.dwItemSpec;
+  const int iItem = (int)pLVCD->nmcd.dwItemSpec;
   const int iSubItem = pLVCD->iSubItem;
   int ix, iy;
   size_t num;
@@ -750,7 +750,7 @@ INT_PTR CPWAttLC::OnToolHitTest(CPoint point, TOOLINFO *pTI) const
 
 BOOL CPWAttLC::OnToolTipText(UINT /*id*/, NMHDR * pNMHDR, LRESULT * pResult)
 {
-  UINT nID = pNMHDR->idFrom;
+  UINT_PTR nID = pNMHDR->idFrom;
 
   // check if this is the automatic tooltip of the control
   if (nID == 0)

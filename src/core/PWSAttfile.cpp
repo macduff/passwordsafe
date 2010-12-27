@@ -115,18 +115,18 @@ int PWSAttfile::Close()
 }
 
 size_t PWSAttfile::WriteCBC(unsigned char type, const unsigned char *data,
-                            unsigned int length)
+                            size_t length)
 {
   ASSERT(m_fish != NULL && m_IV != NULL);
   return _writecbc(m_fd, data, length, type, m_fish, m_IV);
 }
 
 size_t PWSAttfile::ReadCBC(unsigned char &type, unsigned char* &data,
-                           unsigned int &length,
+                           size_t &length,
                            bool bSkip, unsigned char *pSkipTypes)
 {
   unsigned char *buffer = NULL;
-  unsigned int buffer_len = 0;
+  size_t buffer_len = 0;
   size_t retval;
 
   ASSERT(m_fish != NULL && m_IV != NULL);
@@ -155,7 +155,7 @@ size_t PWSAttfile::ReadCBC(unsigned char &type, unsigned char* &data,
 }
 
 int PWSAttfile::CheckPasskey(const StringX &filename,
-                            const StringX &passkey, VERSION &version)
+                             const StringX &passkey, VERSION &version)
 {
   if (passkey.empty())
     return PWSRC::WRONG_PASSWORD;

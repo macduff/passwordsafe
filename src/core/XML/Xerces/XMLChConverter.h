@@ -30,7 +30,7 @@ struct _XMLChDeallocator {
   XMLCh* WChar2Xml(const wchar_t* ws) {
     CUTF8Conv conv;
     const unsigned char* data;
-    int len;
+    size_t len;
     if (conv.ToUTF8(StringX(ws), data, len)) { //conv would release data
       const char* utf8str = reinterpret_cast<const char *>(data);
       XMLCh* newstr = XMLString::transcode(utf8str);
@@ -47,7 +47,7 @@ struct _XMLChDeallocator {
       //transcode() apparently converts the string to "Native code page"
       //Hopefully, that overlaps just fine with utf-8 
       CUTF8Conv conv;
-      if (!conv.FromUTF8(reinterpret_cast<unsigned char*>(astr), strlen(astr), ws)) {
+      if (!conv.FromUTF8(reinterpret_cast<unsigned char *>(astr), strlen(astr), ws)) {
         ws.clear(); 
       }
       XMLString::release(&astr);
@@ -61,7 +61,7 @@ struct _XMLChDeallocator {
     if (astr) {
       CUTF8Conv conv;
       //This is wrong if the second param of FromUTF8 is the number of chars
-      if (!conv.FromUTF8(reinterpret_cast<unsigned char*>(astr), strlen(astr), ws)) {
+      if (!conv.FromUTF8(reinterpret_cast<unsigned char *>(astr), strlen(astr), ws)) {
         ws.clear(); 
       }
       XMLString::release(&astr);

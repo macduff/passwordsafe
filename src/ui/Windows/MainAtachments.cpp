@@ -673,11 +673,11 @@ int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
 
     // Now update CRC and SHA1 hash of data retrieved
     PWSUtil::Get_CRC_Incremental_Update(pUncData, unclength);
-    context.Update(pUncData, unclength);
+    context.Update(pUncData, reinterpret_cast<unsigned int &>(unclength));
 
     // Write out the data
     DWORD numwritten(0);
-    brc = WriteFile(hFile, pUncData, unclength, &numwritten, NULL);
+    brc = WriteFile(hFile, pUncData, (DWORD)unclength, &numwritten, NULL);
     ASSERT(numwritten == unclength);
 
     if (pUncData != NULL) {

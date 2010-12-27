@@ -48,21 +48,21 @@ public:
   virtual int Close();
 
   virtual int ReadAttmntRecordPreData(ATRecord &atr);
-  virtual int ReadAttmntRecordData(unsigned char * &pCmpData, unsigned int &uiCmpLen,
+  virtual int ReadAttmntRecordData(unsigned char * &pCmpData, size_t &uiCmpLen,
                                    unsigned char &readtype, const bool bSkip);
   virtual int ReadAttmntRecordPostData(ATRecord &atr);
 
   virtual int WriteAttmntRecordPreData(const ATRecord &adr);
-  virtual int WriteAttmntRecordData(unsigned char *pData, const unsigned int len,
+  virtual int WriteAttmntRecordData(unsigned char *pData, const size_t len,
                                     const unsigned char type);
   virtual int WriteAttmntRecordPostData(const ATRecord &adr);
 
 private:
   virtual size_t WriteCBC(unsigned char type, const StringX &data);
   virtual size_t WriteCBC(unsigned char type, const unsigned char *data,
-                          unsigned int length);
+                          size_t length);
   virtual size_t ReadCBC(unsigned char &type, unsigned char* &data,
-                         unsigned int &length,
+                         size_t &length,
                          bool bSkip = false, unsigned char *pSkipTypes = NULL);
   int WriteHeader();
   int ReadHeader();

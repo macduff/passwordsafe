@@ -132,12 +132,12 @@ public:
   virtual int Close();
 
   virtual int ReadAttmntRecordPreData(ATRecord &atr) = 0;
-  virtual int ReadAttmntRecordData(unsigned char * &pCmpData, unsigned int &uiCmpLen,
+  virtual int ReadAttmntRecordData(unsigned char * &pCmpData, size_t &uiCmpLen,
                                    unsigned char &readtype, const bool bSkip = false) = 0;
   virtual int ReadAttmntRecordPostData(ATRecord &atr) = 0;
 
   virtual int WriteAttmntRecordPreData(const ATRecord &adr) = 0;
-  virtual int WriteAttmntRecordData(unsigned char *pData, const unsigned int len,
+  virtual int WriteAttmntRecordData(unsigned char *pData, const size_t len,
                                     const unsigned char type) = 0;
   virtual int WriteAttmntRecordPostData(const ATRecord &adr) = 0;
 
@@ -151,9 +151,9 @@ protected:
   void FOpen(); // calls right variant of m_fd = fopen(m_filename);
   virtual size_t WriteCBC(unsigned char type, const StringX &data) = 0;
   virtual size_t WriteCBC(unsigned char type, const unsigned char *data,
-                          unsigned int length);
+                          size_t length);
   virtual size_t ReadCBC(unsigned char &type, unsigned char* &data,
-                         unsigned int &length,
+                         size_t &length,
                          bool bSkip = false, unsigned char *pSkipTypes = NULL);
 
   const StringX m_filename;

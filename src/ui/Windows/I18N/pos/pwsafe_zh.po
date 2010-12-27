@@ -10,7 +10,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 1900-01-01 00:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Last-Translator: 小镇医生 <Freedoctor@qq.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -180,7 +180,7 @@ msgstr " 当前默认 (%s)"
 #. Resource IDs: (339)
 #, c-format
 msgid " Drag # %d"
-msgstr " 拖曳 # %d"
+msgstr " 拖放 # %d"
 
 #. Resource IDs: (212)
 #, c-format
@@ -203,7 +203,7 @@ msgstr " 或撤销所有更改"
 
 #. Resource IDs: (354)
 msgid "! Edit externally"
-msgstr "! 外部编辑"
+msgstr "外部编辑！"
 
 #. Resource IDs: (1194)
 msgid "#entries"
@@ -242,30 +242,15 @@ msgstr "#who"
 msgid "%1 contained an unexpected object."
 msgstr "%1 包含了一个意外对象！"
 
+#. Resource IDs: (3867)
+#, c-format
+msgid "%1 contains an incorrect path."
+msgstr "%1 包含了一个错误路径！"
+
 #. Resource IDs: (3868)
 #, c-format
 msgid "%1 contains an incorrect schema."
 msgstr "%1 包含了一个错误模式！"
-
-#. Resource IDs: (3867)
-#, c-format
-msgid "%1 contains an invalid path."
-msgstr "%1 包含了一个无效路径！"
-
-#. Resource IDs: (3867)
-#, c-format
-msgid "%1 could not be created because the directory is full."
-msgstr "%1 不能创建，因为目录已满！"
-
-#. Resource IDs: (3867)
-#, c-format
-msgid "%1 could not be opened because there are too many open files."
-msgstr "%1 不能打开，因为被打开的文件太多！"
-
-#. Resource IDs: (3867)
-#, c-format
-msgid "%1 could not be removed because it is the current directory."
-msgstr "%1 不能删除，因为它是当前目录！"
 
 #. Resource IDs: (3868)
 #, c-format
@@ -284,8 +269,8 @@ msgstr "%1: %2\n继续运行脚本吗？"
 
 #. Resource IDs: (3859)
 #, c-format
-msgid "%1\nCannot find this file.\nPlease verify that the correct path and file name are given."
-msgstr "%1\n未能找到该文件！\n请核对正确路径和特定的文件名称！"
+msgid "%1\nCannot find this file.\nVerify that the correct path and file name are given."
+msgstr "%1\n无法找到该文件！\n请核对路径与文件名是否正确！"
 
 #. Resource IDs: (341)
 #, c-format
@@ -307,10 +292,15 @@ msgstr "%d 个项目"
 msgid "%d of %d matches."
 msgstr "%d 中 %d 个相匹配！"
 
+#. Resource IDs: (3887)
+#, c-format
+msgid "%s [Recovered]"
+msgstr "%s [恢复]"
+
 #. Resource IDs: (333)
 #, c-format
 msgid "%s \n\nCan't open file. Please choose another."
-msgstr "%s \n\n不能打开文件，请选定其它！"
+msgstr "%s \n\n无法打开文件，请选择其它！"
 
 #. Resource IDs: (341)
 #, c-format
@@ -320,7 +310,7 @@ msgstr "%s 文件导入: %s"
 #. Resource IDs: (212)
 #, c-format
 msgid "%s has an empty %s.\r\n"
-msgstr "%s 有一个空白 %s.\r\n"
+msgstr "%s 有一个空白 %s。\r\n"
 
 #. Resource IDs: (326)
 #, c-format
@@ -398,6 +388,10 @@ msgstr "关于 Password Safe(&A)..."
 #. Resource IDs: (32051)
 msgid "&Add Entry..."
 msgstr "添加项目(&A)..."
+
+#. Resource IDs: (1071, 1252)
+msgid "&Advanced"
+msgstr "高级(&A)"
 
 #. Resource IDs: (1026, 1306)
 msgid "&Apply"
@@ -498,6 +492,10 @@ msgstr "显示拖放栏(&D)"
 #. Resource IDs: (32056)
 msgid "&Duplicate Entry"
 msgstr "复制项目(&D)"
+
+#. Resource IDs: (32086)
+msgid "&Duplicate Group"
+msgstr "复制组(&D)"
 
 #. Resource IDs: (1342, 32050)
 msgid "&Edit"
@@ -801,11 +799,11 @@ msgstr "“\n\n如果你想报告该错误，请在下面单击“是”并上�
 
 #. Resource IDs: (65535)
 msgid "(Also used to replace periods in Title field)"
-msgstr "(也代替标题字段的句号)"
+msgstr "(同时代替标题字段的句号)"
 
 #. Resource IDs: (1097)
 msgid "(Requires a restart of PasswordSafe to take effect.)"
-msgstr "(需要重启 PasswordSafe 获得生效)"
+msgstr "(需要重启 PasswordSafe 才能生效)"
 
 #. Resource IDs: (1285, 1287, 1289, 1291)
 msgid "(at least"
@@ -839,6 +837,10 @@ msgstr "------------------------------------------------------------------------
 #. Resource IDs: (1223)
 msgid "..."
 msgstr "..."
+
+#. Resource IDs: (1017)
+msgid "...."
+msgstr "...."
 
 #. Resource IDs: (1293, 1294)
 msgid "....."
@@ -1134,15 +1136,16 @@ msgstr "<b><font color=\"red\">发现有新版本可用！</font></b>"
 
 #. Resource IDs: (343)
 msgid "<b><font color=\"red\">Could not read server version data.</font></b>"
-msgstr "<b><font color=\"red\">不能读取服务器版本数据！</font></b>"
+msgstr "<b><font color=\"red\">无法读取服务器版本数据！</font></b>"
 
 #. Resource IDs: (342)
 msgid "<b><font color=\"red\">Couldn't contact server.</font></b>"
 msgstr "<b><font color=\"red\">未能连接服务器！</font></b>"
 
 #. Resource IDs: (360)
-msgid "<b><font color=\"red\">WARNING</font></b> If you continue, fields will be updated in your existing database from your selected input database.\r\n\r\nThe OK button on the password entry dialog for your input database will not be enabled <b> until you have accessed the Advanced dialog to confirm what you will be updating.</b>"
-msgstr "<b><font color=\"red\">警告:</font></b> 如果继续，来自你选择导入的数据库将更新现有数据库字段。\r\n\r\n在密码项目对话框上的“确定”按钮作为你输入数据库将不被启用。<b>直到你访问高级对话框确认时才被更新！</b>"
+msgid "<b><font color=\"red\">WARNING</font></b> If you continue, fields will be updated in your existing database from your selected input database.  The OK button on the password entry dialog for your input database will not be enabled <b>until you have accessed the Advanced dialog to confirm what you will be updating.</b>"
+msgstr "<b><font color=\"red\">警告:</font></b>     如果继续，你所选输入的数据库字段在当前数据库中将被更新。你所输入数据库的密码项目对话上的“确定”按钮将不被启用-
+<b>直到你访问高级对话确认你将被更新哪些！</b>"
 
 #. Resource IDs: (1154)
 msgid ">"
@@ -1168,16 +1171,6 @@ msgstr "筛选被激活，导出的数据被限制为仅包含所显示的内容
 msgid "A future date is not valid for this field"
 msgstr "给该字段使用一个未来日期无效！"
 
-#. Resource IDs: (3867)
-#, c-format
-msgid "A hardware I/O error was reported while accessing %1."
-msgstr "在访问 %1 时报告发生一个硬件 I/O 错误！"
-
-#. Resource IDs: (3867)
-#, c-format
-msgid "A locking violation occurred while accessing %1."
-msgstr "在访问 %1 时发生一个违规锁定！"
-
 #. Resource IDs: (65535)
 msgid "A new password database will be created. The safe combination you enter will be used to encrypt the password database file. The Safe Combination can use any keyboard character and is case-sensitive."
 msgstr "即将创建一个新密码数据库，请输入你的保险箱数据库保护密码，保险箱密码可以使用所有键盘上区分大小写的字符。"
@@ -1185,11 +1178,6 @@ msgstr "即将创建一个新密码数据库，请输入你的保险箱数据库
 #. Resource IDs: (3843)
 msgid "A required resource was unavailable."
 msgstr "一个所需资源无法使用！"
-
-#. Resource IDs: (3867)
-#, c-format
-msgid "A sharing violation occurred while accessing %1."
-msgstr "一个共享违反发生在访问 %1 期间！"
 
 #. Resource IDs: (345, 1092)
 msgid "AaBbYyZz 0O1lIL"
@@ -1266,9 +1254,9 @@ msgstr "高级文本%s导出选项"
 msgid "Advanced XML%sExport Options"
 msgstr "高级 XML%s导出选项"
 
-#. Resource IDs: (1252, 1253)
-msgid "Advanced..."
-msgstr "高级..."
+#. Resource IDs: (65535)
+msgid "Advanced:"
+msgstr "高级:"
 
 #. Resource IDs: (514)
 msgid "Albanian"
@@ -1292,7 +1280,7 @@ msgstr "允许多种实例(需要重启 Password Safe)"
 
 #. Resource IDs: (65535)
 msgid "Also used to replace periods in the Title field."
-msgstr "也代替标题字段的句号"
+msgstr "同时代替标题字段的句号"
 
 #. Resource IDs: (8012)
 msgid "Alt"
@@ -1324,26 +1312,11 @@ msgstr "总是保持 Password Safe 窗口在最前"
 
 #. Resource IDs: (314)
 msgid "Always on top"
-msgstr "总在最前面"
+msgstr "总在最前"
 
 #. Resource IDs: (342)
 msgid "An alias cannot refer to itself!"
 msgstr "不能引用别名自身！"
-
-#. Resource IDs: (3867, 3868)
-#, c-format
-msgid "An attempt was made to access %1 past its end."
-msgstr "尝试访问 %1 但它已结束！"
-
-#. Resource IDs: (3868)
-#, c-format
-msgid "An attempt was made to read from the writing %1."
-msgstr "试图读取 %1 ！"
-
-#. Resource IDs: (3868)
-#, c-format
-msgid "An attempt was made to write to the reading %1."
-msgstr "试图写入 %1 ！"
 
 #. Resource IDs: (329)
 #, c-format
@@ -1365,24 +1338,10 @@ msgstr "项目空白组/标题“%s”和用户名“%s”已经存在！"
 msgid "An entry with an empty Group, Title \"%s\" and empty User Name already exists."
 msgstr "空白项目组，标题 \"%s\" 和空白用户名已经存在！"
 
-#. Resource IDs: (3843)
-msgid "An invalid argument was encountered."
-msgstr "遭遇一个无效参数！"
-
 #. Resource IDs: (3867)
 #, c-format
-msgid "An invalid file handle was associated with %1."
-msgstr "一个无效文件句柄关联 %1！"
-
-#. Resource IDs: (3859)
-#, c-format
-msgid "An unexpected error occurred while reading %1."
-msgstr "在读取 %1 时发生一个意外错误！"
-
-#. Resource IDs: (3859)
-#, c-format
-msgid "An unexpected error occurred while writing %1."
-msgstr "在记录 %1 时发生一个意外错误！"
+msgid "An incorrect file handle was associated with %1."
+msgstr "一个错误文件句柄与 %1 关联！"
 
 #. Resource IDs: (3843)
 msgid "An unknown error has occurred."
@@ -1391,11 +1350,7 @@ msgstr "发生一个未知错误！"
 #. Resource IDs: (3867, 3868)
 #, c-format
 msgid "An unknown error occurred while accessing %1."
-msgstr "在存取 %1 时发生一个未知错误！"
-
-#. Resource IDs: (3843)
-msgid "An unsupported operation was attempted."
-msgstr "正在尝试一个不被支持的操作！"
+msgstr "在访问 %1 时发生一个未知错误！"
 
 #. Resource IDs: (208)
 msgid "And"
@@ -1416,6 +1371,10 @@ msgstr "应用"
 #. Resource IDs: (513)
 msgid "Arabic (101)"
 msgstr "阿拉伯数字 (101)"
+
+#. Resource IDs: (341)
+msgid "Are you sure you want to delete the selected entry?"
+msgstr "你是否确认需要删除所选的项目？"
 
 #. Resource IDs: (355)
 msgid "Are you sure you want to delete the selected group?"
@@ -1441,6 +1400,25 @@ msgstr "至少需要输入一个字符(小写字母，大写字母，数字，�
 #, c-format
 msgid "At least one unknown %s field is now in use.  Any found have been ignored."
 msgstr "至少有一个未知 %s 字段正在使用中，所有已经建立的项目将被忽略！"
+
+#. Resource IDs: (3843)
+msgid "Attempted an unsupported operation."
+msgstr "尝试一个未被支持的操作！"
+
+#. Resource IDs: (3867, 3868)
+#, c-format
+msgid "Attempted to access %1 past its end."
+msgstr "尝试访问过去结束的 %1！"
+
+#. Resource IDs: (3868)
+#, c-format
+msgid "Attempted to read from the writing %1."
+msgstr "尝试读取写入 %1！"
+
+#. Resource IDs: (3868)
+#, c-format
+msgid "Attempted to write to the reading %1."
+msgstr "尝试写入读取 %1！"
 
 #. Resource IDs: (188)
 msgid "AutoType\t"
@@ -1475,12 +1453,12 @@ msgid "Azeri Latin"
 msgstr "阿塞拜疆(拉丁文)"
 
 #. Resource IDs: (65535)
-msgid "Backup Name"
-msgstr "备份名称"
+msgid "Backup Directory:"
+msgstr "备份目录:"
 
 #. Resource IDs: (65535)
-msgid "Backup directory:"
-msgstr "备份目录:"
+msgid "Backup Name"
+msgstr "备份名称"
 
 #. Resource IDs: (137)
 msgid "Backups"
@@ -1648,6 +1626,10 @@ msgstr "不能创建文件锁 - 你是否没有该目录权限？"
 msgid "Cannot process as this entry has been deleted from the open database."
 msgstr "不能从打开的数据库删除该项目！"
 
+#. Resource IDs: (213)
+msgid "Cannot read file. Please check file permissions."
+msgstr "无法读取文件，请检查文件权限！"
+
 #. Resource IDs: (331)
 msgid "Cannot verify old safe combination - file gone?"
 msgstr "不能验证旧密码，丢弃该文件吗？"
@@ -1690,7 +1672,7 @@ msgstr "更改这些"
 
 #. Resource IDs: (319)
 msgid "Change the maximum number of saved passwords for entries currently saving password history to the new maximum, if currently saving fewer.\n\nEntries with more than this new maximum already saved will remain unchanged."
-msgstr "如果当前存储数量较少，更改当前项目保存历史密码数量到新的最大值；对于已经保存大于该新建值的项目历史密码将保留不更改！"
+msgstr "如果当前存储数量较少，更改当前项目保存历史密码数量到新的最大值；对于已经保存大于该新建值的项目历史密码将保留不被更改！"
 
 #. Resource IDs: (1187)
 msgid "Changes to existing entries will be applied on pressing OK"
@@ -1923,6 +1905,10 @@ msgstr "配置文件错误:\n%s\n%s\n行 %d 栏目 %d"
 msgid "Confirm Close Dialog"
 msgstr "确认关闭对话"
 
+#. Resource IDs: (1019)
+msgid "Confirm deletion of items"
+msgstr "确认删除的项目"
+
 #. Resource IDs: (1021)
 msgid "Confirm item copy to clipboard"
 msgstr "确认项目复制到剪贴板"
@@ -2033,6 +2019,21 @@ msgstr "版权通告"
 #, c-format
 msgid "Could not access file: %s"
 msgstr "不能访问文件: %s"
+
+#. Resource IDs: (3867)
+#, c-format
+msgid "Could not create %1 because the directory is full."
+msgstr "目录已满，无法创建 %1！"
+
+#. Resource IDs: (3867)
+#, c-format
+msgid "Could not open %1 because there are too many open files."
+msgstr "打开文件太多，目前无法打开 %1！"
+
+#. Resource IDs: (3867)
+#, c-format
+msgid "Could not remove %1 because it is the current directory."
+msgstr "这是当前目录，不能删除 %1！"
 
 #. Resource IDs: (3857)
 msgid "Could not start print job."
@@ -2147,11 +2148,11 @@ msgstr "数据库"
 
 #. Resource IDs: (361)
 msgid "Database Unique ID"
-msgstr "数据库唯一标识"
+msgstr "数据库唯一ID"
 
 #. Resource IDs: (65535)
 msgid "Database Unique ID:"
-msgstr "数据库唯一标识:"
+msgstr "数据库唯一ID:"
 
 #. Resource IDs: (65535)
 msgid "Database format:"
@@ -2163,7 +2164,7 @@ msgstr "数据库存在部分大项目！"
 
 #. Resource IDs: (337)
 msgid "Database is read-only. Sorry, cannot save changed any database preferences."
-msgstr "抱歉，数据库当前为只读模式，不能保存所有数据库参数选择的更改！"
+msgstr "抱歉，数据库当前为只读模式，无法保存任何数据库首选项的更改！"
 
 #. Resource IDs: (1200)
 msgid "Database name"
@@ -2171,7 +2172,7 @@ msgstr "数据库名称"
 
 #. Resource IDs: (337)
 msgid "Database validated - no problems found."
-msgstr "数据库验证 - 没有找到问题！"
+msgstr "数据库验证 - 未发现问题"
 
 #. Resource IDs: (1122)
 msgid "Date/Time Information"
@@ -2260,6 +2261,10 @@ msgstr "显示筛选 -"
 msgid "Display subset of Password"
 msgstr "显示密码子集"
 
+#. Resource IDs: (3887)
+msgid "Do you want to recover these auto-saved documents?"
+msgstr "你是否需要恢复这些自动保存的文档？"
+
 #. Resource IDs: (333)
 #, c-format
 msgid "Do you want to save changes to the password database: %s?"
@@ -2281,6 +2286,10 @@ msgstr "你是否需要替换它？"
 #, c-format
 msgid "Do you wish to save the changes made to database:\r\n\r\n%s\r\n\r\nor Cancel the shutdown\\restart\\logoff?"
 msgstr "你是否希望保存所作的更改到数据库:\r\n\r\n%s\r\n\r\n或取消关机\\重启\\注销？"
+
+#. Resource IDs: (3887)
+msgid "Don't recover the auto-saved documents\nUse the last explicitly saved versions of the documents"
+msgstr "不能恢复自动保存的文档！\n使用最后明确保存版本的文档。"
 
 #. Resource IDs: (359)
 msgid "Double Click Action"
@@ -2337,12 +2346,16 @@ msgstr "双击操作"
 #. Resource IDs: (357)
 #, c-format
 msgid "Drag this image onto a another window to paste the '%s' field."
-msgstr "拖曳该图标粘贴 '%s' 字段到其它窗口"
+msgstr "拖放该图标粘贴“%s”字段到其它窗口"
 
 #. Resource IDs: (342)
 #, c-format
 msgid "Dropped entry '%s:%s:%s' password points to an entry that is also an alias.\r\n\r\nThe dropped entry now references that entry's base entry."
 msgstr "撤销项目 “%s:%s:%s” 密码显示一个项目位置同样有一个别名项目。\n\n立刻撤销项目引用那个基本项目！"
+
+#. Resource IDs: (32086)
+msgid "Duplicate Group"
+msgstr "复制组"
 
 #. Resource IDs: (514)
 msgid "Dutch"
@@ -2355,6 +2368,10 @@ msgstr "退出(&X)"
 #. Resource IDs: (32021)
 msgid "E&xit\tCtrl+Q\\Alt+F4"
 msgstr "退出(&X)\tCtrl+Q\\Alt+F4"
+
+#. Resource IDs: (65535)
+msgid "E&xport Entry To"
+msgstr "导出项目为"
 
 #. Resource IDs: (350)
 msgid "Easyvision characters"
@@ -2389,15 +2406,39 @@ msgstr "组/标题或密码栏目缺少，没有导入记录！"
 msgid "Either unable to load the necessary DLL, or it is the incorrect version, to support Autotype during Launch of a Browser or Run a command.\n\nAutotype for these functions is disabled."
 msgstr "支持自动输入时运行的浏览器或运行命令必需的 DLL 无法加载，也许这是一个不正确的版本！\n\n自动输入功能被禁用！"
 
-#. Resource IDs: (209)
-#, c-format
-msgid "Element \"%s\" exceeded its MaxOccurs of %s."
-msgstr "元素“%s”大于它的最大显示 %s！"
-
 #. Resource IDs: (204)
 #, c-format
 msgid "Empty line %d skipped"
 msgstr "跳过空行 %d"
+
+#. Resource IDs: (3867)
+#, c-format
+msgid "Encountered a hardware I/O error while accessing %1."
+msgstr "访问 %1 期间遇到一个硬件 I/O 错误！"
+
+#. Resource IDs: (3867)
+#, c-format
+msgid "Encountered a locking violation while accessing %1."
+msgstr "访问 %1 期间遇到一个锁定冲突！"
+
+#. Resource IDs: (3867)
+#, c-format
+msgid "Encountered a sharing violation while accessing %1."
+msgstr "访问 %1 期间遇到一个共享冲突！"
+
+#. Resource IDs: (3843)
+msgid "Encountered an improper argument."
+msgstr "遇到一个错误参数！"
+
+#. Resource IDs: (3859)
+#, c-format
+msgid "Encountered an unexpected error while reading %1."
+msgstr "读取 %1 期间遇到一个意外错误！"
+
+#. Resource IDs: (3859)
+#, c-format
+msgid "Encountered an unexpected error while writing %1."
+msgstr "写入 %1 期间遇到一个意外错误！"
 
 #. Resource IDs: (118)
 msgid "Encrypt/Decrypt"
@@ -2418,6 +2459,57 @@ msgstr "输入密匙:"
 #. Resource IDs: (130, 132)
 msgid "Enter Safe Combination"
 msgstr "输入保险箱密码"
+
+#. Resource IDs: (3858)
+msgid "Enter a GUID."
+msgstr "输入一个 GUID"
+
+#. Resource IDs: (3858)
+msgid "Enter a currency."
+msgstr "输入一种货币"
+
+#. Resource IDs: (3858)
+msgid "Enter a date and/or time."
+msgstr "输入一个日期 和/或 时间"
+
+#. Resource IDs: (3858)
+msgid "Enter a date."
+msgstr "输入一个日期"
+
+#. Resource IDs: (3858)
+#, c-format
+msgid "Enter a number between %1 and %2."
+msgstr "在 %1 和 %2 之间输入一个数字"
+
+#. Resource IDs: (3858)
+msgid "Enter a number."
+msgstr "输入一个数字"
+
+#. Resource IDs: (3858)
+msgid "Enter a positive integer."
+msgstr "输入一个正整数"
+
+#. Resource IDs: (3858)
+msgid "Enter a time."
+msgstr "输入一个时间"
+
+#. Resource IDs: (3858)
+#, c-format
+msgid "Enter an integer between %1 and %2."
+msgstr "在 %1 和 %2 之间输入一个整数"
+
+#. Resource IDs: (3858)
+msgid "Enter an integer between 0 and 255."
+msgstr "在 0 和 255 之间输入一个整数"
+
+#. Resource IDs: (3858)
+msgid "Enter an integer."
+msgstr "输入一个整数"
+
+#. Resource IDs: (3858)
+#, c-format
+msgid "Enter no more than %1 characters."
+msgstr "输入一个不大于 %1 字符"
 
 #. Resource IDs: (65535)
 msgid "Enter positions of password characters separated by spaces, commas or semi-colons:"
@@ -2448,7 +2540,7 @@ msgstr "项目 %s%d 与组=“%s”，标题=“%s”，用户=“%s”。"
 
 #. Resource IDs: (1407)
 msgid "Entry Unique ID:"
-msgstr "项目唯一标识:"
+msgstr "项目唯一 ID:"
 
 #. Resource IDs: (205)
 #, c-format
@@ -2553,7 +2645,7 @@ msgstr "爱沙尼亚语"
 
 #. Resource IDs: (65535)
 msgid "Example:"
-msgstr "实例:"
+msgstr "示例:"
 
 #. Resource IDs: (347, 1004)
 msgid "Exit"
@@ -2574,10 +2666,6 @@ msgstr "导出"
 #. Resource IDs: (32009)
 msgid "Export &To"
 msgstr "导出(&T)"
-
-#. Resource IDs: (65535)
-msgid "Export Entry &To"
-msgstr "导出项目为(&T)"
 
 #. Resource IDs: (32085)
 msgid "Export Entry in XML format..."
@@ -2633,7 +2721,7 @@ msgstr "未能打开文档！"
 
 #. Resource IDs: (337)
 msgid "Failed to save changed preferences."
-msgstr "未能保存所更改的参数选择！"
+msgstr "未能保存所更改的首选项！"
 
 #. Resource IDs: (3857)
 msgid "Failed to save document."
@@ -2778,7 +2866,7 @@ msgstr "字形(&Y):"
 
 #. Resource IDs: (342)
 msgid "For security, the database must be closed before connecting to the Internet.\r\nPress OK to close database and continue (Changes will be saved)"
-msgstr "为了安全起见，数据库必须在连接到因特网之前关闭；\n单击“是”关闭数据库和继续(更改将被保存)！"
+msgstr "为了安全起见，数据库必须在连接到因特网之前关闭；\n单击“是”关闭数据库并继续(更改将被保存)！"
 
 #. Resource IDs: (203)
 #, c-format
@@ -2787,7 +2875,7 @@ msgstr "找到 %d 已知栏目标题:"
 
 #. Resource IDs: (330)
 msgid "Found 1 match."
-msgstr "找到 1 个匹配！"
+msgstr "找到 1 个匹配项！"
 
 #. Resource IDs: (514)
 msgid "French"
@@ -2839,7 +2927,7 @@ msgstr "德语(IBM)"
 
 #. Resource IDs: (57670)
 msgid "Get &Help\tF1"
-msgstr "获得帮助(&H)\tF1"
+msgstr "获取帮助(&H)\tF1"
 
 #. Resource IDs: (326)
 msgid "Given path is a directory or file is read-only"
@@ -2956,6 +3044,10 @@ msgstr "十六进制字符"
 #. Resource IDs: (331)
 msgid "Hexadecimal is mutually exclusive to all other options!"
 msgstr "十六进制排斥所有其它选项！"
+
+#. Resource IDs: (1426)
+msgid "Hide System Tray icon (Hot Key MUST be active)"
+msgstr "隐藏系统托盘图标 (必须激活热键)"
 
 #. Resource IDs: (1397)
 msgid "Highlight changed entries"
@@ -3135,12 +3227,12 @@ msgstr "如果密码是与当前打开的数据库一样，则本备份属性显
 
 #. Resource IDs: (361)
 msgid "If this is the first database opened on the startup of PasswordSafe, PasswordSafe will exit.  If not, the new open will be cancelled and the existing opened database, if any, will remain open."
-msgstr "如果这是 PasswordSafe 启动时被打开的第一个数据库,PasswordSafe将退出;如果不是,新打开的数据库将被取消并打开现有数据库。如果有的话，将保持开启。"
+msgstr "如果这是 PasswordSafe 启动时被打开的第一个数据库，PasswordSafe将退出；如果不是，新打开的数据库将被取消并打开现有数据库。如果有的话，将保持开启。"
 
 #. Resource IDs: (510)
 #, c-format
 msgid "If this keyboard supports characters via the %s, then this key will be enabled and can be used to select them.\n\nYou may need to also select the Shift key to see them."
-msgstr "如果该键盘支持字符通过 %s,则该键将被启用及可以被用于它们的所选。\n\n你还可以按需同时选择 Shift 键查看它们。"
+msgstr "如果该键盘支持字符通过 %s，则该键将被启用及可以被用于它们的所选。\n\n你还可以按需同时选择 Shift 键查看它们。"
 
 #. Resource IDs: (517)
 msgid "Igbo"
@@ -3219,6 +3311,10 @@ msgstr "静止"
 #. Resource IDs: (146)
 msgid "Incorrect Passkey"
 msgstr "错误密匙"
+
+#. Resource IDs: (3857)
+msgid "Incorrect filename."
+msgstr "错误文件名！"
 
 #. Resource IDs: (331)
 msgid "Incorrect passkey, not a PasswordSafe database, or a corrupt database. (Backup database has same name as original, ending with '~')"
@@ -3309,14 +3405,6 @@ msgstr "无效筛选模式！"
 msgid "Invalid Parameter"
 msgstr "无效参数！"
 
-#. Resource IDs: (209)
-msgid "Invalid data in element: "
-msgstr "无效数据元素:"
-
-#. Resource IDs: (3857)
-msgid "Invalid filename."
-msgstr "无效文件名称！"
-
 #. Resource IDs: (189)
 #, c-format
 msgid "Invalid input on line %d.  Number of fields separated by '%c' is not as expected."
@@ -3356,7 +3444,7 @@ msgstr "哈萨克语"
 
 #. Resource IDs: (32017)
 msgid "KeePass..."
-msgstr "已存的密码..."
+msgstr "保存的密码..."
 
 #. Resource IDs: (1143)
 msgid "Keep"
@@ -3515,22 +3603,6 @@ msgstr "管理筛选"
 msgid "Manage password history of current entries"
 msgstr "管理当前项目的历史密码"
 
-#. Resource IDs: (209)
-msgid "Mandatory delimiter attribute invalid."
-msgstr "规定的分隔符属性无效！"
-
-#. Resource IDs: (209)
-msgid "Mandatory delimiter attribute missing."
-msgstr "缺少规定的分隔符属性！"
-
-#. Resource IDs: (209)
-msgid "Mandatory element (title and/or password) missing."
-msgstr "缺少规定的元素 (标题 和/或 密码)！"
-
-#. Resource IDs: (209)
-msgid "Mandatory ftype attribute missing."
-msgstr "缺少规定的 ftype 属性！"
-
 #. Resource IDs: (517)
 msgid "Maori"
 msgstr "毛利语"
@@ -3609,17 +3681,9 @@ msgstr "最少大写字母字符"
 msgid "Misc."
 msgstr "杂项"
 
-#. Resource IDs: (209)
-msgid "Missing STATUS, MAX or NUM element in PWHISTORY."
-msgstr "缺少历史密码状态、最大或数量元素！"
-
 #. Resource IDs: (210)
 msgid "Missing XSD File"
 msgstr "缺少 XSD 文件！"
-
-#. Resource IDs: (209)
-msgid "Missing date/time element."
-msgstr "缺少日期/时间元素！"
 
 #. Resource IDs: (210)
 msgid "Missing ending curly bracket for variable name"
@@ -3632,11 +3696,6 @@ msgstr "缺少圆括号作为结束自动输入值！"
 #. Resource IDs: (210)
 msgid "Missing ending square bracket for index value"
 msgstr "缺少方括号作为结束索引值！"
-
-#. Resource IDs: (209)
-#, c-format
-msgid "Missing test element \"%s\"."
-msgstr "缺少测试元素 “%s”！"
 
 #. Resource IDs: (3887)
 msgid "Mixed"
@@ -3693,7 +3752,7 @@ msgstr "新建组"
 
 #. Resource IDs: (65535)
 msgid "New Safe Combination:"
-msgstr "新密码"
+msgstr "新密码:"
 
 #. Resource IDs: (343)
 msgid "New Version Found!"
@@ -3769,7 +3828,7 @@ msgstr "没有匹配你所筛选的项目！"
 
 #. Resource IDs: (330)
 msgid "No matches found."
-msgstr "未找到匹配项目！"
+msgstr "未找到匹配的项目！"
 
 #. Resource IDs: (330)
 msgid "No object selected for basing your restrictions."
@@ -3810,6 +3869,10 @@ msgstr "挪威语(萨米)"
 #. Resource IDs: (3857)
 msgid "Not all of the system registry entries (or INI file) were removed."
 msgstr "系统注册表项目 (或 INI 文件)  删除不全！"
+
+#. Resource IDs: (3887)
+msgid "Note that if you choose to recover the auto-saved documents, you must explicitly save them to overwrite the original documents.  If you choose to not recover the auto-saved versions, they will be deleted."
+msgstr "请注意，如果你选择恢复自动保存的文档，必须明确保存它们覆盖原始文档；如果选择不恢复自动保存的版本，它们将被删除！"
 
 #. Resource IDs: (33150)
 msgid "Note: Empty fields are shown as »*»"
@@ -3909,7 +3972,11 @@ msgstr "开"
 
 #. Resource IDs: (359)
 msgid "One of more preferences have been changed. Are you sure you wish to cancel?"
-msgstr "一个或更多的参数选择已被更改，你是否确定希望取消？"
+msgstr "多个首选项中的一个已被更改，你是否确认想要取消？"
+
+#. Resource IDs: (3887)
+msgid "One or more auto-saved documents were found."
+msgstr "找到一个或多个自动保存的文档！"
 
 #. Resource IDs: (340)
 #, c-format
@@ -3954,7 +4021,7 @@ msgstr "原始数据库:"
 
 #. Resource IDs: (1401)
 msgid "Original Value:"
-msgstr "原值:"
+msgstr "原始值:"
 
 #. Resource IDs: (516)
 msgid "Oriya"
@@ -3983,11 +4050,6 @@ msgstr "PWS_CPF_CDD"
 #. Resource IDs: (341)
 msgid "PWS_CPF_TVDD"
 msgstr "PWS_CPF_TVDD"
-
-#. Resource IDs: (192)
-#, c-format
-msgid "Parse error at line %d, column %d:\nError: %s\n%s\n\n"
-msgstr "分析 %d 行时错误，栏目 %d:\n错误: %s\n\n"
 
 #. Resource IDs: (334)
 msgid "Passkey incorrect"
@@ -4035,7 +4097,7 @@ msgstr "密码失效间隔\t"
 
 #. Resource IDs: (360)
 msgid "Password Generated based on displayed policy"
-msgstr "生成密码基于所显示的策略"
+msgstr "根据显示的策略生成密码"
 
 #. Resource IDs: (120, 140, 340, 350)
 msgid "Password History"
@@ -4193,15 +4255,15 @@ msgstr "请选定一个数据库和当前打开数据库相比较"
 
 #. Resource IDs: (335)
 msgid "Please Choose a Database to Merge into current database"
-msgstr "请选定一个数据库合并到当前数据库中"
+msgstr "请选择一个合并到当前数据库中的数据库"
 
 #. Resource IDs: (333)
 msgid "Please Choose a Database to Open:"
-msgstr "请选定打开一个数据库"
+msgstr "请选择打开一个数据库"
 
 #. Resource IDs: (360)
 msgid "Please Choose a Database to Synchonize with current database"
-msgstr "请选定一个数据库与当前数据库同步"
+msgstr "请选择一个与当前数据库同步的数据库"
 
 #. Resource IDs: (362)
 msgid "Please Choose a Database to Validate:"
@@ -4209,31 +4271,31 @@ msgstr "请选择一个数据库验证:"
 
 #. Resource IDs: (334)
 msgid "Please Choose a KeePass Text File to Import"
-msgstr "请选定一个存储密码的文本文件导入"
+msgstr "请选择导入一个存储密码的文本文件"
 
 #. Resource IDs: (336)
 msgid "Please Choose a Name for this Backup:"
-msgstr "请为该备份文件选定一个名称"
+msgstr "请选择一个备份文件名称"
 
 #. Resource IDs: (334)
 msgid "Please Choose a Text File to Import"
-msgstr "请选定导入一个文本文件"
+msgstr "请选择导入一个文本文件"
 
 #. Resource IDs: (334)
 msgid "Please Choose a XML File to Import"
-msgstr "请选定导入一个 XML 文件"
+msgstr "请选择导入一个 XML 文件"
 
 #. Resource IDs: (333)
 msgid "Please choose a name for the current (Untitled) database:"
-msgstr "请为当前(未命名)数据库选定一个名称"
+msgstr "请选择一个当前(未命名)数据库名称"
 
 #. Resource IDs: (338)
 msgid "Please choose a name for the new database"
-msgstr "请为新建数据库选定一个名称"
+msgstr "请选择一个新建数据库名称"
 
 #. Resource IDs: (334)
 msgid "Please choose a new name for the current database:"
-msgstr "请为当前数据库选定一个新名称"
+msgstr "请选择一个当前数据库的新名称"
 
 #. Resource IDs: (331)
 msgid "Please confirm that you wish to delete PasswordSafe configuration information for the current user from the Windows registry.\n\n"
@@ -4248,64 +4310,13 @@ msgstr "请确认你想要删除的 %s 筛选 %s？"
 msgid "Please do not use this option unless you understand and accept the risks. This option bypasses the security provided by this program."
 msgstr "请不要随便使用此选项，除非您了解并接受该风险。该选项将绕过由本程序提供的安全措施！"
 
-#. Resource IDs: (3858)
-msgid "Please enter a GUID."
-msgstr "请输入一个 GUID！"
-
-#. Resource IDs: (3858)
-msgid "Please enter a currency."
-msgstr "请输入一种货币！"
-
-#. Resource IDs: (3858)
-msgid "Please enter a date and/or time."
-msgstr "请输入一个日期 和/或 时间！"
-
-#. Resource IDs: (3858)
-msgid "Please enter a date."
-msgstr "请输入一个日期！"
-
-#. Resource IDs: (3858)
-#, c-format
-msgid "Please enter a number between %1 and %2."
-msgstr "请在 %1 和 %2 之间输入一个数字！"
-
-#. Resource IDs: (3858)
-msgid "Please enter a number."
-msgstr "请输入一个数字！"
-
-#. Resource IDs: (3858)
-msgid "Please enter a positive integer."
-msgstr "请输入一个正整数！"
-
 #. Resource IDs: (330)
 msgid "Please enter a search string"
-msgstr "请输入一个需查找的字串！"
-
-#. Resource IDs: (3858)
-msgid "Please enter a time."
-msgstr "请输入一个时间！"
+msgstr "请输入一个需要查找的字串！"
 
 #. Resource IDs: (65535)
 msgid "Please enter an encryption or decryption key"
 msgstr "请输入一个加密或解密密匙"
-
-#. Resource IDs: (3858)
-#, c-format
-msgid "Please enter an integer between %1 and %2."
-msgstr "请在 %1 和 %2 之间输入一个整数！"
-
-#. Resource IDs: (3858)
-msgid "Please enter an integer between 0 and 255."
-msgstr "请在 0 和 255 之间输入一个整数！"
-
-#. Resource IDs: (3858)
-msgid "Please enter an integer."
-msgstr "请输入一个整数！"
-
-#. Resource IDs: (3858)
-#, c-format
-msgid "Please enter no more than %1 characters."
-msgstr "请输入不大于 %1 的字符！"
 
 #. Resource IDs: (65535)
 msgid "Please enter the current combination, followed by a new combination.  Type the new combination once again to confirm it."
@@ -4313,7 +4324,7 @@ msgstr "首先请输入当前保险箱旧密码，接着输入新密码，再确
 
 #. Resource IDs: (329)
 msgid "Please enter the key and verify it."
-msgstr "请输入密匙和验证它！"
+msgstr "请输入密匙并验证它！"
 
 #. Resource IDs: (65535)
 msgid "Please enter the safe combination for this password database."
@@ -4329,7 +4340,7 @@ msgstr "请命名 XML 文件！"
 
 #. Resource IDs: (334)
 msgid "Please name the exported database"
-msgstr "请命名导出数据库"
+msgstr "请命名导出的数据库"
 
 #. Resource IDs: (334)
 msgid "Please name the plaintext file"
@@ -4339,13 +4350,9 @@ msgstr "请命名纯文本文件"
 msgid "Please name this filter"
 msgstr "请命名该筛选！"
 
-#. Resource IDs: (3858)
-msgid "Please select a button."
-msgstr "请选定一个按钮！"
-
 #. Resource IDs: (343)
 msgid "Please select report to view."
-msgstr "请选定报告查看！"
+msgstr "请选择报告查看！"
 
 #. Resource IDs: (348)
 msgid "Please specify text"
@@ -4358,7 +4365,7 @@ msgstr "请指定包含所有备份文件的目标位置！"
 #. Resource IDs: (345)
 #, c-format
 msgid "Please specify the name && group for this shortcut to the base entry '%s':"
-msgstr "请指定名称和组作为该基本项目 '%s' 的快捷方式:"
+msgstr "请指定作为该快捷方式到基本项目“%s”的名称和组:"
 
 #. Resource IDs: (337)
 msgid "Please specify the sub-directory to contain all backups."
@@ -4446,7 +4453,7 @@ msgstr "只读"
 
 #. Resource IDs: (315)
 msgid "R/W"
-msgstr "存取"
+msgstr "读取/写入"
 
 #. Resource IDs: (65535)
 msgid "Random password generation rules"
@@ -4466,7 +4473,7 @@ msgstr "只读"
 
 #. Resource IDs: (347)
 msgid "Read-Write"
-msgstr "存取"
+msgstr "读取-写入"
 
 #. Resource IDs: (327)
 msgid "Recent"
@@ -4487,6 +4494,10 @@ msgstr "档案修改时间\t"
 #. Resource IDs: (1121)
 msgid "Record last access times"
 msgstr "档案最后访问时间"
+
+#. Resource IDs: (3887)
+msgid "Recover the auto-saved documents\nOpen the auto-saved versions instead of the explicitly saved versions"
+msgstr "恢复自动保存文档\n打开自动保存版本取代明确保存版本"
 
 #. Resource IDs: (1297)
 msgid "Recurring"
@@ -4544,7 +4555,7 @@ msgstr "%s 的报告函数开始于 %s"
 
 #. Resource IDs: (65535)
 msgid "Requested Values:"
-msgstr "被请求的值:"
+msgstr "请求的值:"
 
 #. Resource IDs: (356)
 msgid "Required Unicode font is not installed on this system.\n\nUnable to provide Virtual Keyboard."
@@ -4557,7 +4568,11 @@ msgstr "重置为默认数据库(&T)"
 #. Resource IDs: (356)
 #, c-format
 msgid "Reserved shortcut '%s' ignored."
-msgstr "忽略保留快捷方式 '%s' 。"
+msgstr "忽略保留的快捷方式“%s”。"
+
+#. Resource IDs: (1427)
+msgid "Reset"
+msgstr "重置"
 
 #. Resource IDs: (1368)
 msgid "Reset All"
@@ -4793,29 +4808,33 @@ msgstr "选定中间备份位置"
 msgid "Select Test Dump Type"
 msgstr "选择测试转储类型"
 
+#. Resource IDs: (3858)
+msgid "Select a button."
+msgstr "选择一个按钮！"
+
 #. Resource IDs: (340)
 msgid "Select all entries"
-msgstr "选定所有项目"
+msgstr "选择所有项目"
 
 #. Resource IDs: (352)
 msgid "Select and apply a filter"
-msgstr "选定和应用一个筛选"
+msgstr "选择并应用一个筛选"
 
 #. Resource IDs: (340)
 msgid "Select some entries"
-msgstr "选定部份项目"
+msgstr "选择部份项目"
 
 #. Resource IDs: (1153)
 msgid "Selected"
-msgstr "选定"
+msgstr "选择"
 
 #. Resource IDs: (65535)
 msgid "Selected Fields:"
-msgstr "选定字段:"
+msgstr "选择字段:"
 
 #. Resource IDs: (65535)
 msgid "Selected filter details:"
-msgstr "选定筛选细节:"
+msgstr "选择筛选细节:"
 
 #. Resource IDs: (1380)
 msgid "Send"
@@ -5235,11 +5254,6 @@ msgstr "选择字符时 ALT 键不用于任何键盘。使用 “Alt Num” 键�
 msgid "The combination cannot be blank."
 msgstr "密码不可空缺！"
 
-#. Resource IDs: (210)
-#, c-format
-msgid "The contents [\"%s\"] of element \"%s\" is invalid/unexpected."
-msgstr "目录 [“%s”] 的元素“%s”无效/意外！"
-
 #. Resource IDs: (332)
 #, c-format
 msgid "The database %s couldn't be opened.\nDo you wish to look for it elsewhere (Search), create a new database (New), or Exit?"
@@ -5331,7 +5345,7 @@ msgstr "下列记录被跳过:"
 #. Resource IDs: (363)
 #, c-format
 msgid "The notes field of this entry has more text than can be displayed. Changing this field and saving the entry will result in this field being truncated after %d characters.  To view the full contents, either copy it to an editor via the clipboard or export this entry to XML before changing it."
-msgstr "该项目的备注字段已超过可被显示的文字数量。所更改字段和保存的项目将导致该字段在 %d 字符之后被截去的结果。要查看完全的内容，在更改它们之前通过剪贴板复制到外部编辑器或导出这些内容为 XML 文件。         "
+msgstr "该项目的备注字段已超过可被显示的文字数量。所更改字段和保存的项目将导致该字段在 %d 字符之后被截去的结果。要查看完全的内容，在更改它们之前通过剪贴板复制到外部编辑器或导出这些内容为 XML 文件。"
 
 #. Resource IDs: (331)
 msgid "The old safe combination is not correct"
@@ -5383,7 +5397,11 @@ msgstr "运行命令不匹配引号！"
 
 #. Resource IDs: (361)
 msgid "There does not appear to be a Recycle Bin on the media containing this Failsafe Backup file. If you delete it, it will be permanent. Do you wish to continue?"
-msgstr "这里好像没有被包含故障保护备份文件媒体回收站。如果你删除它，这将是永久性的。你是否想继续？"
+msgstr "这里好像没有被包含故障保护备份文件媒体回收站。如果你删除它，这将是永久性的！你是否想继续？"
+
+#. Resource IDs: (3887)
+msgid "These are more recently saved than the currently open documents and contain changes that were made before the application closed."
+msgstr "这是最近保存比当前打开还新的包含了应用程序关闭之前作出过更改的文档。"
 
 #. Resource IDs: (344)
 #, c-format
@@ -5676,15 +5694,6 @@ msgstr "不校验"
 msgid "Undo"
 msgstr "撤销"
 
-#. Resource IDs: (209)
-msgid "Unexpected element: Only one field allowed per filter entry."
-msgstr "意外元素: 只有一个字段允许通过项目筛选！"
-
-#. Resource IDs: (209)
-#, c-format
-msgid "Unexpected element: \"%s\"."
-msgstr "意外元素: “%s”！"
-
 #. Resource IDs: (3859)
 msgid "Unexpected file format."
 msgstr "意外文件格式！"
@@ -5708,11 +5717,6 @@ msgstr "未知"
 #. Resource IDs: (329)
 msgid "Unknown            "
 msgstr "未知的            "
-
-#. Resource IDs: (209)
-#, c-format
-msgid "Unknown element: \"%s\"."
-msgstr "未知元素: “%s”！"
 
 #. Resource IDs: (350)
 msgid "Unknown fields"
@@ -5937,7 +5941,7 @@ msgstr "警告"
 #. Resource IDs: (213)
 #, c-format
 msgid "Warning - %d %s in your database may have one or more fields too large to display or edit.\r\n\r\nThe largest entry size found was ~%d %s.\r\n\r\nYou can use the Filter to selectively display these record(s)."
-msgstr "警告 - %d %s在你的数据库可能有一个或多个字段显示或编辑太大。\r\n\r\n大项目的大小找到 %d %s \r\n\r\n你可能使用筛选器选择显示这些记录。"
+msgstr "警告 - %d %s在你的数据库可能有一个或多个字段显示或编辑太大！\r\n\r\n大项目的大小找到 %d %s \r\n\r\n你可能使用筛选器选择显示这些记录。"
 
 #. Resource IDs: (363)
 msgid "Warning - excessive field contents"
@@ -5986,7 +5990,7 @@ msgstr "自动换行"
 
 #. Resource IDs: (1363)
 msgid "Word Wrap Notes in Add && Edit"
-msgstr "添加与编辑备注时自动换行"
+msgstr "添加和编辑备注时自动换行"
 
 #. Resource IDs: (332)
 #, c-format
@@ -6062,7 +6066,7 @@ msgstr "你当前所打开的数据库将被排列在首行，安全保障备份
 #. Resource IDs: (357)
 #, c-format
 msgid "Your requested font '%s' is not installed on this system, using '%s' instead."
-msgstr "你的被请求字体 '%s' 没有安装在该系统，是否使用 '%s' 代替？"
+msgstr "你所请求字体“%s”没有安装在该系统，是否使用“%s”代替？"
 
 #. Resource IDs: (330)
 msgid "[No current database]"
@@ -6071,6 +6075,10 @@ msgstr "[当前没有数据库]"
 #. Resource IDs: (328)
 msgid "[Notes hidden - click here to display]"
 msgstr "[备注已隐藏 - 单击这里显示]"
+
+#. Resource IDs: (2005)
+msgid "\nAdd Group"
+msgstr "\n添加组"
 
 #. Resource IDs: (2004)
 msgid "\nAdd New Entry"
@@ -6153,6 +6161,10 @@ msgid "\nDuplicate Entry"
 msgstr "\n复制项目"
 
 #. Resource IDs: (2006)
+msgid "\nDuplicate Group"
+msgstr "\n复制组"
+
+#. Resource IDs: (2006)
 msgid "\nEdit Base entry"
 msgstr "\n编辑基本项目"
 
@@ -6167,7 +6179,7 @@ msgstr "\n编辑一个项目"
 #. Resource IDs: (191)
 #, c-format
 msgid "\nError in Password History for entry: »%s»%s»%s»: "
-msgstr "\n错误历史密码给项目: »%s»%s»%s»: "
+msgstr "\n历史密码错误作为项目: »%s»%s»%s»: "
 
 #. Resource IDs: (2007)
 msgid "\nExpand All"
@@ -6521,7 +6533,7 @@ msgstr "天通知密码失效"
 
 #. Resource IDs: (206)
 msgid "does not begin with"
-msgstr "不开始"
+msgstr "未开始"
 
 #. Resource IDs: (206)
 msgid "does not contain"
@@ -6529,7 +6541,7 @@ msgstr "不包含"
 
 #. Resource IDs: (206)
 msgid "does not end with"
-msgstr "不结束"
+msgstr "未结束"
 
 #. Resource IDs: (206)
 msgid "does not equal"
@@ -6633,7 +6645,7 @@ msgstr "不是"
 
 #. Resource IDs: (207)
 msgid "is not present"
-msgstr "不显示"
+msgstr "未显示"
 
 #. Resource IDs: (207)
 msgid "is not set"
@@ -6641,7 +6653,7 @@ msgstr "未设定"
 
 #. Resource IDs: (207)
 msgid "is present"
-msgstr "显示"
+msgstr "已显示"
 
 #. Resource IDs: (207)
 msgid "is set"
@@ -6685,17 +6697,17 @@ msgstr "没有项目存在根目录使用 标题=%s 和 用户名=%s."
 #. Resource IDs: (342)
 #, c-format
 msgid "no entry exists with group=%s, title=%s and empty username."
-msgstr "没有项目存在使用 组=%s， 标题=%s 和空白用户名."
+msgstr "没有项目存在使用 组=%s，标题=%s 和空白用户名."
 
 #. Resource IDs: (342)
 #, c-format
 msgid "no entry exists with group=%s, title=%s and username=%s."
-msgstr "没有项目存在使用 组=%s， 标题=%s 和 用户名=%s."
+msgstr "没有项目存在使用 组=%s，标题=%s 和 用户名=%s."
 
 #. Resource IDs: (342)
 #, c-format
 msgid "no entry exists with title=%s and username=%s or with group=%s, title=%s."
-msgstr "没有项目存在使用 标题=%s 和 用户名=%s 或使用 组=%s， 标题=%s."
+msgstr "没有项目存在使用 标题=%s 和 用户名=%s 或使用 组=%s，标题=%s."
 
 #. Resource IDs: (342)
 #, c-format
@@ -6767,7 +6779,7 @@ msgstr "v1.x 旧版格式(&1)..."
 
 #. Resource IDs: (32012)
 msgid "v&2 format..."
-msgstr "v2   旧版格式(&2)..."
+msgstr "v2 旧版格式(&2)..."
 
 #. Resource IDs: (362)
 msgid "validated"

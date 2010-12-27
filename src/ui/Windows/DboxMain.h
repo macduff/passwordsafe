@@ -453,7 +453,7 @@ protected:
   int m_iTypeSortColumn;
 
   bool m_bTSUpdated;
-  int m_iSessionEndingStatus;
+  INT_PTR m_iSessionEndingStatus;
 
   // Used for Advanced functions
   CItemData::FieldBits m_bsFields;

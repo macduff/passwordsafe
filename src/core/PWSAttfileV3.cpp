@@ -27,10 +27,10 @@
 #include <fcntl.h>
 #include <iomanip>
 
-extern bool pull_string(StringX &str, const unsigned char *data, int len);
-extern bool pull_time(time_t &t, const unsigned char *data, size_t len);
-extern bool pull_uint(unsigned int &uint, const unsigned char *data, size_t len);
-extern bool pull_int(int &i, const unsigned char *data, size_t len);
+extern bool pull_string(StringX &str, const unsigned char *data, size_t len);
+extern bool pull_time32(time_t &t, const unsigned char *data, size_t len);
+extern bool pull_uint32(uint32 &uint, const unsigned char *data, size_t len);
+extern bool pull_int32(int32 &i, const unsigned char *data, size_t len);
 
 using namespace std;
 
@@ -138,7 +138,7 @@ int PWSAttfileV3::CheckPasskey(const StringX &filename, const StringX &passkey,
   unsigned char salt[SaltLengthV3];
   fread(salt, 1, sizeof(salt), fd);
 
-  unsigned char Nb[sizeof(unsigned int)];
+  unsigned char Nb[sizeof(uint32)];
   fread(Nb, 1, sizeof(Nb), fd);
   { // block to shut up compiler warning w.r.t. goto
     const unsigned int N = getInt32(Nb);
@@ -176,7 +176,7 @@ size_t PWSAttfileV3::WriteCBC(unsigned char type, const StringX &data)
 {
   bool status;
   const unsigned char *utf8;
-  int utf8Len;
+  size_t utf8Len;
   status = m_utf8conv.ToUTF8(data, utf8, utf8Len);
   if (!status)
     pws_os::Trace(_T("ToUTF8(%s) failed\n"), data.c_str());
@@ -184,9 +184,9 @@ size_t PWSAttfileV3::WriteCBC(unsigned char type, const StringX &data)
 }
 
 size_t PWSAttfileV3::WriteCBC(unsigned char type, const unsigned char *data,
-                              unsigned int length)
+                              size_t length)
 {
-  m_hmac.Update(data, length);
+  m_hmac.Update(data, reinterpret_cast<int &>(length));
   return PWSAttfile::WriteCBC(type, data, length);
 }
 
@@ -219,7 +219,7 @@ int PWSAttfileV3::WriteAttmntRecordPreData(const ATRecord &atr)
   return PWSRC::SUCCESS;
 }
 
-int PWSAttfileV3::WriteAttmntRecordData(unsigned char *pData, const unsigned int len,
+int PWSAttfileV3::WriteAttmntRecordData(unsigned char *pData, const size_t len,
                                         const unsigned char type)
 {
   // type should be ATTMT_DATA or ATTMT_LASTDATA
@@ -240,14 +240,14 @@ int PWSAttfileV3::WriteAttmntRecordPostData(const ATRecord &atr)
 }
 
 size_t PWSAttfileV3::ReadCBC(unsigned char &type, unsigned char* &data,
-                             unsigned int &length,
+                             size_t &length,
                              bool bSkip, unsigned char *pSkipTypes)
 {
   size_t num_bytes_read = PWSAttfile::ReadCBC(type, data, length,
                                  bSkip, pSkipTypes);
 
   if (num_bytes_read > 0 && !bSkip) {
-    m_hmac.Update(data, length);
+    m_hmac.Update(data, reinterpret_cast<unsigned int &>(length));
   }
 
   return num_bytes_read;
@@ -274,15 +274,14 @@ int PWSAttfileV3::ReadAttmntRecordPreData(ATRecord &atr)
   signed long fieldLen;    // <= 0 means end of file reached
 
   StringX str;
-  unsigned int uint;
+  uint32 uint;
   time_t t;
   bool go(true);
 
   do {
     unsigned char *utf8 = NULL;
-    int utf8Len = 0;
-    fieldLen = static_cast<signed long>(ReadCBC(type, utf8,
-                                          (unsigned int &)utf8Len));
+    size_t utf8Len = 0;
+    fieldLen = static_cast<signed long>(ReadCBC(type, utf8, utf8Len));
 
     if (fieldLen > 0) {
       numread += fieldLen;
@@ -324,37 +323,37 @@ int PWSAttfileV3::ReadAttmntRecordPreData(ATRecord &atr)
           atr.description = str;
           break;
         case ATTMT_UNCSIZE:
-          if (!pull_uint(uint, utf8, utf8Len)) {
+          if (!pull_uint32(uint, utf8, utf8Len)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
           atr.uncsize = uint;
           break;
         case ATTMT_BLKSIZE:
-          if (!pull_uint(uint, utf8, utf8Len)) {
+          if (!pull_uint32(uint, utf8, utf8Len)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
           atr.blksize = uint;
           break;
         case ATTMT_CTIME:
-          if (!pull_time(t, utf8, utf8Len)) {
+          if (!pull_time32(t, utf8, utf8Len)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
           atr.ctime = t;
           break;
         case ATTMT_ATIME:
-          if (!pull_time(t, utf8, utf8Len)) {
+          if (!pull_time32(t, utf8, utf8Len)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
           atr.atime = t;
           break;
         case ATTMT_MTIME:
-          if (!pull_time(t, utf8, utf8Len)) {
+          if (!pull_time32(t, utf8, utf8Len)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
           atr.mtime = t;
           break;
         case ATTMT_DTIME:
-          if (!pull_time(t, utf8, utf8Len)) {
+          if (!pull_time32(t, utf8, utf8Len)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
           atr.dtime = t;
@@ -388,7 +387,7 @@ int PWSAttfileV3::ReadAttmntRecordPreData(ATRecord &atr)
     return PWSRC::END_OF_FILE;
 }
 
-int PWSAttfileV3::ReadAttmntRecordData(unsigned char * &pCmpData, unsigned int &uiCmpLen,
+int PWSAttfileV3::ReadAttmntRecordData(unsigned char * &pCmpData, size_t &uiCmpLen,
                                        unsigned char &readtype, const bool bSkip)
 {
   ASSERT(m_curversion == V30);
@@ -404,11 +403,11 @@ int PWSAttfileV3::ReadAttmntRecordData(unsigned char * &pCmpData, unsigned int &
 
   unsigned char type;
   unsigned char *utf8 = NULL;
-  int utf8Len = 0;
+  size_t utf8Len = 0;
   uiCmpLen = 0;
 
   fieldLen = static_cast<signed long>(ReadCBC(type, utf8,
-                      (unsigned int &)utf8Len, bSkip, pSkipTypes));
+                                      utf8Len, bSkip, pSkipTypes));
 
   if (fieldLen > 0) {
     readtype = type;
@@ -486,27 +485,26 @@ int PWSAttfileV3::ReadAttmntRecordPostData(ATRecord &atr)
   signed long fieldLen;    // <= 0 means end of file reached
 
   StringX str;
-  unsigned int uint;
-  int i32;
+  uint32 uint;
+  int32 i32;
   bool go(true);
 
   do {
     unsigned char *utf8 = NULL;
-    int utf8Len = 0;
-    fieldLen = static_cast<signed long>(ReadCBC(type, utf8,
-                                          (unsigned int &)utf8Len));
+    size_t utf8Len = 0;
+    fieldLen = static_cast<signed long>(ReadCBC(type, utf8, utf8Len));
 
     if (fieldLen > 0) {
       numread += fieldLen;
       switch (type) {
         case ATTMT_CMPSIZE:
-          if (!pull_uint(uint, utf8, utf8Len)) {
+          if (!pull_uint32(uint, utf8, utf8Len)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
           atr.cmpsize = uint;
           break;
         case ATTMT_CRC:
-          if (!pull_int(i32, utf8, utf8Len)) {
+          if (!pull_int32(i32, utf8, utf8Len)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
           atr.CRC = i32;
@@ -569,7 +567,7 @@ void PWSAttfileV3::StretchKey(const unsigned char *salt, unsigned long saltLen,
   * http://www.schneier.com/paper-low-entropy.pdf (Section 4.1), with SHA-256
   * as the hash function, and N iterations.
   */
-  int passLen = 0;
+  size_t passLen = 0;
   unsigned char *pstr = NULL;
 
   ConvertString(passkey, pstr, passLen);
@@ -776,10 +774,10 @@ int PWSAttfileV3::ReadHeader()
   size_t numRead;
   bool utf8status;
   unsigned char *utf8 = NULL;
-  int utf8Len = 0;
+  size_t utf8Len = 0;
 
   do {
-    numRead = ReadCBC(fieldType, utf8, (unsigned int &)utf8Len);
+    numRead = ReadCBC(fieldType, utf8, utf8Len);
 
     if (numRead < 0) {
       Close();

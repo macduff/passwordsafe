@@ -52,14 +52,14 @@ public:
   CString m_saveotherbrowserlocation;
   CString m_saveothereditorlocation;
   DWORD m_savehotkey_value;
-  DWORD_PTR m_savedoubleclickaction;
+  int m_savedoubleclickaction;
   CString m_saveBrowserCmdLineParms;
   CString m_saveAutotype;
   BOOL m_saveminauto;
 
   DWORD m_hotkey_value;
-  DWORD_PTR m_doubleclickaction;
-  DWORD_PTR m_DCA_to_Index[PWSprefs::maxDCA + 1];
+  int m_doubleclickaction;
+  int m_DCA_to_Index[PWSprefs::maxDCA + 1];
   CString m_csBrowserCmdLineParms;
   CString m_csAutotype;
   BOOL m_minauto;

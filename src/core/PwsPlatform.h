@@ -44,6 +44,7 @@
 // Windows
 //
 //    Win32 X86
+//    Win32 and Win64 x64
 //
 // Linux - work in progress
 // Cygwin - work in progress
@@ -51,7 +52,7 @@
 #ifndef __PWSPLATFORM_H
 #define __PWSPLATFORM_H
 
-#if defined(_WIN32) && !defined(__WX__)
+#if (defined(_WIN32) || defined (_WIN64)) && !defined(__WX__)
 // ONLY place in core which refers to parent. Ugh.
 #include "../ui/Windows/stdafx.h"
 #else
@@ -215,7 +216,7 @@
 #endif
 
 /* detect amd64 */
-#if defined(__x86_64__)
+#if defined(__x86_64__) || (defined(_MSC_VER) && defined(WIN64))
 #define ENDIAN_LITTLE
 #define ENDIAN_64BITWORD
 #endif
@@ -568,7 +569,7 @@ static inline unsigned long ROR64c(unsigned long word, const int i)
 #define byte(x, n) (((x) >> (8 * (n))) & 255)
 #endif   
 
-#define NumberOf(array) ((sizeof array)/sizeof(array[0]))
+#define NumberOf(array) ((sizeof array) / sizeof(array[0]))
 
 #if !defined(_MFC_VER) && !defined(_WIN32)
 #define UNREFERENCED_PARAMETER(P) (void)(P)

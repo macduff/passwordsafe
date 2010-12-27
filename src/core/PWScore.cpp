@@ -181,7 +181,7 @@ bool PWScore::ConfirmDelete(const CItemData *pci)
     else if (entrytype == CItemData::ET_SHORTCUTBASE)
       GetAllDependentEntries(entry_uuid, dependentslist, CItemData::ET_SHORTCUT);
 
-    int num_dependents = dependentslist.size();
+    size_t num_dependents = dependentslist.size();
     ASSERT(num_dependents > 0); // otherwise pci shouldn't be a base!
     if (num_dependents > 0) {
       StringX csDependents;
@@ -551,11 +551,11 @@ int PWScore::CheckPasskey(const StringX &filename, const StringX &passkey)
   if (!filename.empty())
     status = PWSfile::CheckPasskey(filename, passkey, m_ReadFileVersion);
   else { // can happen if tries to export b4 save
-    unsigned int t_passkey_len = passkey.length();
+    size_t t_passkey_len = passkey.length();
     if (t_passkey_len != m_passkey_len) // trivial test
       return PWSRC::WRONG_PASSWORD;
 
-    int BlockLength = ((m_passkey_len + 7) / 8) * 8;
+    size_t BlockLength = ((m_passkey_len + 7) / 8) * 8;
     unsigned char *t_passkey = new unsigned char[BlockLength];
     LPCTSTR plaintext = LPCTSTR(passkey.c_str());
     EncryptPassword(reinterpret_cast<const unsigned char *>(plaintext), t_passkey_len, t_passkey);
@@ -1035,7 +1035,7 @@ ItemListIter PWScore::GetUniqueBase(const StringX &grouptitle,
   return retval;
 }
 
-void PWScore::EncryptPassword(const unsigned char *plaintext, int len,
+void PWScore::EncryptPassword(const unsigned char *plaintext, size_t len,
                               unsigned char *ciphertext) const
 {
   // Chicken out of an interface change, or just a sanity check?
@@ -1084,7 +1084,7 @@ void PWScore::SetPassKey(const StringX &new_passkey)
 
   m_passkey_len = new_passkey.length() * sizeof(TCHAR);
 
-  int BlockLength = ((m_passkey_len + (BS - 1)) / BS) * BS;
+  size_t BlockLength = ((m_passkey_len + (BS - 1)) / BS) * BS;
   m_passkey = new unsigned char[BlockLength];
   LPCTSTR plaintext = LPCTSTR(new_passkey.c_str());
   EncryptPassword(reinterpret_cast<const unsigned char *>(plaintext), m_passkey_len, m_passkey);
@@ -1095,7 +1095,7 @@ StringX PWScore::GetPassKey() const
   StringX retval(_T(""));
   if (m_passkey_len > 0) {
     const unsigned int BS = BlowFish::BLOCKSIZE;
-    unsigned int BlockLength = ((m_passkey_len + (BS - 1)) / BS) * BS;
+    size_t BlockLength = ((m_passkey_len + (BS - 1)) / BS) * BS;
     BlowFish *bf = BlowFish::MakeBlowFish(m_session_key,
                                           sizeof(m_session_key),
                                           m_session_salt,
@@ -1429,18 +1429,18 @@ bool PWScore::Validate(stringT &status, CReport &rpt, const size_t iMAXCHARS)
 
 void PWScore::ClearFileUUID()
 {
-  memset(m_hdr.m_file_uuid_array, 0, sizeof(m_hdr.m_file_uuid_array));
+  memset(m_hdr.m_file_uuid_array, 0, sizeof(uuid_array_t));
 }
 
 void PWScore::SetFileUUID(uuid_array_t &file_uuid_array)
 {
   memcpy(m_hdr.m_file_uuid_array, file_uuid_array,
-         sizeof(m_hdr.m_file_uuid_array));
+         sizeof(uuid_array_t));
 }
 
 void PWScore::GetFileUUID(uuid_array_t &file_uuid_array) const
 {
-  memcpy(file_uuid_array, m_hdr.m_file_uuid_array, sizeof(file_uuid_array));
+  memcpy(file_uuid_array, m_hdr.m_file_uuid_array, sizeof(uuid_array_t));
 }
 
 StringX PWScore::GetUniqueTitle(const StringX &group, const StringX &title,
@@ -2325,7 +2325,7 @@ struct HistoryUpdateSetMax : public HistoryUpdater {
     ci.GetUUID(item_uuid);
     StringX cs_tmp = ci.GetPWHistory();
 
-    int len = cs_tmp.length();
+    size_t len = cs_tmp.length();
     if (len >= 5) {
       m_mapSavedHistory[item_uuid] = cs_tmp;
       int status, old_max, num_saved;

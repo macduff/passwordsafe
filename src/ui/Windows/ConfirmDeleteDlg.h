@@ -15,7 +15,7 @@
 class CConfirmDeleteDlg : public CPWDialog
 {
 public:
-  CConfirmDeleteDlg(CWnd* pParent = NULL, const int numchildren = 0, size_t numatts = 0,
+  CConfirmDeleteDlg(CWnd* pParent = NULL, const size_t numchildren = 0, size_t numatts = 0,
       const StringX sxGroup = L"", const StringX sxTitle = L"",
       const StringX sxUser = L"");
 

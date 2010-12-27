@@ -305,12 +305,12 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 
       unsigned char *pData = new unsigned char[out_len];
       PWSUtil::Base64Decode(m_strElemContent, pData, out_len);
-      cur_entry->datalength += out_len;
+      cur_entry->datalength += static_cast<unsigned long>(out_len);
 
-      cur_entry->context.Update(pData, out_len);
+      cur_entry->context.Update(pData, reinterpret_cast<int &>(out_len));
       m_pimport3->WriteAttmntRecordData(pData, out_len, PWSAttfile::ATTMT_DATA);
 
-      trashMemory(pData, out_len);
+      trashMemory(pData, reinterpret_cast<int &>(out_len));
       delete [] pData;
 
       st_atpg.function = ATT_PROGRESS_PROCESSFILE;
@@ -347,12 +347,12 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 
       unsigned char *pData = new unsigned char[out_len];
       PWSUtil::Base64Decode(m_strElemContent, pData, out_len);
-      cur_entry->datalength += out_len;
+      cur_entry->datalength += reinterpret_cast<unsigned long &>(out_len);
 
       ASSERT(cur_entry->atr.cmpsize == cur_entry->datalength);
 
       unsigned char cdigest[SHA1::HASHLEN];
-      cur_entry->context.Update(pData, out_len);
+      cur_entry->context.Update(pData, reinterpret_cast<unsigned int &>(out_len));
       cur_entry->context.Final(cdigest);
       m_pimport3->WriteAttmntRecordData(pData, out_len, PWSAttfile::ATTMT_LASTDATA);
 

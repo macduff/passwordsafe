@@ -107,11 +107,30 @@ void CUUIDGen::GetUUID(uuid_array_t &uuid_array) const
 #endif
 }
 
+bool CUUIDGen::operator==(const CUUIDGen &that) const
+{
+#ifdef _WIN32
+  return std::memcmp(&this->uuid, &that.uuid, sizeof(uuid)) == 0;
+#else
+  return uuid_compare(this->uuid, that.uuid) == 0;
+#endif
+}
+
+bool CUUIDGen::ltuuid::operator()(const CUUIDGen &u1, const CUUIDGen &u2) const
+{
+#ifdef _WIN32
+  return std::memcmp(&u1.uuid,
+                     &u2.uuid, sizeof(u1.uuid)) < 0;
+#else
+  return uuid_compare(u1.uuid, u2.uuid) < 0;
+#endif
+}
+
 ostream &operator<<(ostream &os, const CUUIDGen &uuid)
 {
- uuid_array_t uuid_a;
+  uuid_array_t uuid_a;
   uuid.GetUUID(uuid_a);
-  for (size_t i = 0; i < sizeof(uuid_a); i++) {
+  for (size_t i = 0; i < sizeof(uuid_array_t); i++) {
     os << setw(2) << setfill('0') << hex << int(uuid_a[i]);
     if (uuid.m_canonic && (i == 3 || i == 5 || i == 7 || i == 9))
       os << "-";
@@ -123,7 +142,7 @@ wostream &operator<<(wostream &os, const CUUIDGen &uuid)
 {
   uuid_array_t uuid_a;
   uuid.GetUUID(uuid_a);
-  for (size_t i = 0; i < sizeof(uuid_a); i++) {
+  for (size_t i = 0; i < sizeof(uuid_array_t); i++) {
     os << setw(2) << setfill(wchar_t('0')) << hex << int(uuid_a[i]);
     if (uuid.m_canonic && (i == 3 || i == 5 || i == 7 || i == 9))
       os << L"-";

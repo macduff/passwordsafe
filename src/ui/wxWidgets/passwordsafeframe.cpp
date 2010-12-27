@@ -791,8 +791,7 @@ int PasswordSafeFrame::Save(SaveType st /* = ST_INVALID*/)
                                   userBackupPrefix, userBackupDir, bu_fname)) {
           switch (st) {
             case ST_NORMALEXIT:
-              if (wxMessageBox(_("Unable to create intermediate backup.  Save database elsewhere or with another name?"
-                                 "\n\nClick 'No' to exit without saving."), 
+              if (wxMessageBox(_("Unable to create intermediate backup.  Save database elsewhere or with another name?\n\nClick 'No' to exit without saving."), 
                                _("Write Error"), wxYES_NO | wxICON_EXCLAMATION) == wxID_NO)
                 return PWScore::SUCCESS;
               else
@@ -815,9 +814,7 @@ int PasswordSafeFrame::Save(SaveType st /* = ST_INVALID*/)
       // file version mis-match
       stringT NewName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(), DEFAULT_SUFFIX);
 
-      wxString msg( wxString::Format(_("The original database, \"%s\", is in pre-3.0 format."
-                                       " It will be unchanged.\nYour changes will be written as \"%s\" in the new format, which is unusable by old versions of PasswordSafe."
-                                       " To save your changes in the old format, use the \"File->Export To-> Old (1.x or 2) format\" command."),
+      wxString msg( wxString::Format(_("The original database, \"%s\", is in pre-3.0 format. It will be unchanged.\nYour changes will be written as \"%s\" in the new format, which is unusable by old versions of PasswordSafe. To save your changes in the old format, use the \"File->Export To-> Old (1.x or 2) format\" command."),
                                      m_core.GetCurFile().c_str(), NewName.c_str()));
       if (wxMessageBox(msg, _("File version warning"), wxOK|wxCANCEL|wxICON_INFORMATION) == wxID_CANCEL)
         return PWScore::USER_CANCEL;
@@ -1335,7 +1332,7 @@ void PasswordSafeFrame::OnBrowseURL(wxCommandEvent& evt)
   CItemData rueItem;
   CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
   if (item)
-    DoBrowse(*item);
+    DoBrowse(*item, false); //false => no autotype
 }
 
 /*!
@@ -1347,9 +1344,7 @@ void PasswordSafeFrame::OnBrowseUrlAndAutotype(wxCommandEvent& evt)
   CItemData rueItem;
   CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
   if (item) {
-    DoBrowse(*item);
-    //wait a little?
-    DoAutotype(*item);
+    DoBrowse(*item, true); //true => autotype
   }
 }
 
@@ -1495,7 +1490,7 @@ void PasswordSafeFrame::DispatchDblClickAction(CItemData &item)
     DoAutotype(item);
     break;
   case PWSprefs::DoubleClickBrowse:
-    DoBrowse(item);
+    DoBrowse(item, false); //false => no autotype
     break;
   case PWSprefs::DoubleClickCopyNotes:
     DoCopyNotes(item);
@@ -1514,9 +1509,7 @@ void PasswordSafeFrame::DispatchDblClickAction(CItemData &item)
     DoEdit(item);
     break;
   case PWSprefs::DoubleClickBrowsePlus:
-    DoBrowse(item);
-    // Wait a little?
-    DoAutotype(item);
+    DoBrowse(item, true); //true => autotype
     break;
   case PWSprefs::DoubleClickRun:
     DoRun(item);
@@ -1806,7 +1799,7 @@ void PasswordSafeFrame::UpdateGUI(UpdateGUICommand::GUI_Action ga,
   // the GUI should not be updated until after the Add.
   
   // TODO: bUpdateGUI processing in PasswordSafeFrame::UpdateGUI
-  UNREFERENCED_PARAMETER(ft);//remove after NOTYET 'll be done
+  UNREFERENCED_PARAMETER(ft);
   UNREFERENCED_PARAMETER(bUpdateGUI);
 
   CItemData *pci(NULL);
@@ -1814,12 +1807,19 @@ void PasswordSafeFrame::UpdateGUI(UpdateGUICommand::GUI_Action ga,
   ItemListIter pos = m_core.Find(entry_uuid);
   if (pos != m_core.GetEntryEndIter()) {
     pci = &pos->second;
+  } else if (ga == UpdateGUICommand::GUI_ADD_ENTRY ||
+             ga == UpdateGUICommand::GUI_REFRESH_ENTRYFIELD ||
+             ga == UpdateGUICommand::GUI_REFRESH_ENTRYPASSWORD) {
+    pws_os::Trace(_("Couldn't find uuid %s"),
+          CUUIDGen(entry_uuid).GetHexStr().c_str());
   }
+
 #ifdef NOTYET
   PWSprefs *prefs = PWSprefs::GetInstance();
 #endif
   switch (ga) {
     case UpdateGUICommand::GUI_ADD_ENTRY:
+      ASSERT(pci != NULL);
       m_tree->AddItem(*pci);
       m_grid->AddItem(*pci);
       break;
@@ -1847,9 +1847,11 @@ void PasswordSafeFrame::UpdateGUI(UpdateGUICommand::GUI_Action ga,
       UpdateStatusBar();
       break;
     case UpdateGUICommand::GUI_REFRESH_ENTRYFIELD:
+      ASSERT(pci != NULL);
       RefreshEntryFieldInGUI(*pci, ft);
       break;
     case UpdateGUICommand::GUI_REFRESH_ENTRYPASSWORD:
+      ASSERT(pci != NULL);
       RefreshEntryPasswordInGUI(*pci);
       break;
     case UpdateGUICommand::GUI_DB_PREFERENCES_CHANGED:
@@ -2026,7 +2028,7 @@ int PasswordSafeFrame::NewFile(StringX &fname)
   int rc;
 
   while (1) {
-    wxFileDialog fd(static_cast<wxWindow*>(this), cs_text, dir, v3FileName,
+    wxFileDialog fd(static_cast<wxWindow *>(this), cs_text, dir, v3FileName,
                     _("psafe3 files (*.psafe3)|*.psafe3|All files(*.*; *)|*.*;*"),
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT | wxFD_CHANGE_DIR);
     rc = fd.ShowModal();

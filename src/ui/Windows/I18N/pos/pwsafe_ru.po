@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 1900-01-01 00:00+0000\n"
-"PO-Revision-Date: 2010-07-18 20:25+0300\n"
+"PO-Revision-Date: 2010-12-05 01:15+0300\n"
 "Last-Translator: Andrey Kuznetsov <pm_kan@users.sourceforge.net>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -436,6 +436,10 @@ msgstr "&О Password Safe..."
 msgid "&Add Entry..."
 msgstr "&Добавить элемент..."
 
+#. Resource IDs: (1071, 1252)
+msgid "&Advanced"
+msgstr "&Расширенные настройки"
+
 #. Resource IDs: (1026, 1306)
 msgid "&Apply"
 msgstr "&Применить"
@@ -536,6 +540,10 @@ msgstr "&Отобразить панель Dragbar"
 #. Resource IDs: (32063)
 msgid "&Duplicate Entry"
 msgstr "&Дублировать элемент"
+
+#. Resource IDs: (32086)
+msgid "&Duplicate Group"
+msgstr "&Дублировать группу"
 
 # урезано
 # диалог управления фильтрами
@@ -1191,8 +1199,8 @@ msgstr "<b><font color=\"red\">Невозможно соединиться с с
 
 # после <b> стоят два пробела, чтобы корректно раскрашивался полужирный шрифт
 #. Resource IDs: (360)
-msgid "<b><font color=\"red\">WARNING</font></b> If you continue, fields will be updated in your existing database from your selected input database.\r\n\r\nThe OK button on the password entry dialog for your input database will not be enabled <b> until you have accessed the Advanced dialog to confirm what you will be updating.</b>"
-msgstr "<b><font color=\"red\">ВНИМАНИЕ</font></b> Если Вы продолжите, значения элементов текущего контейнера будут заменены на значения из указанного контейнера.\r\n\r\nКнопка OK в диалоге ввода пароля для открываемого контейнера <b>  неактивна до тех пор, пока Вы не нажмете кнопку "Расширенные" и не укажете поля для синхронизации.</b>"
+msgid "<b><font color=\"red\">WARNING</font></b> If you continue, fields will be updated in your existing database from your selected input database.  The OK button on the password entry dialog for your input database will not be enabled <b>until you have accessed the Advanced dialog to confirm what you will be updating.</b>"
+msgstr "<b><font color=\"red\">ВНИМАНИЕ</font></b> Если Вы продолжите, значения элементов текущего контейнера будут заменены на значения из указанного контейнера. Кнопка OK в диалоге ввода пароля для открываемого контейнера <b>  неактивна до тех пор, пока Вы не поставите флажок "Расширенные настройки" и не укажете поля для синхронизации.</b>"
 
 #. Resource IDs: (1154)
 msgid ">"
@@ -1307,16 +1315,15 @@ msgstr "Расширенные настройки экспорта%sв прос�
 msgid "Advanced XML%sExport Options"
 msgstr "Расширенные настройки экспорта%sв XML"
 
-# урезано
-#. Resource IDs: (1252, 1253)
-msgid "Advanced..."
-msgstr "Расш. настр."
+#. Resource IDs: (65535)
+msgid "Advanced:"
+msgstr "Расширенные настройки:"
 
 #. Resource IDs: (514)
 msgid "Albanian"
 msgstr "Албанская"
 
-#. Resource IDs: (478)
+#. Resource IDs: (479)
 msgid "Alias Password Change"
 msgstr "Изменение пароля для Алиаса"
 
@@ -1508,12 +1515,12 @@ msgid "Azeri Latin"
 msgstr "Азербайджанская (латиница)"
 
 #. Resource IDs: (65535)
-msgid "Backup Name"
-msgstr "Имя для резервной копии"
+msgid "Backup Directory:"
+msgstr "Каталог для резервных копий:"
 
 #. Resource IDs: (65535)
-msgid "Backup directory:"
-msgstr "Каталог для резервных копий:"
+msgid "Backup Name"
+msgstr "Имя для резервной копии"
 
 #. Resource IDs: (137)
 msgid "Backups"
@@ -1686,6 +1693,10 @@ msgstr "Невозможно создать файл блокировок. Пр�
 #. Resource IDs: (332)
 msgid "Cannot process as this entry has been deleted from the open database."
 msgstr "Невозможно обработать элемент, т. к. он удален из контейнера."
+
+#. Resource IDs: (213)
+msgid "Cannot read file. Please check file permissions."
+msgstr "Невозможно прочитать файл. Проверьте права доступа."
 
 #. Resource IDs: (331)
 msgid "Cannot verify old safe combination - file gone?"
@@ -1935,7 +1946,7 @@ msgstr "Сравнение текущего контейнера с: %s"
 
 #. Resource IDs: (340)
 msgid "Comparison"
-msgstr "Сравнение"
+msgstr "Сравниваемый"
 
 #. Resource IDs: (65535)
 msgid "Comparison Database:"
@@ -2147,7 +2158,7 @@ msgstr "Создан:"
 
 #. Resource IDs: (351)
 msgid "Criteria"
-msgstr "Критерий"
+msgstr "Условие"
 
 #. Resource IDs: (514)
 msgid "Croatian"
@@ -2418,6 +2429,10 @@ msgstr "Перетащите изображение на другое окно, 
 msgid "Dropped entry '%s:%s:%s' password points to an entry that is also an alias.\r\n\r\nThe dropped entry now references that entry's base entry."
 msgstr "Выбранный элемент '%s:%s:%s' ссылается на элемент, который тоже является алиасом.\r\n\r\nВыбранный элемент теперь ссылается на исходный элемент."
 
+#. Resource IDs: (32086)
+msgid "Duplicate Group"
+msgstr "Дублировать группу"
+
 #. Resource IDs: (514)
 msgid "Dutch"
 msgstr "Голландская"
@@ -2466,13 +2481,6 @@ msgstr "Столбец с группой/заголовком и/или паро
 #. Resource IDs: (354)
 msgid "Either unable to load the necessary DLL, or it is the incorrect version, to support Autotype during Launch of a Browser or Run a command.\n\nAutotype for these functions is disabled."
 msgstr "Невозможно загрузить необходимую DLL, или она имеет неверную версию.\n\n Автонабор в браузере или при выполнении команды отключен."
-
-# Ex.: "Element "password" exceeds its MaxOccurs of 1"
-# (error message that can occur when importing from XML)
-#. Resource IDs: (209)
-#, c-format
-msgid "Element \"%s\" exceeded its MaxOccurs of %s."
-msgstr "Элемент \"%s\" встречается больше допустимого количества %s."
 
 #. Resource IDs: (204)
 #, c-format
@@ -3071,9 +3079,10 @@ msgstr "Группа/заголовок"
 msgid "Group/Title\t"
 msgstr "Группа/заголовок\t"
 
+#заголовки экспорта/импорта в текст (не переводятся для совместимости)
 #. Resource IDs: (188)
 msgid "Group/Title\tUsername\tPassword\tURL\tAutoType\tCreated Time\tPassword Modified Time\tLast Access Time\tPassword Expiry Date\tPassword Expiry Interval\tRecord Modified Time\tPassword Policy\tHistory\tRun Command\tDCA\te-mail\tNotes"
-msgstr "Группа/заголовок\tИмя пользователя\tПароль\tСсылка\tАвтонабор\tВремя создания\tВремя изменения пароля\tВремя последнего доступа\tДата истечения пароля\tВремя истечения пароля\tВремя изменения записи\tПолитика создания паролей\tИстория\tКоманда для запуска\tПо двойному кл.\tE-Mail\tЗаметки"
+msgstr "Group/Title\tUsername\tPassword\tURL\tAutoType\tCreated Time\tPassword Modified Time\tLast Access Time\tPassword Expiry Date\tPassword Expiry Interval\tRecord Modified Time\tPassword Policy\tHistory\tRun Command\tDCA\te-mail\tNotes"
 
 #. Resource IDs: (1350, 65535)
 msgid "Group:"
@@ -3179,7 +3188,7 @@ msgstr "ID:32005:V C +S"
 msgid "ID:32021:V C +Q"
 msgstr "ID:32021:V C +Q"
 
-#. Accelerator Entry for Menu ID:32051; 'Add &Entry'
+#. Accelerator Entry for Menu ID:32051; '&Add Entry...'
 msgid "ID:32051:V C +A"
 msgstr "ID:32051:V C +A"
 
@@ -3493,10 +3502,6 @@ msgstr "Неверная схема фильтра."
 msgid "Invalid Parameter"
 msgstr "Неверный параметр"
 
-#. Resource IDs: (209)
-msgid "Invalid data in element: "
-msgstr "Недопустимые данные в элементе: "
-
 #. Resource IDs: (189)
 #, c-format
 msgid "Invalid input on line %d.  Number of fields separated by '%c' is not as expected."
@@ -3700,22 +3705,6 @@ msgstr "Управление фильтрами"
 msgid "Manage password history of current entries"
 msgstr "Управление историей паролей для текущих элементов"
 
-#. Resource IDs: (209)
-msgid "Mandatory delimiter attribute invalid."
-msgstr "Недопустимый обязательный атрибут разделителя."
-
-#. Resource IDs: (209)
-msgid "Mandatory delimiter attribute missing."
-msgstr "Не указан обязательный атрибут разделителя."
-
-#. Resource IDs: (209)
-msgid "Mandatory element (title and/or password) missing."
-msgstr "Пропущен обязательный элемент (заголовок и/или пароль)."
-
-#. Resource IDs: (209)
-msgid "Mandatory ftype attribute missing."
-msgstr "Пропущен обязательный атрибут ftype."
-
 #. Resource IDs: (517)
 msgid "Maori"
 msgstr "Маорийская"
@@ -3795,17 +3784,9 @@ msgstr "Минимальное кол-во прописных букв"
 msgid "Misc."
 msgstr "Разное"
 
-#. Resource IDs: (209)
-msgid "Missing STATUS, MAX or NUM element in PWHISTORY."
-msgstr "В PWHISTORY пропущен элемент STATUS, MAX или NUM."
-
 #. Resource IDs: (210)
 msgid "Missing XSD File"
 msgstr "XSD-файл не указан"
-
-#. Resource IDs: (209)
-msgid "Missing date/time element."
-msgstr "Пропущен элемент с датой/временем."
 
 #. Resource IDs: (210)
 msgid "Missing ending curly bracket for variable name"
@@ -3818,11 +3799,6 @@ msgstr "Отсутствует закрывающая круглая скобк�
 #. Resource IDs: (210)
 msgid "Missing ending square bracket for index value"
 msgstr "Отсутствует закрывающая квадратная скобка после значения индекса"
-
-#. Resource IDs: (209)
-#, c-format
-msgid "Missing test element \"%s\"."
-msgstr "Пропущен тестовый элемент \"%s\"."
 
 #. Resource IDs: (3887)
 msgid "Mixed"
@@ -3904,7 +3880,7 @@ msgstr "Без изменений"
 
 #. Resource IDs: (351)
 msgid "No criteria defined"
-msgstr "Критерий не указан"
+msgstr "Условие не указано"
 
 #. Resource IDs: (335)
 msgid "No database open with which to compare against another database!"
@@ -4179,11 +4155,6 @@ msgstr "PWS_CPF_CDD"
 #. Resource IDs: (341)
 msgid "PWS_CPF_TVDD"
 msgstr "PWS_CPF_TVDD"
-
-#. Resource IDs: (192)
-#, c-format
-msgid "Parse error at line %d, column %d:\nError: %s\n%s\n\n"
-msgstr "Ошибка при разборе: строка %d, столбец %d:\nОшибка: %s\n%s\n\n"
 
 #. Resource IDs: (334)
 msgid "Passkey incorrect"
@@ -4716,6 +4687,10 @@ msgstr "Настройки по &умолчанию"
 msgid "Reserved shortcut '%s' ignored."
 msgstr "Зарезервированная комбинация '%s' отклонена."
 
+#. Resource IDs: (1427)
+msgid "Reset"
+msgstr "Сбросить"
+
 #. Resource IDs: (1368)
 msgid "Reset All"
 msgstr "Сбросить все"
@@ -4745,8 +4720,9 @@ msgid "Right Ctrl key"
 msgstr "правый Ctrl"
 
 #. Resource IDs: (65535)
+# урезано
 msgid "Right-click on the 'Y' in either of the first 2 columns for additional functions"
-msgstr "Щелкните правой кнопкой на 'Y' в любом из первых двух столбцов для отображения доп. функций"
+msgstr "Щелкните на 'Y' в любом из первых двух столбцов для отображения доп. функций"
 
 #. Resource IDs: (514)
 msgid "Romanian (Legacy)"
@@ -4763,7 +4739,7 @@ msgstr "Румынская (стандартная)"
 #. Resource IDs: (348)
 #, c-format
 msgid "Row %d is incomplete. Please ensure both Field and Criteria are set."
-msgstr "Строка %d задана не полностью. Убедитесь, что указаны значения 'поле' и 'критерий'."
+msgstr "Строка %d задана не полностью. Убедитесь, что указаны значения 'Поле' и 'Условие'."
 
 #. Resource IDs: (351)
 msgid "Row number"
@@ -5028,16 +5004,16 @@ msgstr "Установить имя пользователя по умолчан
 
 #. Resource IDs: (351)
 msgid "Set Display Filter"
-msgstr "Задать фильтр отображения"
+msgstr "Определение фильтра отображения"
 
 #. Resource IDs: (150, 349)
 msgid "Set Display Filters"
-msgstr "Задать фильтры отображения"
+msgstr "Определение фильтров отображения"
 
 #. Resource IDs: (349)
 #, c-format
 msgid "Set Display Filters: %d Added; %d Active"
-msgstr "Задать фильтры отображения: %d добавлено; %d активно"
+msgstr "Определение фильтров отображения: %d добавлено; %d активно"
 
 #. Resource IDs: (345)
 msgid "Set Entry's Password Policy"
@@ -5046,12 +5022,12 @@ msgstr "Задать политику создания паролей"
 #. Resource IDs: (349)
 #, c-format
 msgid "Set Password History Filters: %d Added; %d Active"
-msgstr "Задать фильтр по истории паролей: %d добавлено; %d активно"
+msgstr "Определение фильтров по истории паролей: %d добавлено; %d активно"
 
 #. Resource IDs: (349)
 #, c-format
 msgid "Set Password Policy Filters: %d Added; %d Active"
-msgstr "Задать фильтр по политике создания паролей: %d добавлено; %d активно"
+msgstr "Определение фильтров по политике создания паролей: %d добавлено; %d активно"
 
 #. Resource IDs: (356)
 msgid "Set Password display font"
@@ -5236,7 +5212,7 @@ msgid "Start saving previous passwords"
 msgstr "Начать сохранение предыдущих паролей"
 
 # No need to translate these
-#. Resource IDs: (1107, 1264, 1408, 1410, 1416, 1423, 1424)
+#. Resource IDs: (1107, 1264, 1408, 1410, 1416, 1423, 1424, 1428)
 msgid "Static"
 msgstr "Static"
 
@@ -5407,11 +5383,6 @@ msgstr "Кнопка Alt не используется для выбора бу�
 #. Resource IDs: (330)
 msgid "The combination cannot be blank."
 msgstr "Пароль не может быть пустым!"
-
-#. Resource IDs: (210)
-#, c-format
-msgid "The contents [\"%s\"] of element \"%s\" is invalid/unexpected."
-msgstr "Содержимое [\"%s\"] элемента \"%s\" недопустимо."
 
 #. Resource IDs: (332)
 #, c-format
@@ -5856,15 +5827,6 @@ msgstr "Снять пометку"
 msgid "Undo"
 msgstr "Вернуть"
 
-#. Resource IDs: (209)
-msgid "Unexpected element: Only one field allowed per filter entry."
-msgstr "Непредусмотренный элемент: для элементов может быть указано только одно поле."
-
-#. Resource IDs: (209)
-#, c-format
-msgid "Unexpected element: \"%s\"."
-msgstr "Непредусмотренный элемент: \"%s\"."
-
 #. Resource IDs: (3859)
 msgid "Unexpected file format."
 msgstr "Непредусмотренный формат файла."
@@ -5889,11 +5851,6 @@ msgstr "Неопознанный"
 #. Resource IDs: (329)
 msgid "Unknown            "
 msgstr "Неопознанный       "
-
-#. Resource IDs: (209)
-#, c-format
-msgid "Unknown element: \"%s\"."
-msgstr "Неопознанный элемент: \"%s\"."
 
 #. Resource IDs: (350)
 msgid "Unknown fields"
@@ -6273,6 +6230,10 @@ msgstr "[Контейнер не выбран]"
 msgid "[Notes hidden - click here to display]"
 msgstr "[Заметки скрыты - кликните для отображения]"
 
+#. Resource IDs: (2005)
+msgid "\nAdd Group"
+msgstr "\nДобавить группу"
+
 #. Resource IDs: (2004)
 msgid "\nAdd New Entry"
 msgstr "\nДобавить новый элемент"
@@ -6352,6 +6313,10 @@ msgstr "\nПоказать часть пароля"
 #. Resource IDs: (2004)
 msgid "\nDuplicate Entry"
 msgstr "\nДублировать элемент"
+
+#. Resource IDs: (2006)
+msgid "\nDuplicate Group"
+msgstr "\nДублировать группу"
 
 #. Resource IDs: (2006)
 msgid "\nEdit Base entry"

@@ -43,7 +43,7 @@ extern void trashMemory(LPTSTR buffer, size_t length);
 extern void burnStack(unsigned long len); // borrowed from libtomcrypt
 
 extern void ConvertString(const StringX &text,
-                          unsigned char *&txt, int &txtlen);
+                          unsigned char *&txt, size_t &txtlen);
 
 extern void GenRandhash(const StringX &passkey,
                         const unsigned char* m_randstuff,
@@ -59,7 +59,7 @@ extern size_t _readcbc(FILE *fp, unsigned char* &buffer,
                        bool bSkip = false, unsigned char *pSkipTypes = NULL);
 
 // _writecbc will throw(EIO) iff a write fail occurs!
-extern size_t _writecbc(FILE *fp, const unsigned char* buffer, int length,
+extern size_t _writecbc(FILE *fp, const unsigned char* buffer, size_t length,
                         unsigned char type, Fish *Algorithm,
                         unsigned char* cbcbuffer);
 
@@ -68,10 +68,10 @@ extern size_t _writecbc(FILE *fp, const unsigned char* buffer, int length,
 */
 inline int getInt32(const unsigned char buf[4])
 {
-  ASSERT(sizeof(int) == 4);
+  ASSERT(sizeof(int32) == 4);
 #if defined(PWS_LITTLE_ENDIAN)
 #if defined(_DEBUG)
-  if ( *reinterpret_cast<const int*>(buf) != (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
+  if ( *reinterpret_cast<const int *>(buf) != (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
   {
     pws_os::Trace0(_T("Warning: PWS_LITTLE_ENDIAN defined but architecture is big endian\n"));
   }
@@ -81,7 +81,7 @@ inline int getInt32(const unsigned char buf[4])
 #if defined(_DEBUG)
   // Folowing code works for big or little endian architectures but we'll warn anyway
   // if CPU is really little endian
-  if ( *reinterpret_cast<const int*>(buf) == (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
+  if ( *reinterpret_cast<const int *>(buf) == (buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24)) )
   {
     pws_os::Trace0(_T("Warning: PWS_BIG_ENDIAN defined but architecture is little endian\n"));
   }
@@ -97,7 +97,7 @@ inline int getInt32(const unsigned char buf[4])
 */
 inline void putInt32(unsigned char buf[4], const int val )
 {
-  ASSERT(sizeof(int) == 4);
+  ASSERT(sizeof(int32) == 4);
 #if defined(PWS_LITTLE_ENDIAN)
   *reinterpret_cast<int32 *>(buf) = val;
 #if defined(_DEBUG)
@@ -153,9 +153,9 @@ namespace PWSUtil {
   // CRC routines
   void Init_CRC32_Table();
   unsigned int Reflect(unsigned int ref, char ch);
-  unsigned int Get_CRC(unsigned char *pData, const unsigned int &iLen);
+  unsigned int Get_CRC(unsigned char *pData, const size_t &iLen);
   void Get_CRC_Incremental_Init();
-  void Get_CRC_Incremental_Update(unsigned char *pData, const unsigned int &iLen);
+  void Get_CRC_Incremental_Update(unsigned char *pData, const size_t &iLen);
   unsigned int Get_CRC_Incremental_Final();
 }
 

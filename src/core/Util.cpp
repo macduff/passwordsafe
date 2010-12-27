@@ -79,7 +79,7 @@ void burnStack(unsigned long len)
 
 void ConvertString(const StringX &text,
                    unsigned char *&txt,
-                   int &txtlen)
+                   size_t &txtlen)
 {
   LPCTSTR txtstr = text.c_str(); 
   txtlen = text.length();
@@ -89,12 +89,12 @@ void ConvertString(const StringX &text,
 #else
 #ifdef _WIN32
   txt = new unsigned char[3 * txtlen]; // safe upper limit
-  int len = WideCharToMultiByte(CP_ACP, 0, txtstr, txtlen,
-                                LPSTR(txt), 3 * txtlen, NULL, NULL);
+  int len = WideCharToMultiByte(CP_ACP, 0, txtstr, static_cast<int>(txtlen),
+                                LPSTR(txt), static_cast<int>(3 * txtlen), NULL, NULL);
   ASSERT(len != 0);
 #else
   mbstate_t mbs;
-  memset(&mbs, 0, sizeof(mbs));
+  memset(&mbs, 0, sizeof(mbstate_t));
   size_t len = wcsrtombs(NULL, &txtstr, 0, &mbs);
   txt = new unsigned char[len + 1];
   len = wcsrtombs(reinterpret_cast<char *>(txt), &txtstr, len, &mbs);
@@ -110,7 +110,7 @@ void GenRandhash(const StringX &a_passkey,
                  const unsigned char* a_randstuff,
                  unsigned char* a_randhash)
 {
-  int pkeyLen = 0;
+  size_t pkeyLen = 0;
   unsigned char *pstr = NULL;
 
   ConvertString(a_passkey, pstr, pkeyLen);
@@ -120,7 +120,7 @@ void GenRandhash(const StringX &a_passkey,
   */
   SHA1 keyHash;
   keyHash.Update(a_randstuff, StuffSize);
-  keyHash.Update(pstr, pkeyLen);
+  keyHash.Update(pstr, reinterpret_cast<int &>(pkeyLen));
 
 #ifdef UNICODE
   trashMemory(pstr, pkeyLen);
@@ -137,7 +137,7 @@ void GenRandhash(const StringX &a_passkey,
   BlowFish Cipher(tempSalt, sizeof(tempSalt));
 
   unsigned char tempbuf[StuffSize];
-  memcpy(reinterpret_cast<char*>(tempbuf), reinterpret_cast<const char*>(a_randstuff), StuffSize);
+  memcpy(reinterpret_cast<char *>(tempbuf), reinterpret_cast<const char *>(a_randstuff), StuffSize);
 
   for (int x=0; x<1000; x++)
     Cipher.Encrypt(tempbuf, tempbuf);
@@ -150,7 +150,7 @@ void GenRandhash(const StringX &a_passkey,
   keyHash.Final(a_randhash);
 }
 
-size_t _writecbc(FILE *fp, const unsigned char* buffer, int length, unsigned char type,
+size_t _writecbc(FILE *fp, const unsigned char* buffer, size_t length, unsigned char type,
                  Fish *Algorithm, unsigned char* cbcbuffer)
 {
   const unsigned int BS = Algorithm->GetBlockSize();
@@ -168,16 +168,16 @@ size_t _writecbc(FILE *fp, const unsigned char* buffer, int length, unsigned cha
   // a dictionary attack harder
   PWSrand::GetInstance()->GetRandomData(curblock, BS);
   // block length overwrites 4 bytes of the above randomness.
-  putInt32(curblock, length);
+  putInt32(curblock, reinterpret_cast<int32 &>(length));
 
   // following new for format 2.0 - lengthblock bytes 4-7 were unused before.
-  curblock[sizeof(length)] = type;
+  curblock[sizeof(int32)] = type;
 
   if (BS == 16) {
     // In this case, we've too many (11) wasted bytes in the length block
     // So we store actual data there:
     // (11 = BlockSize - 4 (length) - 1 (type)
-    const int len1 = (length > 11) ? 11 : length;
+    const size_t len1 = (length > 11) ? 11 : length;
     memcpy(curblock + 5, buffer, len1);
     length -= len1;
     buffer += len1;
@@ -194,13 +194,13 @@ size_t _writecbc(FILE *fp, const unsigned char* buffer, int length, unsigned cha
   }
   if (length > 0 ||
       (BS == 8 && length == 0)) { // This part for bwd compat w/pre-3 format
-    unsigned int BlockLength = ((length + (BS - 1)) / BS) * BS;
+    size_t BlockLength = ((length + (BS - 1)) / BS) * BS;
     if (BlockLength == 0 && BS == 8)
       BlockLength = BS;
 
     // Now, encrypt and write the (rest of the) buffer
     for (unsigned int x = 0; x < BlockLength; x += BS) {
-      if ((length == 0) || ((length%BS != 0) && (length-x<BS))) {
+      if ((length == 0) || ((length % BS != 0) && (length - x < BS))) {
         //This is for an uneven last block
         PWSrand::GetInstance()->GetRandomData(curblock, BS);
         memcpy(curblock, buffer + x, length % BS);
@@ -281,7 +281,7 @@ size_t _readcbc(FILE *fp,
   size_t length = getInt32(lengthblock);
 
   // new for 2.0 -- lengthblock[4..7] previously set to zero
-  type = lengthblock[sizeof(int)]; // type is first byte after the length
+  type = lengthblock[sizeof(int32)]; // type is first byte after the length
 
   if ((file_len != 0 && length >= file_len)) {
     pws_os::Trace0(_T("_readcbc: Read size larger than file length - aborting\n"));
@@ -293,10 +293,10 @@ size_t _readcbc(FILE *fp,
 
   buffer_len = length;
   // If BS == 16, length block contains up to 11 (= 16 - 4 - 1) bytes of data
-  const int len11 = (BS != 16) ? 0 : ((length > 11) ? 11 : length);
+  const size_t len11 = (BS != 16) ? 0 : ((length > 11) ? 11 : length);
   length -= len11;
 
-  unsigned int BlockLength = ((length + (BS - 1)) / BS) * BS;
+  size_t BlockLength = ((length + (BS - 1)) / BS) * BS;
 
   // Following is meant for lengths < BS, but results in a block being read even
   // if length is zero. This is wasteful, but fixing it would break all existing
@@ -308,7 +308,7 @@ size_t _readcbc(FILE *fp,
   if (bSkip && pSkipTypes != NULL && pSkipTypes[type] != 0 &&
       BlockLength > BS) {
     // Skip up to the last block which we need to decrypt the next block!
-    fseek(fp, BlockLength - BS, SEEK_CUR);
+    fseek(fp, reinterpret_cast<long &>(BlockLength) - BS, SEEK_CUR);
 
     // Read in last encrypted block ready for next call
     size_t num_read = fread(cbcbuffer, 1, BS, fp);
@@ -338,6 +338,7 @@ size_t _readcbc(FILE *fp,
   if (length > 0 ||
       (BS == 8 && length == 0)) { // pre-3 pain
     unsigned char *tempcbc = block3;
+
     num_bytes_read += fread(b, 1, BlockLength, fp);
     for (unsigned int x = 0; x < BlockLength; x += BS) {
       memcpy(tempcbc, b + x, BS);
@@ -525,7 +526,7 @@ void PWSUtil::Base64Decode(const StringX &inString, BYTE* &decoded, size_t &buff
     for (i1 = 0; i1 < sizeof(szCS) - 1; i1++) {
       for (i3 = i2; i3 < i2 + 4; i3++) {
         if (i3 < in_length && inString[i3] == szCS[i1])
-          iDigits[i3 - i2] = i1 - 1;
+          iDigits[i3 - i2] = reinterpret_cast<int &>(i1) - 1;
       }
     }
 
@@ -573,12 +574,12 @@ void PWSUtil::WriteXMLField(ostream &os, const char *fname,
                             const char *tabs)
 {
   const unsigned char * utf8 = NULL;
-  int utf8Len = 0;
+  size_t utf8Len = 0;
   string::size_type p = value.find(_T("]]>")); // special handling required
   if (p == string::npos) {
     // common case
     os << tabs << "<" << fname << "><![CDATA[";
-    if(utf8conv.ToUTF8(value, utf8, utf8Len))
+    if (utf8conv.ToUTF8(value, utf8, utf8Len))
       os.write(reinterpret_cast<const char *>(utf8), utf8Len);
     else
       os << "Internal error - unable to convert field to utf-8";
@@ -588,11 +589,11 @@ void PWSUtil::WriteXMLField(ostream &os, const char *fname,
     // Each "]]>" splits the field into two CDATA sections, one ending with
     // ']]', the other starting with '>'
     os << tabs << "<" << fname << ">";
-    int from = 0, to = p + 2;
+    size_t from = 0, to = p + 2;
     do {
       StringX slice = value.substr(from, (to - from));
       os << "<![CDATA[";
-      if(utf8conv.ToUTF8(slice, utf8, utf8Len))
+      if (utf8conv.ToUTF8(slice, utf8, utf8Len))
         os.write(reinterpret_cast<const char *>(utf8), utf8Len);
       else
         os << "Internal error - unable to convert field to utf-8";
@@ -608,7 +609,7 @@ void PWSUtil::WriteXMLField(ostream &os, const char *fname,
         from = to;
         to = value.length();
       }
-      if(utf8conv.ToUTF8(slice, utf8, utf8Len))
+      if (utf8conv.ToUTF8(slice, utf8, utf8Len))
         os.write(reinterpret_cast<const char *>(utf8), utf8Len);
       else
         os << "Internal error - unable to convert field to utf-8";
@@ -625,7 +626,7 @@ string PWSUtil::GetXMLTime(int indent, const char *name,
   const StringX tmp = PWSUtil::ConvertToDateTimeString(t, TMC_XML);
   ostringstream oss;
   const unsigned char *utf8 = NULL;
-  int utf8Len = 0;
+  size_t utf8Len = 0;
 
 
   for (i = 0; i < indent; i++) oss << "\t";
@@ -691,7 +692,7 @@ unsigned int PWSUtil::Reflect(unsigned int ref, char ch)
   return value;
 }
 
-unsigned int PWSUtil::Get_CRC(unsigned char *pData, const unsigned int &iLen)
+unsigned int PWSUtil::Get_CRC(unsigned char *pData, const size_t &iLen)
 {
   // From: http://www.createwindow.com/programming/crc32/index.htm
   // Copyright © 2000 - 2010 Richard A. Ellingson
@@ -703,7 +704,7 @@ unsigned int PWSUtil::Get_CRC(unsigned char *pData, const unsigned int &iLen)
   Init_CRC32_Table();
 
   // Start out with all bits set high.
-  unsigned int len(iLen);
+  size_t len(iLen);
   uiCRC = 0xffffffff;
   // Perform the algorithm on each character in the string, using the lookup table values.
   while (len--) {
@@ -725,7 +726,7 @@ void PWSUtil::Get_CRC_Incremental_Init()
   uiCRC = 0xffffffff;
 }
 
-void PWSUtil::Get_CRC_Incremental_Update(unsigned char *pData, const unsigned int &iLen)
+void PWSUtil::Get_CRC_Incremental_Update(unsigned char *pData, const size_t &iLen)
 {
   // From: http://www.createwindow.com/programming/crc32/index.htm
   // Copyright © 2000 - 2010 Richard A. Ellingson
@@ -734,7 +735,7 @@ void PWSUtil::Get_CRC_Incremental_Update(unsigned char *pData, const unsigned in
   // Perform the algorithm on each character in the string, using the lookup table values.
   ASSERT(pData != NULL && iLen != 0);
 
-  unsigned int len(iLen);
+  size_t len(iLen);
   while (len--) {
     uiCRC = (uiCRC >> 8) ^ CRC32_Table[(uiCRC & 0xFF) ^ *pData++];
   }

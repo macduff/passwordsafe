@@ -138,10 +138,10 @@ int PWSfileV3::CheckPasskey(const StringX &filename,
   unsigned char salt[SaltLengthV3];
   fread(salt, 1, sizeof(salt), fd);
 
-  unsigned char Nb[sizeof(unsigned int)];
+  unsigned char Nb[sizeof(uint32)];
   fread(Nb, 1, sizeof(Nb), fd);
   { // block to shut up compiler warning w.r.t. goto
-    const unsigned int N = getInt32(Nb);
+    const uint32 N = getInt32(Nb);
 
     ASSERT(N >= MIN_HASH_ITERATIONS);
     if (N < MIN_HASH_ITERATIONS) {
@@ -176,7 +176,7 @@ size_t PWSfileV3::WriteCBC(unsigned char type, const StringX &data)
 {
   bool status;
   const unsigned char *utf8;
-  int utf8Len;
+  size_t utf8Len;
   status = m_utf8conv.ToUTF8(data, utf8, utf8Len);
   if (!status)
     pws_os::Trace(_T("ToUTF8(%s) failed\n"), data.c_str());
@@ -185,9 +185,9 @@ size_t PWSfileV3::WriteCBC(unsigned char type, const StringX &data)
 }
 
 size_t PWSfileV3::WriteCBC(unsigned char type, const unsigned char *data,
-                           unsigned int length)
+                           size_t length)
 {
-  m_hmac.Update(data, length);
+  m_hmac.Update(data, reinterpret_cast<int &>(length));
   return PWSfile::WriteCBC(type, data, length);
 }
 
@@ -199,7 +199,7 @@ int PWSfileV3::WriteRecord(const CItemData &item)
   StringX tmp;
   uuid_array_t item_uuid;
   time_t t = 0;
-  int i32;
+  int32 i32;
   short i16;
 
   item.GetUUID(item_uuid);
@@ -222,31 +222,31 @@ int PWSfileV3::WriteRecord(const CItemData &item)
   item.GetCTime(t);
   if (t != 0) {
     i32 = static_cast<int>(t);
-    WriteCBC(CItemData::CTIME, reinterpret_cast<unsigned char *>(&i32), sizeof(i32));
+    WriteCBC(CItemData::CTIME, reinterpret_cast<unsigned char *>(&i32), sizeof(int32));
   }
   item.GetPMTime(t);
   if (t != 0) {
     i32 = static_cast<int>(t);
-    WriteCBC(CItemData::PMTIME, reinterpret_cast<unsigned char *>(&i32), sizeof(i32));
+    WriteCBC(CItemData::PMTIME, reinterpret_cast<unsigned char *>(&i32), sizeof(int32));
   }
   item.GetATime(t);
   if (t != 0) {
     i32 = static_cast<int>(t);
-    WriteCBC(CItemData::ATIME, reinterpret_cast<unsigned char *>(&i32), sizeof(i32));
+    WriteCBC(CItemData::ATIME, reinterpret_cast<unsigned char *>(&i32), sizeof(int32));
   }
   item.GetXTime(t);
   if (t != 0) {
     i32 = static_cast<int>(t);
-    WriteCBC(CItemData::XTIME, reinterpret_cast<unsigned char *>(&i32), sizeof(i32));
+    WriteCBC(CItemData::XTIME, reinterpret_cast<unsigned char *>(&i32), sizeof(int32));
   }
   item.GetXTimeInt(i32);
   if (i32 > 0 && i32 <= 3650) {
-    WriteCBC(CItemData::XTIME_INT, reinterpret_cast<unsigned char *>(&i32), sizeof(i32));
+    WriteCBC(CItemData::XTIME_INT, reinterpret_cast<unsigned char *>(&i32), sizeof(int32));
   }
   item.GetRMTime(t);
   if (t != 0) {
     i32 = static_cast<int>(t);
-    WriteCBC(CItemData::RMTIME, reinterpret_cast<unsigned char *>(&i32), sizeof(i32));
+    WriteCBC(CItemData::RMTIME, reinterpret_cast<unsigned char *>(&i32), sizeof(int32));
   }
   tmp = item.GetPWPolicy();
   if (!tmp.empty())
@@ -269,7 +269,7 @@ int PWSfileV3::WriteRecord(const CItemData &item)
        vi_IterURFE != item.GetURFIterEnd();
        vi_IterURFE++) {
     unsigned char type;
-    unsigned int length = 0;
+    size_t length = 0;
     unsigned char *pdata = NULL;
     item.GetUnknownField(type, length, pdata, vi_IterURFE);
     WriteCBC(type, pdata, length);
@@ -283,12 +283,12 @@ int PWSfileV3::WriteRecord(const CItemData &item)
 }
 
 size_t PWSfileV3::ReadCBC(unsigned char &type, unsigned char* &data,
-                          unsigned int &length)
+                          size_t &length)
 {
   size_t numRead = PWSfile::ReadCBC(type, data, length);
 
   if (numRead > 0) {
-    m_hmac.Update(data, length);
+    m_hmac.Update(data, reinterpret_cast<unsigned long &>(length));
   }
 
   return numRead;
@@ -309,9 +309,9 @@ int PWSfileV3::ReadRecord(CItemData &item)
 
   do {
     unsigned char *utf8 = NULL;
-    int utf8Len = 0;
+    size_t utf8Len = 0;
     fieldLen = static_cast<signed long>(ReadCBC(type, utf8,
-      reinterpret_cast<unsigned int &>(utf8Len)));
+                                                utf8Len));
 
     if (fieldLen > 0) {
       numread += fieldLen;
@@ -342,7 +342,7 @@ void PWSfileV3::StretchKey(const unsigned char *salt, unsigned long saltLen,
   * http://www.schneier.com/paper-low-entropy.pdf (Section 4.1), with SHA-256
   * as the hash function, and N iterations.
   */
-  int passLen = 0;
+  size_t passLen = 0;
   unsigned char *pstr = NULL;
 
   ConvertString(passkey, pstr, passLen);
@@ -472,16 +472,16 @@ int PWSfileV3::WriteHeader()
 
   // Write UUID
   uuid_array_t file_uuid_array;
-  memset(file_uuid_array, 0, sizeof(file_uuid_array));
+  memset(file_uuid_array, 0, sizeof(uuid_array_t));
   // If not there or zeroed, create new
   if (memcmp(m_hdr.m_file_uuid_array,
-             file_uuid_array, sizeof(file_uuid_array)) == 0) {
+             file_uuid_array, sizeof(uuid_array_t)) == 0) {
     CUUIDGen uuid;
     uuid.GetUUID(m_hdr.m_file_uuid_array);
   }
 
   numWritten = WriteCBC(HDR_UUID, m_hdr.m_file_uuid_array,
-                        sizeof(m_hdr.m_file_uuid_array));
+                        sizeof(uuid_array_t));
   if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
 
   // Write (non default) user preferences
@@ -503,7 +503,7 @@ int PWSfileV3::WriteHeader()
   time_t time_now;
   time(&time_now);
   numWritten = WriteCBC(HDR_LASTUPDATETIME,
-                        reinterpret_cast<unsigned char *>(&time_now), sizeof(time_now));
+                        reinterpret_cast<unsigned char *>(&time_now), sizeof(time_t));
   if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
   m_hdr.m_whenlastsaved = time_now;
 
@@ -619,11 +619,11 @@ int PWSfileV3::ReadHeader()
   size_t numRead;
   bool utf8status;
   unsigned char *utf8 = NULL;
-  int utf8Len = 0;
+  size_t utf8Len = 0;
   bool found0302UserHost = false; // to resolve potential conflicts
 
   do {
-    numRead = ReadCBC(fieldType, utf8, reinterpret_cast<unsigned int &>(utf8Len));
+    numRead = ReadCBC(fieldType, utf8, utf8Len);
 
     if (numRead < 0) {
       Close();
@@ -635,7 +635,7 @@ int PWSfileV3::ReadHeader()
         // in Beta, VersionNum was an int (4 bytes) instead of short (2)
         // This hack keeps bwd compatability.
         if (utf8Len != sizeof(VersionNum) &&
-            utf8Len != sizeof(int)) {
+            utf8Len != sizeof(int32)) {
           delete[] utf8;
           Close();
           return PWSRC::FAILURE;
@@ -660,7 +660,7 @@ int PWSfileV3::ReadHeader()
           return PWSRC::FAILURE;
         }
         memcpy(m_hdr.m_file_uuid_array, utf8,
-               sizeof(m_hdr.m_file_uuid_array));
+               sizeof(uuid_array_t));
         break;
 
       case HDR_NDPREFS: /* Non-default user preferences */
@@ -698,7 +698,7 @@ int PWSfileV3::ReadHeader()
             is >> hex >> m_hdr.m_whenlastsaved;
         } else if (utf8Len == 4) {
           // retrieve time_t
-          m_hdr.m_whenlastsaved = *reinterpret_cast<time_t*>(utf8);
+          m_hdr.m_whenlastsaved = *reinterpret_cast< time_t*>(utf8);
         } else {
           m_hdr.m_whenlastsaved = 0;
         }
@@ -824,7 +824,7 @@ int PWSfileV3::ReadHeader()
         // sscanf always outputs to an "int" using %x even though
         // target is only 1.  Read into larger buffer to prevent data being
         // overwritten and then copy to where we want it!
-        pfield = new unsigned char[sizeof(uuid_array_t) + sizeof(int)];
+        pfield = new unsigned char[sizeof(uuid_array_t) + sizeof(int32)];
         for (int n = 0; n < num; n++) {
           uuid_array_t uuid;
           for (size_t i = 0; i < sizeof(uuid_array_t); i++) {

@@ -135,9 +135,9 @@ struct ATRecord {
     memset(cdigest, 0, SHA1::HASHLEN);
   }
 
-  unsigned int uncsize;
-  unsigned int cmpsize;
-  unsigned int blksize;
+  size_t uncsize;
+  size_t cmpsize;
+  size_t blksize;
   unsigned int CRC;
   time_t ctime;
   time_t atime;

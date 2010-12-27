@@ -127,7 +127,7 @@ LRESULT CPasswordSubsetDlg::OnDisplayStatus(WPARAM /* wParam */, LPARAM /* lPara
   int icurpos(0), lastpos;
   std::vector<int> vpos;
   CString resToken(m_subset);
-  const int ipwlengh = m_passwd.length();
+  const size_t ipwlengh = m_passwd.length();
 
   while (resToken != L"" && icurpos != -1) {
     lastpos = icurpos;
@@ -136,7 +136,7 @@ LRESULT CPasswordSubsetDlg::OnDisplayStatus(WPARAM /* wParam */, LPARAM /* lPara
       continue;
 
     int ipos = _wtoi(resToken);
-    if (ipos > ipwlengh || ipos == 0) {
+    if (ipos > (int)ipwlengh || ipos == 0) {
       if (ipos != 0)
         m_warningmsg.Format(IDS_SUBSETINDEXTOOBIG,ipwlengh);
       else

@@ -95,7 +95,7 @@ PWSfile::HeaderRecord::HeaderRecord()
   m_whatlastsaved(_T("")),
   m_dbname(_T("")), m_dbdesc(_T(""))
 {
-  memset(m_file_uuid_array, 0, sizeof(m_file_uuid_array));
+  memset(m_file_uuid_array, 0, sizeof(uuid_array_t));
   m_RUEList.clear();
 }
 
@@ -109,7 +109,7 @@ PWSfile::HeaderRecord::HeaderRecord(const PWSfile::HeaderRecord &h)
   m_dbname(h.m_dbname), m_dbdesc(h.m_dbdesc), m_RUEList(h.m_RUEList)
 {
   memcpy(m_file_uuid_array, h.m_file_uuid_array,
-         sizeof(m_file_uuid_array));
+         sizeof(uuid_array_t));
 }
 
 PWSfile::HeaderRecord &PWSfile::HeaderRecord::operator=(const PWSfile::HeaderRecord &h)
@@ -127,7 +127,7 @@ PWSfile::HeaderRecord &PWSfile::HeaderRecord::operator=(const PWSfile::HeaderRec
     m_dbname = h.m_dbname;
     m_dbdesc = h.m_dbdesc;
     memcpy(m_file_uuid_array, h.m_file_uuid_array,
-           sizeof(m_file_uuid_array));
+           sizeof(uuid_array_t));
     m_RUEList = h.m_RUEList;
   }
   return *this;
@@ -157,14 +157,14 @@ int PWSfile::Close()
 }
 
 size_t PWSfile::WriteCBC(unsigned char type, const unsigned char *data,
-                         unsigned int length)
+                         size_t length)
 {
   ASSERT(m_fish != NULL && m_IV != NULL);
   return _writecbc(m_fd, data, length, type, m_fish, m_IV);
 }
 
 size_t PWSfile::ReadCBC(unsigned char &type, unsigned char* &data,
-                        unsigned int &length)
+                        size_t &length)
 {
   unsigned char *buffer = NULL;
   size_t buffer_len = 0;
@@ -278,7 +278,7 @@ bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess
   bool status = true;
   stringT out_fn;
   unsigned char *pwd = NULL;
-  int passlen = 0;
+  size_t passlen = 0;
   FILE *out = NULL;
 
   FILE *in = pws_os::FOpen(fn, _T("rb"));;
@@ -310,7 +310,8 @@ bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess
     status = false; goto exit;
   }
 #ifdef KEEP_FILE_MODE_BWD_COMPAT
-  SAFE_FWRITE( &len, 1, sizeof(len), out);
+  uint32 i32 = len;
+  SAFE_FWRITE(&i32, 1, sizeof(uint32), out);
 #else
   unsigned char randstuff[StuffSize];
   unsigned char randhash[SHA1::HASHLEN];   // HashSize
@@ -331,7 +332,7 @@ bool PWSfile::Encrypt(const stringT &fn, const StringX &passwd, stringT &errmess
   SAFE_FWRITE(ipthing, 1, 8, out);
 
   ConvertString(passwd, pwd, passlen);
-  fish = BlowFish::MakeBlowFish(pwd, passlen, thesalt, SaltLength);
+  fish = BlowFish::MakeBlowFish(pwd, reinterpret_cast<int &>(passlen), thesalt, SaltLength);
   trashMemory(pwd, passlen);
 #ifdef UNICODE
   delete[] pwd; // gross - ConvertString allocates only if UNICODE.
@@ -371,14 +372,16 @@ bool PWSfile::Decrypt(const stringT &fn, const StringX &passwd, stringT &errmess
   }
 
 #ifdef KEEP_FILE_MODE_BWD_COMPAT
-  fread(&len, 1, sizeof(len), in); // XXX portability issue
+  uint32 i32;
+  fread(&i32, 1, sizeof(uint32), in); // XXX portability issue
+  len = i32;
 #else
   fread(randstuff, 1, 8, in);
   randstuff[8] = randstuff[9] = TCHAR('\0'); // ugly bug workaround
   fread(randhash, 1, sizeof(randhash), in);
 
   GenRandhash(passwd, randstuff, temphash);
-  if (memcmp(reinterpret_cast<char*>(randhash), reinterpret_cast<char*>(temphash), SHA1::HASHLEN) != 0) {
+  if (memcmp(reinterpret_cast<char *>(randhash), reinterpret_cast<char *>(temphash), SHA1::HASHLEN) != 0) {
     fclose(in);
     LoadAString(errmess, IDSC_BADPASSWORD);
     return false;
@@ -391,10 +394,10 @@ bool PWSfile::Decrypt(const stringT &fn, const StringX &passwd, stringT &errmess
 
     unsigned char dummyType;
     unsigned char *pwd = NULL;
-    int passlen = 0;
+    size_t passlen = 0;
     long file_len = pws_os::fileLength(in);
     ConvertString(passwd, pwd, passlen);
-    Fish *fish = BlowFish::MakeBlowFish(pwd, passlen, salt, SaltLength);
+    Fish *fish = BlowFish::MakeBlowFish(pwd, reinterpret_cast<int &>(passlen), salt, SaltLength);
     trashMemory(pwd, passlen);
 #ifdef UNICODE
     delete[] pwd; // gross - ConvertString allocates only if UNICODE.

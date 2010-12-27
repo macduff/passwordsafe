@@ -26,7 +26,7 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 //-----------------------------------------------------------------------------
-CConfirmDeleteDlg::CConfirmDeleteDlg(CWnd* pParent, const int numchildren, const size_t numatts,
+CConfirmDeleteDlg::CConfirmDeleteDlg(CWnd* pParent, const size_t numchildren, const size_t numatts,
      const StringX sxGroup, const StringX sxTitle, const StringX sxUser)
   : CPWDialog(numchildren > 0 ? CConfirmDeleteDlg::IDDGRP : CConfirmDeleteDlg::IDDENT, pParent),
   m_numchildren(numchildren), m_numatts(numatts),

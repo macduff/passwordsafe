@@ -89,7 +89,7 @@ protected:
   afx_msg void OnDestroy();
   afx_msg LRESULT OnMouseLeave(WPARAM, LPARAM);
   afx_msg void OnMouseMove(UINT nFlags, CPoint point);
-  afx_msg void OnTimer(UINT nIDEvent);
+  afx_msg void OnTimer(UINT_PTR nIDEvent);
   afx_msg BOOL OnEraseBkgnd(CDC* pDC);
   afx_msg void OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult);
   //}}AFX_MSG
@@ -129,7 +129,7 @@ private:
   bool m_bDropped;
 
   CSecString m_eLabel; // label at start of edit, if we need to revert
-  void SetNewStyle(long lStyleMask, BOOL bSetBits);
+
   bool MoveItem(MultiCommands *pmulticmds, HTREEITEM hitem, HTREEITEM hNewParent);
   bool CopyItem(HTREEITEM hitem, HTREEITEM hNewParent, const CSecString &prefix);
   bool IsChildNodeOf(HTREEITEM hitemChild, HTREEITEM hitemSuspectedParent) const;
@@ -144,7 +144,7 @@ private:
   HFONT GetFontBasedOnStatus(HTREEITEM &hItem, CItemData *pci, COLORREF &cf);
 
   // Notes Display
-  UINT m_nHoverNDTimerID, m_nShowNDTimerID;
+  UINT_PTR m_nHoverNDTimerID, m_nShowNDTimerID;
   CPoint m_HoverNDPoint;
   bool m_bShowNotes, m_bMouseInWindow;
 

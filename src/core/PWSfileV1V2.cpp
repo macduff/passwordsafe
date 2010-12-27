@@ -122,11 +122,11 @@ int PWSfileV1V2::Open(const StringX &passkey)
     return PWSRC::CANT_OPEN_FILE;
 
   LPCTSTR passstr = m_passkey.c_str();
-  unsigned long passLen = passkey.length();
+  size_t passLen = passkey.length();
   unsigned char *pstr;
 
 #ifdef UNICODE
-  unsigned long pstr_len = 3*passLen;
+  size_t pstr_len = 3 * passLen;
   pstr = new unsigned char[pstr_len];
   size_t len = pws_os::wcstombs(reinterpret_cast<char *>(pstr), 3 * passLen, passstr, passLen, false);
   ASSERT(len != 0);
@@ -156,7 +156,7 @@ int PWSfileV1V2::Open(const StringX &passkey)
     PWSrand::GetInstance()->GetRandomData( m_ipthing, 8);
     SAFE_FWRITE(m_ipthing, 1, 8, m_fd);
 
-    m_fish = BlowFish::MakeBlowFish(pstr, passLen,
+    m_fish = BlowFish::MakeBlowFish(pstr, reinterpret_cast<int &>(passLen),
                                     m_salt, SaltLength);
     if (m_curversion == V20) {
       status = WriteV2Header();
@@ -174,8 +174,8 @@ int PWSfileV1V2::Open(const StringX &passkey)
     fread(m_salt, 1, SaltLength, m_fd);
     fread(m_ipthing, 1, 8, m_fd);
 
-    m_fish = BlowFish::MakeBlowFish(pstr, passLen,
-      m_salt, SaltLength);
+    m_fish = BlowFish::MakeBlowFish(pstr, reinterpret_cast<int &>(passLen),
+                                    m_salt, SaltLength);
     if (m_curversion == V20)
       status = ReadV2Header();
   } // read mode
@@ -217,7 +217,7 @@ int PWSfileV1V2::CheckPasskey(const StringX &filename,
   unsigned char temphash[20]; // HashSize
   GenRandhash(passkey, randstuff, temphash);
 
-  if (0 != memcmp(reinterpret_cast<char*>(randhash), reinterpret_cast<char*>(temphash), MIN(sizeof(randhash), sizeof(temphash)))) { // HashSize
+  if (0 != memcmp(reinterpret_cast<char *>(randhash), reinterpret_cast<char *>(temphash), MIN(sizeof(randhash), sizeof(temphash)))) { // HashSize
       return PWSRC::WRONG_PASSWORD;
   } else {
     return PWSRC::SUCCESS;
@@ -250,8 +250,8 @@ size_t PWSfileV1V2::WriteCBC(unsigned char type, const StringX &data)
   return PWSfile::WriteCBC(type, datastr, data.length());
 #else
   wchar_t *wcPtr = const_cast<wchar_t *>(data.c_str());
-  int wcLen = data.length()+1;
-  int mbLen = 3*wcLen;
+  size_t wcLen = data.length() + 1;
+  size_t mbLen = 3 * wcLen;
   unsigned char *acp = new unsigned char[mbLen];
   size_t acpLen = pws_os::wcstombs(reinterpret_cast<char *>(acp), mbLen,
                                    wcPtr, wcLen, false);
@@ -315,7 +315,7 @@ int PWSfileV1V2::WriteRecord(const CItemData &item)
       {
         uuid_array_t uuid_array;
         item.GetUUID(uuid_array);
-        PWSfile::WriteCBC(CItemData::UUID, uuid_array, sizeof(uuid_array));
+        PWSfile::WriteCBC(CItemData::UUID, uuid_array, sizeof(uuid_array_t));
       }
       WriteCBC(CItemData::GROUP, item.GetGroup());
       WriteCBC(CItemData::TITLE, item.GetTitle());
@@ -476,7 +476,7 @@ int PWSfileV1V2::ReadRecord(CItemData &item)
             {
               LPCTSTR ptr = tempdata.c_str();
               uuid_array_t uuid_array;
-              for (unsigned i = 0; i < sizeof(uuid_array); i++)
+              for (size_t i = 0; i < sizeof(uuid_array_t); i++)
                 uuid_array[i] = static_cast<unsigned char>(ptr[i]);
               item.SetUUID(uuid_array);
               break;

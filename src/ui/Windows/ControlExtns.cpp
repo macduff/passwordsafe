@@ -282,13 +282,13 @@ HBRUSH CEditExtn::CtlColor(CDC* pDC, UINT /*nCtlColor*/)
 }
 
 struct equal_cmd {
-  equal_cmd(int const& nCmd) : m_nCmd(nCmd) {}
+  equal_cmd(UINT_PTR const& nCmd) : m_nCmd(nCmd) {}
   bool operator()(st_context_menu const& context_menu) const
   {
     return (context_menu.message_number == m_nCmd);
   }
 private:
-  int m_nCmd;
+  UINT_PTR m_nCmd;
 };
 
 void CEditExtn::OnContextMenu(CWnd* pWnd, CPoint point)
@@ -340,7 +340,7 @@ void CEditExtn::OnContextMenu(CWnd* pWnd, CPoint point)
   menu.InsertMenu(iPos++, MF_BYPOSITION | MF_SEPARATOR);
 
   for (size_t i = 0; i < m_vmenu_items.size(); i++) {
-      menu.InsertMenu(i + iPos, MF_BYPOSITION | m_vmenu_items[i].flags,
+      menu.InsertMenu((int)i + iPos, MF_BYPOSITION | m_vmenu_items[i].flags,
                       m_vmenu_items[i].message_number,
                       m_vmenu_items[i].menu_string.c_str());
   }
@@ -352,9 +352,9 @@ void CEditExtn::OnContextMenu(CWnd* pWnd, CPoint point)
     ClientToScreen(&point);
   }
 
-  UINT nCmd = menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON |
-                                 TPM_RETURNCMD | TPM_RIGHTBUTTON, 
-                                 point.x, point.y, this);
+  UINT_PTR nCmd = menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON |
+                                      TPM_RETURNCMD | TPM_RIGHTBUTTON, 
+                                      point.x, point.y, this);
 
   if (nCmd == 0)
     return;
@@ -363,7 +363,7 @@ void CEditExtn::OnContextMenu(CWnd* pWnd, CPoint point)
   iter = std::find_if(m_vmenu_items.begin(), m_vmenu_items.end(),
                       equal_cmd(nCmd));
   if (iter != m_vmenu_items.end()) {
-    this->GetParent()->SendMessage(nCmd);
+    this->GetParent()->SendMessage((UINT)nCmd);
     return;
   }
 
@@ -373,7 +373,7 @@ void CEditExtn::OnContextMenu(CWnd* pWnd, CPoint point)
     case WM_COPY:
     case WM_CLEAR:
     case WM_PASTE:
-      SendMessage(nCmd);
+      SendMessage((UINT)nCmd);
       break;
     case EM_SELECTALL:
       SendMessage(EM_SETSEL, 0, -1);

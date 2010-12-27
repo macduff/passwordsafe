@@ -14,11 +14,24 @@
 #include "os/mem.h"
 #include "Util.h" // for trashMemory
 
+union aword
+{
+  uint32 word;
+  unsigned char byte [4];
+  struct
+  {
+    unsigned int byte3:8;
+    unsigned int byte2:8;
+    unsigned int byte1:8;
+    unsigned int byte0:8;
+  } w;
+};
+
 #define S(x, i) (bf_S[i][x.w.byte##i])
 #define bf_F(x) (((S(x, 0) + S(x, 1)) ^ S(x, 2)) + S(x, 3))
 #define ROUND(a, b, n) (a.word ^= bf_F(b) ^ bf_P[n])
 
-const unsigned long BlowFish::tempbf_P[BlowFish::bf_N + 2] =
+const uint32 BlowFish::tempbf_P[BlowFish::bf_N + 2] =
 {
   0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344,
   0xa4093822, 0x299f31d0, 0x082efa98, 0xec4e6c89,
@@ -27,7 +40,7 @@ const unsigned long BlowFish::tempbf_P[BlowFish::bf_N + 2] =
   0x9216d5d9, 0x8979fb1b,
 };
 
-const unsigned long BlowFish::tempbf_S[4][256] =
+const uint32 BlowFish::tempbf_S[4][256] =
 {
   {0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7,
    0xb8e1afed, 0x6a267e96, 0xba7c9045, 0xf12c7f99,
@@ -287,8 +300,8 @@ const unsigned long BlowFish::tempbf_S[4][256] =
    0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6},
 };
 
-void BlowFish::Blowfish_encipher(unsigned long *xl,
-                                 unsigned long *xr)
+void BlowFish::Blowfish_encipher(uint32 *xl,
+                                 uint32 *xr)
 {
   union aword Xl;
   union aword Xr;
@@ -311,8 +324,8 @@ void BlowFish::Blowfish_encipher(unsigned long *xl,
   *xl = Xr.word;
 }
 
-void BlowFish::Blowfish_decipher(unsigned long *xl,
-                                 unsigned long *xr)
+void BlowFish::Blowfish_decipher(uint32 *xl,
+                                 uint32 *xr)
 {
   union aword Xl;
   union aword Xr;
@@ -335,14 +348,14 @@ void BlowFish::Blowfish_decipher(unsigned long *xl,
   *xr = Xl.word;
 }
 
-void BlowFish::InitializeBlowfish(unsigned char key[],
+void BlowFish::InitializeBlowfish(const unsigned char key[],
                                   short keybytes)
 {
   short          i;
   short          j;
-  unsigned long  data;
-  unsigned long  datal;
-  unsigned long  datar;
+  uint32  data;
+  uint32  datal;
+  uint32  datar;
   union aword temp;
 
   j = 0;
@@ -353,12 +366,11 @@ void BlowFish::InitializeBlowfish(unsigned char key[],
     temp.w.byte2 = key[(j+2)%keybytes];
     temp.w.byte3 = key[(j+3)%keybytes];
     data = temp.word;
-    bf_P[i] = bf_P[i] ^ data;
+    bf_P[i] ^= data;
     j = short((j + 4) % keybytes);
   }
 
-  datal = 0x00000000;
-  datar = 0x00000000;
+  datal = datar = 0x00000000;
 
   for (i = 0; i < bf_N + 2; i += 2) {
     Blowfish_encipher(&datal, &datar);
@@ -377,7 +389,7 @@ void BlowFish::InitializeBlowfish(unsigned char key[],
   }
 }
 
-BlowFish::BlowFish(unsigned char *key,
+BlowFish::BlowFish(const unsigned char *key,
                    int keylen)
 {
   /*
@@ -390,43 +402,42 @@ BlowFish::BlowFish(unsigned char *key,
   */
 
   int x, y;
-  for (x=0; x<18; x++) {
+  for (x = 0; x < 18; x++) {
     bf_P[x] = tempbf_P[x];
   }
 
-  for (x=0; x<4; x++) {
-    for (y=0; y<256; y++) {
+  for (x = 0; x < 4; x++) {
+    for (y = 0; y < 256; y++) {
       bf_S[x][y] = tempbf_S[x][y];
     }
   }
 
   InitializeBlowfish(key, short(keylen));
+
 }
 
 BlowFish::~BlowFish()
 {
   // trashMemory((unsigned char*)tempbf_P, 18*4);
   // trashMemory((unsigned char*)tempbf_S, 256*4);
-  trashMemory(reinterpret_cast<unsigned char*>(bf_P), sizeof(bf_P));
-  trashMemory(reinterpret_cast<unsigned char*>(bf_S), sizeof(bf_S));
+  trashMemory(bf_P, sizeof(bf_P));
+  trashMemory(bf_S, sizeof(bf_S));
 }
 
 void BlowFish::Encrypt(const unsigned char *in, unsigned char *out)
 {
-  for (int x=0; x<8; x++)
+  for (int x = 0; x < 8; x++)
     out[x] = in[x];
-
-  Blowfish_encipher(reinterpret_cast<unsigned long*>(out),
-    reinterpret_cast<unsigned long*>(out+sizeof(unsigned long)));
+  Blowfish_encipher(reinterpret_cast<uint32 *>(out),
+    reinterpret_cast<uint32 *>(out + sizeof(uint32)));
 }
 
 void BlowFish::Decrypt(const unsigned char *in, unsigned char *out)
 {
-  for (int x=0; x<8; x++)
+  for (int x = 0; x < 8; x++)
     out[x] = in[x];
-
-  Blowfish_decipher(reinterpret_cast<unsigned long*>(out),
-    reinterpret_cast<unsigned long*>(out+sizeof(unsigned long)));
+  Blowfish_decipher(reinterpret_cast<uint32 *>(out),
+    reinterpret_cast<uint32 *>(out + sizeof(uint32)));
 }
 
 /*
@@ -452,10 +463,11 @@ BlowFish *BlowFish::MakeBlowFish(const unsigned char *pass, int passlen,
   context.Update(pass, passlen);
   context.Update(salt, saltlen);
   context.Final(passkey);
+
   BlowFish *retval = new BlowFish(passkey, sizeof(passkey));
   trashMemory(passkey, sizeof(passkey));
   pws_os::munlock(passkey, sizeof(passkey));
-   return retval;
+  return retval;
 }
 
 //-----------------------------------------------------------------------------

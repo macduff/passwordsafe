@@ -39,7 +39,7 @@ void CItemData::SetSessionKey()
   // must be called once per session, no more, no less
   ASSERT(!IsSessionKeySet);
   pws_os::mlock(SessionKey, sizeof(SessionKey));
-  PWSrand::GetInstance()->GetRandomData( SessionKey, sizeof( SessionKey ) );
+  PWSrand::GetInstance()->GetRandomData(SessionKey, sizeof(SessionKey));
   IsSessionKeySet = true;
 }
 
@@ -72,7 +72,7 @@ CItemData::CItemData(const CItemData &that) :
   m_display_info(that.m_display_info == NULL ?
                  NULL : that.m_display_info->clone())
 {
-  memcpy(reinterpret_cast<char*>(m_salt), reinterpret_cast<const char*>(that.m_salt), SaltLength);
+  memcpy(m_salt, that.m_salt, SaltLength);
   if (!that.m_URFL.empty())
     m_URFL = that.m_URFL;
   else
@@ -84,88 +84,21 @@ CItemData::~CItemData()
   delete m_display_info;
 }
 
-CItemData& CItemData::operator=(const CItemData &that)
-{
-  // Check for self-assignment
-  if (this != &that) {
-    m_UUID = that.m_UUID;
-    m_Name = that.m_Name;
-    m_Title = that.m_Title;
-    m_User = that.m_User;
-    m_Password = that.m_Password;
-    m_Notes = that.m_Notes;
-    m_Group = that.m_Group;
-    m_URL = that.m_URL;
-    m_AutoType = that.m_AutoType;
-    m_RunCommand = that.m_RunCommand;
-    m_DCA = that.m_DCA;
-    m_email = that.m_email;
-    m_tttCTime = that.m_tttCTime;
-    m_tttPMTime = that.m_tttPMTime;
-    m_tttATime = that.m_tttATime;
-    m_tttXTime = that.m_tttXTime;
-    m_tttRMTime = that.m_tttRMTime;
-    m_PWHistory = that.m_PWHistory;
-    m_PWPolicy = that.m_PWPolicy;
-    m_XTimeInterval = that.m_XTimeInterval;
-
-    delete m_display_info;
-    m_display_info = that.m_display_info == NULL ?
-      NULL : that.m_display_info->clone();
-
-    if (!that.m_URFL.empty())
-      m_URFL = that.m_URFL;
-    else
-      m_URFL.clear();
-
-    m_entrytype = that.m_entrytype;
-    m_entrystatus = that.m_entrystatus;
-    memcpy((char*)m_salt, (char*)that.m_salt, SaltLength);
-  }
-
-  return *this;
-}
-
-void CItemData::Clear()
-{
-  m_Group.Empty();
-  m_Title.Empty();
-  m_User.Empty();
-  m_Password.Empty();
-  m_Notes.Empty();
-  m_URL.Empty();
-  m_AutoType.Empty();
-  m_RunCommand.Empty();
-  m_DCA.Empty();
-  m_email.Empty();
-  m_tttCTime.Empty();
-  m_tttPMTime.Empty();
-  m_tttATime.Empty();
-  m_tttXTime.Empty();
-  m_tttRMTime.Empty();
-  m_PWHistory.Empty();
-  m_PWPolicy.Empty();
-  m_XTimeInterval.Empty();
-  m_URFL.clear();
-  m_entrytype = ET_NORMAL;
-  m_entrystatus = ES_CLEAN;
-}
-
 //-----------------------------------------------------------------------------
 // Accessors
 
 StringX CItemData::GetField(const CItemField &field) const
 {
   StringX retval;
-  BlowFish *bf = MakeBlowFish();
+  BlowFish *bf = MakeBlowFish(field.IsEmpty());
   field.Get(retval, bf);
   delete bf;
   return retval;
 }
 
-void CItemData::GetField(const CItemField &field, unsigned char *value, unsigned int &length) const
+void CItemData::GetField(const CItemField &field, unsigned char *value, size_t &length) const
 {
-  BlowFish *bf = MakeBlowFish();
+  BlowFish *bf = MakeBlowFish(field.IsEmpty());
   field.Get(value, length, bf);
   delete bf;
 }
@@ -310,7 +243,7 @@ size_t CItemData::GetSize()
   return length;
 }
 
-void CItemData::GetSize(int &isize) const
+void CItemData::GetSize(size_t &isize) const
 {
   isize  = m_Name.GetLength();
   isize += m_Title.GetLength();
@@ -405,7 +338,7 @@ StringX CItemData::GetTime(int whichtime, int result_format) const
 void CItemData::GetTime(int whichtime, time_t &t) const
 {
   unsigned char in[TwoFish::BLOCKSIZE]; // required by GetField
-  unsigned int tlen = sizeof(in); // ditto
+  size_t tlen = sizeof(in); // ditto
 
   switch (whichtime) {
     case ATIME:
@@ -439,7 +372,7 @@ void CItemData::GetTime(int whichtime, time_t &t) const
 
 void CItemData::GetUUID(uuid_array_t &uuid_array) const
 {
-  unsigned int length = sizeof(uuid_array);
+  size_t length = sizeof(uuid_array_t);
   GetField(m_UUID, static_cast<unsigned char *>(uuid_array), length);
 }
 
@@ -489,16 +422,16 @@ StringX CItemData::GetPWPolicy() const
   return GetField(m_PWPolicy);
 }
 
-void CItemData::GetXTimeInt(int &xint) const
+void CItemData::GetXTimeInt(int32 &xint) const
 {
   unsigned char in[TwoFish::BLOCKSIZE]; // required by GetField
-  unsigned int tlen = sizeof(in); // ditto
+  size_t tlen = sizeof(in); // ditto
 
   GetField(m_XTimeInterval, in, tlen);
 
   if (tlen != 0) {
-    ASSERT(tlen == sizeof(int));
-    memcpy(&xint, in, sizeof(int));
+    ASSERT(tlen == sizeof(int32));
+    memcpy(&xint, in, sizeof(int32));
   } else {
     xint = 0;
   }
@@ -519,7 +452,7 @@ StringX CItemData::GetXTimeInt() const
 void CItemData::GetDCA(short &iDCA) const
 {
   unsigned char in[TwoFish::BLOCKSIZE]; // required by GetField
-  unsigned int tlen = sizeof(in); // ditto
+  size_t tlen = sizeof(in); // ditto
 
   GetField(m_DCA, in, tlen);
 
@@ -550,7 +483,7 @@ StringX CItemData::GetEmail() const
   return GetField(m_email);
 }
 
-void CItemData::GetUnknownField(unsigned char &type, unsigned int &length,
+void CItemData::GetUnknownField(unsigned char &type, size_t &length,
                                 unsigned char * &pdata,
                                 const CItemField &item) const
 {
@@ -559,14 +492,14 @@ void CItemData::GetUnknownField(unsigned char &type, unsigned int &length,
   const unsigned int BLOCKSIZE = 8;
 
   type = item.GetType();
-  unsigned int flength = item.GetLength();
+  size_t flength = item.GetLength();
   length = flength;
   flength += BLOCKSIZE; // ensure that we've enough for at least one block
   pdata = new unsigned char[flength];
   GetField(item, pdata, flength);
 }
 
-void CItemData::GetUnknownField(unsigned char &type, unsigned int &length,
+void CItemData::GetUnknownField(unsigned char &type, size_t &length,
                                 unsigned char * &pdata,
                                 const unsigned int &num) const
 {
@@ -574,7 +507,7 @@ void CItemData::GetUnknownField(unsigned char &type, unsigned int &length,
   GetUnknownField(type, length, pdata, unkrfe);
 }
 
-void CItemData::GetUnknownField(unsigned char &type, unsigned int &length,
+void CItemData::GetUnknownField(unsigned char &type, size_t &length,
                                 unsigned char * &pdata,
                                 const UnknownFieldsConstIter &iter) const
 {
@@ -726,7 +659,7 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
       ret += _T("\"") + notes + _T("\"");
     // remove trailing separator
     if (ret[ret.length()-1] == separator) {
-      int rl = ret.length();
+      size_t rl = ret.length();
       ret = ret.substr(0, rl - 1);
     }
   }
@@ -878,7 +811,7 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
         for (hiter = pwhistlist.begin(); hiter != pwhistlist.end();
              hiter++) {
           const unsigned char * utf8 = NULL;
-          int utf8Len = 0;
+          size_t utf8Len = 0;
 
           oss << "\t\t\t\t<history_entry num=\"" << num << "\">" << endl;
           const PWHistEntry &pwshe = *hiter;
@@ -921,7 +854,7 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
   if (NumberUnknownFields() > 0) {
     oss << "\t\t<unknownrecordfields>" << endl;
     for (unsigned int i = 0; i != NumberUnknownFields(); i++) {
-      unsigned int length = 0;
+      size_t length = 0;
       unsigned char type;
       unsigned char *pdata(NULL);
       GetUnknownField(type, length, pdata, i);
@@ -937,7 +870,7 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
       String X sx_tmp;
       unsigned char * pdata2(pdata);
       unsigned char c;
-      for (int j = 0; j < (int)length; j++) {
+      for (int j = 0; j < reinterpret_cast<int &>(length); j++) {
         c = *pdata2++;
         Format(sx_tmp, _T("%02x"), c);
         tmp += sx_tmp;
@@ -986,15 +919,15 @@ void CItemData::SplitName(const StringX &name,
 
 void CItemData::SetField(CItemField &field, const StringX &value)
 {
-  BlowFish *bf = MakeBlowFish();
+  BlowFish *bf = MakeBlowFish(value.empty());
   field.Set(value, bf);
   delete bf;
 }
 
 void CItemData::SetField(CItemField &field,
-                         const unsigned char *value, unsigned int length)
+                         const unsigned char *value, size_t length)
 {
-  BlowFish *bf = MakeBlowFish();
+  BlowFish *bf = MakeBlowFish(length == 0);
   field.Set(value, length, bf);
   delete bf;
 }
@@ -1263,9 +1196,9 @@ bool CItemData::SetTime(int whichtime, const stringT &time_str)
   return false;
 }
 
-void CItemData::SetXTimeInt(int &xint)
+void CItemData::SetXTimeInt(int32 &xint)
 {
-   SetField(m_XTimeInterval, reinterpret_cast<const unsigned char *>(&xint), sizeof(int));
+   SetField(m_XTimeInterval, reinterpret_cast<const unsigned char *>(&xint), sizeof(int32));
 }
 
 bool CItemData::SetXTimeInt(const stringT &xint_str)
@@ -1291,7 +1224,7 @@ bool CItemData::SetXTimeInt(const stringT &xint_str)
 }
 
 void CItemData::SetUnknownField(const unsigned char &type,
-                                const unsigned int &length,
+                                const size_t &length,
                                 const unsigned char * &ufield)
 {
   CItemField unkrfe(type);
@@ -1469,11 +1402,83 @@ void CItemData::SetFieldValue(const FieldType &ft, const StringX &value)
   }
 }
 
-BlowFish *CItemData::MakeBlowFish() const
+BlowFish *CItemData::MakeBlowFish(bool noData) const
 {
   ASSERT(IsSessionKeySet);
-  return BlowFish::MakeBlowFish(SessionKey, sizeof(SessionKey),
-    m_salt, SaltLength);
+  // Creating a BlowFish object's relatively expensive. No reason
+  // to bother if we don't have any data to process.
+  if (noData)
+    return NULL;
+  else
+    return BlowFish::MakeBlowFish(SessionKey, sizeof(SessionKey),
+                                  m_salt, SaltLength);
+}
+
+CItemData& CItemData::operator=(const CItemData &that)
+{
+  // Check for self-assignment
+  if (this != &that) {
+    m_UUID = that.m_UUID;
+    m_Name = that.m_Name;
+    m_Title = that.m_Title;
+    m_User = that.m_User;
+    m_Password = that.m_Password;
+    m_Notes = that.m_Notes;
+    m_Group = that.m_Group;
+    m_URL = that.m_URL;
+    m_AutoType = that.m_AutoType;
+    m_RunCommand = that.m_RunCommand;
+    m_DCA = that.m_DCA;
+    m_email = that.m_email;
+    m_tttCTime = that.m_tttCTime;
+    m_tttPMTime = that.m_tttPMTime;
+    m_tttATime = that.m_tttATime;
+    m_tttXTime = that.m_tttXTime;
+    m_tttRMTime = that.m_tttRMTime;
+    m_PWHistory = that.m_PWHistory;
+    m_PWPolicy = that.m_PWPolicy;
+    m_XTimeInterval = that.m_XTimeInterval;
+
+    delete m_display_info;
+    m_display_info = that.m_display_info == NULL ?
+      NULL : that.m_display_info->clone();
+
+    if (!that.m_URFL.empty())
+      m_URFL = that.m_URFL;
+    else
+      m_URFL.clear();
+
+    m_entrytype = that.m_entrytype;
+    m_entrystatus = that.m_entrystatus;
+    memcpy(m_salt, that.m_salt, SaltLength);
+  }
+
+  return *this;
+}
+
+void CItemData::Clear()
+{
+  m_Group.Empty();
+  m_Title.Empty();
+  m_User.Empty();
+  m_Password.Empty();
+  m_Notes.Empty();
+  m_URL.Empty();
+  m_AutoType.Empty();
+  m_RunCommand.Empty();
+  m_DCA.Empty();
+  m_email.Empty();
+  m_tttCTime.Empty();
+  m_tttPMTime.Empty();
+  m_tttATime.Empty();
+  m_tttXTime.Empty();
+  m_tttRMTime.Empty();
+  m_PWHistory.Empty();
+  m_PWPolicy.Empty();
+  m_XTimeInterval.Empty();
+  m_URFL.clear();
+  m_entrytype = ET_NORMAL;
+  m_entrystatus = ES_CLEAN;
 }
 
 int CItemData::ValidateUUID(const unsigned short &nMajor, const unsigned short &nMinor,
@@ -1613,7 +1618,7 @@ bool CItemData::Matches(const stringT &string, int iObject,
 bool CItemData::Matches(int num1, int num2, int iObject,
                         int iFunction) const
 {
-  //   Check integer values are selected
+  //  Check integer values are selected
   int iValue;
 
   switch (iObject) {
@@ -1621,7 +1626,7 @@ bool CItemData::Matches(int num1, int num2, int iObject,
       GetXTimeInt(iValue);
       break;
     case ENTRYSIZE:
-      GetSize(iValue);
+      GetSize(reinterpret_cast<size_t &>(iValue));
       break;
     default:
       ASSERT(0);
@@ -1766,7 +1771,7 @@ bool CItemData::WillExpire(const int numdays) const
   return (XTime < exptime);
 }
 
-bool pull_string(StringX &str, const unsigned char *data, int len)
+bool pull_string(StringX &str, const unsigned char *data, size_t len)
 {
   CUTF8Conv utf8conv;
   vector<unsigned char> v(data, (data + len));
@@ -1779,10 +1784,10 @@ bool pull_string(StringX &str, const unsigned char *data, int len)
   return utf8status;
 }
 
-bool pull_time(time_t &t, const unsigned char *data, size_t len)
+bool pull_time32(time_t &t, const unsigned char *data, size_t len)
 {
   if (len == sizeof(__time32_t)) {
-    t = *reinterpret_cast<const __time32_t *>(data);
+    t = *reinterpret_cast<const time_t *>(data);
   } else if (len == sizeof(__time64_t)) {
     // convert from 64 bit time to currently supported 32 bit
     struct tm ts;
@@ -1800,10 +1805,10 @@ bool pull_time(time_t &t, const unsigned char *data, size_t len)
   return true;
 }
 
-bool pull_uint(unsigned int &uint, const unsigned char *data, size_t len)
+bool pull_uint32(uint32 &ui32, const unsigned char *data, size_t len)
 {
-  if (len == sizeof(unsigned long)) {
-    uint = *reinterpret_cast<const unsigned long *>(data);
+  if (len == sizeof(uint32)) {
+    ui32 = *reinterpret_cast<const uint32 *>(data);
   } else {
     ASSERT(0);
     return false;
@@ -1811,10 +1816,10 @@ bool pull_uint(unsigned int &uint, const unsigned char *data, size_t len)
   return true;
 }
 
-bool pull_int(int &i, const unsigned char *data, size_t len)
+bool pull_int32(int32 &i32, const unsigned char *data, size_t len)
 {
-  if (len == sizeof(int)) {
-    i = *reinterpret_cast<const int *>(data);
+  if (len == sizeof(int32)) {
+    i32 = *reinterpret_cast<const int32 *>(data);
   } else {
     ASSERT(0);
     return false;
@@ -1863,7 +1868,7 @@ bool CItemData::DeserializePlainText(const std::vector<char> &v)
   return false; // END tag not found!
 }
 
-bool CItemData::SetField(int type, const unsigned char *data, int len)
+bool CItemData::SetField(int type, const unsigned char *data, size_t len)
 {
   StringX str;
   time_t t;
@@ -1877,8 +1882,8 @@ bool CItemData::SetField(int type, const unsigned char *data, int len)
     case UUID:
     {
       uuid_array_t uuid_array;
-      ASSERT(len == sizeof(uuid_array));
-      for (unsigned i = 0; i < sizeof(uuid_array); i++)
+      ASSERT(len == sizeof(uuid_array_t));
+      for (size_t i = 0; i < sizeof(uuid_array_t); i++)
         uuid_array[i] = data[i];
       SetUUID(uuid_array);
       break;
@@ -1904,23 +1909,23 @@ bool CItemData::SetField(int type, const unsigned char *data, int len)
       SetPassword(str);
       break;
     case CTIME:
-      if (!pull_time(t, data, len)) return false;
+      if (!pull_time32(t, data, len)) return false;
       SetCTime(t);
       break;
     case  PMTIME:
-      if (!pull_time(t, data, len)) return false;
+      if (!pull_time32(t, data, len)) return false;
       SetPMTime(t);
       break;
     case ATIME:
-      if (!pull_time(t, data, len)) return false;
+      if (!pull_time32(t, data, len)) return false;
       SetATime(t);
       break;
     case XTIME:
-      if (!pull_time(t, data, len)) return false;
+      if (!pull_time32(t, data, len)) return false;
       SetXTime(t);
       break;
     case XTIME_INT:
-      if (!pull_int(i32, data, len)) return false;
+      if (!pull_int32(i32, data, len)) return false;
       SetXTimeInt(i32);
       break;
     case POLICY:
@@ -1928,7 +1933,7 @@ bool CItemData::SetField(int type, const unsigned char *data, int len)
       SetPWPolicy(str.c_str());
       break;
     case RMTIME:
-      if (!pull_time(t, data, len)) return false;
+      if (!pull_time32(t, data, len)) return false;
       SetRMTime(t);
       break;
     case URL:
@@ -1965,10 +1970,10 @@ bool CItemData::SetField(int type, const unsigned char *data, int len)
   return true;
 }
 
-static void push_length(vector<char> &v, unsigned int s)
+static void push_length(vector<char> &v, size_t s)
 {
   v.insert(v.end(),
-    reinterpret_cast<char *>(&s), reinterpret_cast<char *>(&s) + sizeof(s));
+    reinterpret_cast<char *>(&s), reinterpret_cast<char *>(&s) + sizeof(size_t));
 }
 
 static void push_string(vector<char> &v, char type,
@@ -1978,7 +1983,7 @@ static void push_string(vector<char> &v, char type,
     CUTF8Conv utf8conv;
     bool status;
     const unsigned char *utf8;
-    int utf8Len;
+    size_t utf8Len;
     status = utf8conv.ToUTF8(str, utf8, utf8Len);
     if (status) {
       v.push_back(type);
@@ -1993,7 +1998,7 @@ static void push_string(vector<char> &v, char type,
 static void push_time(vector<char> &v, char type, time_t t)
 {
   if (t != 0) {
-    __time32_t t32 = static_cast<__time32_t>(t);
+   time_t t32 = static_cast<time_t>(t);
     v.push_back(type);
     push_length(v, sizeof(t32));
     v.insert(v.end(),
@@ -2001,13 +2006,13 @@ static void push_time(vector<char> &v, char type, time_t t)
   }
 }
 
-static void push_int(vector<char> &v, char type, int i)
+static void push_int32(vector<char> &v, char type, int32 i)
 {
   if (i != 0) {
     v.push_back(type);
-    push_length(v, sizeof(int));
+    push_length(v, sizeof(int32));
     v.insert(v.end(),
-      reinterpret_cast<char *>(&i), reinterpret_cast<char *>(&i) + sizeof(int));
+      reinterpret_cast<char *>(&i), reinterpret_cast<char *>(&i) + sizeof(int32));
   }
 }
 
@@ -2027,14 +2032,14 @@ void CItemData::SerializePlainText(vector<char> &v,
   StringX tmp;
   uuid_array_t uuid_array;
   time_t t = 0;
-  int i32 = 0;
+  int32 i32 = 0;
   short i16 = 0;
 
   v.clear();
   GetUUID(uuid_array);
   v.push_back(UUID);
-  push_length(v, sizeof(uuid_array));
-  v.insert(v.end(), uuid_array, (uuid_array + sizeof(uuid_array)));
+  push_length(v, sizeof(uuid_array_t));
+  v.insert(v.end(), uuid_array, (uuid_array + sizeof(uuid_array_t)));
   push_string(v, GROUP, GetGroup());
   push_string(v, TITLE, GetTitle());
   push_string(v, USER, GetUser());
@@ -2062,7 +2067,7 @@ void CItemData::SerializePlainText(vector<char> &v,
   GetXTime(t);   push_time(v, XTIME, t);
   GetRMTime(t);  push_time(v, RMTIME, t);
 
-  GetXTimeInt(i32); push_int(v, XTIME_INT, i32);
+  GetXTimeInt(i32); push_int32(v, XTIME_INT, i32);
 
   push_string(v, POLICY, GetPWPolicy());
   push_string(v, PWHIST, GetPWHistory());
@@ -2076,7 +2081,7 @@ void CItemData::SerializePlainText(vector<char> &v,
        vi_IterURFE != GetURFIterEnd();
        vi_IterURFE++) {
     unsigned char type;
-    unsigned int length = 0;
+    size_t length = 0;
     unsigned char *pdata = NULL;
     GetUnknownField(type, length, pdata, vi_IterURFE);
     if (length != 0) {

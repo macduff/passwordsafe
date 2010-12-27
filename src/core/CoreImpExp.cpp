@@ -204,7 +204,7 @@ StringX PWScore::BuildHeader(const CItemData::FieldBits &bsFields, const bool bI
     LoadAString(cs_temp, IDSC_EXPHDRNOTES);
     hdr += cs_temp;
   }
-  int hdr_len = hdr.length();
+  size_t hdr_len = hdr.length();
   if (hdr_len > 0) {
     if (hdr[hdr.length() - 1] == _T('\t')) {
       hdr_len--;
@@ -239,7 +239,7 @@ struct TextRecordWriter {
       if (!line.empty()) {
         CUTF8Conv conv; // can't make a member, as no copy c'tor!
         const unsigned char *utf8;
-        int utf8Len;
+        size_t utf8Len;
         if (conv.ToUTF8(line, utf8, utf8Len)) {
           m_ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
           m_ofs << endl;
@@ -280,7 +280,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
  
   CUTF8Conv conv;
 #ifdef UNICODE
-  int fnamelen;
+  size_t fnamelen;
   const unsigned char *fname = NULL;
   conv.ToUTF8(filename, fname, fnamelen); 
 #else
@@ -294,7 +294,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
 
   StringX hdr(_T(""));
   const unsigned char *utf8 = NULL;
-  int utf8Len = 0;
+  size_t utf8Len = 0;
 
   if (bsFields.count() == bsFields.size()) {
     // all fields to be exported, use pre-built header
@@ -392,7 +392,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
 #ifdef UNICODE
   const unsigned char *fname = NULL;
   CUTF8Conv conv;
-  int fnamelen;
+  size_t fnamelen;
   conv.ToUTF8(filename, fname, fnamelen); 
 #else
   const char *fname = filename.c_str();
@@ -420,7 +420,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
 
   CUTF8Conv utf8conv;
   const unsigned char *utf8 = NULL;
-  int utf8Len = 0;
+  size_t utf8Len = 0;
   StringX delStr;
   delStr += delimiter;
   utf8conv.ToUTF8(delStr, utf8, utf8Len);
@@ -576,7 +576,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
           ASSERT(0);
       }
       LoadAString(cs_object, iObject);
-      int object_len = cs_object.length();
+      size_t object_len = cs_object.length();
       if (cs_object[object_len - 1] == _T('\t')) {
         object_len--;
         cs_object = cs_object.substr(0, object_len);
@@ -662,13 +662,14 @@ int PWScore::WriteXMLFile(const StringX &filename,
       oss_xml.str(_T(""));  // Clear buffer for next user
 
       hdr = BuildHeader(bsFields, false);
-      int found = hdr.find(_T("\t"));
-      while (found >= 0) {
-        if (found >= 0) {
-          hdr.replace(found, 1, _T(", "));
-        }
-        found = hdr.find(_T("\t"));
-      }
+      size_t found = hdr.find(_T("\t"));
+	    while (found != StringX::npos) {
+		    if (found != StringX::npos) {
+			    hdr.replace(found, 1, _T(", "));
+		    }
+		    found = hdr.find(_T("\t"));
+	    }
+
       hdr = _T("     ") + hdr;
       conv.ToUTF8(hdr, utf8, utf8Len);
       ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
@@ -813,7 +814,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
 #ifdef UNICODE
   const unsigned char *fname = NULL;
   CUTF8Conv conv;
-  int fnamelen;
+  size_t fnamelen;
   conv.ToUTF8(filename, fname, fnamelen); 
 #else
   const char *fname = filename.c_str();
@@ -835,7 +836,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
   stringT cs_hdr;
   LoadAString(cs_hdr, IDSC_EXPORTHEADER);
   const unsigned char *hdr;
-  int hdrlen;
+  size_t hdrlen;
   conv.ToUTF8(cs_hdr.c_str(), hdr, hdrlen);
   const string s_hdr(reinterpret_cast<const char *>(hdr));
   const char pTab[] = "\t";
@@ -1339,7 +1340,7 @@ PWScore::ImportKeePassTextFile(const StringX &filename, Command *&pcommand)
 #ifdef UNICODE
   CUTF8Conv conv;
   const unsigned char *fname = NULL;
-  int fnamelen;
+  size_t fnamelen;
   conv.ToUTF8(filename, fname, fnamelen); 
 #else
   const char *fname = filename.c_str();

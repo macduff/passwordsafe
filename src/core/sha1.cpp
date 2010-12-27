@@ -43,22 +43,22 @@
 
 /* Hash a single 512-bit block. This is the core of the algorithm. */
 
-static void SHA1Transform(unsigned long state[5],
+static void SHA1Transform(uint32 state[5],
                           const unsigned char buffer[64])
 {
-  unsigned long a, b, c, d, e;
+  uint32 a, b, c, d, e;
   typedef union {
     unsigned char c[64];
-    unsigned long l[16];
+    uint32 l[16];
   } CHAR64LONG16;
   CHAR64LONG16* block;
 //commented, because otherwise we change the buffer
 //#ifdef SHA1HANDSOFF
   static unsigned char workspace[64];
-  block = reinterpret_cast<CHAR64LONG16*>(workspace);
+  block = reinterpret_cast<CHAR64LONG16 *>(workspace);
   memcpy(block, buffer, 64);
 //#else
-//  block = reinterpret_cast<const CHAR64LONG16*>(buffer);
+//  block = reinterpret_cast<const CHAR64LONG16 *>(buffer);
 //#endif
   /* Copy context->state[] to working vars */
   a = state[0];

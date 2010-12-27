@@ -38,9 +38,6 @@
     <ClCompile Include="infback.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="inffast.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="inflate.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,11 +54,25 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <MASM Include="masmx86\inffas32.asm">
+  <ItemGroup Condition=" '$(Platform)' == 'Win32' ">
+    <ClCompile Include="inffast.c" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Platform)' == 'x64' ">
+    <ClCompile Include="inffas8664.c" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Platform)' == 'Win32' ">
+    <MASM Include=".\masmx86\inffas32.asm">
       <Filter>Source Files</Filter>
     </MASM>
-    <MASM Include="masmx86\match686.asm">
+    <MASM Include=".\masmx86\match686.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Platform)' == 'x64' ">
+    <MASM Include=".\masmx64\inffasx64.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
+    <MASM Include=".\masmx64\gvmat64.asm">
       <Filter>Source Files</Filter>
     </MASM>
   </ItemGroup>

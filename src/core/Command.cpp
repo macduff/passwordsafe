@@ -379,7 +379,7 @@ DeleteEntryCommand::DeleteEntryCommand(CommandInterface *pcomInt,
      m_ci.GetUUID(m_entry_uuid);
 
   if (ci.IsNormal()) {
-    memset(m_base_uuid, 0, sizeof(m_base_uuid));
+    memset(m_base_uuid, 0, sizeof(uuid_array_t));
   } else {
     uuid_array_t uuid;
     ci.GetUUID(uuid);
