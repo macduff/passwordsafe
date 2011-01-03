@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -103,7 +103,8 @@ bool PWSMatch::Match(const bool bValue, int iFunction)
     if (iFunction == MR_EQUALS ||
         iFunction == MR_ACTIVE ||
         iFunction == MR_PRESENT ||
-        iFunction == MR_YES)
+        iFunction == MR_YES ||
+        iFunction == MR_IS)
       rc = true;
     else
       rc = false;
@@ -111,7 +112,8 @@ bool PWSMatch::Match(const bool bValue, int iFunction)
     if (iFunction == MR_NOTEQUAL ||
         iFunction == MR_INACTIVE ||
         iFunction == MR_NOTPRESENT ||
-        iFunction == MR_NO)
+        iFunction == MR_NO ||
+        iFunction == MR_ISNOT)
       rc = true;
     else
       rc = false;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -471,6 +471,11 @@ void CPWTreeCtrl::OnBeginLabelEdit(NMHDR *pNMHDR, LRESULT *pLResult)
     DWORD_PTR itemData = GetItemData(ti);
     ASSERT(itemData != NULL);
     CItemData *pci = (CItemData *)itemData;
+
+    // Don't allow edit if a protected entry
+    if (pci->IsProtected())
+      return;
+
     CSecString currentTitle, currentUser, currentPassword;
 
     // We cannot allow in-place edit if these fields contain braces!
@@ -1805,6 +1810,8 @@ CSecString CPWTreeCtrl::MakeTreeDisplayString(const CItemData &ci) const
       treeDispString += L"}";
     }
   }
+  if (ci.IsProtected())
+    treeDispString += L" #";
   return treeDispString;
 }
 

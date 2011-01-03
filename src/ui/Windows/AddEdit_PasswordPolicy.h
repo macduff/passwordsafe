@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -58,6 +58,7 @@ protected:
   //{{AFX_MSG(CAddEdit_PasswordPolicy)
   virtual BOOL OnInitDialog();
   afx_msg void OnHelp();
+  afx_msg BOOL OnKillActive();
   afx_msg LRESULT OnQuerySiblings(WPARAM wParam, LPARAM );
 
   afx_msg void OnChanged();
@@ -69,7 +70,6 @@ protected:
   afx_msg void OnUseSymbols();
   afx_msg void OnEasyVision();
   afx_msg void OnMakePronounceable();
-  afx_msg BOOL OnKillActive();
   afx_msg void OnSetDefaultPWPolicy();
   afx_msg void OnSetSpecificPWPolicy();
   afx_msg void OnResetPolicy();

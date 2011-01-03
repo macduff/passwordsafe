@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -198,6 +198,10 @@ StringX PWScore::BuildHeader(const CItemData::FieldBits &bsFields, const bool bI
   }
   if (bittest(bsFields, CItemData::EMAIL, bIncluded)) {
     LoadAString(cs_temp, IDSC_EXPHDREMAIL);
+    hdr += cs_temp;
+  }
+  if (bittest(bsFields, CItemData::PROTECTED, bIncluded)) {
+    LoadAString(cs_temp, IDSC_EXPHDRPROTECTED);
     hdr += cs_temp;
   }
   if (bittest(bsFields, CItemData::NOTES, bIncluded)) {
@@ -845,7 +849,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
   // Order of fields determined in CItemData::GetPlaintext()
   enum Fields {GROUPTITLE, USER, PASSWORD, URL, AUTOTYPE,
                CTIME, PMTIME, ATIME, XTIME, XTIME_INT, RMTIME,
-               POLICY, HISTORY, RUNCMD, DCA, EMAIL, NOTES, 
+               POLICY, HISTORY, RUNCMD, DCA, EMAIL, PROTECTED, NOTES, 
                NUMFIELDS};
 
   int i_Offset[NUMFIELDS];
@@ -1243,6 +1247,9 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
       ci_temp.SetDCA(tokens[i_Offset[DCA]].c_str());
     if (i_Offset[EMAIL] >= 0 && tokens.size() > static_cast<size_t>(i_Offset[EMAIL]))
       ci_temp.SetEmail(tokens[i_Offset[EMAIL]].c_str());
+    if (i_Offset[PROTECTED] >= 0 && tokens.size() > static_cast<size_t>(i_Offset[PROTECTED]))
+      if (tokens[i_Offset[PROTECTED]].compare(_T("Y")) == 0 || tokens[i_Offset[PROTECTED]].compare(_T("1")) == 0)
+        ci_temp.SetProtected(true);
 
     // The notes field begins and ends with a double-quote, with
     // replacement of delimiter by CR-LF.

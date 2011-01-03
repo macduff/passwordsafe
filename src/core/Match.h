@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -29,7 +29,7 @@ namespace PWSMatch {
     MR_PRESENT, MR_NOTPRESENT,
     MR_SET, MR_NOTSET,
     MR_YES, MR_NO,
-    // For entrytype & DCA comparisons/filters
+    // For entrytype & DCA & Attributes comparisons/filters
     MR_IS, MR_ISNOT,
     // For string comparisons/filters
     MR_BEGINS, MR_NOTBEGIN, 

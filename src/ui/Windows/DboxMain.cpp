@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -416,6 +416,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_REDO, OnRedo)
   ON_COMMAND(ID_MENUITEM_EXPORTENT2PLAINTEXT, OnExportEntryText)
   ON_COMMAND(ID_MENUITEM_EXPORTENT2XML, OnExportEntryXML)
+  ON_COMMAND_RANGE(ID_MENUITEM_PROTECT, ID_MENUITEM_UNPROTECTGROUP, OnProtect)
   ON_COMMAND(ID_MENUITEM_EXTRACT_ATTACHMENT, OnExtractAttachment)
 
   // View Menu
@@ -613,7 +614,11 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_FINDUP, true, true, false, false},
   {ID_MENUITEM_DUPLICATEENTRY, true, false, false, false},
   {ID_MENUITEM_ADDGROUP, true, false, true, false},
-  {ID_MENUITEM_DUPLICATEGROUP, true, false, true, false},
+  {ID_MENUITEM_DUPLICATEGROUP, true, false, false, false},
+  {ID_MENUITEM_PROTECT, true, false, false, false},
+  {ID_MENUITEM_UNPROTECT, true, false, false, false},
+  {ID_MENUITEM_PROTECTGROUP, true, false, false, false},
+  {ID_MENUITEM_UNPROTECTGROUP, true, false, false, false},
   {ID_MENUITEM_COPYPASSWORD, true, true, false, false},
   {ID_MENUITEM_COPYUSERNAME, true, true, false, false},
   {ID_MENUITEM_COPYNOTESFLD, true, true, false, false},
@@ -1120,6 +1125,7 @@ BOOL DboxMain::OnInitDialog()
       ShowWindow(SW_SHOW);
   }
 
+  BOOL bOOI(FALSE);
   if (!m_IsStartClosed && !m_IsStartSilent) {
     if (m_bSetup) { // --setup flag passed?
       // If default dbase exists, DO NOT overwrite it, else
@@ -1132,7 +1138,7 @@ BOOL DboxMain::OnInitDialog()
       if (dir[dir.length()-1] != TCHAR('\\')) dir += L"\\";
       fname = dir + fname;
       if (pws_os::FileExists(fname)) 
-        OpenOnInit();
+        bOOI = OpenOnInit();
       else { // really first install!
         CPasskeySetup dbox_pksetup(this);
         INT_PTR rc = dbox_pksetup.DoModal();
@@ -1154,8 +1160,14 @@ BOOL DboxMain::OnInitDialog()
         }
       } // first install
     } else
-      OpenOnInit();
+      bOOI = OpenOnInit();
     // No need for another RefreshViews as OpenOnInit does one via PostOpenProcessing
+  }
+
+  // Check if user cancelled
+  if (bOOI == FALSE) {
+    PostQuitMessage(0);
+    return FALSE;
   }
 
   SetInitialDatabaseDisplay();
@@ -1174,7 +1186,6 @@ BOOL DboxMain::OnInitDialog()
     CGeneralMsgBox gmb;
     gmb.AfxMessageBox(IDS_CANTLOAD_AUTOTYPEDLL, MB_ICONERROR);
   }
-
 
   // create tooltip unconditionally
   m_pToolTipCtrl = new CToolTipCtrl;

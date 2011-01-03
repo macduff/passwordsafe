@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+ * Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
  * All rights reserved. Use of the code is allowed under the
  * Artistic License 2.0 terms, as specified in the LICENSE file
  * distributed with this code, or available from
@@ -125,7 +125,8 @@ enum {
   ID_TRAYRECENT_ENTRY_HELP1,
   ID_TRAYRECENT_ENTRY_HELP2,
   ID_TOOLBAR_NEW,
-  ID_TOOLBAR_CLASSIC
+  ID_TOOLBAR_CLASSIC,
+  ID_SYNCHRONIZE
 };
 
 
@@ -331,7 +332,8 @@ public:
   void OnShowHideDragBar(wxCommandEvent& /*evt*/);
 
   void OnMergeAnotherSafe(wxCommandEvent& evt);
-
+  void OnSynchronize(wxCommandEvent& evt);
+  
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_TOOLBAR_CLASSIC and ID_TOOLBAR_NEW
   void OnChangeToolbarType(wxCommandEvent& /*evt*/);
 

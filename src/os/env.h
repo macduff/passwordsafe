@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -16,6 +16,7 @@ namespace pws_os {
    * separator ('/' or '\') if found
    */
   extern stringT getenv(const char *env, bool is_path);
+  extern void setenv(const char *name, const char *value);
   extern stringT getusername(); // returns name of current user
   extern stringT gethostname(); // returns name of current machine
   extern stringT getprocessid();

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -141,6 +141,9 @@ void CAddEdit_Basic::DoDataExchange(CDataExchange* pDX)
     DDX_Control(pDX, IDC_STATIC_URL, m_stc_URL);
     DDX_Control(pDX, IDC_STATIC_EMAIL, m_stc_email);
   }
+
+  if (M_uicaller() == IDS_EDITENTRY && M_protected() != 0)
+    DDX_Control(pDX, IDC_STATIC_PROTECTED, m_stc_protected);
   //}}AFX_DATA_MAP
 }
 
@@ -198,6 +201,9 @@ BOOL CAddEdit_Basic::OnInitDialog()
   ApplyPasswordFont(GetDlgItem(IDC_PASSWORD));
   ApplyPasswordFont(GetDlgItem(IDC_PASSWORD2));
 
+  if (M_uicaller() != IDS_EDITENTRY || M_protected() == 0)
+    GetDlgItem(IDC_STATIC_PROTECTED)->ShowWindow(SW_HIDE);
+
   if (M_uicaller() != IDS_ADDENTRY) {
     m_pToolTipCtrl = new CToolTipCtrl;
     if (!m_pToolTipCtrl->Create(this, TTS_BALLOON | TTS_NOPREFIX)) {
@@ -206,10 +212,7 @@ BOOL CAddEdit_Basic::OnInitDialog()
       m_pToolTipCtrl = NULL;
     } else {
       EnableToolTips();
-      // Delay initial show & reshow
-      int iTime = m_pToolTipCtrl->GetDelayTime(TTDT_AUTOPOP) / 2;
-      m_pToolTipCtrl->SetDelayTime(TTDT_INITIAL, iTime);
-      m_pToolTipCtrl->SetDelayTime(TTDT_RESHOW, iTime);
+
       m_pToolTipCtrl->SetMaxTipWidth(300);
 
       CString cs_ToolTip;
@@ -228,6 +231,12 @@ BOOL CAddEdit_Basic::OnInitDialog()
       cs_ToolTip.LoadString(IDS_CLICKTOSEND);
       m_pToolTipCtrl->AddTool(GetDlgItem(IDC_SENDEMAIL), cs_ToolTip);
 
+      if (M_uicaller() == IDS_EDITENTRY && M_protected() != 0) {
+        cs_ToolTip.LoadString(IDS_UNPROTECT);
+        m_pToolTipCtrl->AddTool(GetDlgItem(IDC_STATIC_PROTECTED), cs_ToolTip);
+        m_stc_protected.SetColour(RGB(255,0,0));
+      }
+
       m_pToolTipCtrl->Activate(TRUE);
     }
 
@@ -244,10 +253,12 @@ BOOL CAddEdit_Basic::OnInitDialog()
   GetDlgItem(IDC_LAUNCH)->EnableWindow(M_URL().IsEmpty() ? FALSE : TRUE);
   GetDlgItem(IDC_SENDEMAIL)->EnableWindow(M_email().IsEmpty() ? FALSE : TRUE);
 
-  if (M_uicaller() == IDS_VIEWENTRY) {
+  if (M_uicaller() == IDS_VIEWENTRY || (M_uicaller() == IDS_EDITENTRY && M_protected() != 0)) {
     // Change 'OK' to 'Close' and disable 'Cancel'
     CancelToClose();
+  }
 
+  if (M_uicaller() == IDS_VIEWENTRY) {
     // Disable Group Combo
     GetDlgItem(IDC_GROUP)->EnableWindow(FALSE);
 
@@ -382,6 +393,9 @@ HBRUSH CAddEdit_Basic::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
       case IDC_STATIC_EMAIL:
         pcfOld = &m_email_cfOldColour;
         break;
+      case IDC_STATIC_PROTECTED:
+        pcfOld = &m_protected_cfOldColour;
+        break;
       default:
         // Not one of ours - get out quick
         return hbr;
@@ -453,6 +467,43 @@ LRESULT CAddEdit_Basic::OnQuerySiblings(WPARAM wParam, LPARAM )
       // copy data into the entry - we do it ourselfs here first
       if (OnApply() == FALSE)
         return 1L;
+      break;
+    case PP_PROTECT_CHANGED:
+    {
+      const BOOL bProtect = M_protected() != 0 ? TRUE : FALSE;
+      // Change 'OK' to 'Close' and disable 'Cancel'
+      if (bProtect == TRUE) {
+        CString cs_Close(MAKEINTRESOURCE(IDS_CLOSE));
+        m_ae_psh->GetDlgItem(IDOK)->SetWindowText(cs_Close);
+        m_ae_psh->GetDlgItem(IDCANCEL)->EnableWindow(TRUE);
+        m_ae_psh->GetDlgItem(ID_APPLY_NOW)->EnableWindow(FALSE);
+      } else {
+        // There isn't a "CloseToCancel()" function - do it ourselves!
+        if (m_ae_psh != NULL && IsWindow(m_ae_psh->m_hWnd)) {
+          CString cs_OK(MAKEINTRESOURCE(IDS_OK));
+          m_ae_psh->GetDlgItem(IDOK)->SetWindowText(cs_OK);
+          m_ae_psh->GetDlgItem(IDCANCEL)->EnableWindow(TRUE);
+          m_ae_psh->GetDlgItem(ID_APPLY_NOW)->EnableWindow(TRUE);
+        }
+      }
+
+      // Enable/Disable Group Combo
+      GetDlgItem(IDC_GROUP)->EnableWindow(1 - bProtect);
+
+      // Enable/Disable normal Edit controls
+      GetDlgItem(IDC_TITLE)->SendMessage(EM_SETREADONLY, bProtect, 0);
+      GetDlgItem(IDC_USERNAME)->SendMessage(EM_SETREADONLY, bProtect, 0);
+      GetDlgItem(IDC_PASSWORD)->SendMessage(EM_SETREADONLY, bProtect, 0);
+      GetDlgItem(IDC_PASSWORD2)->SendMessage(EM_SETREADONLY, bProtect, 0);
+      GetDlgItem(IDC_NOTES)->SendMessage(EM_SETREADONLY, bProtect, 0);
+      GetDlgItem(IDC_NOTESWW)->SendMessage(EM_SETREADONLY, bProtect, 0);
+      GetDlgItem(IDC_URL)->SendMessage(EM_SETREADONLY, bProtect, 0);
+      GetDlgItem(IDC_EMAIL)->SendMessage(EM_SETREADONLY, bProtect, 0);
+
+      // Enable/Disable Button
+      GetDlgItem(IDC_RANDOM)->EnableWindow(1 - bProtect);
+      break;
+    }
   }
   return 0L;
 }
@@ -497,7 +548,7 @@ BOOL CAddEdit_Basic::PreTranslateMessage(MSG* pMsg)
 
 BOOL CAddEdit_Basic::OnApply()
 {
-  if (M_uicaller() == IDS_VIEWENTRY)
+  if (M_uicaller() == IDS_VIEWENTRY || M_protected() != 0)
     return CAddEdit_PropertyPage::OnApply();
 
   CWnd *pFocus(NULL);

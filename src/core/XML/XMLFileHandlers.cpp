@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -118,6 +118,8 @@ bool XMLFileHandlers::ProcessStartElement(const int icurrent_element)
       cur_entry->pwp.Empty();
       cur_entry->run_command = _T("");
       cur_entry->dca = _T("");
+      cur_entry->email = _T("");
+      cur_entry->ucprotected = 0;
       cur_entry->entrytype = NORMAL;
       cur_entry->bforce_normal_entry = false;
       m_whichtime = -1;
@@ -333,6 +335,10 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
       break;
     case XLE_EMAIL:
       cur_entry->email = m_strElemContent;
+      break;
+    case XLE_PROTECTED:
+      if (m_strElemContent == _T("1"))
+        cur_entry->ucprotected = 1;
       break;
     case XLE_UNKNOWNRECORDFIELDS:
       if (!cur_entry->uhrxl.empty())
@@ -672,6 +678,8 @@ void XMLFileHandlers::AddEntries()
       ci_temp.SetDCA(cur_entry->dca.c_str());
     if (!cur_entry->email.empty())
       ci_temp.SetEmail(cur_entry->email);
+    if (cur_entry->ucprotected)
+      ci_temp.SetProtected(cur_entry->ucprotected != 0);
 
     StringX newPWHistory;
     stringT strPWHErrorList;

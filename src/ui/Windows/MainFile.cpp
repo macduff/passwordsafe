@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -102,6 +102,9 @@ BOOL DboxMain::OpenOnInit()
   int rc = GetAndCheckPassword(m_core.GetCurFile(),
                                passkey, GCP_FIRST,
                                flags) ;  // First
+
+  if (rc == PWSRC::USER_CANCEL || rc == PWSRC::USER_EXIT)
+    return FALSE;
 
   CString cs_title;
   cs_title.LoadString(IDS_FILEREADERROR);
@@ -2958,6 +2961,7 @@ void DboxMain::Compare(const StringX &sx_Filename2, PWScore *pothercore)
         st_data.indatabase = CCompareResultsDlg::BOTH;
         st_data.unknflds0 = currentItem.NumberUnknownFields() > 0;
         st_data.unknflds1 = compItem.NumberUnknownFields() > 0;
+        st_data.bIsProtected0 = currentItem.IsProtected();
 
         if (bsConflicts.any()) {
           numConflicts++;
@@ -3171,6 +3175,11 @@ void DboxMain::Synchronize(const StringX &sx_Filename2, PWScore *pothercore)
     if (foundPos != m_core.GetEntryEndIter()) {
       // found a match
       CItemData curItem = m_core.GetEntry(foundPos);
+
+      // Don't update if entry is protected
+      if (curItem.IsProtected())
+        continue;
+
       CItemData updItem(curItem);
       updItem.SetDisplayInfo(NULL);
 

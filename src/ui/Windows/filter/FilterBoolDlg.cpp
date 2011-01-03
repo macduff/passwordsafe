@@ -1,5 +1,5 @@
       /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -97,6 +97,17 @@ BOOL CFilterBoolDlg::OnInitDialog()
         cs_text.LoadString(IDSC_NOTSET);
         iItem = m_cbxRule.AddString(cs_text);
         m_cbxRule.SetItemData(iItem, PWSMatch::MR_NOTSET);
+        m_rule2selection[PWSMatch::MR_NOTSET] = iItem;
+        break;
+      case BT_IS:
+        cs_text.LoadString(IDSC_IS);
+        iItem = m_cbxRule.AddString(cs_text);
+        m_cbxRule.SetItemData(iItem, PWSMatch::MR_IS);
+        m_rule2selection[PWSMatch::MR_SET] = iItem;
+
+        cs_text.LoadString(IDSC_ISNOT);
+        iItem = m_cbxRule.AddString(cs_text);
+        m_cbxRule.SetItemData(iItem, PWSMatch::MR_ISNOT);
         m_rule2selection[PWSMatch::MR_NOTSET] = iItem;
         break;
       default:

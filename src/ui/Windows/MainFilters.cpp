@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -266,6 +266,10 @@ bool DboxMain::PassesFiltering(const CItemData &ci,
         case FT_ATTACHMENTS:
           ci.GetUUID(entry_uuid);
           bValue = m_core.HasAttachments(entry_uuid) > 0;
+          mt = PWSMatch::MT_BOOL;
+          break;
+        case FT_PROTECTED:
+          bValue = ci.IsProtected();
           mt = PWSMatch::MT_BOOL;
           break;
         case FT_ENTRYTYPE:

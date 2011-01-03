@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -267,6 +267,11 @@ BOOL CAdvancedDlg::OnInitDialog()
       iItem = m_pLC_List->InsertItem(++iItem, cs_text);
       m_pLC_List->SetItemData(iItem, CItemData::DCA | NORMALFIELD);
       m_bsAllowedFields.set(CItemData::DCA);
+
+      cs_text.LoadString(IDS_PROTECTED);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::PROTECTED | NORMALFIELD);
+      m_bsAllowedFields.set(CItemData::PROTECTED);
       break;
     case ADV_FIND:
       // Don't add any of these - they are not text fields
@@ -330,6 +335,12 @@ BOOL CAdvancedDlg::OnInitDialog()
       m_pLC_Selected->SetItemData(iItem, CItemData::DCA | NORMALFIELD);
       m_bsAllowedFields.set(CItemData::DCA);
       m_bsDefaultSelectedFields.set(CItemData::DCA);
+
+      cs_text.LoadString(IDS_PROTECTED);
+      iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+      m_pLC_Selected->SetItemData(iItem, CItemData::PROTECTED | NORMALFIELD);
+      m_bsAllowedFields.set(CItemData::PROTECTED);
+      m_bsDefaultSelectedFields.set(CItemData::PROTECTED);
       break;
     default:
       ASSERT(FALSE);

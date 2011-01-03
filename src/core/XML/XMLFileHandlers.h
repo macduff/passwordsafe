@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -42,6 +42,7 @@ struct pw_entry {
   StringX run_command;
   StringX dca;
   StringX email;
+  unsigned char ucprotected;
   PWPolicy pwp;
   UnknownFieldList uhrxl;  // Note: use header format for record unknown fields!
   int entrytype;

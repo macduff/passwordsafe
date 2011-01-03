@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -375,7 +375,7 @@ void DboxMain::OnDuplicateGroup()
   std::vector<bool> bVNodeStates;
   bool bState = (m_ctlItemTree.GetItemState(ti, TVIS_EXPANDED) &
                          TVIS_EXPANDED) != 0;
-   bVNodeStates.push_back(bState);
+  bVNodeStates.push_back(bState);
 
   if (m_ctlItemTree.ItemHasChildren(ti)) {
     MultiCommands *pmulti_cmd_base = MultiCommands::Create(&m_core);
@@ -412,6 +412,7 @@ void DboxMain::OnDuplicateGroup()
         ci2.SetDisplayInfo(NULL);
         ci2.CreateUUID();
         ci2.SetStatus(CItemData::ES_ADDED);
+        ci2.SetProtected(false);
         // Set new group
         StringX sxThisEntryNewGroup = sxNewPath + pci->GetGroup().substr(grplen);
         ci2.SetGroup(sxThisEntryNewGroup);
@@ -459,6 +460,7 @@ void DboxMain::OnDuplicateGroup()
           ci2.SetDisplayInfo(NULL);
           ci2.CreateUUID();
           ci2.SetStatus(CItemData::ES_ADDED);
+          ci2.SetProtected(false);
           // Set new group
           StringX sxThisEntryNewGroup = sxNewPath + pci->GetGroup().substr(grplen);
           ci2.SetGroup(sxThisEntryNewGroup);
@@ -566,6 +568,114 @@ void DboxMain::OnDuplicateGroup()
   m_ctlItemTree.SelectItem(ti);
 }
 
+void DboxMain::OnProtect(UINT nID)
+{
+  CItemData *pci(NULL);
+  if (m_ctlItemTree.IsWindowVisible()) {
+    HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
+    if (hStartItem != NULL) {
+      pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
+    }
+  } else {
+    POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
+    if (pos != NULL) {
+      pci = (CItemData *)m_ctlItemList.GetItemData((int)pos - 1);
+    }
+  }
+  if (pci != NULL) {
+    // Entry
+    ASSERT(nID == ID_MENUITEM_PROTECT || nID == ID_MENUITEM_UNPROTECT);
+    Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci, 
+                                               CItemData::PROTECTED,
+                                               nID == ID_MENUITEM_UNPROTECT ? L"0" : L"1");
+    Execute(pcmd, &m_core);
+
+    SetChanged(Data);
+  } else {
+    // Group
+    ASSERT(nID == ID_MENUITEM_PROTECTGROUP || nID == ID_MENUITEM_UNPROTECTGROUP);
+    ChangeSubtreeEntriesProtectStatus(nID);
+  }
+}
+
+void DboxMain::ChangeSubtreeEntriesProtectStatus(const UINT nID)
+{
+  // Get selected group
+  HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
+  const HTREEITEM nextsibling = m_ctlItemTree.GetNextSiblingItem(ti);
+
+  // Verify that it is a group
+  ASSERT((CItemData *)m_ctlItemTree.GetItemData(ti) == NULL);
+
+  // Get all of the children
+  MultiCommands *pmulticmds = MultiCommands::Create(&m_core);
+
+  if (m_ctlItemTree.ItemHasChildren(ti)) {
+    HTREEITEM hNextItem;
+    hNextItem = m_ctlItemTree.GetNextTreeItem(ti);
+
+    while (hNextItem != NULL && hNextItem != nextsibling) {
+      CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hNextItem);
+      if (pci != NULL) {
+        if (!pci->IsShortcut()) {
+          if (pci->IsProtected() && nID == ID_MENUITEM_UNPROTECTGROUP) {
+            Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci, 
+                                             CItemData::PROTECTED,
+                                             L"0");
+            pmulticmds->Add(pcmd);
+          } else {
+            if (nID == ID_MENUITEM_PROTECTGROUP) {
+              Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci, 
+                                               CItemData::PROTECTED,
+                                               L"1");
+              pmulticmds->Add(pcmd);
+            }
+          }
+        }
+      }
+      hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
+    }
+  }
+  if (pmulticmds->GetSize() != 0)
+    Execute(pmulticmds);
+}
+
+bool DboxMain::GetSubtreeEntriesProtectedStatus(int &numProtected, int &numUnprotected)
+{
+  int numShortcuts(0);
+  numProtected = numUnprotected = 0;
+
+  // Get selected group
+  HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
+  const HTREEITEM nextsibling = m_ctlItemTree.GetNextSiblingItem(ti);
+
+  // Verify that it is a group
+  ASSERT((CItemData *)m_ctlItemTree.GetItemData(ti) == NULL);
+
+  // Get all of the children
+  if (m_ctlItemTree.ItemHasChildren(ti)) {
+    HTREEITEM hNextItem;
+    hNextItem = m_ctlItemTree.GetNextTreeItem(ti);
+
+    while (hNextItem != NULL && hNextItem != nextsibling) {
+      CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hNextItem);
+      if (pci != NULL) {
+        if (pci->IsShortcut()) {
+          numShortcuts++;
+        } else {
+          if (pci->IsProtected())
+            numProtected++;
+          else
+            numUnprotected++;
+        }
+      }
+      hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
+    }
+  }
+  // Nothing to do if sub-tree empty or only contains shortcuts
+  return !(numShortcuts >= 0 && (numProtected == 0 && numUnprotected == 0));
+}
+
 void DboxMain::OnDelete()
 {
   // Check preconditions, possibly prompt user for confirmation, then call Delete()
@@ -608,9 +718,13 @@ void DboxMain::OnDelete()
   }
 
   if (pci != NULL) {
+    if (pci->IsProtected())
+      return;
+
     uuid_array_t entry_uuid;
     pci->GetUUID(entry_uuid);
     num_atts = m_core.HasAttachments(entry_uuid);
+
     sxGroup = pci->GetGroup();
     sxTitle = pci->GetTitle();
     sxUser = pci->GetUser();
@@ -732,6 +846,13 @@ void DboxMain::OnRename()
   if (m_ctlItemTree.IsWindowVisible()) {
     HTREEITEM hItem = m_ctlItemTree.GetSelectedItem();
     if (hItem != NULL) {
+      if (m_ctlItemTree.IsLeaf(hItem)) {
+        // Do not allow rename of protected entry
+        CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
+        ASSERT(pci != NULL);
+        if (pci->IsProtected())
+          return;
+      }
       m_ctlItemTree.EditLabel(hItem);
       if (m_bFilterActive && m_ctlItemTree.WasLabelEdited())
         RefreshViews();
@@ -983,7 +1104,7 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
   m_ctlItemTree.SortTree(TVI_ROOT);
   SortListView();
 
-  // reselect entry, wherever it may be
+  // Reselect entry, wherever it may be
   iter = m_core.Find(original_uuid);
   if (iter != End()) {
     DisplayInfo *pdi = (DisplayInfo *)iter->second.GetDisplayInfo();
@@ -997,6 +1118,9 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
     SetDCAText(pci_new);
 
   UpdateToolBarForSelectedItem(pci_new);
+
+  // Password may have been updated and so not expired
+  UpdateEntryImages(*pci_new);
   return rc;
 }
 
@@ -1100,6 +1224,7 @@ void DboxMain::OnDuplicateEntry()
     ci2.SetTitle(ci2_title);
     ci2.SetUser(ci2_user);
     ci2.SetStatus(CItemData::ES_ADDED);
+    ci2.SetProtected(false);
 
     Command *pcmd = NULL;
 

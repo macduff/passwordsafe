@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -263,6 +263,9 @@ int PWSfileV3::WriteRecord(const CItemData &item)
   tmp = item.GetEmail();
   if (!tmp.empty())
     WriteCBC(CItemData::EMAIL, tmp);
+  tmp = item.GetProtected();
+  if (!tmp.empty())
+    WriteCBC(CItemData::PROTECTED, tmp);
 
   UnknownFieldsConstIter vi_IterURFE;
   for (vi_IterURFE = item.GetURFIterBegin();
@@ -369,7 +372,7 @@ void PWSfileV3::StretchKey(const unsigned char *salt, unsigned long saltLen,
   }
 }
 
-const short VersionNum = 0x0307;
+const short VersionNum = 0x0308;
 
 // Following specific for PWSfileV3::WriteHeader
 #define SAFE_FWRITE(p, sz, cnt, stream) \

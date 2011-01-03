@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -76,6 +76,9 @@ struct st_AE_master_data {
   // Password Policy
   PWPolicy pwp, oldpwp, default_pwp;
   int ipolicy, oldipolicy;
+
+  // Attributes
+  unsigned char ucprotected;
 
   // Attachments
   ATRVector vATRecords;
@@ -158,6 +161,9 @@ public:
   inline PWPolicy &M_default_pwp() {return m_AEMD.default_pwp;}
   inline int &M_ipolicy() {return m_AEMD.ipolicy;}
   inline int &M_oldipolicy() {return m_AEMD.oldipolicy;}
+  
+  // Attributes
+  inline unsigned char &M_protected() {return m_AEMD.ucprotected;}
 
   // Attachments
   inline ATRVector &M_vATRecords()

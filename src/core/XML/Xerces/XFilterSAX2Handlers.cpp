@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -360,6 +360,12 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
     m_type = DFTYPE_MAIN;
     cur_filterentry->mtype = PWSMatch::MT_STRING;
     cur_filterentry->ftype = FT_EMAIL;
+  }
+
+  else if (XMLString::equals(qname, _A2X("protected"))) {
+    m_type = DFTYPE_MAIN;
+    cur_filterentry->mtype = PWSMatch::MT_BOOL;
+    cur_filterentry->ftype = FT_PROTECTED;
   }
 
   else if (XMLString::equals(qname, _A2X("create_time"))) {

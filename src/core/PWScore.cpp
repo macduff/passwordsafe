@@ -1,6 +1,5 @@
 /*
-/*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -258,7 +257,7 @@ void PWScore::DoReplaceEntry(const CItemData &old_ci, const CItemData &new_ci)
   new_ci.GetUUID(new_uuid);
   ASSERT(memcmp(old_uuid, new_uuid, sizeof(uuid_array_t)) == 0);
   m_pwlist[old_uuid] = new_ci;
-  if (old_ci.GetEntryType() != new_ci.GetEntryType())
+  if (old_ci.GetEntryType() != new_ci.GetEntryType() || old_ci.IsProtected() != new_ci.IsProtected())
     GUIRefreshEntry(new_ci);
   m_bDBChanged = true;
 }

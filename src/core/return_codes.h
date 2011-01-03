@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -34,7 +34,7 @@ namespace PWSRC {
     BAD_DIGEST,                               // 0x0029 =   41
 
     // XML import/export
-    XML_FAILED_VALIDATION = 0x0040,           // 0x4000 =   64
+    XML_FAILED_VALIDATION = 0x0040,           // 0x0040 =   64
     XML_FAILED_IMPORT,                        // 0x0041 =   65
     NO_ENTRIES_EXPORTED,                      // 0x0042 =   66
     DB_HAS_DUPLICATES,                        // 0x0043 =   67

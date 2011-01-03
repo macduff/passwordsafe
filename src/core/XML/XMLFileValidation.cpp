@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -76,6 +76,7 @@ const XMLFileValidation::st_file_elements XMLFileValidation::m_file_elements[XLE
   {_T("runcommand"), {0, XLE_RUNCOMMAND}},
   {_T("dca"), {0, XLE_DCA}},
   {_T("email"), {0, XLE_EMAIL}},
+  {_T("protected"), {0, XLE_PROTECTED}},
   {_T("notes"), {0, XLE_NOTES}},
   {_T("uuid"), {0, XLE_UUID}},
   {_T("ctime"), {0, XLE_CTIME}},

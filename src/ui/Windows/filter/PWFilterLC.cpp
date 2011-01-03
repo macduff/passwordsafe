@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -792,6 +792,10 @@ bool CPWFilterLC::SetField(const int iItem)
           bAddPresent = true;
           mt = PWSMatch::MT_INTEGER;
           break;
+        case FT_PROTECTED:
+          m_fbool.m_bt = CFilterBoolDlg::BT_IS;
+          mt = PWSMatch::MT_BOOL;
+          break;
         case FT_UNKNOWNFIELDS:
           // 'Add Present' not needed - bool match
           m_fbool.m_bt = CFilterBoolDlg::BT_PRESENT;
@@ -1459,6 +1463,11 @@ void CPWFilterLC::SetUpComboBoxData()
         stf.cs_text.LoadString(IDSC_EXPHDREMAIL);
         stf.cs_text.TrimRight(L'\t');
         stf.ftype = FT_EMAIL;
+        vFcbx_data.push_back(stf);
+
+        stf.cs_text.LoadString(IDSC_EXPHDRPROTECTED);
+        stf.cs_text.TrimRight(L'\t');
+        stf.ftype = FT_PROTECTED;
         vFcbx_data.push_back(stf);
 
         stf.cs_text.LoadString(IDSC_EXPHDRCTIME);

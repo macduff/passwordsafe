@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -168,9 +168,8 @@ BOOL CAddEdit_PropertySheet::OnInitDialog()
       GetDlgItem(IDCANCEL)->ShowWindow(SW_HIDE);
       break;
     case IDS_EDITENTRY:
-      GetDlgItem(ID_APPLY_NOW)->SetDlgCtrlID(IDC_AEAPPLY);
-      GetDlgItem(IDOK)->EnableWindow((m_bChanged || m_bAttachmentsChanged) ? TRUE : FALSE);
-      GetDlgItem(IDC_AEAPPLY)->EnableWindow((m_bChanged || m_bAttachmentsChanged) ? TRUE : FALSE);
+      GetDlgItem(IDOK)->EnableWindow((m_bChanged || m_AEMD.ucprotected != 0) ? TRUE : FALSE);
+      GetDlgItem(ID_APPLY_NOW)->EnableWindow(m_bChanged ? TRUE : FALSE);
       break;
   }
   return TRUE;
@@ -181,7 +180,7 @@ void CAddEdit_PropertySheet::SetChanged(const bool bChanged)
   if (m_bChanged != bChanged) {
     GetDlgItem(IDOK)->EnableWindow((m_bAttachmentsChanged || bChanged) ? TRUE : FALSE);
     if (m_AEMD.uicaller == IDS_EDITENTRY)
-      GetDlgItem(IDC_AEAPPLY)->EnableWindow((bChanged) ? TRUE : FALSE);
+      GetDlgItem(ID_APPLY_NOW)->EnableWindow((bChanged) ? TRUE : FALSE);
     m_bChanged = bChanged;
   }
 }
@@ -213,7 +212,7 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
   int rc(PWSRC::SUCCESS);
   const int iCID = LOWORD(wParam);
 
-  if (iCID == IDOK || iCID == IDC_AEAPPLY) {
+  if (iCID == IDOK || iCID == ID_APPLY_NOW) {
     // First send a message to all loaded pages using base class function.
     // We want them all to update their variables in the Master Data area.
     // And call OnApply() rather than the default OnOK processing
@@ -225,10 +224,15 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
       return TRUE;
 
     time_t t;
+    bool bIsPSWDModified;
+    short iDCA;
+
     switch (m_AEMD.uicaller) {
       case IDS_EDITENTRY:
-        bool bIsPSWDModified;
-        short iDCA;
+        // Make as View entry if protected
+        if (m_AEMD.ucprotected != 0)
+          break;
+
         m_AEMD.pci->GetDCA(iDCA);
         // Check if modified
         m_bIsModified = (m_AEMD.group       != m_AEMD.pci->GetGroup()      ||
@@ -274,6 +278,7 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
           m_AEMD.pci->SetRunCommand(m_AEMD.runcommand);
           m_AEMD.pci->SetDCA(m_AEMD.DCA);
           m_AEMD.pci->SetEmail(m_AEMD.email);
+          m_AEMD.pci->SetProtected(m_AEMD.ucprotected != 0);
         }
 
         if (m_AEMD.XTimeInt > 0 && m_AEMD.XTimeInt <= 3650)
@@ -322,6 +327,7 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
         m_AEMD.pci->SetRunCommand(m_AEMD.runcommand);
         m_AEMD.pci->SetDCA(m_AEMD.DCA);
         m_AEMD.pci->SetEmail(m_AEMD.email);
+        m_AEMD.pci->SetProtected(m_AEMD.ucprotected != 0);
 
         time(&t);
         m_AEMD.pci->SetCTime(t);
@@ -409,7 +415,7 @@ BOOL CAddEdit_PropertySheet::PreTranslateMessage(MSG* pMsg)
   // In View mode, there is no 'Cancel' button and 'OK' is renamed 'Close'
   // Make Escape key still work as designed
   if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_ESCAPE) {
-    if (m_AEMD.uicaller == IDS_VIEWENTRY) {
+    if (m_AEMD.uicaller == IDS_VIEWENTRY || m_AEMD.ucprotected != 0) {
       CPWPropertySheet::EndDialog(IDCANCEL);
       return TRUE;
     } else {
@@ -444,6 +450,7 @@ void CAddEdit_PropertySheet::SetupInitialValues()
   m_AEMD.realnotes = m_AEMD.originalrealnotesTRC = m_AEMD.pci->GetNotes();
   m_AEMD.URL = m_AEMD.pci->GetURL();
   m_AEMD.email = m_AEMD.pci->GetEmail();
+  m_AEMD.pci->GetProtected(m_AEMD.ucprotected);
 
   if (m_AEMD.realnotes.GetLength() > MAXTEXTCHARS) {
     // Limit the Notes field to what can be displayed

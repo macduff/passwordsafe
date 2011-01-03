@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -17,7 +17,11 @@ public:
   // Following override to reset idle timeout on any event
   virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
-  enum {PP_DATA_CHANGED = 0, PP_UPDATE_VARIABLES, PP_UPDATE_PWPOLICY, PP_UPDATE_TIMES};
+  enum {PP_DATA_CHANGED = 0,
+        PP_UPDATE_VARIABLES,
+        PP_UPDATE_PWPOLICY,
+        PP_UPDATE_TIMES,
+        PP_PROTECT_CHANGED};
 
   DECLARE_DYNAMIC(CPWPropertyPage)
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -19,8 +19,9 @@
 class CUTF8Conv
 {
 public:
-  CUTF8Conv() : m_utf8(NULL), m_utf8Len(0), m_utf8MaxLen(0),
-    m_wc(NULL), m_wcMaxLen(0), m_tmp(NULL), m_tmpMaxLen(0) {}
+  CUTF8Conv(bool cp_acp=false) : m_utf8(NULL), m_utf8Len(0), m_utf8MaxLen(0),
+                                 m_wc(NULL), m_wcMaxLen(0), m_tmp(NULL),
+                                 m_tmpMaxLen(0), m_cp_acp(cp_acp) {}
   ~CUTF8Conv();
   // In following, char * is managed internally. Caller must NOT
   // allocate or deallocate it!
@@ -41,6 +42,7 @@ private:
   size_t m_wcMaxLen;
   unsigned char *m_tmp;
   size_t m_tmpMaxLen;
+  bool m_cp_acp; // if set, FromUTF8 uses CP_ACP, instead UTF8 encoding
 };
 
 #endif /* __UTF8CONV_H */

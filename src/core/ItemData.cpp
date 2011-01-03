@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -23,6 +23,7 @@
 #include "os/typedefs.h"
 #include "os/pws_tchar.h"
 #include "os/mem.h"
+#include "os/env.h"
 
 #include <time.h>
 #include <sstream>
@@ -53,7 +54,7 @@ CItemData::CItemData()
     m_tttATime(ATIME), m_tttCTime(CTIME), m_tttXTime(XTIME),
     m_tttPMTime(PMTIME), m_tttRMTime(RMTIME), m_PWHistory(PWHIST),
     m_PWPolicy(POLICY), m_XTimeInterval(XTIME_INT), m_RunCommand(RUNCMD),
-    m_DCA(DCA), m_email(EMAIL), m_entrytype(ET_NORMAL),
+    m_DCA(DCA), m_email(EMAIL), m_protected(PROTECTED), m_entrytype(ET_NORMAL),
     m_entrystatus(ES_CLEAN), m_display_info(NULL)
 {
   PWSrand::GetInstance()->GetRandomData( m_salt, SaltLength );
@@ -68,7 +69,8 @@ CItemData::CItemData(const CItemData &that) :
   m_tttRMTime(that.m_tttRMTime), m_PWHistory(that.m_PWHistory),
   m_PWPolicy(that.m_PWPolicy), m_XTimeInterval(that.m_XTimeInterval),
   m_RunCommand(that.m_RunCommand), m_DCA(that.m_DCA), m_email(that.m_email),
-  m_entrytype(that.m_entrytype), m_entrystatus(that.m_entrystatus),
+  m_protected(that.m_protected), m_entrytype(that.m_entrytype), 
+  m_entrystatus(that.m_entrystatus),
   m_display_info(that.m_display_info == NULL ?
                  NULL : that.m_display_info->clone())
 {
@@ -82,6 +84,75 @@ CItemData::CItemData(const CItemData &that) :
 CItemData::~CItemData()
 {
   delete m_display_info;
+}
+
+CItemData& CItemData::operator=(const CItemData &that)
+{
+  // Check for self-assignment
+  if (this != &that) {
+    m_UUID = that.m_UUID;
+    m_Name = that.m_Name;
+    m_Title = that.m_Title;
+    m_User = that.m_User;
+    m_Password = that.m_Password;
+    m_Notes = that.m_Notes;
+    m_Group = that.m_Group;
+    m_URL = that.m_URL;
+    m_AutoType = that.m_AutoType;
+    m_RunCommand = that.m_RunCommand;
+    m_DCA = that.m_DCA;
+    m_email = that.m_email;
+    m_tttCTime = that.m_tttCTime;
+    m_tttPMTime = that.m_tttPMTime;
+    m_tttATime = that.m_tttATime;
+    m_tttXTime = that.m_tttXTime;
+    m_tttRMTime = that.m_tttRMTime;
+    m_PWHistory = that.m_PWHistory;
+    m_PWPolicy = that.m_PWPolicy;
+    m_XTimeInterval = that.m_XTimeInterval;
+    m_protected = that.m_protected;
+
+    delete m_display_info;
+    m_display_info = that.m_display_info == NULL ?
+      NULL : that.m_display_info->clone();
+
+    if (!that.m_URFL.empty())
+      m_URFL = that.m_URFL;
+    else
+      m_URFL.clear();
+
+    m_entrytype = that.m_entrytype;
+    m_entrystatus = that.m_entrystatus;
+    memcpy(m_salt, that.m_salt, SaltLength);
+  }
+
+  return *this;
+}
+
+void CItemData::Clear()
+{
+  m_Group.Empty();
+  m_Title.Empty();
+  m_User.Empty();
+  m_Password.Empty();
+  m_Notes.Empty();
+  m_URL.Empty();
+  m_AutoType.Empty();
+  m_RunCommand.Empty();
+  m_DCA.Empty();
+  m_email.Empty();
+  m_tttCTime.Empty();
+  m_tttPMTime.Empty();
+  m_tttATime.Empty();
+  m_tttXTime.Empty();
+  m_tttRMTime.Empty();
+  m_PWHistory.Empty();
+  m_PWPolicy.Empty();
+  m_XTimeInterval.Empty();
+  m_protected.Empty();
+  m_URFL.clear();
+  m_entrytype = ET_NORMAL;
+  m_entrystatus = ES_CLEAN;
 }
 
 //-----------------------------------------------------------------------------
@@ -204,6 +275,15 @@ StringX CItemData::GetFieldValue(const FieldType &ft) const
       return GetDCA();
     case EMAIL:      /* 14 */
       return GetEmail();
+    case PROTECTED:  /* 15 */
+    {
+      unsigned char uc;
+      StringX sxProtected = _T("");
+      GetProtected(uc);
+      if (uc != 0)
+        LoadAString(sxProtected, IDSC_YES);
+      return sxProtected;
+    }
     case RESERVED:
     default:
       ASSERT(0);
@@ -234,6 +314,7 @@ size_t CItemData::GetSize()
   length += m_RunCommand.GetLength();
   length += m_DCA.GetLength();
   length += m_email.GetLength();
+  length += m_protected.GetLength();
 
   for (unsigned int i = 0; i != m_URFL.size(); i++) {
     CItemField &item = m_URFL.at(i);
@@ -265,6 +346,7 @@ void CItemData::GetSize(size_t &isize) const
   isize += m_RunCommand.GetLength();
   isize += m_DCA.GetLength();
   isize += m_email.GetLength();
+  isize += m_protected.GetLength();
 
   for (unsigned int i = 0; i != m_URFL.size(); i++) {
     isize += m_URFL.at(i).GetLength();
@@ -449,6 +531,36 @@ StringX CItemData::GetXTimeInt() const
   return os.str();
 }
 
+void CItemData::GetProtected(unsigned char &ucprotected) const
+{
+  unsigned char in[TwoFish::BLOCKSIZE]; // required by GetField
+  size_t tlen = sizeof(in); // ditto
+
+  GetField(m_protected, in, tlen);
+
+  if (tlen != 0) {
+    ASSERT(tlen == sizeof(char));
+    ucprotected = in[0];
+  } else {
+    ucprotected = 0;
+  }
+}
+
+StringX CItemData::GetProtected() const
+{
+  unsigned char ucprotected;
+  GetProtected(ucprotected);
+
+  return ucprotected != 0 ? StringX(_T("1")) : StringX(_T(""));
+}
+
+bool CItemData::IsProtected() const
+{
+  unsigned char ucprotected;
+  GetProtected(ucprotected);
+  return ucprotected != 0;
+}
+
 void CItemData::GetDCA(short &iDCA) const
 {
   unsigned char in[TwoFish::BLOCKSIZE]; // required by GetField
@@ -599,6 +711,9 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
   if (bsFields.count() == bsFields.size()) {
     // Everything - note can't actually set all bits via dialog!
     // Must be in same order as full header
+    unsigned char uc;
+    GetProtected(uc);
+    StringX sxProtected = uc != 0 ? _T("Y") : _T("N");
     ret = (grouptitle + separator + 
            user + separator +
            csPassword + separator + 
@@ -615,6 +730,7 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
            GetRunCommand() + separator +
            GetDCA() + separator +
            GetEmail() + separator +
+           sxProtected + separator +
            _T("\"") + notes + _T("\""));
   } else {
     // Not everything
@@ -655,6 +771,12 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
       ret += GetDCA() + separator;
     if (bsFields.test(CItemData::EMAIL))
       ret += GetEmail() + separator;
+    if (bsFields.test(CItemData::PROTECTED)) {
+      unsigned char uc;
+      GetProtected(uc);
+      StringX sxProtected = uc != 0 ? _T("Y") : _T("N");
+      ret += sxProtected + separator;
+    }
     if (bsFields.test(CItemData::NOTES))
       ret += _T("\"") + notes + _T("\"");
     // remove trailing separator
@@ -680,6 +802,7 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
 
   StringX tmp;
   CUTF8Conv utf8conv;
+  unsigned char uc;
 
   tmp = GetGroup();
   if (bsExport.test(CItemData::GROUP) && !tmp.empty())
@@ -850,6 +973,10 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
   tmp = GetEmail();
   if (bsExport.test(CItemData::EMAIL) && !tmp.empty())
     PWSUtil::WriteXMLField(oss, "email", tmp, utf8conv);
+
+  GetProtected(uc);
+  if (bsExport.test(CItemData::PROTECTED) && uc != 0)
+    oss << "\t\t<protected>1</protected>" << endl;
 
   if (NumberUnknownFields() > 0) {
     oss << "\t\t<unknownrecordfields>" << endl;
@@ -1311,7 +1438,6 @@ void CItemData::SetEmail(const StringX &cs_email)
 
 void CItemData::SetDCA(const short &iDCA)
 {
-   
    SetField(m_DCA, reinterpret_cast<const unsigned char *>(&iDCA), sizeof(short));
 }
 
@@ -1335,6 +1461,12 @@ bool CItemData::SetDCA(const stringT &cs_DCA)
     }
   }
   return false;
+}
+
+void CItemData::SetProtected(const bool &bOnOff)
+{
+  unsigned char ucProtected = bOnOff ? 1 : 0;
+  SetField(m_protected, &ucProtected, sizeof(char));
 }
 
 void CItemData::SetFieldValue(const FieldType &ft, const StringX &value)
@@ -1394,6 +1526,9 @@ void CItemData::SetFieldValue(const FieldType &ft, const StringX &value)
     case EMAIL:      /* 14 */
       SetEmail(value);
       break;
+    case PROTECTED:  /* 15 */
+      SetProtected(value.compare(_T("1")) == 0 || value.compare(_T("Yes")) == 0);
+      break;
     case GROUPTITLE: /* 00 */
     case UUID:       /* 01 */
     case RESERVED:   /* 0b */
@@ -1412,73 +1547,6 @@ BlowFish *CItemData::MakeBlowFish(bool noData) const
   else
     return BlowFish::MakeBlowFish(SessionKey, sizeof(SessionKey),
                                   m_salt, SaltLength);
-}
-
-CItemData& CItemData::operator=(const CItemData &that)
-{
-  // Check for self-assignment
-  if (this != &that) {
-    m_UUID = that.m_UUID;
-    m_Name = that.m_Name;
-    m_Title = that.m_Title;
-    m_User = that.m_User;
-    m_Password = that.m_Password;
-    m_Notes = that.m_Notes;
-    m_Group = that.m_Group;
-    m_URL = that.m_URL;
-    m_AutoType = that.m_AutoType;
-    m_RunCommand = that.m_RunCommand;
-    m_DCA = that.m_DCA;
-    m_email = that.m_email;
-    m_tttCTime = that.m_tttCTime;
-    m_tttPMTime = that.m_tttPMTime;
-    m_tttATime = that.m_tttATime;
-    m_tttXTime = that.m_tttXTime;
-    m_tttRMTime = that.m_tttRMTime;
-    m_PWHistory = that.m_PWHistory;
-    m_PWPolicy = that.m_PWPolicy;
-    m_XTimeInterval = that.m_XTimeInterval;
-
-    delete m_display_info;
-    m_display_info = that.m_display_info == NULL ?
-      NULL : that.m_display_info->clone();
-
-    if (!that.m_URFL.empty())
-      m_URFL = that.m_URFL;
-    else
-      m_URFL.clear();
-
-    m_entrytype = that.m_entrytype;
-    m_entrystatus = that.m_entrystatus;
-    memcpy(m_salt, that.m_salt, SaltLength);
-  }
-
-  return *this;
-}
-
-void CItemData::Clear()
-{
-  m_Group.Empty();
-  m_Title.Empty();
-  m_User.Empty();
-  m_Password.Empty();
-  m_Notes.Empty();
-  m_URL.Empty();
-  m_AutoType.Empty();
-  m_RunCommand.Empty();
-  m_DCA.Empty();
-  m_email.Empty();
-  m_tttCTime.Empty();
-  m_tttPMTime.Empty();
-  m_tttATime.Empty();
-  m_tttXTime.Empty();
-  m_tttRMTime.Empty();
-  m_PWHistory.Empty();
-  m_PWPolicy.Empty();
-  m_XTimeInterval.Empty();
-  m_URFL.clear();
-  m_entrytype = ET_NORMAL;
-  m_entrystatus = ES_CLEAN;
 }
 
 int CItemData::ValidateUUID(const unsigned short &nMajor, const unsigned short &nMinor,
@@ -1773,7 +1841,20 @@ bool CItemData::WillExpire(const int numdays) const
 
 bool pull_string(StringX &str, const unsigned char *data, size_t len)
 {
-  CUTF8Conv utf8conv;
+  /**
+   * cp_acp is used to force reading data as non-utf8 encoded
+   * This is for databases that were incorrectly written, e.g., 3.05.02
+   * PWS_CP_ACP is either set externally or via the --CP_ACP argv
+   *
+   * We use a static variable purely for efficiency, as this won't change
+   * over the course of the program.
+   */
+
+  static int cp_acp = -1;
+  if (cp_acp == -1) {
+    cp_acp = pws_os::getenv("PWS_CP_ACP", false).empty() ? 0 : 1;
+  }
+  CUTF8Conv utf8conv(cp_acp != 0);
   vector<unsigned char> v(data, (data + len));
   v.push_back(0); // null terminate for FromUTF8.
   bool utf8status = utf8conv.FromUTF8(&v[0], len, str);
@@ -1798,6 +1879,14 @@ bool pull_time32(time_t &t, const unsigned char *data, size_t len)
     t = _mkgmtime32(&ts);
     if (t == time_t(-1)) { // time is past 2038!
       t = 0; return false;
+    }
+  } else if (len < sizeof(__time32_t)) {
+    // Turns out that __time32_t is 8 bytes under 64bits...
+    __time32_t t8 = t;
+    if (pull_time32(t8, data, sizeof(t8))) {
+      t = time_t(t8);
+    } else {
+      ASSERT(0); return false;
     }
   } else {
     ASSERT(0); return false;
@@ -1838,6 +1927,17 @@ bool pull_int16(short &i16, const unsigned char *data, size_t len)
   return true;
 }
 
+static bool pull_char(unsigned char &uc, const unsigned char *data, size_t len)
+{
+  if (len == sizeof(char)) {
+    uc = *data;
+  } else {
+    ASSERT(0);
+    return false;
+  }
+  return true;
+}
+
 bool CItemData::DeserializePlainText(const std::vector<char> &v)
 {
   vector<char>::const_iterator iter = v.begin();
@@ -1853,9 +1953,9 @@ bool CItemData::DeserializePlainText(const std::vector<char> &v)
     if (type == END)
       return true; // happy end
 
-    unsigned int len = *(reinterpret_cast<const unsigned int *>(&(*iter)));
+    uint32 len = *(reinterpret_cast<const uint32 *>(&(*iter)));
     ASSERT(len < v.size()); // sanity check
-    iter += sizeof(unsigned int);
+    iter += sizeof(uint32);
 
     if (--emergencyExit == 0) {
       ASSERT(0);
@@ -1874,6 +1974,7 @@ bool CItemData::SetField(int type, const unsigned char *data, size_t len)
   time_t t;
   int i32;
   short i16;
+  unsigned char uc;
 
   switch (type) {
     case NAME:
@@ -1960,6 +2061,10 @@ bool CItemData::SetField(int type, const unsigned char *data, size_t len)
       if (!pull_string(str, data, len)) return false;
       SetEmail(str);
       break;
+    case PROTECTED:
+      if (!pull_char(uc, data, len)) return false;
+      SetProtected(uc != 0);
+      break;
     case END:
       break;
     default:
@@ -1970,10 +2075,10 @@ bool CItemData::SetField(int type, const unsigned char *data, size_t len)
   return true;
 }
 
-static void push_length(vector<char> &v, size_t s)
+static void push_length(vector<char> &v, uint32 s)
 {
   v.insert(v.end(),
-    reinterpret_cast<char *>(&s), reinterpret_cast<char *>(&s) + sizeof(size_t));
+    reinterpret_cast<char *>(&s), reinterpret_cast<char *>(&s) + sizeof(uint32));
 }
 
 static void push_string(vector<char> &v, char type,
@@ -1987,7 +2092,7 @@ static void push_string(vector<char> &v, char type,
     status = utf8conv.ToUTF8(str, utf8, utf8Len);
     if (status) {
       v.push_back(type);
-      push_length(v, utf8Len);
+      push_length(v, (uint32)utf8Len);
       v.insert(v.end(), reinterpret_cast<const char *>(utf8), reinterpret_cast<const char *>(utf8) + utf8Len);
     } else
       pws_os::Trace(_T("ItemData::SerializePlainText:ToUTF8(%s) failed\n"),
@@ -2026,6 +2131,15 @@ static void push_int16(vector<char> &v, char type, short i)
   }
 }
 
+static void push_uchar(vector<char> &v, char type, unsigned char uc)
+{
+  if (uc != 0) {
+    v.push_back(type);
+    push_length(v, sizeof(char));
+    v.insert(v.end(), reinterpret_cast<char *>(&uc), reinterpret_cast<char *>(&uc) + sizeof(char));
+  }
+}
+
 void CItemData::SerializePlainText(vector<char> &v,
                                    const CItemData *pcibase)  const
 {
@@ -2034,6 +2148,7 @@ void CItemData::SerializePlainText(vector<char> &v,
   time_t t = 0;
   int32 i32 = 0;
   short i16 = 0;
+  unsigned char uc = 0;
 
   v.clear();
   GetUUID(uuid_array);
@@ -2075,6 +2190,7 @@ void CItemData::SerializePlainText(vector<char> &v,
   push_string(v, RUNCMD, GetRunCommand());
   GetDCA(i16);   push_int16(v, DCA, i16);
   push_string(v, EMAIL, GetEmail());
+  GetProtected(uc); push_uchar(v, PROTECTED, uc);
 
   UnknownFieldsConstIter vi_IterURFE;
   for (vi_IterURFE = GetURFIterBegin();
@@ -2086,7 +2202,7 @@ void CItemData::SerializePlainText(vector<char> &v,
     GetUnknownField(type, length, pdata, vi_IterURFE);
     if (length != 0) {
       v.push_back(static_cast<char>(type));
-      push_length(v, length);
+      push_length(v, (uint32)length);
       v.insert(v.end(), reinterpret_cast<char *>(pdata), reinterpret_cast<char *>(pdata) + length);
       trashMemory(pdata, length);
     }

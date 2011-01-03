@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2010 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -2743,6 +2743,9 @@ CString DboxMain::GetHeaderText(int iType) const
     case CItemData::POLICY:        
       cs_header.LoadString(IDS_PWPOLICY);
       break;
+    case CItemData::PROTECTED:        
+      cs_header.LoadString(IDS_PROTECTED);
+      break;
     default:
       cs_header.Empty();
   }
@@ -3864,14 +3867,16 @@ void DboxMain::RefreshEntryFieldInGUI(CItemData &ci, CItemData::FieldType ft)
     bool bShowPasswordInTree = prefs->GetPref(PWSprefs::ShowPasswordInTree);
     if (ft == CItemData::START || ft == CItemData::TITLE || 
         (ft == CItemData::USER && bShowUsernameInTree) ||
-        (ft == CItemData::PASSWORD && bShowPasswordInTree)) {
+        (ft == CItemData::PASSWORD && bShowPasswordInTree) ||
+        ft == CItemData::PROTECTED) {
       StringX treeDispString = ci.GetTitle();
 
       if (bShowUsernameInTree)
         treeDispString += L" [" + ci.GetUser() + L"]";
       if (bShowPasswordInTree)
         treeDispString += L" {" + ci.GetPassword() + L"}";
-
+      if (ci.IsProtected())
+        treeDispString += L" #";
       UpdateTreeItem(pdi->tree_item, treeDispString);
     }
   }
