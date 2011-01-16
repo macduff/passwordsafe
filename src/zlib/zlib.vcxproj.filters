@@ -53,28 +53,35 @@
     <ClCompile Include="zutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="inffas8664.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup Condition=" '$(Platform)' == 'Win32' ">
-    <ClCompile Include="inffast.c" />
+    <ClCompile Include="inffast.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup Condition=" '$(Platform)' == 'x64' ">
-    <ClCompile Include="inffas8664.c" />
+    <ClCompile Include="inffas8664.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup Condition=" '$(Platform)' == 'Win32' ">
-    <MASM Include=".\masmx86\inffas32.asm">
+    <None Include=".\masmx86\inffas32.asm">
       <Filter>Source Files</Filter>
-    </MASM>
-    <MASM Include=".\masmx86\match686.asm">
+    </None>
+    <None Include=".\masmx86\match686.asm">
       <Filter>Source Files</Filter>
-    </MASM>
+    </None>
   </ItemGroup>
   <ItemGroup Condition=" '$(Platform)' == 'x64' ">
-    <MASM Include=".\masmx64\inffasx64.asm">
+    <None Include=".\masmx64\inffasx64.asm">
       <Filter>Source Files</Filter>
-    </MASM>
-    <MASM Include=".\masmx64\gvmat64.asm">
+    </None>
+    <None Include=".\masmx64\gvmat64.asm">
       <Filter>Source Files</Filter>
-    </MASM>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="crc32.h">

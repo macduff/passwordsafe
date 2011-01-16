@@ -405,9 +405,6 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseX|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\ui\Windows\UserVariables.props" />
@@ -813,7 +810,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debugwx|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-       <AdditionalIncludeDirectories>..;.\masmx86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>      
+      <AdditionalIncludeDirectories>..;.\masmx86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;__WXMSW__;__WX__;__WXDEBUG__;wxUSE_UNICODE;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;NO_GZIP;ASMV;ASMINF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -1785,7 +1782,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Lib>
   </ItemDefinitionGroup>
- <ItemGroup>
+  <ItemGroup>
     <ClCompile Include="adler32.c" />
     <ClCompile Include="compress.c" />
     <ClCompile Include="crc32.c" />
@@ -1808,12 +1805,28 @@
     <ClCompile Include="inffas8664.c" />
   </ItemGroup>
   <ItemGroup Condition=" '$(Platform)' == 'Win32' ">
-    <MASM Include=".\masmx86\inffas32.asm" />
-    <MASM Include=".\masmx86\match686.asm" />
+    <CustomBuild Include=".\masmx86\inffas32.asm">
+      <Message>Assembling...</Message>
+      <Command>ml.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx86\%(FileName).asm"</Command>
+      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include=".\masmx86\match686.asm">
+      <Message>Assembling...</Message>
+      <Command>ml.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx86\%(FileName).asm"</Command>
+      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition=" '$(Platform)' == 'x64' ">
-    <MASM Include=".\masmx64\inffasx64.asm" />
-    <MASM Include=".\masmx64\gvmat64.asm" />
+    <CustomBuild Include=".\masmx64\inffasx64.asm">
+      <Message>Assembling...</Message>
+      <Command>ml64.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
+      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include=".\masmx64\gvmat64.asm">
+      <Message>Assembling...</Message>
+      <Command>ml64.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
+      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="crc32.h" />
@@ -1829,7 +1842,4 @@
     <ClInclude Include="zutil.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
-  </ImportGroup>
 </Project>
