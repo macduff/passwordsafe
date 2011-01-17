@@ -1804,30 +1804,6 @@
   <ItemGroup Condition=" '$(Platform)' == 'x64' ">
     <ClCompile Include="inffas8664.c" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(Platform)' == 'Win32' ">
-    <CustomBuild Include=".\masmx86\inffas32.asm">
-      <Message>Assembling...</Message>
-      <Command>ml.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx86\%(FileName).asm"</Command>
-      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
-    </CustomBuild>
-    <CustomBuild Include=".\masmx86\match686.asm">
-      <Message>Assembling...</Message>
-      <Command>ml.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx86\%(FileName).asm"</Command>
-      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Platform)' == 'x64' ">
-    <CustomBuild Include=".\masmx64\inffasx64.asm">
-      <Message>Assembling...</Message>
-      <Command>ml64.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
-      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
-    </CustomBuild>
-    <CustomBuild Include=".\masmx64\gvmat64.asm">
-      <Message>Assembling...</Message>
-      <Command>ml64.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
-      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
-    </CustomBuild>
-  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="crc32.h" />
     <ClInclude Include="deflate.h" />
@@ -1840,6 +1816,30 @@
     <ClInclude Include="zconf.h" />
     <ClInclude Include="zlib.h" />
     <ClInclude Include="zutil.h" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Platform)' == 'Win32' ">
+    <CustomBuild Include="masmx86\inffas32.asm">
+      <Message>Assembling...</Message>
+      <Command>ml.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx86\%(FileName).asm"</Command>
+      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="masmx86\match686.asm">
+      <Message>Assembling...</Message>
+      <Command>ml.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx86\%(FileName).asm"</Command>
+      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Platform)' == 'x64' ">
+    <CustomBuild Include="masmx64\gvmat64.asm">
+      <Message>Assembling...</Message>
+      <Command>ml64.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
+      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="masmx64\inffasx64.asm">
+      <Message>Assembling...</Message>
+      <Command>ml64.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
+      <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
