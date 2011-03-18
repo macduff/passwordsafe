@@ -82,7 +82,7 @@ private:
   const int &m_subgroup_function;
 };
 
-int PWScore::TestForExport(const bool bAdvanced,
+int PWScore::TestSelection(const bool bAdvanced,
                            const stringT &subgroup_name,
                            const int &subgroup_object,
                            const int &subgroup_function,
@@ -106,12 +106,12 @@ int PWScore::TestForExport(const bool bAdvanced,
     }
 
     if (!bAnyMatch)
-      return PWSRC::NO_ENTRIES_EXPORTED;
+      return PWSRC::FAILURE;
   } else {
     if (il != NULL)
-      return (il->size() == 0) ? PWSRC::NO_ENTRIES_EXPORTED : PWSRC::SUCCESS;
+      return (il->size() == 0) ? PWSRC::FAILURE : PWSRC::SUCCESS;
     else
-      return (m_pwlist.size() == 0) ? PWSRC::NO_ENTRIES_EXPORTED : PWSRC::SUCCESS;
+      return (m_pwlist.size() == 0) ? PWSRC::FAILURE : PWSRC::SUCCESS;
   }
   return PWSRC::SUCCESS;
 }
@@ -128,104 +128,87 @@ StringX PWScore::BuildHeader(const CItemData::FieldBits &bsFields, const bool bI
   // User chose fields, build custom header
   // Header fields MUST be in the same order as actual fields written
   // See CItemData::GetPlaintext for TextExport
-  StringX hdr(_T("")), cs_temp;
+  stringT hdr(_T(""));
+  const stringT TAB(_T("\t"));
   if (bittest(bsFields, CItemData::GROUP, bIncluded) && 
       bittest(bsFields, CItemData::TITLE, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRGROUPTITLE);
-    hdr += cs_temp;
+    hdr = CItemData::FieldName(CItemData::GROUPTITLE) + TAB;
   } else if (bittest(bsFields, CItemData::GROUP, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRGROUP);
-    hdr += cs_temp;
+    hdr = CItemData::FieldName(CItemData::GROUP) + TAB;
   } else if (bittest(bsFields, CItemData::TITLE, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRTITLE);
-    hdr += cs_temp;
+    hdr = CItemData::FieldName(CItemData::TITLE) + TAB;
   }
   if (bittest(bsFields, CItemData::USER, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRUSERNAME);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::USER) + TAB;
   }
   if (bittest(bsFields, CItemData::PASSWORD, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRPASSWORD);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::PASSWORD) + TAB;
   }
   if (bittest(bsFields, CItemData::URL, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRURL);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::URL) + TAB;
   }
   if (bittest(bsFields, CItemData::AUTOTYPE, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRAUTOTYPE);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::AUTOTYPE) + TAB;
   }
   if (bittest(bsFields, CItemData::CTIME, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRCTIME);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::CTIME) + TAB;
   }
   if (bittest(bsFields, CItemData::PMTIME, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRPMTIME);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::PMTIME) + TAB;
   }
   if (bittest(bsFields, CItemData::ATIME, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRATIME);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::ATIME) + TAB;
   }
   if (bittest(bsFields, CItemData::XTIME, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRXTIME);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::XTIME) + TAB;
   }
   if (bittest(bsFields, CItemData::XTIME_INT, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRXTIMEINT);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::XTIME_INT) + TAB;
   }
   if (bittest(bsFields, CItemData::RMTIME, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRRMTIME);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::RMTIME) + TAB;
   }
   if (bittest(bsFields, CItemData::POLICY, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRPWPOLICY);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::POLICY) + TAB;
   }
   if (bittest(bsFields, CItemData::PWHIST, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRPWHISTORY);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::PWHIST) + TAB;
   }
   if (bittest(bsFields, CItemData::RUNCMD, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRRUNCOMMAND);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::RUNCMD) + TAB;
   }
   if (bittest(bsFields, CItemData::DCA, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRDCA);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::DCA) + TAB;
   }
   if (bittest(bsFields, CItemData::EMAIL, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDREMAIL);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::EMAIL) + TAB;
   }
   if (bittest(bsFields, CItemData::PROTECTED, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRPROTECTED);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::PROTECTED) + TAB;
   }
   if (bittest(bsFields, CItemData::NOTES, bIncluded)) {
-    LoadAString(cs_temp, IDSC_EXPHDRNOTES);
-    hdr += cs_temp;
+    hdr += CItemData::FieldName(CItemData::NOTES);
   }
-  size_t hdr_len = hdr.length();
-  if (hdr_len > 0) {
-    if (hdr[hdr.length() - 1] == _T('\t')) {
+  if (!hdr.empty()) {
+    size_t hdr_len = hdr.length();
+    if (hdr[hdr_len - 1] == _T('\t')) {
       hdr_len--;
       hdr = hdr.substr(0, hdr_len);
     }
   }
-  return hdr;
+  return hdr.c_str();
 }
 
 struct TextRecordWriter {
   TextRecordWriter(const stringT &subgroup_name,
           const int &subgroup_object, const int &subgroup_function,
           const CItemData::FieldBits &bsFields,
-          const TCHAR &delimiter, ofstream &ofs, PWScore *pcore) :
+          const TCHAR &delimiter, ofstream &ofs, int &numExported,
+          CReport *prpt, PWScore *pcore) :
   m_subgroup_name(subgroup_name), m_subgroup_object(subgroup_object),
   m_subgroup_function(subgroup_function), m_bsFields(bsFields),
-  m_delimiter(delimiter), m_ofs(ofs), m_pcore(pcore)
+  m_delimiter(delimiter), m_ofs(ofs), m_pcore(pcore),
+  m_prpt(prpt), m_numExported(numExported)
   {}
 
   // operator for ItemList
@@ -241,12 +224,22 @@ struct TextRecordWriter {
       const StringX line = item.GetPlaintext(TCHAR('\t'),
                                              m_bsFields, m_delimiter, pcibase);
       if (!line.empty()) {
+        StringX sx_exported = StringX(L"\xab") + 
+                             item.GetGroup() + StringX(L"\xbb \xab") + 
+                             item.GetTitle() + StringX(L"\xbb \xab") +
+                             item.GetUser()  + StringX(L"\xbb");
+
+        if (m_prpt != NULL)
+          m_prpt->WriteLine(sx_exported.c_str());
+        m_pcore->UpdateWizard(sx_exported.c_str());
+
         CUTF8Conv conv; // can't make a member, as no copy c'tor!
         const unsigned char *utf8;
         size_t utf8Len;
         if (conv.ToUTF8(line, utf8, utf8Len)) {
           m_ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
           m_ofs << endl;
+          m_numExported++;
         } else {
           ASSERT(0);
         }
@@ -263,6 +256,8 @@ private:
   const TCHAR &m_delimiter;
   ofstream &m_ofs;
   PWScore *m_pcore;
+  CReport *m_prpt;
+  int &m_numExported;
 };
 
 int PWScore::WritePlaintextFile(const StringX &filename,
@@ -270,8 +265,11 @@ int PWScore::WritePlaintextFile(const StringX &filename,
                                 const stringT &subgroup_name,
                                 const int &subgroup_object,
                                 const int &subgroup_function,
-                                const TCHAR &delimiter, const OrderedItemList *il)
+                                const TCHAR &delimiter, int &numExported, 
+                                const OrderedItemList *il, CReport *prpt)
 {
+  numExported = 0;
+
   // Check if anything to do! 
   if (bsFields.count() == 0)
     return PWSRC::NO_ENTRIES_EXPORTED;
@@ -315,7 +313,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
   }
 
   TextRecordWriter put_text(subgroup_name, subgroup_object, subgroup_function,
-                   bsFields, delimiter, ofs, this);
+                   bsFields, delimiter, ofs, numExported, prpt, this);
 
   if (il != NULL) {
     for_each(il->begin(), il->end(), put_text);
@@ -332,10 +330,12 @@ struct XMLRecordWriter {
   XMLRecordWriter(const stringT &subgroup_name,
                   const int subgroup_object, const int subgroup_function,
                   const CItemData::FieldBits &bsFields,
-                  TCHAR delimiter, ofstream &ofs, PWScore *pcore) :
+                  TCHAR delimiter, ofstream &ofs,
+                  int &numExported, CReport *prpt, PWScore *pcore) :
   m_subgroup_name(subgroup_name), m_subgroup_object(subgroup_object),
   m_subgroup_function(subgroup_function), m_bsFields(bsFields),
-  m_delimiter(delimiter), m_of(ofs), m_id(0), m_pcore(pcore)
+  m_delimiter(delimiter), m_of(ofs), m_id(0), m_pcore(pcore),
+  m_numExported(numExported), m_prpt(prpt)
   {}
 
   // operator for ItemList
@@ -348,23 +348,40 @@ struct XMLRecordWriter {
     if (m_subgroup_name.empty() ||
         item.Matches(m_subgroup_name,
                      m_subgroup_object, m_subgroup_function)) {
+      StringX sx_exported = StringX(L"\xab") + 
+                             item.GetGroup() + StringX(L"\xbb \xab") + 
+                             item.GetTitle() + StringX(L"\xbb \xab") +
+                             item.GetUser()  + StringX(L"\xbb");
       bool bforce_normal_entry(false);
       if (item.IsNormal()) {
         //  Check password doesn't incorrectly imply alias or shortcut entry
         StringX pswd;
         pswd = item.GetPassword();
+
+        // Passwords are mandatory but, if missing, don't crash referencing character out of bounds!
+        // Note: This value will not get to the XML file but the import will fail as the original entry
+        // did not have a password and, as above, it is mandatory.
+        if (pswd.length() == 0)
+          pswd = _T("*MISSING*");
+
         int num_colons = Replace(pswd, _T(':'), _T(';')) + 1;
-        if ((pswd[0] == _T('[')) &&
+        if ((pswd.length() > 1 && pswd[0] == _T('[')) &&
             (pswd[pswd.length() - 1] == _T(']')) &&
             num_colons <= 3) {
           bforce_normal_entry = true;
         }
       }
+
+      if (m_prpt != NULL)
+        m_prpt->WriteLine(sx_exported.c_str());
+      m_pcore->UpdateWizard(sx_exported.c_str());
+
       const CItemData *pcibase = m_pcore->GetBaseEntry(&item);
       string xml = item.GetXML(m_id, m_bsFields, m_delimiter, pcibase,
                                bforce_normal_entry);
       m_of.write(xml.c_str(),
                  static_cast<streamsize>(xml.length()));
+      m_numExported++;
     }
   }
 
@@ -378,15 +395,19 @@ private:
   ofstream &m_of;
   unsigned m_id;
   PWScore *m_pcore;
+  int &m_numExported;
+  CReport *m_prpt;
 };
 
 int PWScore::WriteXMLFile(const StringX &filename,
                           const CItemData::FieldBits &bsFields,
                           const stringT &subgroup_name,
                           const int &subgroup_object, const int &subgroup_function,
-                          const TCHAR &delimiter, const OrderedItemList *il,
-                          const bool &bFilterActive)
+                          const TCHAR &delimiter, int &numExported, const OrderedItemList *il,
+                          const bool &bFilterActive, CReport *prpt)
 {
+  numExported = 0;
+
   // Although the MFC UI prevents the user selecting export of an
   // empty database, other UIs might not, so:
   if ((il != NULL && il->size() == 0) ||
@@ -555,36 +576,8 @@ int PWScore::WriteXMLFile(const StringX &filename,
     oss_xml.str(_T(""));  // Clear buffer for next user
 
     if (!subgroup_name.empty()) {
-      stringT cs_object, cs_function, cs_case(_T(""));
-      int iObject(IDSC_UNKNOWNOBJECT);
-      switch (subgroup_object) {
-        case CItemData::GROUP:
-          iObject = IDSC_EXPHDRGROUP;
-          break;
-        case CItemData::GROUPTITLE:
-          iObject = IDSC_EXPHDRGROUPTITLE;
-          break;
-        case CItemData::TITLE:
-          iObject = IDSC_EXPHDRTITLE;
-          break;
-        case CItemData::USER:
-          iObject = IDSC_EXPHDRUSERNAME;
-          break;
-        case CItemData::URL:
-          iObject = IDSC_EXPHDRURL;
-          break;
-        case CItemData::NOTES:
-          iObject = IDSC_EXPHDRNOTES;
-          break;
-        default:
-          ASSERT(0);
-      }
-      LoadAString(cs_object, iObject);
-      size_t object_len = cs_object.length();
-      if (cs_object[object_len - 1] == _T('\t')) {
-        object_len--;
-        cs_object = cs_object.substr(0, object_len);
-      }
+      stringT cs_function, cs_case(_T(""));
+      stringT cs_object = CItemData::EngFieldName(CItemData::FieldType(subgroup_object));
 
       int iCase(IDSC_CASE_INSENSITIVE);
       if (subgroup_function < 0) {
@@ -688,7 +681,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
   ofs << endl;
 
   XMLRecordWriter put_xml(subgroup_name, subgroup_object, subgroup_function,
-                          bsFields, delimiter, ofs, this);
+                          bsFields, delimiter, ofs, numExported, prpt, this);
 
   if (il != NULL) {
     for_each(il->begin(), il->end(), put_xml);

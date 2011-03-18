@@ -142,6 +142,8 @@ DboxMain::DboxMain(CWnd* pParent)
   m_bRenameCtrl(false), m_bRenameShift(false),
   m_bAutotypeCtrl(false), m_bAutotypeShift(false),
   m_bInAT(false), m_bInRestoreWindowsData(false), m_bSetup(false),
+  m_bInRefresh(false), m_bInRestoreWindows(false), m_bExpireDisplayed(false),
+  m_bTellUserExpired(false), m_bInRename(false), m_bWhitespaceRightClick(false),
   m_pProgressDlg(NULL), m_pAttThread(NULL), m_bNoChangeToAttachments(false)
 {
   // Need to do the following as using the direct calls will fail for Windows versions before Vista
@@ -154,7 +156,7 @@ DboxMain::DboxMain(CWnd* pParent)
     if (szFileName[ nLen - 1 ] != '\\')
       _tcscat_s( szFileName, MAX_PATH, L"\\" );
   }
-  _tcscat_s( szFileName, MAX_PATH, L"User32.dll" );
+  wcscat_s( szFileName, MAX_PATH, L"User32.dll" );
   m_hUser32 = ::LoadLibrary(szFileName);
   if (m_hUser32 != NULL) {
     m_pfcnShutdownBlockReasonCreate = (PSBR_CREATE)::GetProcAddress(m_hUser32, "ShutdownBlockReasonCreate"); 
@@ -203,7 +205,7 @@ DboxMain::DboxMain(CWnd* pParent)
 DboxMain::~DboxMain()
 {
   std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions(0);
-  m_core.SetUIInterFace(NULL, bsSupportedFunctions);
+  m_core.SetUIInterFace(NULL, UIInterFace::NUM_SUPPORTED, bsSupportedFunctions);
 
   MapKeyNameIDIter iter;
   for (iter = m_MapKeyNameID.begin(); iter != m_MapKeyNameID.end(); iter++) {
@@ -405,6 +407,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_CLEARCLIPBOARD, OnClearClipboard)
   ON_COMMAND(ID_MENUITEM_DELETEENTRY, OnDelete)
   ON_COMMAND(ID_MENUITEM_DELETEGROUP, OnDelete)
+  ON_COMMAND(ID_MENUITEM_RENAME, OnRename)
   ON_COMMAND(ID_MENUITEM_RENAMEENTRY, OnRename)
   ON_COMMAND(ID_MENUITEM_RENAMEGROUP, OnRename)
   ON_COMMAND(ID_MENUITEM_DUPLICATEENTRY, OnDuplicateEntry)
@@ -435,12 +438,14 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_VKEYBOARDFONT, OnChangeVKFont)
   ON_COMMAND_RANGE(ID_MENUITEM_REPORT_COMPARE, ID_MENUITEM_REPORT_VALIDATE, OnViewReports)
   ON_COMMAND_RANGE(ID_MENUITEM_REPORT_SYNCHRONIZE, ID_MENUITEM_REPORT_SYNCHRONIZE, OnViewReports)
+  ON_COMMAND_RANGE(ID_MENUITEM_REPORT_EXPORTTEXT, ID_MENUITEM_REPORT_EXPORTXML, OnViewReports)
   ON_COMMAND(ID_MENUITEM_APPLYFILTER, OnApplyFilter)
   ON_COMMAND(ID_MENUITEM_EDITFILTER, OnSetFilter)
   ON_COMMAND(ID_MENUITEM_MANAGEFILTERS, OnManageFilters)
   ON_COMMAND(ID_MENUITEM_PASSWORDSUBSET, OnDisplayPswdSubset)
   ON_COMMAND(ID_MENUITEM_REFRESH, OnRefreshWindow)
   ON_COMMAND(ID_MENUITEM_SHOWHIDE_UNSAVED, OnShowUnsavedEntries)
+  ON_COMMAND(ID_MENUITEM_SHOW_ALL_EXPIRY, OnShowExpireList)
   ON_COMMAND(ID_MENUITEM_VIEWATTACHMENTS, OnViewAttachments)
   ON_COMMAND(ID_MENUITEM_EXPORTATTACHMENTS, OnExportAllAttachments)
   ON_COMMAND(ID_MENUITEM_IMPORTATTACHMENTS, OnImportAttachments)
@@ -534,6 +539,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_MESSAGE(PWS_MSG_HDRTOCC_DD_COMPLETE, OnHdrToCCDragComplete)
   ON_MESSAGE(PWS_MSG_HDR_DRAG_COMPLETE, OnHeaderDragComplete)
   ON_MESSAGE(PWS_MSG_COMPARE_RESULT_FUNCTION, OnProcessCompareResultFunction)
+  ON_MESSAGE(PWS_MSG_EXPIRED_PASSWORD_EDIT, OnEditExpiredPasswordEntry)
   ON_MESSAGE(PWS_MSG_TOOLBAR_FIND, OnToolBarFindMessage)
   ON_MESSAGE(PWS_MSG_EXECUTE_FILTERS, OnExecuteFilters)
   ON_MESSAGE(PWS_MSG_EDIT_APPLY, OnApplyEditChanges)
@@ -658,6 +664,8 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_REPORT_FIND, true, true, true, true},
   {ID_MENUITEM_REPORT_IMPORTTEXT, true, true, true, true},
   {ID_MENUITEM_REPORT_IMPORTXML, true, true, true, true},
+  {ID_MENUITEM_REPORT_EXPORTTEXT, true, true, true, true},
+  {ID_MENUITEM_REPORT_EXPORTXML, true, true, true, true},
   {ID_MENUITEM_REPORT_MERGE, true, true, true, true},
   {ID_MENUITEM_REPORT_VALIDATE, true, true, true, true},
   {ID_MENUITEM_REPORT_SYNCHRONIZE, true, true, true, true},
@@ -667,6 +675,7 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_PASSWORDSUBSET, true, true, false, false},
   {ID_MENUITEM_REFRESH, true, true, false, false},
   {ID_MENUITEM_SHOWHIDE_UNSAVED, true, false, false, false},
+  {ID_MENUITEM_SHOW_ALL_EXPIRY, true, true, false, false},
   {ID_MENUITEM_VIEWATTACHMENTS,  true, false, false, false},
   {ID_MENUITEM_EXPORTATTACHMENTS, true, false, false, false},
   {ID_MENUITEM_IMPORTATTACHMENTS, true, false, false, false},
@@ -918,6 +927,7 @@ void DboxMain::InitPasswordSafe()
     case CItemData::RUNCMD:
     case CItemData::AUTOTYPE:
     case CItemData::POLICY:
+    case CItemData::PROTECTED:
     break;
     case CItemData::PWHIST:  // Not displayed in ListView
     default:
@@ -1313,6 +1323,8 @@ void DboxMain::Execute(Command *pcmd, PWScore *pcore)
   SaveGUIStatus();
   pcore->Execute(pcmd);
   UpdateToolBarDoUndo();
+
+  SaveGUIStatusEx(iBothViews);
 }
 
 void DboxMain::OnUndo()
@@ -1323,6 +1335,8 @@ void DboxMain::OnUndo()
   UpdateToolBarDoUndo();
   UpdateMenuAndToolBar(m_bOpen);
   UpdateStatusBar();
+
+  SaveGUIStatusEx(iBothViews);
 }
 
 void DboxMain::OnRedo()
@@ -1333,6 +1347,8 @@ void DboxMain::OnRedo()
   UpdateToolBarDoUndo();
   UpdateMenuAndToolBar(m_bOpen);
   UpdateStatusBar();
+
+  SaveGUIStatusEx(iBothViews);
 }
 
 void DboxMain::FixListIndexes()
@@ -1597,24 +1613,19 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
                                   StringX &passkey,
                                   int index,
                                   int flags,
-                                  PWScore *pcore,
-                                  CAdvancedDlg::Type adv_type,
-                                  st_SaveAdvValues *pst_SADV)
+                                  PWScore *pcore)
 {
   // index:
   //  GCP_FIRST      (0) first
   //  GCP_NORMAL     (1) OK, CANCEL & HELP buttons
   //  GCP_RESTORE    (2) OK, CANCEL & HELP buttons
   //  GCP_WITHEXIT   (3) OK, CANCEL, EXIT & HELP buttons
-  //  GCP_ADVANCED   (4) OK, CANCEL, HELP & ADVANCED buttons
 
   // for adv_type values, see enum in AdvancedDlg.h
 
   // Called for an existing database. Prompt user
   // for password, verify against file. Lock file to
   // prevent multiple r/w access.
-  ASSERT((adv_type == CAdvancedDlg::ADV_INVALID && pst_SADV == NULL) ||
-         (adv_type != CAdvancedDlg::ADV_INVALID && pst_SADV != NULL));
 
   int retval;
   bool bFileIsReadOnly = false;
@@ -1652,12 +1663,10 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
 
   ASSERT(dbox_pkentry == NULL); // should have been taken care of above
   dbox_pkentry = new CPasskeyEntry(this,
-    filename.c_str(),
-    index, bReadOnly || bFileIsReadOnly,
-    bFileIsReadOnly || bForceReadOnly,
-    bHideReadOnly,
-    adv_type,
-    adv_type == CAdvancedDlg::ADV_INVALID ? NULL : &m_SaveAdvValues[adv_type]);
+                                   filename.c_str(),
+                                   index, bReadOnly || bFileIsReadOnly,
+                                   bFileIsReadOnly || bForceReadOnly,
+                                   bHideReadOnly);
 
   int nMajor(0), nMinor(0), nBuild(0);
   DWORD dwMajorMinor = app.GetFileVersionMajorMinor();
@@ -1677,18 +1686,6 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
 
   INT_PTR rc = dbox_pkentry->DoModal();
 
-  if (rc == IDOK && index == GCP_ADVANCED) {
-    m_bAdvanced = dbox_pkentry->m_bAdvanced;
-    m_bsFields = pst_SADV->bsFields;
-    m_subgroup_set = pst_SADV->subgroup_set;
-    m_treatwhitespaceasempty = pst_SADV->treatwhitespaceasempty;
-    if (m_subgroup_set == BST_CHECKED) {
-      m_subgroup_name = pst_SADV->subgroup_name;
-      m_subgroup_object = pst_SADV->subgroup_object;
-      m_subgroup_function = pst_SADV->subgroup_function;
-    }
-  }
-
   if (rc == IDOK) {
     DBGMSG("PasskeyEntry returns IDOK\n");
     const StringX curFile = dbox_pkentry->GetFileName().GetString();
@@ -1705,7 +1702,6 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
       pcore->SetReadOnly(bIsReadOnly || !pcore->LockFile(curFile.c_str(), locker));
       break;
     case GCP_NORMAL:
-    case GCP_ADVANCED:
       if (!bIsReadOnly) // !first, lock if !bIsReadOnly
         pcore->SetReadOnly(!pcore->LockFile(curFile.c_str(), locker));
       else
@@ -1976,10 +1972,9 @@ void DboxMain::OnSysCommand(UINT nID, LPARAM lParam)
     return;
   }
 
-  switch (nID & 0xFFF0) {
+  UINT const nSysID = nID & 0xFFFF;
+  switch (nSysID) {
     case SC_MINIMIZE:
-      // Save expand/collapse status of groups + selected item/group
-      SaveDisplayBeforeMinimize();
       break;
     case SC_CLOSE:
       if (!PWSprefs::GetInstance()->GetPref(PWSprefs::UseSystemTray)) {
@@ -1991,16 +1986,26 @@ void DboxMain::OnSysCommand(UINT nID, LPARAM lParam)
       break;
     case SC_MAXIMIZE:
     case SC_RESTORE:
-      if (app.GetSystemTrayState() == ThisMfcApp::LOCKED) {
-        if (!RestoreWindowsData(true))
-          return; // password bad or cancel pressed
-
-        RestoreDisplayAfterMinimize();
-      }
+      if (app.GetSystemTrayState() == ThisMfcApp::LOCKED &&
+          !RestoreWindowsData(nSysID == SC_RESTORE))
+        return; // password bad or cancel pressed
       break;
-    case SC_SIZE:
+    /*
+       Valid values not specifically used by PasswordSafe
+    case SC_HOTKEY:
+    case SC_HSCROLL:
+    case SC_KEYMENU:
+    case SC_MONITORPOWER:
+    case SC_MOUSEMENU:
     case SC_MOVE:
+    case SC_NEXTWINDOW:
+    case SC_PREVWINDOW:
+    case SC_SIZE:
     case SC_SCREENSAVE:
+    case SC_TASKLIST:
+    case SC_VSCROLL:
+    */
+    default:
       break;
   }
 
@@ -2022,7 +2027,11 @@ void DboxMain::ConfigureSystemMenu()
   CMenu *pSysMenu = GetSystemMenu(FALSE);
   const CString str(MAKEINTRESOURCE(IDS_ALWAYSONTOP));
 
-  pSysMenu->InsertMenu(5, MF_BYPOSITION | MF_STRING, ID_SYSMENU_ALWAYSONTOP, (LPCWSTR)str);
+  if (pSysMenu != NULL) {
+    UINT num = pSysMenu->GetMenuItemCount();
+    ASSERT(num > 2);
+    pSysMenu->InsertMenu(num - 2 /* 5 */, MF_BYPOSITION | MF_STRING, ID_SYSMENU_ALWAYSONTOP, (LPCWSTR)str);
+  }
 #endif
 }
 
@@ -2083,9 +2092,11 @@ bool DboxMain::RestoreWindowsData(bool bUpdateWindows, bool bShow)
   // Note: bUpdateWindows = true only when called from within OnSysCommand-SC_RESTORE
   // and via the Restore menu item via the SystemTray (OnRestore)
 
-  pws_os::Trace(L"RestoreWindowsData:bUpdateWindows = %s; bInRestoreWindowsData\n",
+  /*
+  pws_os::Trace(L"RestoreWindowsData:bUpdateWindows = %s; bInRestoreWindowsData %s\n",
                 bUpdateWindows ? L"true" : L"false",
                 m_bInRestoreWindowsData ? L"true" : L"false");
+  */
 
   // We should not be called by a routine we call - only duplicates refreshes etc.
   if (m_bInRestoreWindowsData)
@@ -2338,48 +2349,59 @@ void DboxMain::RefreshImages()
   m_menuManager.SetImageList(&m_MainToolBar);
 }
 
-void DboxMain::CheckExpiredPasswords()
+void DboxMain::CheckExpireList(const bool bAtOpen)
 {
-  time_t now, exptime, XTime;
-  time(&now);
+  // Called from PostOpenProcessing, OnOptions (if user turns on warnings
+  // or changes warning interval) and from OnTimer when the timer pops.
+  // If we have entries with expiration dates, check them, and start a daily timer
+  // to repeat the check
 
-  if (PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarn)) {
-    int idays = PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarnDays);
-    struct tm st;
-#if (_MSC_VER >= 1400)
-    errno_t err;
-    err = localtime_s(&st, &now);  // secure version
-    ASSERT(err == 0);
-#else
-    st = *localtime(&now);
-#endif
-    st.tm_mday += idays;
-    exptime = mktime(&st);
-    if (exptime == (time_t)-1)
-      exptime = now;
-  } else
-    exptime = now;
+  // Cancel timer and restart it - even if there are no expired events this time
+  // or the user has not set a warning period - they may do so in the next 24 hrs
+  KillTimer(TIMER_EXPENT);
+  const UINT DAY = 86400000; // 24 hours, in millisecs (24*60*60*1000)
+  SetTimer(TIMER_EXPENT, DAY, NULL);
 
-  ExpiredList expPWList;
-
-  ItemListConstIter listPos;
-  for (listPos = m_core.GetEntryIter();
-       listPos != m_core.GetEntryEndIter();
-       listPos++) {
-    const CItemData &curitem = m_core.GetEntry(listPos);
-    if (curitem.IsAlias())
-      continue;
-
-    curitem.GetXTime(XTime);
-    if (((long)XTime != 0) && (XTime < exptime)) {
-      ExpPWEntry exppwentry(curitem, now, XTime);
-      expPWList.push_back(exppwentry);
-    }
+  // Check if we've any expired entries. If so, show the user.
+  if (!PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarn) ||
+       m_core.GetExpirySize() == 0) {
+    m_bTellUserExpired = false;
+    return;
   }
 
-  if (!expPWList.empty()) {
-    CExpPWListDlg dlg(this, expPWList, m_core.GetCurFile().c_str());
-    dlg.DoModal();
+  int idays = PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarnDays);
+  ExpiredList expiredEntries = m_core.GetExpired(idays);
+
+  if (!expiredEntries.empty() && (app.GetSystemTrayState() == LOCKED || IsIconic() == TRUE || bAtOpen))
+    m_bTellUserExpired = true;
+}
+
+void DboxMain::TellUserAboutExpiredPasswords()
+{
+  // Check once more
+  if (!PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarn) ||
+       m_core.GetExpirySize() == 0) {
+    m_bTellUserExpired = false;
+    return;
+  }
+
+  // Tell user that there are expired passwords
+  int idays = PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarnDays);
+  ExpiredList expiredEntries = m_core.GetExpired(idays);
+
+  if (m_bTellUserExpired && expiredEntries.size() != 0) {
+    m_bTellUserExpired = !m_bTellUserExpired;
+
+    // Give user option to display and edit them
+    CGeneralMsgBox gmb;
+    CString cs_text, cs_title(MAKEINTRESOURCE(IDS_EXPIREDPSWDSTITLE));
+    cs_text.LoadString(IDS_EXPIREDPSWDSEXIST);
+    INT_PTR rc = gmb.MessageBox(cs_text, cs_title, MB_ICONEXCLAMATION | MB_YESNO);
+
+    if (rc == IDYES) {
+      CExpPWListDlg dlg(this, expiredEntries, m_core.GetCurFile().c_str());
+      dlg.DoModal();
+    }
   }
 }
 
@@ -2652,11 +2674,13 @@ void DboxMain::SetDCAText(CItemData *pci)
 }
 
 // Returns a list of entries as they appear in tree in DFS order
-void DboxMain::MakeOrderedItemList(OrderedItemList &il)
+void DboxMain::MakeOrderedItemList(OrderedItemList &il) const
 {
   // Walk the Tree!
   HTREEITEM hItem = NULL;
-  while (NULL != (hItem = m_ctlItemTree.GetNextTreeItem(hItem))) {
+  // The non-const-ness of GetNextTreeItem is debatable, and
+  // certainly irrelevant here.
+  while (NULL != (hItem = const_cast<DboxMain *>(this)->m_ctlItemTree.GetNextTreeItem(hItem))) {
     if (!m_ctlItemTree.ItemHasChildren(hItem)) {
       CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
       if (pci != NULL) { // NULL if there's an empty group [bug #1633516]
@@ -3008,6 +3032,8 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
     case ID_MENUITEM_REPORT_FIND:
     case ID_MENUITEM_REPORT_IMPORTTEXT:
     case ID_MENUITEM_REPORT_IMPORTXML:
+    case ID_MENUITEM_REPORT_EXPORTTEXT:
+    case ID_MENUITEM_REPORT_EXPORTXML:
     case ID_MENUITEM_REPORT_MERGE:
     case ID_MENUITEM_REPORT_SYNCHRONIZE:
     case ID_MENUITEM_REPORT_VALIDATE:
@@ -3056,7 +3082,13 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
         iEnable = FALSE;
       break;
     case ID_MENUITEM_SHOWHIDE_UNSAVED:
-      if (!m_core.IsChanged() || (m_core.IsChanged() && m_bFilterActive && !m_bUnsavedDisplayed))
+      if (!m_core.IsChanged() || 
+          (m_core.IsChanged() && m_bFilterActive && !m_bUnsavedDisplayed && !m_bExpireDisplayed))
+        iEnable = FALSE;
+      break;
+    case ID_MENUITEM_SHOW_ALL_EXPIRY:
+      if (m_core.GetExpirySize() == 0 ||
+          (m_core.GetExpirySize() == 0 && m_bFilterActive && !m_bUnsavedDisplayed && !m_bExpireDisplayed))
         iEnable = FALSE;
       break;
     case ID_MENUITEM_VIEWATTACHMENTS:
@@ -3237,8 +3269,8 @@ bool DboxMain::CheckPreTranslateDelete(MSG* pMsg)
 {
   // Both TreeCtrl and ListCtrl
   if (pMsg->message == m_wpDeleteMsg && pMsg->wParam == m_wpDeleteKey) {
-    if (m_bDeleteCtrl  == (GetKeyState(VK_CONTROL) < 0) && 
-        m_bDeleteShift == (GetKeyState(VK_SHIFT)   < 0)) {
+    if (m_bDeleteCtrl  == ((GetKeyState(VK_CONTROL) & 0x8000) == 0x8000) && 
+        m_bDeleteShift == ((GetKeyState(VK_SHIFT)   & 0x8000) == 0x8000)) {
       if (!m_core.IsReadOnly())
         OnDelete();
       return true;
@@ -3251,8 +3283,8 @@ bool DboxMain::CheckPreTranslateRename(MSG* pMsg)
 {
   // Only TreeCtrl but not ListCtrl!
   if (pMsg->message == m_wpRenameMsg && pMsg->wParam == m_wpRenameKey) {
-    if (m_bRenameCtrl  == (GetKeyState(VK_CONTROL) < 0) && 
-        m_bRenameShift == (GetKeyState(VK_SHIFT)   < 0)) {
+    if (m_bRenameCtrl  == ((GetKeyState(VK_CONTROL) & 0x8000) == 0x8000) && 
+        m_bRenameShift == ((GetKeyState(VK_SHIFT)   & 0x8000) == 0x8000)) {
       return true;
     }
   }
@@ -3266,8 +3298,8 @@ bool DboxMain::CheckPreTranslateAutoType(MSG* pMsg)
   if (m_wpAutotypeKey != 0) {
     // Process user's Autotype shortcut - (Sys)KeyDown
     if (pMsg->message == m_wpAutotypeDNMsg && pMsg->wParam == m_wpAutotypeKey) {
-      if (m_bAutotypeCtrl  == (GetKeyState(VK_CONTROL) < 0) && 
-          m_bAutotypeShift == (GetKeyState(VK_SHIFT)   < 0)) {
+      if (m_bAutotypeCtrl  == ((GetKeyState(VK_CONTROL) & 0x8000) == 0x8000) && 
+          m_bAutotypeShift == ((GetKeyState(VK_SHIFT)   & 0x8000) == 0x8000)) {
         m_btAT.set(0);   // Virtual Key
         if (m_bAutotypeCtrl)
           m_btAT.set(1); // Ctrl Key

@@ -22,7 +22,8 @@
  * This is the classic 'mixin' design pattern.
  */
 
-class UIInterFace {
+class UIInterFace
+{
 public:
   UIInterFace() {}
 
@@ -36,32 +37,36 @@ public:
    */
   enum Functions {
     DATABASEMODIFIED = 0, UPDATEGUI, GUISETUPDISPLAYINFO, GUIREFRESHENTRY,
+    UPDATEWIZARD,
     ATTACHMENTPROGRESS, WRITEATTACHMENTFILE, COMPLETEIMPORTFILE,
     // Add new functions here!
     NUM_SUPPORTED};
 
   /*
-   * DatabaseModified(bChanged):
+   * UpdateGUI(bChanged):
    * bChanged = false if the database has been modified, (e.g. the
    * last find results may no longer be valid) but is now unchanged
    * from the last saved version.
    */
   virtual void DatabaseModified(bool bChanged) = 0;
-  
+
   // UpdateGUI - used by GUI if one or more entries have changed
   // and the entry/entries needs refreshing in GUI:
   virtual void UpdateGUI(UpdateGUICommand::GUI_Action ga,
                          uuid_array_t &entry_uuid,
                          CItemData::FieldType ft = CItemData::START,
                          bool bUpdateGUI = true) = 0;
-                         
+
   // GUISetupDisplayInfo: let GUI populate DisplayInfo field in an entry
   virtual void GUISetupDisplayInfo(CItemData &ci) = 0;
-  
+
   // GUIRefreshEntry: called when the entry's graphic representation
   // may have changed - GUI should update and invalidate its display.
   virtual void GUIRefreshEntry(const CItemData &ci) = 0;
 
+  // UpdateWizard: called to update text in Wizard during export Text/XML.
+  virtual void UpdateWizard(const stringT &s) = 0;
+ 
   // Attachment Progress: called when the adding an attachment
   // may have changed - GUI should update and invalidate its display.
   virtual int AttachmentProgress(const ATTProgress &st_atpg) = 0;

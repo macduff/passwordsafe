@@ -577,12 +577,12 @@ exit:
   int flags(MB_OK | MB_ICONEXCLAMATION);
   switch (ga_status) {
     case PWSRC::SUCCESS:
-      uiTitle = IDS_EXTRACTED;
+      uiTitle = IDS_EXTRACTATT;
       uiMSG = IDS_COMPLETEDOK;
       flags = MB_OK | MB_ICONINFORMATION;
       break;
     case PWSRC::USER_CANCEL:
-      uiTitle = IDS_EXTRACTED;
+      uiTitle = IDS_EXTRACTATT;
       uiMSG = IDS_USERCANCELLEDEXTRACT;
       break;
     case PWSRC::BADTARGETDEVICE:
@@ -602,7 +602,7 @@ exit:
       uiMSG = IDS_CONTINUEEXTRACT;
       break;
     case PWSRC::BADATTACHMENTWRITE:
-      uiTitle = IDS_EXTRACTED;
+      uiTitle = IDS_EXTRACTATT;
       uiMSG = IDS_BADATTACHMENTWRITE;
       break;
     default:

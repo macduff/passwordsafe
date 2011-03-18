@@ -17,16 +17,16 @@
 #define ATT_ERASURE_REQUIRED    0x60
 
 // Extract attachment via context menu on Attachment CListCtrl - ALSO DEFINED IN DBOXMAIN.H
-#define PWS_MSG_EXTRACT_ATTACHMENT      (WM_APP + 70)
+#define PWS_MSG_EXTRACT_ATTACHMENT      (WM_APP + 80)
 
 // Export attachment via context menu on Attachment CListCtrl - ALSO DEFINED IN DBOXMAIN.H
-#define PWS_MSG_EXPORT_ATTACHMENT       (WM_APP + 71)
+#define PWS_MSG_EXPORT_ATTACHMENT       (WM_APP + 81)
 
 // Change attachment via context menu on Attachment CListCtrl - ALSO DEFINED IN DBOXMAIN.H
-#define PWS_MSG_CHANGE_ATTACHMENT       (WM_APP + 72)
+#define PWS_MSG_CHANGE_ATTACHMENT       (WM_APP + 82)
 
 // Update AddEdit_Attachments that the user has changed an entry's flags - ALSO DEFINED IN DBOXMAIN.H
-#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 79)
+#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 89)
 
 class CPWAttDlg;
 

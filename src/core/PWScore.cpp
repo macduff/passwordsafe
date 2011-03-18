@@ -18,6 +18,7 @@
 #include "SysInfo.h"
 #include "UTF8Conv.h"
 #include "PWSfileV3.h"    // XXX cleanup with dynamic_cast
+#include "VerifyFormat.h"
 #include "return_codes.h"
 
 #include "os/typedefs.h"
@@ -259,6 +260,19 @@ void PWScore::DoReplaceEntry(const CItemData &old_ci, const CItemData &new_ci)
   m_pwlist[old_uuid] = new_ci;
   if (old_ci.GetEntryType() != new_ci.GetEntryType() || old_ci.IsProtected() != new_ci.IsProtected())
     GUIRefreshEntry(new_ci);
+
+  // Check if we need to update Expiry vector
+  time_t tttXTime_old, tttXTime_new;
+  old_ci.GetXTime(tttXTime_old);
+  new_ci.GetXTime(tttXTime_new);
+
+  if (tttXTime_old != tttXTime_new) {
+    if (tttXTime_old != time_t(0))
+      RemoveExpiryEntry(old_ci);
+    if (tttXTime_new != time_t(0))
+      AddExpiryEntry(new_ci);
+  }
+
   m_bDBChanged = true;
 }
 
@@ -314,6 +328,9 @@ void PWScore::ReInit(bool bNewFile)
   m_MM_entry_uuid_atr_saved.clear();
 
   ClearChangedNodes();
+  
+  // Clear expired password entries
+  m_ExpireCandidates.clear();
 
   SetChanged(false, false);
 }
@@ -453,11 +470,6 @@ void PWScore::ResetStateAfterSave()
 
 int PWScore::Execute(Command *pcmd)
 {
-  pws_os::Trace(_T("PWScore Execute-Start: m_vpcommands.size()=%d; undo offset=%d; redo offset=%d\n"),
-        m_vpcommands.size(),
-        (m_undo_iter != m_vpcommands.end()) ? distance(m_undo_iter, m_vpcommands.begin()) : -1,
-        (m_redo_iter != m_vpcommands.end()) ? distance(m_redo_iter, m_vpcommands.begin()) : -1);
-
   if (m_redo_iter != m_vpcommands.end()) {
     std::vector<Command *>::iterator cmd_Iter;
 
@@ -474,22 +486,11 @@ int PWScore::Execute(Command *pcmd)
 
   uuid_array_t entry_uuid = {'0'};  // Valid value not required for this particular call.
   NotifyGUINeedsUpdating(UpdateGUICommand::GUI_UPDATE_STATUSBAR, entry_uuid);
-
-  pws_os::Trace(_T("PWScore Execute-End: m_vpcommands.size()=%d; undo offset=%d; redo offset=%d\n"),
-        m_vpcommands.size(),
-        (m_undo_iter != m_vpcommands.end()) ? distance(m_undo_iter, m_vpcommands.begin()) : -1,
-        (m_redo_iter != m_vpcommands.end()) ? distance(m_redo_iter, m_vpcommands.begin()) : -1);
-
   return rc;
 }
 
 void PWScore::Undo()
 {
-  pws_os::Trace(_T("PWScore Undo-Start: m_vpcommands.size()=%d; undo offset=%d; redo offset=%d\n"),
-        m_vpcommands.size(),
-        (m_undo_iter != m_vpcommands.end()) ? distance(m_undo_iter, m_vpcommands.begin()) : -1,
-        (m_redo_iter != m_vpcommands.end()) ? distance(m_redo_iter, m_vpcommands.begin()) : -1);
-
   ASSERT(m_undo_iter != m_vpcommands.end());
   m_redo_iter = m_undo_iter;
 
@@ -502,20 +503,10 @@ void PWScore::Undo()
 
   uuid_array_t entry_uuid = {'0'};  // Valid value not required for this particular call.
   NotifyGUINeedsUpdating(UpdateGUICommand::GUI_UPDATE_STATUSBAR, entry_uuid);
-
-  pws_os::Trace(_T("PWScore Undo-End  : m_vpcommands.size()=%d; undo offset=%d; redo offset=%d\n"),
-        m_vpcommands.size(),
-        (m_undo_iter != m_vpcommands.end()) ? distance(m_undo_iter, m_vpcommands.begin()) : -1,
-        (m_redo_iter != m_vpcommands.end()) ? distance(m_redo_iter, m_vpcommands.begin()) : -1);
 }
 
 void PWScore::Redo()
 {
-  pws_os::Trace(_T("PWScore Redo-Start: m_vpcommands.size()=%d; undo offset=%d; redo offset=%d\n"),
-        m_vpcommands.size(),
-        (m_undo_iter != m_vpcommands.end()) ? distance(m_undo_iter, m_vpcommands.begin()) : -1,
-        (m_redo_iter != m_vpcommands.end()) ? distance(m_redo_iter, m_vpcommands.begin()) : -1);
-
   ASSERT(m_redo_iter != m_vpcommands.end());
   m_undo_iter = m_redo_iter;
 
@@ -526,11 +517,6 @@ void PWScore::Redo()
 
   uuid_array_t entry_uuid = {'0'};  // Valid value not required for this particular call.
   NotifyGUINeedsUpdating(UpdateGUICommand::GUI_UPDATE_STATUSBAR, entry_uuid);
-
-  pws_os::Trace(_T("PWScore Redo-End  : m_vpcommands.size()=%d; undo offset=%d; redo offset=%d\n"),
-        m_vpcommands.size(),
-        (m_undo_iter != m_vpcommands.end()) ? distance(m_undo_iter, m_vpcommands.begin()) : -1,
-        (m_redo_iter != m_vpcommands.end()) ? distance(m_redo_iter, m_vpcommands.begin()) : -1);
 }
 
 bool PWScore::AnyToUndo() const
@@ -575,6 +561,9 @@ int PWScore::ReadFile(const StringX &a_filename,
                       const StringX &a_passkey, const size_t iMAXCHARS)
 {
   int status;
+  // Clear any old expired password entries
+  m_ExpireCandidates.clear();
+
   PWSfile *in = PWSfile::MakePWSfile(a_filename, m_ReadFileVersion,
                                      PWSfile::Read, status, m_pAsker, m_pReporter);
 
@@ -639,9 +628,7 @@ int PWScore::ReadFile(const StringX &a_filename,
   uuid_array_t base_uuid, temp_uuid;
   StringX csMyPassword, cs_possibleUUID;
   bool go = true;
-#ifdef DEMO
   bool limited = false;
-#endif
 
   PWSfileV3 *in3 = dynamic_cast<PWSfileV3 *>(in); // XXX cleanup
   if (in3 != NULL  && !in3->GetFilters().empty())
@@ -724,6 +711,12 @@ int PWScore::ReadFile(const StringX &a_filename,
 #else
          m_pwlist.insert(make_pair(CUUIDGen(uuid), ci_temp));
 #endif
+         time_t tttXTime;
+         ci_temp.GetXTime(tttXTime);
+         if (!limited && tttXTime != time_t(0)) {
+           ExpPWEntry ee(ci_temp);
+           m_ExpireCandidates.push_back(ee);
+         }
          break;
       case PWSRC::END_OF_FILE:
         go = false;
@@ -2089,18 +2082,20 @@ CItemData *PWScore::GetBaseEntry(const CItemData *pAliasOrSC)
   ASSERT(pAliasOrSC != NULL);
   CItemData::EntryType et = pAliasOrSC->GetEntryType();
   if (et != CItemData::ET_ALIAS && et != CItemData::ET_SHORTCUT) {
-    pws_os::Trace(_T("PWScore::GetBaseEntry called with non-dependent element!\n"));
+    //pws_os::Trace(_T("PWScore::GetBaseEntry called with non-dependent element!\n"));
     return NULL;
   }
+
   uuid_array_t dep_uuid, base_uuid;
   pAliasOrSC->GetUUID(dep_uuid);
   if (!GetDependentEntryBaseUUID(dep_uuid, base_uuid, et)) {
-    pws_os::Trace(_T("PWScore::GetBaseEntry - couldn't find base uuid!\n"));
+   // pws_os::Trace(_T("PWScore::GetBaseEntry - couldn't find base uuid!\n"));
     return NULL;
   }
+
   ItemListIter iter = Find(base_uuid);
   if (iter == GetEntryEndIter()) {
-    pws_os::Trace(_T("PWScore::GetBaseEntry - Find(base_uuid) failed!\n"));
+    //pws_os::Trace(_T("PWScore::GetBaseEntry - Find(base_uuid) failed!\n"));
     return NULL;
   }
   return &iter->second;
@@ -2129,23 +2124,47 @@ bool PWScore::GetDependentEntryBaseUUID(const uuid_array_t &entry_uuid,
   }
 }
 
-// NotifyDBModified - used by GUI if the Database has changed
-// particularly to invalidate any current Find results and to populate
-// message during Vista and later shutdowns
+bool PWScore::SetUIInterFace(UIInterFace *pUIIF, size_t numsupported,
+                             std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions)
+{
+  bool brc(true);
+  m_pUIIF = pUIIF;
+  ASSERT(numsupported == UIInterFace::NUM_SUPPORTED);
+
+  m_bsSupportedFunctions.reset();
+  if (numsupported == UIInterFace::NUM_SUPPORTED) {
+    m_bsSupportedFunctions = bsSupportedFunctions;
+  } else {
+    size_t minsupported = min(numsupported, size_t(UIInterFace::NUM_SUPPORTED));
+    for (size_t i = 0; i < minsupported; i++) {
+      m_bsSupportedFunctions.set(i, bsSupportedFunctions.test(i));
+    }
+    brc = false;
+  }
+  return brc;
+}
+
+/*
+ *  UI Interface feedback routines
+ */
 
 void PWScore::NotifyDBModified()
 {
+  // his allows the core to provide feedback to the UI that the Database 
+  // has changed particularly to invalidate any current Find results and 
+  // to populate message during Vista and later shutdowns
   if (m_bNotifyDB && m_pUIIF != NULL &&
       m_bsSupportedFunctions.test(UIInterFace::DATABASEMODIFIED))
     m_pUIIF->DatabaseModified(m_bDBChanged || m_bDBPrefsChanged);
 }
-
 
 void PWScore::NotifyGUINeedsUpdating(UpdateGUICommand::GUI_Action ga, 
                                      uuid_array_t &entry_uuid,
                                      CItemData::FieldType ft,
                                      bool bUpdateGUI)
 {
+  // This allows the core to provide feedback to the UI that the GUI needs
+  // uupdating due to a field having its value changed
   if (m_pUIIF != NULL &&
       m_bsSupportedFunctions.test(UIInterFace::UPDATEGUI))
     m_pUIIF->UpdateGUI(ga, entry_uuid, ft, bUpdateGUI);
@@ -2153,6 +2172,7 @@ void PWScore::NotifyGUINeedsUpdating(UpdateGUICommand::GUI_Action ga,
 
 void PWScore::GUISetupDisplayInfo(CItemData &ci)
 {
+  // This allows the core to provide feedback to the UI that ???
   if (m_pUIIF != NULL &&
       m_bsSupportedFunctions.test(UIInterFace::GUISETUPDISPLAYINFO))
     m_pUIIF->GUISetupDisplayInfo(ci);
@@ -2160,6 +2180,8 @@ void PWScore::GUISetupDisplayInfo(CItemData &ci)
 
 void PWScore::GUIRefreshEntry(const CItemData &ci)
 {
+  // This allows the core to provide feedback to the UI that a particular
+  // entry has been modifed
   if (m_pUIIF != NULL &&
       m_bsSupportedFunctions.test(UIInterFace::GUIREFRESHENTRY))
     m_pUIIF->GUIRefreshEntry(ci);
@@ -2195,6 +2217,19 @@ int PWScore::XCompleteImportFile(const stringT &impfilename,
     return m_pUIIF->CompleteImportFile(impfilename, version);
   else
     return CompleteImportFile(impfilename, version);
+}
+
+void PWScore::UpdateWizard(const stringT &s)
+{
+  // This allows the core to provide feedback to the Compare, Merge, Synchronize,
+  // Exort (Text/XML) UI wizard as to the entry currently being processed.
+  // The UI must be able to access the control in the wizard and the supplied
+  // string gives the full 'group, title, user' of the entry.
+  // It is expected that the UI will implement a pointer or other reference to
+  // this control so that it can update the text displayed there (see MFC implementation).
+  if (m_pUIIF != NULL &&
+      m_bsSupportedFunctions.test(UIInterFace::UPDATEWIZARD))
+    m_pUIIF->UpdateWizard(s);
 }
 
 bool PWScore::LockFile(const stringT &filename, stringT &locker)
@@ -2490,5 +2525,28 @@ void PWScore::GetDBProperties(st_DBProperties &st_dbp)
         st_dbp.largestcmp = iter->atr.cmpsize;
       }
     }
+  }
+}
+
+void PWScore::UpdateExpiryEntry(const uuid_array_t &uuid, const CItemData::FieldType ft, const StringX &value)
+{
+  ExpiredList::iterator iter;
+
+  iter = std::find_if(m_ExpireCandidates.begin(), m_ExpireCandidates.end(), ee_equal_uuid(uuid));
+  if (iter == m_ExpireCandidates.end())
+    return;
+
+  if (ft == CItemData::XTIME) {
+    time_t t;
+    if ((VerifyImportDateTimeString(value.c_str(), t) ||
+         VerifyXMLDateTimeString(value.c_str(), t)    ||
+         VerifyASCDateTimeString(value.c_str(), t))   &&
+         (t != time_t(-1))) {  // checkerror despite all our verification!
+      iter->expirytttXTime = t;
+    } else {
+      ASSERT(0);
+    }
+  } else {
+    ASSERT(0);
   }
 }

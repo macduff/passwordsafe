@@ -221,20 +221,20 @@ void CSafeCombinationSetup::OnOkClick( wxCommandEvent& /* evt */ )
     // (also used in CPasskeyChangeDlg)
 #ifndef _DEBUG // for debug, we want no checks at all, to save time
     StringX errmess;
-    if (!CPasswordCharPool::CheckPassword(m_password.c_str(), errmess)) {
+    if (!CPasswordCharPool::CheckPassword(tostringx(m_password), errmess)) {
       wxString cs_msg;
       cs_msg = _("Weak passphrase:\n\n");
       cs_msg += errmess.c_str();
 #ifndef PWS_FORCE_STRONG_PASSPHRASE
       cs_msg += _("\nUse it anyway?");
-      wxMessageDialog mb(this, _("Warning"), cs_msg,
+      wxMessageDialog mb(this, cs_msg, _("Warning"),
                       wxYES_NO | wxNO_DEFAULT | wxICON_HAND);
       int rc = mb.ShowModal();
     if (rc == wxID_NO)
       return;
 #else
     cs_msg += _("\nPlease try another");
-    wxMessageDialog mb(this, _("Error"), cs_msg, wxOK | wxICON_HAND);
+    wxMessageDialog mb(this, cs_msg, _("Error"), wxOK | wxICON_HAND);
     mb.ShowModal();
     return;
 #endif // PWS_FORCE_STRONG_PASSPHRASE

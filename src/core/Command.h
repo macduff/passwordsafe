@@ -45,6 +45,7 @@ public:
   void SetNoGUINotify() {m_bNotifyGUI = false;}
   virtual void ResetSavedState(bool bNewDBState) // overrode in MultiCommands
   {m_bSaveDBChanged = bNewDBState;}
+  bool GetGUINotify() const {return m_bNotifyGUI;}
 
 protected:
   Command(CommandInterface *pcomInt); // protected constructor!
@@ -136,13 +137,17 @@ class AddEntryCommand : public Command
 {
 public:
   static AddEntryCommand *Create(CommandInterface *pcomInt, const CItemData &ci, 
+                                 const Command *pcmd = NULL,
                                  const ATRVector *pvNewATRecords = NULL)
-  { return new AddEntryCommand(pcomInt, ci, pvNewATRecords); }
+  { return new AddEntryCommand(pcomInt, ci, pcmd, pvNewATRecords); }
+
   // Following for adding an alias or shortcut
   static AddEntryCommand *Create(CommandInterface *pcomInt,
                                  const CItemData &ci, const uuid_array_t base_uuid,
+                                 const Command *pcmd = NULL,
                                  const ATRVector *pvNewATRecords = NULL)
-  { return new AddEntryCommand(pcomInt, ci, base_uuid, pvNewATRecords); }
+  { return new AddEntryCommand(pcomInt, ci, base_uuid, pcmd, pvNewATRecords); }
+
   ~AddEntryCommand();
   int Execute(const bool bRedo = false);
   int Redo();
@@ -153,21 +158,24 @@ public:
 private:
   AddEntryCommand& operator=(const AddEntryCommand&); // Do not implement
   AddEntryCommand(CommandInterface *pcomInt, const CItemData &ci,
-                  const ATRVector *pvNewATRecords = NULL);
+                  const Command *pcmd = NULL, const ATRVector *pvNewATRecords = NULL);
   AddEntryCommand(CommandInterface *pcomInt,
                   const CItemData &ci, const uuid_array_t base_uuid,
-                  const ATRVector *pvNewATRecords = NULL);
+                  const Command *pcmd = NULL, const ATRVector *pvNewATRecords = NULL);
+
   const CItemData m_ci;
   uuid_array_t m_base_uuid, m_entry_uuid;
   ATRVector m_vNewATRecords;
+  bool m_bExpired;
 };
 
 class DeleteEntryCommand : public Command
 {
 public:
   static DeleteEntryCommand *Create(CommandInterface *pcomInt,
-                                    const CItemData &ci)
-  { return new DeleteEntryCommand(pcomInt, ci); }
+                                    const CItemData &ci,
+                                    const Command *pcmd = NULL)
+  { return new DeleteEntryCommand(pcomInt, ci, pcmd); }
   ~DeleteEntryCommand();
   int Execute(const bool bRedo = false);
   int Redo();
@@ -176,7 +184,8 @@ public:
 
 private:
   DeleteEntryCommand& operator=(const DeleteEntryCommand&); // Do not implement
-  DeleteEntryCommand(CommandInterface *pcomInt, const CItemData &ci);
+  DeleteEntryCommand(CommandInterface *pcomInt, const CItemData &ci,
+                     const Command *pcmd = NULL);
   const CItemData m_ci;
   uuid_array_t m_base_uuid; // for undo of shortcut or alias deletion
   uuid_array_t m_entry_uuid;
@@ -229,11 +238,13 @@ private:
   void Doit(const uuid_array_t &entry_uuid,
             CItemData::FieldType ftype,
             const StringX &value,
-            CItemData::EntryStatus es);
+            CItemData::EntryStatus es,
+            UpdateGUICommand::ExecuteFn efn);
 
   uuid_array_t m_entry_uuid;
   CItemData::FieldType m_ftype;
-  StringX m_value, m_old_value;
+  StringX m_value, m_old_value, m_oldpwhistory;
+  time_t m_tttoldXtime;
   CItemData::EntryStatus m_old_status;
 };
 
@@ -254,6 +265,7 @@ private:
   uuid_array_t m_entry_uuid;
   StringX m_sxNewPassword, m_sxOldPassword, m_sxOldPWHistory;
   CItemData::EntryStatus m_old_status;
+  time_t m_tttOldXTime;
 };
 
 class AddDependentEntryCommand : public Command
@@ -393,6 +405,7 @@ public:
   void Undo();
 
   void Add(Command *pcmd);
+  void Insert(Command *pcmd); // VERY INEFFICIENT - use sparingly
   bool Remove(Command *pcmd);
   bool Remove();
   bool GetRC(Command *pcmd, int &rc);

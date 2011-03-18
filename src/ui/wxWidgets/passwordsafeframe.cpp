@@ -59,6 +59,7 @@
 #include "./MergeDlg.h"
 #include <algorithm>
 #include "./PwsSync.h"
+#include "./SystemTrayMenuId.h"
 
 // main toolbar images
 #include "./PwsToolbarButtons.h"
@@ -184,6 +185,11 @@ BEGIN_EVENT_TABLE( PasswordSafeFrame, wxFrame )
 
   EVT_MENU( ID_MENU_CLEAR_MRU, PasswordSafeFrame::OnClearRecentHistory )
   EVT_UPDATE_UI( ID_MENU_CLEAR_MRU, PasswordSafeFrame::OnUpdateClearRecentDBHistory )
+  
+  EVT_MENU(ID_VALIDATE,    PasswordSafeFrame::OnValidate)
+
+  EVT_MENU(ID_BACKUP,      PasswordSafeFrame::OnBackupSafe)
+  EVT_MENU(ID_RESTORE,     PasswordSafeFrame::OnRestoreSafe)
 
   EVT_ICONIZE(PasswordSafeFrame::OnIconize)
 
@@ -212,6 +218,7 @@ BEGIN_EVENT_TABLE( PasswordSafeFrame, wxFrame )
   EVT_UPDATE_UI(wxID_UNDO,          PasswordSafeFrame::OnUpdateUI )
   EVT_UPDATE_UI(wxID_REDO,          PasswordSafeFrame::OnUpdateUI )
   EVT_UPDATE_UI(ID_SYNCHRONIZE,     PasswordSafeFrame::OnUpdateUI )
+  EVT_UPDATE_UI(ID_VALIDATE,        PasswordSafeFrame::OnUpdateUI )
 END_EVENT_TABLE()
 
 static void DisplayFileWriteError(int rc, const StringX &fname);
@@ -222,7 +229,7 @@ static void DisplayFileWriteError(int rc, const StringX &fname);
 
 PasswordSafeFrame::PasswordSafeFrame(PWScore &core)
 : m_core(core), m_currentView(GRID), m_search(0), m_sysTray(new SystemTray(this)), m_exitFromMenu(false),
-  m_RUEList(core), m_guiInfo(new GUIInfo), m_bTSUpdated(false)
+  m_RUEList(core), m_guiInfo(new GUIInfo), m_bTSUpdated(false), m_savedDBPrefs(wxEmptyString)
 {
     Init();
 }
@@ -232,7 +239,7 @@ PasswordSafeFrame::PasswordSafeFrame(wxWindow* parent, PWScore &core,
                                      const wxPoint& pos, const wxSize& size,
                                      long style)
   : m_core(core), m_currentView(GRID), m_search(0), m_sysTray(new SystemTray(this)), m_exitFromMenu(false),
-    m_RUEList(core), m_guiInfo(new GUIInfo), m_bTSUpdated(false)
+    m_RUEList(core), m_guiInfo(new GUIInfo), m_bTSUpdated(false), m_savedDBPrefs(wxEmptyString)
 {
     Init();
     if (PWSprefs::GetInstance()->GetPref(PWSprefs::AlwaysOnTop))
@@ -305,7 +312,15 @@ PasswordSafeFrame::~PasswordSafeFrame()
 
 void PasswordSafeFrame::Init()
 {
-  m_core.SetUIInterFace(this);
+  std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions;
+  bsSupportedFunctions.set(UIInterFace::DATABASEMODIFIED);
+  bsSupportedFunctions.set(UIInterFace::UPDATEGUI);
+  bsSupportedFunctions.set(UIInterFace::GUISETUPDISPLAYINFO);
+  bsSupportedFunctions.set(UIInterFace::GUIREFRESHENTRY);
+  //bsSupportedFunctions.set(UIInterFace::UPDATEWIZARD);
+
+  m_core.SetUIInterFace(this, UIInterFace::NUM_SUPPORTED, bsSupportedFunctions);
+
   m_RUEList.SetMax(PWSprefs::GetInstance()->PWSprefs::MaxREItems);
 ////@begin PasswordSafeFrame member initialisation
   m_grid = NULL;
@@ -418,6 +433,7 @@ void PasswordSafeFrame::CreateControls()
   itemMenu72->Append(ID_RESTORE, _("&Restore from Backup...\tCtrl+R"), _T(""), wxITEM_NORMAL);
   itemMenu72->AppendSeparator();
   itemMenu72->Append(wxID_PREFERENCES, _("&Options..."), _T(""), wxITEM_NORMAL);
+  itemMenu72->Append(ID_VALIDATE, _("&Validate..."), _T(""), wxITEM_NORMAL);
   menuBar->Append(itemMenu72, _("&Manage"));
   wxMenu* itemMenu79 = new wxMenu;
   itemMenu79->Append(wxID_HELP, _("Get &Help"), _T(""), wxITEM_NORMAL);
@@ -563,7 +579,7 @@ void PasswordSafeFrame::SetTitle(const wxString& title)
   wxString newtitle = _T("PasswordSafe");
   if (!title.empty()) {
     newtitle += _T(" - ");
-    StringX fname = title.c_str();
+    StringX fname = tostringx(title);
     StringX::size_type findex = fname.rfind(_T("/"));
     if (findex != StringX::npos)
       fname = fname.substr(findex + 1);
@@ -574,7 +590,7 @@ void PasswordSafeFrame::SetTitle(const wxString& title)
 
 int PasswordSafeFrame::Load(const wxString &passwd)
 {
-  int status = m_core.ReadCurFile(passwd.c_str());
+  int status = m_core.ReadCurFile(tostringx(passwd));
   if (status == PWScore::SUCCESS) {
     SetTitle(m_core.GetCurFile().c_str());
     m_sysTray->SetTrayStatus(SystemTray::TRAY_UNLOCKED);
@@ -606,7 +622,6 @@ void PasswordSafeFrame::ShowGrid(bool show)
 {
   if (show) {
     m_grid->SetTable(new PWSGridTable(m_grid), true); // true => auto-delete
-    m_grid->AutoSizeColumns();
     m_grid->EnableEditing(false);
     m_grid->DeleteAllItems();
     wxFont font(towxstring(PWSprefs::GetInstance()->GetPref(PWSprefs::TreeFont)));
@@ -895,9 +910,12 @@ int PasswordSafeFrame::SaveIfChanged()
   // returns PWScore::SUCCESS if save succeeded or if user decided
   // not to save
 
-  if (m_core.IsChanged() || PWSprefs::GetInstance()->IsDBprefsChanged()) {
-    wxString prompt(_("Do you want to save changes to the password database: "));
-    prompt += m_core.GetCurFile().c_str();
+  if (m_core.IsChanged() || m_core.HaveDBPrefsChanged()) {
+    wxString prompt(_("Do you want to save changes to the password database"));
+    if (!m_core.GetCurFile().empty()) {
+      prompt += _(": ");
+      prompt += m_core.GetCurFile().c_str();
+    }
     prompt += _T("?");
     wxMessageDialog dlg(this, prompt, GetTitle(),
                         (wxICON_QUESTION | wxCANCEL |
@@ -958,23 +976,7 @@ CItemData *PasswordSafeFrame::GetSelectedEntry() const
 
 void PasswordSafeFrame::OnOpenClick( wxCommandEvent& /* evt */ )
 {
-  stringT dir = PWSdirs::GetSafeDir();
-  //Open-type dialog box
-  wxFileDialog fd(this, _("Please Choose a Database to Open:"),
-                  dir.c_str(), _("pwsafe.psafe3"),
-                  _("Password Safe Databases (*.psafe3; *.dat)|*.psafe3;*.dat|Password Safe Backups (*.bak)|*.bak|Password Safe Intermediate Backups (*.ibak)|*.ibak|All files (*.*; *)|*.*;*"),
-                  (wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_CHANGE_DIR));
-
-  while (1) {
-    if (fd.ShowModal() == wxID_OK) {
-      int rc = Open(fd.GetPath()); // prompt for password of new file and load.
-      if (rc == PWScore::SUCCESS) {
-        break;
-      }
-    } else { // user cancelled 
-      break;
-    }
-  }
+  DoOpen(_("Please Choose a Database to Open:"));
 }
 
 
@@ -999,6 +1001,26 @@ void PasswordSafeFrame::OnCloseClick( wxCommandEvent& /* evt */ )
   }
 }
 
+int PasswordSafeFrame::DoOpen(const wxString& title)
+{
+  stringT dir = PWSdirs::GetSafeDir();
+  //Open-type dialog box
+  wxFileDialog fd(this, title, dir.c_str(), _("pwsafe.psafe3"),
+                  _("Password Safe Databases (*.psafe3; *.dat)|*.psafe3;*.dat|Password Safe Backups (*.bak)|*.bak|Password Safe Intermediate Backups (*.ibak)|*.ibak|All files (*.*; *)|*.*;*"),
+                  (wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_CHANGE_DIR));
+
+  while (1) {
+    if (fd.ShowModal() == wxID_OK) {
+      int rc = Open(fd.GetPath()); // prompt for password of new file and load.
+      if (rc == PWScore::SUCCESS) {
+        return PWScore::SUCCESS;
+      }
+    } else { // user cancelled 
+      return PWScore::USER_CANCEL;
+    }
+  }
+}
+
 int PasswordSafeFrame::Open(const wxString &fname)
 { 
     
@@ -1016,7 +1038,7 @@ int PasswordSafeFrame::Open(const wxString &fname)
   // prompt for password, try to Load.
   CSafeCombinationPrompt pwdprompt(this, m_core, fname);
   if (pwdprompt.ShowModal() == wxID_OK) {
-    m_core.SetCurFile(fname.c_str());
+    m_core.SetCurFile(tostringx(fname));
     wxString password = pwdprompt.GetPassword();
     int retval = Load(password);
     if (retval == PWScore::SUCCESS) {
@@ -1153,7 +1175,7 @@ void PasswordSafeFrame::OnChangePasswdClick( wxCommandEvent& /* evt */ )
   CSafeCombinationChange* window = new CSafeCombinationChange(this, m_core);
   int returnValue = window->ShowModal();
   if (returnValue == wxID_OK) {
-    m_core.ChangePasskey(window->GetNewpasswd().c_str());
+    m_core.ChangePasskey(tostringx(window->GetNewpasswd()));
   }
   window->Destroy();
 }
@@ -1295,6 +1317,7 @@ void PasswordSafeFrame::OnCloseWindow( wxCloseEvent& evt )
         return;
       }
     }
+    SaveSettings();
     Destroy();
   }
   else {
@@ -1334,7 +1357,7 @@ void PasswordSafeFrame::OnOptionsMClick( wxCommandEvent& /* evt */ )
 void PasswordSafeFrame::OnBrowseURL(wxCommandEvent& evt)
 {
   CItemData rueItem;
-  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
+  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetEventRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
   if (item)
     DoBrowse(*item, false); //false => no autotype
 }
@@ -1346,7 +1369,7 @@ void PasswordSafeFrame::OnBrowseURL(wxCommandEvent& evt)
 void PasswordSafeFrame::OnBrowseUrlAndAutotype(wxCommandEvent& evt)
 {
   CItemData rueItem;
-  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
+  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetEventRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
   if (item) {
     DoBrowse(*item, true); //true => autotype
   }
@@ -1359,7 +1382,7 @@ void PasswordSafeFrame::OnBrowseUrlAndAutotype(wxCommandEvent& evt)
 void PasswordSafeFrame::OnSendEmail(wxCommandEvent& evt)
 {
   CItemData rueItem;
-  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
+  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetEventRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
   if (item)
     DoEmail(*item);
 }
@@ -1371,7 +1394,7 @@ void PasswordSafeFrame::OnSendEmail(wxCommandEvent& evt)
 void PasswordSafeFrame::OnRunCommand(wxCommandEvent& evt)
 {
   CItemData rueItem;
-  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
+  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetEventRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
   if (item)
     DoRun(*item);
 }
@@ -1383,7 +1406,7 @@ void PasswordSafeFrame::OnRunCommand(wxCommandEvent& evt)
 void PasswordSafeFrame::OnAutoType(wxCommandEvent& evt)
 {
   CItemData rueItem;
-  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
+  CItemData* item = IsRUEEvent(evt)? (m_RUEList.GetPWEntry(GetEventRUEIndex(evt), rueItem)? &rueItem: NULL) : GetSelectedEntry();
   if (item) {
 #ifdef __WXMAC__
     Lower();
@@ -1426,6 +1449,11 @@ void PasswordSafeFrame::SelectItem(const CUUIDGen& uuid)
 
 }
 
+void PasswordSafeFrame::SaveSettings(void) const
+{
+  m_grid->SaveSettings();
+}
+
 void PasswordSafeFrame::SetChanged(ChangeType changed)
 {
   if (m_core.IsReadOnly())
@@ -1458,6 +1486,18 @@ void PasswordSafeFrame::SetChanged(ChangeType changed)
       ASSERT(0);
   }
 }
+
+bool PasswordSafeFrame::IsRUEEvent(const wxCommandEvent& evt) const 
+{
+  const int cmd = int(evt.GetExtraLong());
+  return IsRUECommand(cmd) && GetRUEIndex(cmd) < m_RUEList.GetCount(); 
+}
+
+long PasswordSafeFrame::GetEventRUEIndex(const wxCommandEvent& evt) const
+{
+  return GetRUEIndex(int(evt.GetExtraLong())); 
+}
+
 
 void PasswordSafeFrame::UpdateAccessTime(CItemData &ci)
 {
@@ -1523,7 +1563,7 @@ void PasswordSafeFrame::DispatchDblClickAction(CItemData &item)
     break;
   default: {
     wxString action;
-    action.Format(_("Unknown code: %d"),
+    action.Printf(_("Unknown code: %d"),
                   PWSprefs::GetInstance()->GetPref(PWSprefs::DoubleClickAction));
     wxMessageBox(action);
     break;
@@ -1663,7 +1703,7 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
 {
   switch (evt.GetId()) {
     case wxID_SAVE:
-      evt.Enable(m_core.IsChanged());
+      evt.Enable(m_core.IsChanged() || m_core.HaveDBPrefsChanged());
       break;
    
     case ID_ADDGROUP:
@@ -1745,10 +1785,20 @@ void PasswordSafeFrame::OnUpdateUI(wxUpdateUIEvent& evt)
     case ID_SYNCHRONIZE:
       evt.Enable(!m_core.IsReadOnly() && !m_core.GetCurFile().empty() && m_core.GetNumEntries() != 0);
       break;
-      
+
+    case ID_VALIDATE:
+      evt.Enable(IsClosed());
+      break;
+
     default:
       break;
   }
+}
+
+bool PasswordSafeFrame::IsClosed() const
+{
+  return m_core.GetCurFile().empty() && m_core.GetNumEntries() == 0 && !m_core.IsChanged()
+                    && !m_core.AnyToUndo() && !m_core.AnyToRedo();
 }
 
 // Implementation of UIinterface methods
@@ -1888,6 +1938,11 @@ void PasswordSafeFrame::GUIRefreshEntry(const CItemData& item)
     m_tree->UpdateItem(item);
     m_grid->UpdateItem(item);
   }
+}
+
+void PasswordSafeFrame::UpdateWizard(const stringT &)
+{
+  // Stub
 }
 
 /*!
@@ -2031,7 +2086,7 @@ int PasswordSafeFrame::NewFile(StringX &fname)
   wxString cs_text(_("Please choose a name for the new database"));
 
   wxString cf(_("pwsafe")); // reasonable default for first time user
-  wxString v3FileName = towxstring(PWSUtil::GetNewFileName(cf.c_str(), DEFAULT_SUFFIX));
+  wxString v3FileName = towxstring(PWSUtil::GetNewFileName(tostdstring(cf), DEFAULT_SUFFIX));
   wxString dir = towxstring(PWSdirs::GetSafeDir());
   int rc;
 
@@ -2078,7 +2133,7 @@ int PasswordSafeFrame::NewFile(StringX &fname)
   m_core.LockFile(fname.c_str(), locker);
 
   m_core.SetReadOnly(false); // new file can't be read-only...
-  m_core.NewFile(dbox_pksetup.GetPassword().c_str());
+  m_core.NewFile(tostringx(dbox_pksetup.GetPassword()));
 #ifdef notyet
   startLockCheckTimer();
 #endif
@@ -2090,6 +2145,8 @@ bool PasswordSafeFrame::SaveAndClearDatabase()
   //Save UI elements first
   PWSprefs::GetInstance()->SaveApplicationPreferences();
   PWSprefs::GetInstance()->SaveShortcuts();
+  m_savedDBPrefs = towxstring(PWSprefs::GetInstance()->Store());
+
   //Save alerts the user
   if (!m_core.IsChanged() || Save() == PWScore::SUCCESS) {
     ClearData();
@@ -2129,6 +2186,13 @@ void PasswordSafeFrame::UnlockSafe(bool restoreUI)
     else {
       return;
     }
+    if (m_savedDBPrefs != wxEmptyString) {
+      const StringX savedPrefs = tostringx(m_savedDBPrefs);
+      PWSprefs::GetInstance()->Load(savedPrefs);
+      if (m_core.HaveHeaderPreferencesChanged(savedPrefs))
+        m_core.SetDBPrefsChanged(true);
+      m_savedDBPrefs = wxEmptyString;
+    }
   }
   
   if (restoreUI) {
@@ -2164,7 +2228,11 @@ void PasswordSafeFrame::SetFocus()
 void PasswordSafeFrame::OnIconize(wxIconizeEvent& evt)
 {
   // being restored?
+#if wxCHECK_VERSION(2,9,0)
+  if (!evt.IsIconized() && m_sysTray->IsLocked()){
+#else
   if (!evt.Iconized() && m_sysTray->IsLocked()){
+#endif
     wxString password;
     if (VerifySafeCombination(password)) {
       if (ReloadDatabase(password)) {
@@ -2281,7 +2349,7 @@ void PasswordSafeFrame::OnImportText(wxCommandEvent& evt)
   CReport rpt;
   rpt.StartReport(wxT("Import_Text"), m_core.GetCurFile().c_str());
   wxString header;
-  header.Format(wxT("%s file being imported: %s"), wxT("Text"), TxtFileName.c_str());
+  header.Printf(wxT("%s file being imported: %s"), wxT("Text"), TxtFileName.c_str());
   rpt.WriteLine(tostdstring(header));
   rpt.WriteLine();
 
@@ -2450,7 +2518,7 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
   Command *pcmd = NULL;
 
   int rc = m_core.ImportXMLFile(ImportedPrefix, std::wstring(XMLFilename),
-                            XSDFilename.GetFullPath().c_str(), bImportPSWDsOnly,
+                            tostdstring(XSDFilename.GetFullPath()), bImportPSWDsOnly,
                             strXMLErrors, strSkippedList, strPWHErrorList, strRenameList,
                             numValidated, numImported, numSkipped, numPWHErrors, numRenamed,
                             bBadUnknownFileFields, bBadUnknownRecordFields,
@@ -2487,12 +2555,12 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
           csErrors = strXMLErrors + wxT("\n");
 
         if (bBadUnknownFileFields) {
-          cs_temp.Format(_("At least one unknown %s field is now in use.  Any found have been ignored."), 
+          cs_temp.Printf(_("At least one unknown %s field is now in use.  Any found have been ignored."), 
                     _("header"));
           csErrors += cs_temp + wxT("\n");
         }
         if (bBadUnknownRecordFields) {
-          cs_temp.Format( _("At least one unknown %s field is now in use.  Any found have been ignored."),
+          cs_temp.Printf( _("At least one unknown %s field is now in use.  Any found have been ignored."),
                             _("record"));
           csErrors += cs_temp + wxT("\n");
         }
@@ -2505,33 +2573,33 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
         if (numSkipped > 0) {
           cs_skipped = _("The following records were skipped:");
           rpt.WriteLine(tostdstring(cs_skipped));
-          cs_skipped.Format(_(" / skipped %d"), numSkipped);
+          cs_skipped.Printf(_(" / skipped %d"), numSkipped);
           rpt.WriteLine(strSkippedList.c_str());
           rpt.WriteLine();
         }
         if (numPWHErrors > 0) {
           cs_PWHErrors = _("The following records had errors in their Password History:");
           rpt.WriteLine(tostdstring(cs_PWHErrors));
-          cs_PWHErrors.Format(_(" / with Password History errors %d"), numPWHErrors);
+          cs_PWHErrors.Printf(_(" / with Password History errors %d"), numPWHErrors);
           rpt.WriteLine(strPWHErrorList.c_str());
           rpt.WriteLine();
         }
         if (numRenamed > 0) {
           cs_renamed = _("The following records were renamed as an entry already exists in your database or in the Import file:");
           rpt.WriteLine(tostdstring(cs_renamed));
-          cs_renamed.Format(_(" / renamed %d"), numRenamed);
+          cs_renamed.Printf(_(" / renamed %d"), numRenamed);
           rpt.WriteLine(strRenameList.c_str());
           rpt.WriteLine();
         }
 
-        cs_temp.Format(_("File: %s was imported (entries validated %d / imported %d%s%s%s). See report for details."),
+        cs_temp.Printf(_("File: %s was imported (entries validated %d / imported %d%s%s%s). See report for details."),
                        dlg.filepath.c_str(), numValidated, numImported,
                        cs_skipped.c_str(), cs_renamed.c_str(), cs_PWHErrors.c_str());
 
       } else {
         const TCHAR* cs_validate = numValidated == 1 ? _("entry") : _("entries");
         const TCHAR* cs_imported = numImported == 1 ? _("entry") : _("entries");
-        cs_temp.Format(_("Validated %d %s\r\n\r\nImported %d %s"), numValidated, cs_validate, numImported, cs_imported);
+        cs_temp.Printf(_("Validated %d %s\r\n\r\nImported %d %s"), numValidated, cs_validate, numImported, cs_imported);
       }
 
       RefreshViews();
@@ -2540,7 +2608,7 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
       cs_temp = _("XML import not supported in this release");
       break;
     default:
-      cs_temp.Format(_("XML import: Unexpected return code(%d)"), rc);
+      cs_temp.Printf(_("XML import: Unexpected return code(%d)"), rc);
       break;
   } // switch
 
@@ -2570,7 +2638,7 @@ void PasswordSafeFrame::OnExportVx(wxCommandEvent& evt)
 
   //SaveAs-type dialog box
   std::wstring OldFormatFileName = PWSUtil::GetNewFileName(m_core.GetCurFile().c_str(),
-                                                      _("dat"));
+                                                      wxT("dat"));
   cs_text = _("Please name the exported database");
 
   //filename cannot have the path. Need to pass it separately
@@ -2612,16 +2680,16 @@ struct ExportFullText
     frame->FlattenTree(olist);
   }
   static wxString GetFailureMsgTitle() {return _("Export Text failed"); }
-  static stringT  FileExtension() { return _("txt"); }
+  static stringT  FileExtension() { return wxT("txt"); }
   static wxString FileOpenPrompt() { return _("Please name the plaintext file"); }
   static wxString WildCards() {return _("Text files (*.txt)|*.txt|CSV files (*.csv)|*.csv|All files (*.*; *)|*.*;*"); }
   static int Write(PWScore& core, const StringX &filename, const CItemData::FieldBits &bsFields,
                           const stringT &subgroup_name, int subgroup_object, 
-                          int subgroup_function, TCHAR delimiter, 
+                          int subgroup_function, TCHAR delimiter, int &numExported,
                           const OrderedItemList *il)
   {
     return core.WritePlaintextFile(filename, bsFields, subgroup_name, subgroup_object, subgroup_function,
-                          delimiter, il);
+                          delimiter, numExported, il);
   }
   static wxString GetAdvancedSelectionTitle() {
     return _("Advanced Text Export Options");
@@ -2648,17 +2716,17 @@ struct ExportFullXml {
     frame->FlattenTree(olist);
   }
   static wxString GetFailureMsgTitle() {return _("Export XML failed"); }
-  static stringT  FileExtension() { return _("xml"); }
+  static stringT  FileExtension() { return wxT("xml"); }
   static wxString FileOpenPrompt() { return _("Please name the XML file"); }
   static wxString WildCards() {return _("XML files (*.xml)|*.xml|All files (*.*; *)|*.*;*"); }
   static int Write(PWScore& core, const StringX &filename, const CItemData::FieldBits &bsFields,
                           const stringT &subgroup_name, int subgroup_object, 
-                          int subgroup_function, TCHAR delimiter, 
+                          int subgroup_function, TCHAR delimiter, int &numExported,
                           const OrderedItemList *il)
   {
     bool bFilterActive = false;
     return core.WriteXMLFile(filename, bsFields, subgroup_name, subgroup_object, subgroup_function,
-                          delimiter, il, bFilterActive);
+                          delimiter, numExported, il, bFilterActive);
   }
   static wxString GetAdvancedSelectionTitle() {
     return _("Advanced XML Export Options");
@@ -2721,8 +2789,9 @@ void PasswordSafeFrame::DoExportText()
      * 'Advanced' to filter the entries to be exported.
      * Effectively, subgroup_* parameters are ignored if 1st param is false.
      */
-    switch(m_core.TestForExport(false, subgroup_name, subgroup_object,
-                             subgroup_function, &orderedItemList)) {
+    int numExported(0);
+    switch(m_core.TestSelection(false, subgroup_name, subgroup_object,
+                                subgroup_function, &orderedItemList)) {
       case PWScore::SUCCESS:
       {
         // do the export
@@ -2736,7 +2805,7 @@ void PasswordSafeFrame::DoExportText()
         if (fd.ShowModal() == wxID_OK) {
           newfile = fd.GetPath();
           int rc = ExportType::Write(m_core, newfile, bsExport, subgroup_name, subgroup_object, 
-                                      subgroup_function, delimiter, &orderedItemList);
+                                      subgroup_function, delimiter, numExported, &orderedItemList);
 
           orderedItemList.clear(); // cleanup soonest
 
@@ -2864,7 +2933,7 @@ void PasswordSafeFrame::Merge(const StringX &sx_Filename2, PWScore *pothercore, 
   /* Create report as we go */
   CReport rpt;
   rpt.StartReport(_("Merge"), sx_Filename1.c_str());
-  rpt.WriteLine(wxString::Format(_("Merging database: %s\r\n"), sx_Filename2.c_str()).c_str());
+  rpt.WriteLine(tostdstring(wxString(_("Merging database: ")) << towxstring(sx_Filename2) << wxT("\r\n")));
   
   std::vector<StringX> vs_added;
   std::vector<StringX> vs_AliasesAdded;
@@ -3239,6 +3308,173 @@ void PasswordSafeFrame::OnSynchronize(wxCommandEvent& /*evt*/)
   
   if (wiz.ShowReport())
     ViewReport(*wiz.GetReport());
+}
+
+//------------ Validation
+//
+//
+void PasswordSafeFrame::OnValidate(wxCommandEvent& /*evt*/) 
+{
+  if (DoOpen(_("Please Choose a Database to Validate:")) == PWScore::SUCCESS)
+    ValidateCurrentDatabase();
+}
+
+void PasswordSafeFrame::ValidateCurrentDatabase()
+{
+  CReport rpt;
+  rpt.StartReport(_("Validate"), m_core.GetCurFile().c_str());
+
+  stringT cs_msg;
+  const bool bchanged = m_core.Validate(cs_msg, rpt, MAXTEXTCHARS);
+  if (bchanged) {
+    SetChanged(Data);
+
+#ifdef NOT_YET
+    ChangeOkUpdate();
+#endif
+
+    rpt.EndReport();
+
+    if (wxMessageBox(towxstring(cs_msg) << _("\r\n\r\nDo you wish to see a detailed report?"),
+                            _("Validate"), wxYES_NO|wxICON_EXCLAMATION, this) == wxYES)
+      ViewReport(rpt);
+  }
+  else {
+    wxMessageBox(_("Database validated - no problems found."), _("Validate"), wxOK|wxICON_INFORMATION, this);
+  }
+#ifdef NOT_YET
+  // Show UUID in Edit Date/Time property sheet stats
+  CAddEdit_DateTimes::m_bShowUUID = true;
+#endif
+}
+
+//////////////////////////////////////////
+// Backup and Restore
+//
+void PasswordSafeFrame::OnBackupSafe(wxCommandEvent& /*evt*/)
+{
+  PWSprefs *prefs = PWSprefs::GetInstance();
+  const wxFileName currbackup(towxstring(prefs->GetPref(PWSprefs::CurrentBackup)));
+
+  const wxString title(_("Please Choose a Name for this Backup:"));
+
+  wxString dir;
+  if (m_core.GetCurFile().empty())
+    dir = towxstring(PWSdirs::GetSafeDir());
+  else {
+    wxFileName::SplitPath(towxstring(m_core.GetCurFile()), &dir, NULL, NULL);
+    wxCHECK_RET(!dir.IsEmpty(), _("Could not parse current file path"));
+  }
+
+  //returns empty string if user cancels
+  wxString wxbf = wxFileSelector(title,
+                                 dir,
+                                 currbackup.GetFullName(),
+                                 _("bak"),
+                                 _("Password Safe Backups (*.bak)|*.bak"),
+                                 wxFD_SAVE|wxFD_OVERWRITE_PROMPT,
+                                 this);
+  /*
+  The wxFileSelector code says it appends the default extension if user
+  doesn't type one, but it actually doesn't and I don't see the purported
+  code in 2.8.10.  And doing it ourselves after the dialog has returned is
+  risky because we might silenty overwrite an existing file
+  */
+  
+  //create a copy to avoid multiple conversions to StringX
+  const StringX backupfile(tostringx(wxbf));
+  
+#ifdef NOT_YET
+  if (m_inExit) {
+    // If U3ExitNow called while in CPWFileDialog,
+    // PostQuitMessage makes us return here instead
+    // of exiting the app. Try resignalling 
+    PostQuitMessage(0);
+    return PWScore::USER_CANCEL;
+  }
+#endif
+
+  if (!backupfile.empty()) {  //i.e. if user didn't cancel
+    if (m_core.WriteFile(backupfile) == PWScore::CANT_OPEN_FILE) {
+      wxMessageBox( wxbf << _("\n\nCould not open file for writing!"),
+                    _("Write Error"), wxOK|wxICON_ERROR, this);
+    }
+
+    prefs->SetPref(PWSprefs::CurrentBackup, backupfile);
+  }
+}
+
+void PasswordSafeFrame::OnRestoreSafe(wxCommandEvent& /*evt*/)
+{
+  if (SaveIfChanged() != PWScore::SUCCESS)
+    return;
+
+  const wxFileName currbackup(towxstring(PWSprefs::GetInstance()->GetPref(PWSprefs::CurrentBackup)));
+
+  wxString dir;
+  if (m_core.GetCurFile().empty())
+    dir = towxstring(PWSdirs::GetSafeDir());
+  else {
+    wxFileName::SplitPath(towxstring(m_core.GetCurFile()), &dir, NULL, NULL);
+    wxCHECK_RET(!dir.IsEmpty(), _("Could not parse current file path"));
+  }
+
+  //returns empty string if user cancels
+  wxString wxbf = wxFileSelector(_("Please Choose a Backup to restore:"),
+                                 dir,
+                                 currbackup.GetFullName(),
+                                 _("bak"),
+                                 _("Password Safe Backups (*.bak)|*.bak"),
+                                 wxFD_OPEN|wxFD_FILE_MUST_EXIST,
+                                 this);
+  if (wxbf.empty())
+    return;
+
+#ifdef NOT_YET
+  if (m_inExit) {
+    // If U3ExitNow called while in CPWFileDialog,
+    // PostQuitMessage makes us return here instead
+    // of exiting the app. Try resignalling 
+    PostQuitMessage(0);
+    return PWScore::USER_CANCEL;
+  }
+#endif
+
+  CSafeCombinationPrompt pwdprompt(this, m_core, wxbf);
+  if (pwdprompt.ShowModal() == wxID_OK) {
+    const wxString passkey = pwdprompt.GetPassword();
+    // unlock the file we're leaving
+    if (!m_core.GetCurFile().empty()) {
+      m_core.UnlockFile(m_core.GetCurFile().c_str());
+    }
+
+    // clear the data before restoring
+    ClearData();
+
+    if (m_core.ReadFile(tostringx(wxbf), tostringx(passkey), MAXTEXTCHARS) == PWScore::CANT_OPEN_FILE) {
+      wxMessageBox(wxbf << _("\n\nCould not open file for reading!"), 
+                      _("File Read Error"), wxOK | wxICON_ERROR, this);
+      return /*PWScore::CANT_OPEN_FILE*/;
+    }
+
+    m_core.SetCurFile(L"");    // Force a Save As...
+    m_core.SetDBChanged(true); // So that the restored file will be saved
+
+#if !defined(POCKET_PC)
+    SetTitle(_("Password Safe - <Untitled Restored Backup>"));
+
+#ifdef NOT_YET
+    app.SetTooltipText(L"PasswordSafe");
+#endif
+
+#endif
+
+#ifdef NOT_YET
+    ChangeOkUpdate();
+#endif
+
+    RefreshViews();
+  }
 }
 
 //-----------------------------------------------------------------

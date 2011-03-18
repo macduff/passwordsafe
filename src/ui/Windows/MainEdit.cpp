@@ -22,6 +22,7 @@
 #include "ClearQuestionDlg.h"
 #include "CreateShortcutDlg.h"
 #include "PasswordSubsetDlg.h"
+#include "ExpPWListDlg.h"
 
 #include "core/pwsprefs.h"
 #include "core/PWSAuxParse.h"
@@ -136,11 +137,11 @@ void DboxMain::OnAdd()
 
     Command *pcmd;
     if (add_entry_psh.GetIBasedata() == 0) {
-      pcmd = AddEntryCommand::Create(&m_core, ci, &vNewATRecords);
+      pcmd = AddEntryCommand::Create(&m_core, ci, NULL, &vNewATRecords);
     } else { // creating an alias
       uuid_array_t base_uuid;
       memcpy(base_uuid, add_entry_psh.GetBaseUUID(), sizeof(base_uuid));
-      pcmd = AddEntryCommand::Create(&m_core, ci, base_uuid, &vNewATRecords);
+      pcmd = AddEntryCommand::Create(&m_core, ci, base_uuid, NULL, &vNewATRecords);
     }
 
     pmulticmds->Add(pcmd);
@@ -151,6 +152,7 @@ void DboxMain::OnAdd()
                                                 UpdateGUICommand::GUI_REFRESH_TREE);
       pmulticmds->Add(pcmd3);
     }
+
     Execute(pmulticmds);
 
     if (bAddAttachments) {
@@ -179,7 +181,8 @@ void DboxMain::OnAdd()
     // May need to update menu/toolbar if database was previously empty
     if (bWasEmpty)
       UpdateMenuAndToolBar(m_bOpen);
-  }
+
+  } // rc == OK
 }
 
 //Add a shortcut
@@ -307,7 +310,19 @@ void DboxMain::OnAddGroup()
     CString cmys_text(MAKEINTRESOURCE(IDS_NEWGROUP));
     CItemData *pci = getSelectedItem();
     if (pci != NULL) {
+      // On an entry
       m_TreeViewGroup = pci->GetGroup();
+    } else {
+      // Group is selected but need to know if user used the Edit menu, right-clicked on it
+      // or right-clicked on whitespace
+      // The first 2 create a group under the selected group, the last creates it under root.
+      if (m_bWhitespaceRightClick) {
+        m_bWhitespaceRightClick = false;
+        m_TreeViewGroup = L"";
+      } else  {
+        HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
+        m_TreeViewGroup = m_ctlItemTree.GetGroup(ti);
+      }
     }
 
     if (m_TreeViewGroup.empty())
@@ -338,6 +353,18 @@ void DboxMain::OnAddGroup()
   }
 }
 
+struct DupGroupFunctor : public CPWTreeCtrl::TreeItemFunctor {
+  DupGroupFunctor(HTREEITEM hBase) : m_hBase(hBase) {}
+  virtual void operator()(HTREEITEM hItem) {
+    if (hItem == m_hBase) // we;re not interested in top
+      return;
+    m_items.push_back(hItem);
+  }
+  std::vector<HTREEITEM> m_items;
+private:
+  HTREEITEM m_hBase;
+};
+
 void DboxMain::OnDuplicateGroup()
 {
   if (m_core.IsReadOnly()) // disable in read-only mode
@@ -346,16 +373,16 @@ void DboxMain::OnDuplicateGroup()
   bool bRefresh(true);
   // Get selected group
   HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
-  const HTREEITEM nextsibling = m_ctlItemTree.GetNextSiblingItem(ti);
 
   // Verify that it is a group
   ASSERT((CItemData *)m_ctlItemTree.GetItemData(ti) == NULL);
 
   // Get complete group name
-  StringX sxCurrentPath = (StringX)m_ctlItemTree.GetGroup(ti);
-  StringX sxCurrentGroup = (StringX)m_ctlItemTree.GetItemText(ti);
+  StringX sxCurrentPath = (StringX)m_ctlItemTree.GetGroup(ti); // e.g., a.b.c
+  StringX sxCurrentGroup = (StringX)m_ctlItemTree.GetItemText(ti); // e.g., c
   size_t grplen = sxCurrentPath.length();
 
+  // Make sxNewGroup a unique name for the duplicate, e.g., "a.b.c Copy #1"
   size_t i = 0;
   StringX sxNewPath, sxNewGroup, sxCopy;
   do {
@@ -366,18 +393,20 @@ void DboxMain::OnDuplicateGroup()
   sxNewGroup = sxCurrentGroup + sxCopy;
 
   // Have new group - now copy all entries in current group to new group
-  // Get all of the children
 
-  /*
-    Create 2 multi-commands to first add all normal or base entries and then a second
-    to add any aliases and shortcuts.
-  */
-  std::vector<bool> bVNodeStates;
+  std::vector<bool> bVNodeStates; // new group will have old's expanded nodes
   bool bState = (m_ctlItemTree.GetItemState(ti, TVIS_EXPANDED) &
-                         TVIS_EXPANDED) != 0;
+                 TVIS_EXPANDED) != 0;
   bVNodeStates.push_back(bState);
 
+  // Get all of the children
   if (m_ctlItemTree.ItemHasChildren(ti)) {
+    DupGroupFunctor dgf(ti);
+    m_ctlItemTree.Iterate(ti, dgf); // collects children into a handy vector
+    /*
+      Create 2 multi-commands to first add all normal or base entries and then a second
+      to add any aliases and shortcuts.
+    */
     MultiCommands *pmulti_cmd_base = MultiCommands::Create(&m_core);
     MultiCommands *pmulti_cmd_deps = MultiCommands::Create(&m_core);
 
@@ -386,27 +415,21 @@ void DboxMain::OnDuplicateGroup()
     // base UUIDs and their new UUIDs
     std::map<st_UUID, st_UUID> mapOldToNewBaseUUIDs;
     std::map<st_UUID, st_UUID>::const_iterator citer;
-    HTREEITEM hNextItem;
 
     // Process normal & base entries
     bool bDependentsExist(false);
-    hNextItem = m_ctlItemTree.GetNextTreeItem(ti);
 
-    while (hNextItem != NULL && hNextItem != nextsibling) {
+    std::vector<HTREEITEM>::iterator iter;
+    for (iter = dgf.m_items.begin(); iter != dgf.m_items.end(); iter++) {
+      HTREEITEM hNextItem = *iter;
       CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hNextItem);
-      CString cs_label = m_ctlItemTree.GetItemText(hNextItem);
-      TRACE(L"Label = '%s'\n", cs_label);
-      if (pci != NULL) {
-        // Not a group
+      if (pci != NULL) { // An entry (leaf)
         if (pci->IsDependent()) {
           bDependentsExist = true;
-          hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
           continue;
         }
         
-        // Save old UUID
-        uuid_array_t old_uuid;
-        pci->GetUUID(old_uuid);
+        TRACE(L"Copying %s.%s\n", pci->GetGroup().c_str(), pci->GetTitle().c_str());
         // Set up copy
         CItemData ci2(*pci);
         ci2.SetDisplayInfo(NULL);
@@ -414,41 +437,42 @@ void DboxMain::OnDuplicateGroup()
         ci2.SetStatus(CItemData::ES_ADDED);
         ci2.SetProtected(false);
         // Set new group
-        StringX sxThisEntryNewGroup = sxNewPath + pci->GetGroup().substr(grplen);
+        StringX subPath =  pci->GetGroup();
+        ASSERT(subPath.length() >= grplen);
+        subPath =  subPath.substr(grplen);
+        const StringX sxThisEntryNewGroup = sxNewPath + subPath;
         ci2.SetGroup(sxThisEntryNewGroup);
 
         if (pci->IsBase()) {
+          uuid_array_t old_uuid;
+          pci->GetUUID(old_uuid);
           uuid_array_t new_uuid;
           ci2.GetUUID(new_uuid);
           st_UUID st_old(old_uuid), st_new(new_uuid);
           mapOldToNewBaseUUIDs.insert(std::make_pair(st_old, st_new));
-        }
+        } // pci->IsBase()
 
-        // Make it normal to begin with - if it has dependents then when those
+        // Make copy normal to begin with - if it has dependents then when those
         // are added then its entry type will automatically be changed
         ci2.SetNormal();
         Command *pcmd = AddEntryCommand::Create(&m_core, ci2);
         pcmd->SetNoGUINotify();
         pmulti_cmd_base->Add(pcmd);
-      } else {
-        // Is node - save its expanded/collapsed state
+      } else { // pci == NULL -> This is a node: save its expanded/collapsed state
         bool bState = (m_ctlItemTree.GetItemState(hNextItem, TVIS_EXPANDED) &
-                               TVIS_EXPANDED) != 0;
+                       TVIS_EXPANDED) != 0;
         bVNodeStates.push_back(bState);
       }
-      hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
-    }
+    } // for
 
     // Now process dependents (if any)
     if (bDependentsExist) {
-      hNextItem = m_ctlItemTree.GetNextTreeItem(ti);
-
-      while (hNextItem != NULL && hNextItem != nextsibling) {
+      for (iter = dgf.m_items.begin(); iter != dgf.m_items.end(); iter++) {
+        HTREEITEM hNextItem = *iter;
         CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hNextItem);
         if (pci != NULL) {
           // Not a group but ignore if not a dependent
           if (!pci->IsDependent()) {
-            hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
             continue;
           }
  
@@ -462,7 +486,10 @@ void DboxMain::OnDuplicateGroup()
           ci2.SetStatus(CItemData::ES_ADDED);
           ci2.SetProtected(false);
           // Set new group
-          StringX sxThisEntryNewGroup = sxNewPath + pci->GetGroup().substr(grplen);
+          StringX subPath =  pci->GetGroup();
+          ASSERT(subPath.length() >= grplen);
+          subPath =  subPath.substr(grplen);
+          const StringX sxThisEntryNewGroup = sxNewPath + subPath;
           ci2.SetGroup(sxThisEntryNewGroup);
 
           if (pci->IsAlias())
@@ -481,8 +508,11 @@ void DboxMain::OnDuplicateGroup()
           citer = mapOldToNewBaseUUIDs.find(st_old_base);
           if (citer != mapOldToNewBaseUUIDs.end()) {
             // Base is in duplicated group - use new values
+            StringX subPath2 =  pbci->GetGroup();
+            ASSERT(subPath2.length() >= grplen);
+            subPath2 =  subPath2.substr(grplen);
             sxtmp = L"[" +
-                      sxNewPath + pbci->GetGroup().substr(grplen) + L":" +
+                      sxNewPath + subPath2 + L":" +
                       pbci->GetTitle() + L":" +
                       pbci->GetUser()  +
                     L"]";
@@ -497,18 +527,25 @@ void DboxMain::OnDuplicateGroup()
                     L"]";
             ci2.SetPassword(sxtmp);
             pcmd = AddEntryCommand::Create(&m_core, ci2, old_base_uuid);
-          }
+          } // where's the base?
           pcmd->SetNoGUINotify();
           pmulti_cmd_deps->Add(pcmd);
-        }
-        hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
-      }
-    }
+        } // pci != NULL
+      } // for
+    } // bDependentsExist
+
+    Command *pcmd1(NULL), *pcmd2(NULL);
 
     // We either do only one set of multi-commands, none of them or both of them
     // as one multi-command (normals/bases first followed by dependents)
     const int iDoExec = ((pmulti_cmd_base->GetSize() == 0) ? 0 : 1) +
                         ((pmulti_cmd_deps->GetSize() == 0) ? 0 : 2);
+    if (iDoExec != 0) {
+      pcmd1 = UpdateGUICommand::Create(&m_core, UpdateGUICommand::WN_UNDO,
+                                            UpdateGUICommand::GUI_UNDO_IMPORT);
+      pcmd2 = UpdateGUICommand::Create(&m_core, UpdateGUICommand::WN_EXECUTE_REDO,
+                                            UpdateGUICommand::GUI_REDO_IMPORT);
+    }
     switch (iDoExec) {
       case 0:
         // Do nothing
@@ -516,25 +553,31 @@ void DboxMain::OnDuplicateGroup()
         break;
       case 1:
         // Only normal/base entries
+        pmulti_cmd_base->Insert(pcmd1);
+        pmulti_cmd_base->Add(pcmd2);
         Execute(pmulti_cmd_base);
         break;
       case 2:
         // Only dependents
+        pmulti_cmd_deps->Insert(pcmd1);
+        pmulti_cmd_deps->Add(pcmd2);
         Execute(pmulti_cmd_deps);
         break;
       case 3:
       {
         // Both - normal entries/bases first then dependents
         MultiCommands *pmulti_cmds = MultiCommands::Create(&m_core);
+        pmulti_cmds->Add(pcmd1);
         pmulti_cmds->Add(pmulti_cmd_base);
         pmulti_cmds->Add(pmulti_cmd_deps);
+        pmulti_cmds->Add(pcmd2);
         Execute(pmulti_cmds);
         break;
       }
       default:
         ASSERT(0);
     }
-  } else {
+  } else { // !m_ctlItemTree.ItemHasChildren(ti)
     // User is duplicating an empty group - just add it
     HTREEITEM parent = m_ctlItemTree.GetParentItem(ti);
     HTREEITEM ng_ti = m_ctlItemTree.InsertItem(sxNewGroup.c_str(), parent, TVI_SORT);
@@ -546,24 +589,21 @@ void DboxMain::OnDuplicateGroup()
   // Must do this to re-populate m_mapGroupToTreeItem
   if (bRefresh) {
     RefreshViews();
-
     // Set expand/collapse state of new groups to match old
     HTREEITEM hNextItem = m_ctlItemTree.FindItem(sxNewPath.c_str(), TVI_ROOT);
     ASSERT(hNextItem != NULL);
 
     m_ctlItemTree.Expand(hNextItem, bVNodeStates[0] ? TVE_EXPAND : TVE_COLLAPSE);
-    i = 1;
-    hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
-
-    while (hNextItem != NULL && i < bVNodeStates.size()) {
+    for (i = 1, hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
+         hNextItem != NULL && i < bVNodeStates.size();
+         hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem)) {
       if (m_ctlItemTree.ItemHasChildren(hNextItem)) {
         // Is node - set its expanded/collapsed state
         m_ctlItemTree.Expand(hNextItem, bVNodeStates[i] ? TVE_EXPAND : TVE_COLLAPSE);
         i++;
-      }
-      hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
-    }
-  }
+      } // ItemHasChildren
+    } // Expand/collapse
+  } // bRefresh
 
   m_ctlItemTree.SelectItem(ti);
 }
@@ -596,6 +636,7 @@ void DboxMain::OnProtect(UINT nID)
     ASSERT(nID == ID_MENUITEM_PROTECTGROUP || nID == ID_MENUITEM_UNPROTECTGROUP);
     ChangeSubtreeEntriesProtectStatus(nID);
   }
+  ChangeOkUpdate();
 }
 
 void DboxMain::ChangeSubtreeEntriesProtectStatus(const UINT nID)
@@ -699,9 +740,10 @@ void DboxMain::OnDelete()
     if (hStartItem != NULL) {
       if (m_ctlItemTree.GetItemData(hStartItem) == NULL) {
         // Group node
-        bAskForDeleteConfirmation = true; // ALWAYS ask if deleting a group
+        // ALWAYS ask if deleting a group - unless it is empty!
         num_children = m_ctlItemTree.CountChildren(hStartItem);
         num_atts = m_ctlItemTree.CountAttachments(hStartItem);
+        bAskForDeleteConfirmation = num_children != 0;
       } else {
         // Entry
         pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
@@ -741,7 +783,13 @@ void DboxMain::OnDelete()
 
   if (dodelete) {
     Delete();
-    RefreshViews();
+    // Only refresh views if an entry or a non-empty group was deleted
+    // If we refresh when deleting an empty group, the user will lose all
+    // other empty groups
+    if (m_bFilterActive || pci != NULL || (pci == NULL && num_children > 0))
+      RefreshViews();
+
+    ChangeOkUpdate();
   }
 }
 
@@ -765,11 +813,9 @@ void DboxMain::Delete()
     m_ctlItemTree.SelectItem(parent);
     m_TreeViewGroup = L"";
   }
+
   if (pcmd != NULL) {
     Execute(pcmd);
-    if (m_bFilterActive)
-      RefreshViews();
-    ChangeOkUpdate();
   }
 }
 
@@ -812,6 +858,7 @@ Command *DboxMain::Delete(HTREEITEM ti)
 
   if (ti == NULL)
     return NULL; // bad bottoming out of recursion?
+
   if (m_ctlItemTree.IsLeaf(ti)) {
     CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
     return Delete(pci); // normal bottom out of recursion
@@ -819,7 +866,6 @@ Command *DboxMain::Delete(HTREEITEM ti)
 
   // Here if we have a bona fida group
   ASSERT(ti != NULL && !m_ctlItemTree.IsLeaf(ti));
-  pws_os::Trace(L"DboxMain::Delete(HTREEITEM %s)", m_ctlItemTree.GetItemText(ti));
   MultiCommands *pmulti_cmd = MultiCommands::Create(&m_core);
   
   HTREEITEM cti = m_ctlItemTree.GetChildItem(ti);
@@ -853,9 +899,11 @@ void DboxMain::OnRename()
         if (pci->IsProtected())
           return;
       }
+      m_bInRename = true;
       m_ctlItemTree.EditLabel(hItem);
       if (m_bFilterActive && m_ctlItemTree.WasLabelEdited())
         RefreshViews();
+      m_bInRename = false;
     }
   }
 }
@@ -912,7 +960,7 @@ bool DboxMain::EditItem(CItemData *pci, PWScore *pcore)
 
   const UINT uicaller = pcore->IsReadOnly() ? IDS_VIEWENTRY : IDS_EDITENTRY;
   CAddEdit_PropertySheet edit_entry_psh(uicaller, this, pcore,
-                                       &ci_original, &ci_edit, pcore->GetCurFile()); 
+                                        &ci_original, &ci_edit, pcore->GetCurFile()); 
 
   // List might be cleared if db locked.
   // Need to take care that we handle a rebuilt list.
@@ -973,8 +1021,10 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
 
   StringX newPassword = pci_new->GetPassword();
   uuid_array_t original_uuid = {'\0'}, original_base_uuid = {'\0'}, new_base_uuid = {'\0'};
+
   memcpy(new_base_uuid, pentry_psh->GetBaseUUID(), sizeof(new_base_uuid));
   pci_original->GetUUID(original_uuid);
+
   if (pci_original->IsDependent()) {
     const CItemData *pci_orig_base = m_core.GetBaseEntry(pci_original);
     ASSERT(pci_orig_base != NULL);
@@ -1104,13 +1154,6 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
   m_ctlItemTree.SortTree(TVI_ROOT);
   SortListView();
 
-  // Reselect entry, wherever it may be
-  iter = m_core.Find(original_uuid);
-  if (iter != End()) {
-    DisplayInfo *pdi = (DisplayInfo *)iter->second.GetDisplayInfo();
-    SelectEntry(pdi->list_index);
-  }
-
   short sh_odca, sh_ndca;
   pci_original->GetDCA(sh_odca);
   pci_new->GetDCA(sh_ndca);
@@ -1121,6 +1164,19 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
 
   // Password may have been updated and so not expired
   UpdateEntryImages(*pci_new);
+
+  // Update display if no longer passes filter criteria
+  if (m_bFilterActive && !PassesFiltering(*pci_new, m_currentfilter)) {
+      RefreshViews();
+      return rc;
+  }
+
+  // Reselect entry, where-ever it may be
+  iter = m_core.Find(original_uuid);
+  if (iter != End()) {
+    DisplayInfo *pdi = (DisplayInfo *)iter->second.GetDisplayInfo();
+    SelectEntry(pdi->list_index);
+  }
   return rc;
 }
 

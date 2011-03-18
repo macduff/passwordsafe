@@ -36,6 +36,7 @@
 #include "MenuShortcuts.h"
 #include "AdvancedDlg.h"
 #include "AddEdit_PropertySheet.h"
+#include "CompareResultsDlg.h"
 #include "AttProgressDlg.h"
 
 #include "core/UIinterface.h"
@@ -89,6 +90,9 @@ DECLARE_HANDLE(HDROP);
 // Process Compare Result Dialog click/menu functions
 #define PWS_MSG_COMPARE_RESULT_FUNCTION (WM_APP + 30)
 
+// Equivalent one from Expired Password dialog
+#define PWS_MSG_EXPIRED_PASSWORD_EDIT   (WM_APP + 31)
+
 // Edit/Add extra context menu messages
 #define PWS_MSG_CALL_EXTERNAL_EDITOR    (WM_APP + 40)
 #define PWS_MSG_EXTERNAL_EDITOR_ENDED   (WM_APP + 41)
@@ -102,17 +106,21 @@ DECLARE_HANDLE(HDROP);
 // Update current filters whilst SetFilters dialog is open
 #define PWS_MSG_EXECUTE_FILTERS         (WM_APP + 60)
 
+/* Message to get Virtual Keyboard buffer.  Here for doc. only. See VKeyBoardDlg.h
+#define PWS_MSG_INSERTBUFFER            (WM_APP + 70)
+*/
+
 // Extract attachment via context menu on Attachment CListCtrl - also defined in PWAttLC.h
-#define PWS_MSG_EXTRACT_ATTACHMENT      (WM_APP + 70)
-#define PWS_MSG_EXPORT_ATTACHMENT       (WM_APP + 71)
-#define PWS_MSG_CHANGE_ATTACHMENT       (WM_APP + 72)
+#define PWS_MSG_EXTRACT_ATTACHMENT      (WM_APP + 80)
+#define PWS_MSG_EXPORT_ATTACHMENT       (WM_APP + 81)
+#define PWS_MSG_CHANGE_ATTACHMENT       (WM_APP + 82)
 
 // Update AddEdit_Attachments that the user has changed an entry's flags - also defined in PWAttLC.h
-#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 79)
-#define PWS_MSG_ATTACHMENT_THREAD_ENDED (WM_APP + 80)
+#define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 89)
+#define PWS_MSG_ATTACHMENT_THREAD_ENDED (WM_APP + 90)
 
 /* timer event number used to by PupText.  Here for doc. only
-#define TIMER_PUPTEXT             0x03  */
+#define TIMER_PUPTEXT             0x03 */
 // timer event number used to check if the workstation is locked
 #define TIMER_LOCKONWTSLOCK       0x04
 // timer event number used to support lock on user-defined idle timeout
@@ -132,24 +140,28 @@ DECLARE_HANDLE(HDROP);
 /* timer event numbers used to by ControlExtns for ListBox tooltips.  Here for doc. only
 #define TIMER_LB_HOVER            0x0A
 #define TIMER_LB_SHOWING          0x0B */
+// Timer event for daily expired entries check
+#define TIMER_EXPENT              0x0C
 
 /*
 HOVER_TIME_ND       The length of time the pointer must remain stationary
                     within a tool's bounding rectangle before the tool tip
                     window appears.
+*/
+#define HOVER_TIME_ND      2000
 
+/*
 TIMEINT_ND_SHOWING The length of time the tool tip window remains visible
                    if the pointer is stationary within a tool's bounding
                    rectangle.
 */
-#define HOVER_TIME_ND      2000
 #define TIMEINT_ND_SHOWING 5000
 
 // DragBar time interval 
 #define TIMER_DRAGBAR_TIME 100
 
 // Hotkey value ID
-#define PWS_HOTKEY_ID 5767
+#define PWS_HOTKEY_ID      5767
 
 // Arbitrary string to mean that the saved DB preferences are empty.
 #define EMPTYSAVEDDBPREFS L"#Empty#"
@@ -158,7 +170,7 @@ TIMEINT_ND_SHOWING The length of time the tool tip window remains visible
 // by default (i.e. without calling SetLimitText). Note: 30000 not 32K!
 // Although this limit can be changed to up to 2GB of characters
 // (4GB memory if Unicode), it would make the database size absolutely enormous!
-#define MAXTEXTCHARS 30000
+#define MAXTEXTCHARS       30000
 
 // For ShutdownBlockReasonCreate & ShutdownBlockReasonDestroy
 typedef BOOL (WINAPI *PSBR_CREATE) (HWND, LPCWSTR);
@@ -176,14 +188,14 @@ enum PopupMenus {FILEMENU = 0, EXPORTMENU, IMPORTMENU,
 enum {GCP_FIRST      = 0,   // At startup of PWS
       GCP_NORMAL     = 1,   // Only OK, CANCEL & HELP buttons
       GCP_RESTORE    = 2,   // Only OK, CANCEL & HELP buttons
-      GCP_WITHEXIT   = 3,   // OK, CANCEL, EXIT & HELP buttons
-      GCP_ADVANCED   = 4};  // OK, CANCEL, HELP buttons & ADVANCED checkbox
+      GCP_WITHEXIT   = 3};  // OK, CANCEL, EXIT & HELP buttons
 
 // GCP read only flags - tested via AND, set via OR, must be power of 2.
 enum {GCP_READONLY = 1,
       GCP_FORCEREADONLY = 2,
       GCP_HIDEREADONLY = 4};
 
+class ExpiredList;
 //-----------------------------------------------------------------------------
 class DboxMain : public CDialog, public UIInterFace
 {
@@ -225,23 +237,24 @@ public:
                  std::vector<int> &indices);
   size_t FindAll(const CString &str, BOOL CaseSensitive,
                  std::vector<int> &indices,
-                 const CItemData::FieldBits &bsFields, const int subgroup_set, 
-                 const CString &subgroup_name, const int subgroup_object,
+                 const CItemData::FieldBits &bsFields, const bool &subgroup_set, 
+                 const std::wstring &subgroup_name, const int subgroup_object,
                  const int subgroup_function);
 
   // Used by ListCtrl KeyDown
-  bool IsImageVisible() {return m_bImageInLV;}
+  bool IsImageVisible() const {return m_bImageInLV;}
 
   // Count the number of total entries.
   size_t GetNumEntries() const {return m_core.GetNumEntries();}
 
   // Get CItemData @ position
-  CItemData &GetEntryAt(ItemListIter iter)
+  CItemData &GetEntryAt(ItemListIter iter) const
   {return m_core.GetEntry(iter);}
 
   // For InsertItemIntoGUITreeList and RefreshViews (mainly when refreshing views)
   // Note: iBothViews = iListOnly + iTreeOnly
   enum {iListOnly = 1, iTreeOnly = 2, iBothViews = 3};
+
   void RefreshViews(const int iView = iBothViews);
 
   // Set the section to the entry.  MakeVisible will scroll list, if needed.
@@ -301,7 +314,7 @@ public:
   {return m_clipboard.SetData(data.c_str());}
   void AddEntries(CDDObList &in_oblist, const StringX &DropGroup);
   StringX GetUniqueTitle(const StringX &group, const StringX &title,
-                         const StringX &user, const int IDS_MESSAGE)
+                         const StringX &user, const int IDS_MESSAGE) const
   {return m_core.GetUniqueTitle(group, title, user, IDS_MESSAGE);}
   void FixListIndexes();
   void Delete(); // "Top level" delete, calls the following 2 and Execute()
@@ -309,30 +322,29 @@ public:
   Command *Delete(HTREEITEM ti); // For deleting a group
 
   void SaveGroupDisplayState(); // call when tree expansion state changes
-  void SaveDisplayBeforeMinimize();
-  void RestoreDisplayAfterMinimize();
+  void RestoreGUIStatusEx();
+  void SaveGUIStatusEx(const int iView);
 
   const CItemData *GetBaseEntry(const CItemData *pAliasOrSC) const
   {return m_core.GetBaseEntry(pAliasOrSC);}
   CItemData *GetBaseEntry(const CItemData *pAliasOrSC)
   {return m_core.GetBaseEntry(pAliasOrSC);}
 
-  int GetEntryImage(const CItemData &ci);
+  int GetEntryImage(const CItemData &ci) const;
   HICON GetEntryIcon(const int nImage) const;
   void SetEntryImage(const int &index, const int nImage, const bool bOneEntry = false);
   void SetEntryImage(HTREEITEM &ti, const int nImage, const bool bOneEntry = false);
   void UpdateEntryImages(const CItemData &ci);
 
   void RefreshImages();
-  bool FieldsNotEqual(StringX a, StringX b);
   void CreateShortcutEntry(CItemData *pci, const StringX &cs_group,
                            const StringX &cs_title, const StringX &cs_user,
                            StringX &sxNewDBPrefsString);
   bool SetNotesWindow(const CPoint point, const bool bVisible = true);
   bool IsFilterActive() const {return m_bFilterActive;}
   int GetNumPassedFiltering() const {return m_bNumPassedFiltering;}
-  CItemData *GetLastSelected();
-  StringX GetGroupName();
+  CItemData *GetLastSelected() const;
+  StringX GetGroupName() const;
   void UpdateGroupNamesInMap(const StringX sxOldPath, const StringX sxNewPath);
 
   void SetFilter(FilterPool selectedpool, CString selectedfiltername)
@@ -348,15 +360,47 @@ public:
   void PlaceWindow(CWnd *pWnd, CRect *pRect, UINT uiShowCmd);
   void SetDCAText(CItemData * pci = NULL);
   void OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult);
-  bool IsNodeModified(StringX &path)
+  bool IsNodeModified(StringX &path) const
   {return m_core.IsNodeModified(path);}
-  StringX GetCurFile() {return m_core.GetCurFile();}
+  StringX GetCurFile() const {return m_core.GetCurFile();}
 
   // Following to simplify Command creation in child dialogs:
   CommandInterface *GetCore() {return &m_core;}
   
   void Execute(Command *pcmd, PWScore *pcore = NULL);
   void UpdateToolBarDoUndo();
+
+  void ViewReport(const CString &cs_ReportFileName) const;
+  void ViewReport(CReport &rpt) const;
+  void SetUpdateWizardWindow(CWnd *pWnd)
+  {m_pWZWnd = pWnd;}
+  stringT DoMerge(PWScore *pothercore,
+                  const bool bAdvanced, CReport *prpt);
+  bool DoCompare(PWScore *pothercore,
+                 const bool bAdvanced, CReport *prpt);
+  void DoSynchronize(PWScore *pothercore,
+                     const bool bAdvanced, int &numUpdated, CReport *prpt);
+  int DoExportText(const StringX &sx_Filename, const bool bAll,
+                   const wchar_t &delimiter, const bool bAdvanced,
+                   int &numExported, CReport *prpt);
+  int DoExportXML(const StringX &sx_Filename, const bool bAll,
+                  const wchar_t &delimiter, const bool bAdvanced,
+                  int &numExported, CReport *prpt);
+  int TestSelection(const bool bAdvanced,
+                    const stringT &subgroup_name,
+                    const int &subgroup_object,
+                    const int &subgroup_function,
+                    const OrderedItemList *il) const
+  {return m_core.TestSelection(bAdvanced, subgroup_name,
+                               subgroup_object, subgroup_function, il);}
+  void MakeOrderedItemList(OrderedItemList &il) const;
+  CItemData *getSelectedItem();
+  void UpdateGUIDisplay();
+  CString ShowCompareResults(const StringX sx_Filename1, const StringX sx_Filename2,
+                             PWScore *pothercore, CReport *prpt);
+  bool IsInRename() const {return m_bInRename;}
+  bool IsInAddGroup() const {return m_bInAddGroup;}
+  void ResetInAddGroup() {m_bInAddGroup = false;}
 
   //{{AFX_DATA(DboxMain)
   enum { IDD = IDD_PASSWORDSAFE_DIALOG };
@@ -378,7 +422,6 @@ public:
   CRUEList m_RUEList;   // recent entry lists
 
   wchar_t *m_eye_catcher;
-  bool m_bInAddGroup;
 
   bool m_bDoAutoType;
   StringX m_AutoType;
@@ -389,6 +432,7 @@ public:
 
   // Mapping Group to Tree Item to save searching all the time!
   std::map<StringX, HTREEITEM> m_mapGroupToTreeItem;
+  void GetAllGroups(std::vector<std::wstring> &vGroups) const;
 
   // Process Special Shortcuts for Tree & List controls
   bool CheckPreTranslateDelete(MSG* pMsg);
@@ -457,7 +501,6 @@ protected:
 
   // Used for Advanced functions
   CItemData::FieldBits m_bsFields;
-  BOOL m_bAdvanced;
   CString m_subgroup_name;
   int m_subgroup_set, m_subgroup_object, m_subgroup_function;
   int m_treatwhitespaceasempty;
@@ -475,7 +518,6 @@ protected:
 
   int InsertItemIntoGUITreeList(CItemData &itemData, int iIndex = -1, 
                  const bool bSort = true, const int iView = iBothViews);
-  CItemData *getSelectedItem();
 
   BOOL SelItemOk();
   void setupBars();
@@ -504,6 +546,7 @@ protected:
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
 
   LRESULT OnProcessCompareResultFunction(WPARAM wParam, LPARAM lParam);
+  LRESULT OnEditExpiredPasswordEntry(WPARAM wParam, LPARAM lParam);
   LRESULT ViewCompareResult(PWScore *pcore, uuid_array_t &uuid);
   LRESULT EditCompareResult(PWScore *pcore, uuid_array_t &uuid);
   LRESULT CopyCompareResult(PWScore *pfromcore, PWScore *ptocore,
@@ -536,17 +579,7 @@ protected:
   void PostOpenProcessing();
   int Close(const bool bTrySave = true);
 
-  void DoOtherDBProcessing(UINT uiftn);
-  void Merge(const StringX &sx_Filename2, PWScore *pothercore);
-  void Compare(const StringX &sx_Filename2, PWScore *pothercore);
-  void Synchronize(const StringX &sx_Filename2, PWScore *pothercore);
-
-  int MergeDependents(PWScore *pothercore, MultiCommands *pmulticmds,
-                      uuid_array_t &base_uuid, uuid_array_t &new_base_uuid, 
-                      const bool bTitleRenamed, CString &timeStr, 
-                      const CItemData::EntryType et, std::vector<StringX> &vs_added);
-
-  void ReportAdvancedOptions(CReport *prpt, const UINT uimsgftn);
+  void ReportAdvancedOptions(CReport *prpt, const bool bAdvanced, const WZAdvanced::AdvType type);
 
   int BackupSafe(void);
   int RestoreSafe(void);
@@ -556,8 +589,6 @@ protected:
   bool EditItem(CItemData *pci, PWScore *pcore = NULL);
   int UpdateEntry(CAddEdit_PropertySheet *pentry_psh);
   bool EditShortcut(CItemData *pci, PWScore *pcore = NULL);
-  void ViewReport(const CString &cs_ReportFileName);
-  void ViewReport(CReport &rpt);
   void SetFindToolBar(bool bShow);
   void ApplyFilters();
 
@@ -689,6 +720,7 @@ protected:
   afx_msg void OnSetFilter();
   afx_msg void OnRefreshWindow();
   afx_msg void OnShowUnsavedEntries();
+  afx_msg void OnShowExpireList();
   afx_msg void OnViewAttachments();
   afx_msg void OnExportAllAttachments();
   afx_msg void OnImportAttachments();
@@ -752,9 +784,7 @@ protected:
 
   int GetAndCheckPassword(const StringX &filename, StringX& passkey,
                           int index, int flags = 0,
-                          PWScore *pcore = NULL, 
-                          CAdvancedDlg::Type adv_type = CAdvancedDlg::ADV_INVALID,
-                          st_SaveAdvValues *pst_SADV = NULL);
+                          PWScore *pcore = NULL);
 
 private:
   // UIInterFace implementations:
@@ -764,6 +794,7 @@ private:
                  CItemData::FieldType ft, bool bUpdateGUI);
   void GUISetupDisplayInfo(CItemData &ci);
   void GUIRefreshEntry(const CItemData &ci);
+  void UpdateWizard(const stringT &s);
 
   int AttachmentProgress(const ATTProgress &st_atpg);
   int ReadAttachmentFile(bool bVerify);
@@ -789,6 +820,7 @@ private:
   bool m_IsListView;
   bool m_bAlreadyToldUserNoSave;
   bool m_bPasswordColumnShowing;
+  bool m_bInRefresh, m_bInRestoreWindows;
   int m_iDateTimeFieldWidth;
   int m_nColumns;
   int m_nColumnIndexByOrder[CItemData::LAST];
@@ -826,13 +858,13 @@ private:
   void SetIdleLockCounter(UINT i); // i in minutes, set to timer counts
   bool DecrementAndTestIdleLockCounter();
   int SaveIfChanged();
-  void CheckExpiredPasswords();
+  void CheckExpireList(const bool bAtOpen = false); // Upon open, timer + menu, check list, show exp.
+  void TellUserAboutExpiredPasswords();
   bool RestoreWindowsData(bool bUpdateWindows, bool bShow = true);
   void UpdateAccessTime(CItemData *pci);
   void RestoreGroupDisplayState();
   std::vector<bool> GetGroupDisplayState(); // get current display state from window
   void SetGroupDisplayState(const std::vector<bool> &displaystatus); // changes display
-  void MakeOrderedItemList(OrderedItemList &il);
   void SetColumns();  // default order
   void SetColumns(const CString cs_ListColumns);
   void SetColumnWidths(const CString cs_ListColumnsWidths);
@@ -858,9 +890,6 @@ private:
   void RefreshEntryFieldInGUI(CItemData &ci, CItemData::FieldType ft);
   void RefreshEntryPasswordInGUI(CItemData &ci);
   void RebuildGUI(const int iView = iBothViews);
-
-  void DoExportText(const bool bAll);
-  void DoExportXML(const bool bAll);
   void DoExportAttachmentsXML(ATRecordEx *patrex = NULL);
   
   static const struct UICommandTableEntry {
@@ -881,11 +910,13 @@ private:
   CInfoDisplay *m_pNotesDisplay;
 
   // Filters
-  bool m_bFilterActive, m_bFilterForStatus, m_bUnsavedDisplayed;
+  bool m_bFilterActive, m_bFilterForStatus, m_bUnsavedDisplayed, m_bExpireDisplayed;
   // Current filter
   st_filters m_currentfilter;
   // Special Show Unsaved Changes filter
   st_filters m_showunsavedfilter;
+  // Special Show Expired/expiring passwords filter
+  st_filters m_showexpirefilter;
 
   // Sorted Groups
   vfiltergroups m_vMflgroups;
@@ -952,7 +983,25 @@ private:
   bool m_bNoChangeToAttachments;
 
   // Save Advanced settings
-  st_SaveAdvValues m_SaveAdvValues[CAdvancedDlg::ADV_LAST];
+  st_SaveAdvValues m_SaveWZAdvValues[WZAdvanced::LAST];
+  st_SaveAdvValues m_SaveAdvValues[CAdvancedDlg::LAST];
+
+  // Used to update static text on the Wizard for Compare, Merge etc.
+  CWnd *m_pWZWnd;
+
+  // Compare vectors - when comparing databases
+  CompareData m_list_OnlyInCurrent;
+  CompareData m_list_OnlyInComp;
+  CompareData m_list_Conflicts;
+  CompareData m_list_Identical;
+
+  // Flag to tell user there are some expird entries
+  bool m_bTellUserExpired;
+
+  // Prevent rename of entries in Tree mode by clicking on entry
+  bool m_bInRename;
+  // When in AddGroup and where AddGroup initiated
+  bool m_bInAddGroup, m_bWhitespaceRightClick;
 
   // The following is for saving information over an execute/undo/redo
   // Might need to add more e.g. if filter is active and which one?
@@ -996,15 +1045,6 @@ private:
 
   std::stack<st_SaveGUIInfo> m_stkSaveGUIInfo;
 };
-
-inline bool DboxMain::FieldsNotEqual(StringX a, StringX b)
-{
-  if (m_treatwhitespaceasempty == TRUE) {
-    EmptyIfOnlyWhiteSpace(a);
-    EmptyIfOnlyWhiteSpace(b);
-  }
-  return a != b;
-}
 
 // Following used to keep track of display vs data
 // stored as opaque data in CItemData.{Get,Set}DisplayInfo()

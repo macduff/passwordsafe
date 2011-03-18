@@ -854,7 +854,7 @@ void DboxMain::OnOptions()
       }
     }
 
-    // Finally, keep prefs file updated:
+    // Keep prefs file updated:
     prefs->SaveApplicationPreferences();
 
     if (shortcuts.HaveShortcutsChanged()) {
@@ -985,6 +985,15 @@ void DboxMain::OnOptions()
     } else {
       app.HideIcon();
     }
+
+    // If user has turned on/changed warnings of expired passwords - check now
+    if (display.m_preexpirywarn == TRUE &&
+        (save_preexpirywarn == FALSE ||
+         save_preexpirywarndays != display.m_preexpirywarndays)) {
+      CheckExpireList();
+      TellUserAboutExpiredPasswords();
+    }
+    
   }  // rc == IDOK
 }
 

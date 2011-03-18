@@ -1,7 +1,12 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<!-- A HTML version of the ReleaseNotes.txt file. There Javascript functions provide a mechanism to access Feature Requests, Support Requests and Bug Reports directly from the Tracker ID. They are implemented to make it easier to change if SourceForge change their environment. WOuld have been nice to open a new tab rather than a new Window but currentl not possible from Javascript. Within a given release, the order of the entries are: New Features, Changes to Existing Features and then Bugs Fixed. Within each section, entries are ordered in dcreasing Tracker ID order. If an entry resolves multiple Tracker IDs, they are also entered in decreasing Tracker ID order. -->
+<!-- A HTML version of the ReleaseNotes.txt file. There Javascript functions provide a mechanism to access Feature Requests,
+     Support Requests and Bug Reports directly from the Tracker ID. They are implemented to make it easier to change if
+     SourceForge change their environment. Would have been nice to open a new tab rather than a new Window but currently
+     not possible from Javascript. Within a given release, the order of the entries are: New Features, Changes to Existing
+     Features and then Bugs Fixed. Within each section, entries are ordered in decreasing Tracker ID order. If an entry resolves
+     multiple Tracker IDs, they are also entered in decreasing Tracker ID order. -->
 <style>
 h2 { text-decoration: underline; }
 h3 { text-decoration: underline; }
@@ -29,12 +34,15 @@ remote = open('http://sourceforge.net/tracker/?func=detail&aid='+ ID +'&group_id
 'resizable=yes,scrollbars=yes,toolbar=no,location=no,directories=no,status=no,menubar=no,copyhistory=no');
 }
 </script>
-<noscript><p style="color:red; text-align:center;
-font-size:24pt;">*** Scripting is disabled - links to Tracker items will not work! ***</p>
+
+<noscript>
+<p style="color:red; text-align:center; font-size:24pt;">*** Scripting is disabled - links to Tracker items
+will not work! ***</p>
 </noscript>
 </head>
+
 <body>
-<h1 align="center">Password Safe 3.24.1 Release Notes - December 2010</h1>
+<h1 align="center">Password Safe 3.25 Release Notes - March 2011</h1>
 <p>This note describe the new features, fixed bugs and known problems
 with the latest versions of Password Safe. For a short description of
 Password Safe, please see the accompanying README.txt file. For more
@@ -46,7 +54,197 @@ ChangeLog.txt.</p>
 are described <a href="#prev-vers">here</a>.
 Information about older versions may be found <a href="http://pwsafe.org/history.shtml">here</a>.</p>
 <hr style="width: 100%; height: 2px;">
-<h3>Version V3.24.1</h3>
+<h3><a name="V3.25"></a>Version V3.25</h3>
+<h4><a name="V3.25New"></a>New Features for V3.25</h4>
+<table>
+<tbody align="left" valign="top">
+<tr>
+<td align="center" width="100">n/a</td>
+<td>Dutch installation instructions thank to Kees, and a first
+(incomplete) Dutch translation of the application thank to Bert, Kees
+and Fred.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>Korean texts in the application and installer program thanks to
+Seunggyun.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>Poserpro has provided Traditional Chinese texts for the installer
+program.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>New View menu option: Show entries with Expiry. This is useful for
+displaying entries with passwords that are expired or about to expire.</td>
+</tr>
+</tbody>
+</table>
+<h4><a name="V3.25Changes"></a>Changes to Existing Features in V3.25</h4>
+<table>
+<tbody align="left" valign="top">
+<tr>
+<td align="center" width="100"><a href="nojs.html" onclick="FR(3171962);return false;">3171962</a><br></td>
+<td>The password expiration warning mechanism now checks for
+expiration daily. The display of expired and almost-expired entries
+has been redesigned, allowing users to update the entry directly. When
+an expired password is changed, the expiry date will be cleared unless
+there is a recurring password expiry interval, in which case a new
+expiry date will be calculated.
+</td>
+</tr>
+<tr>
+<td align="center" width="100"><a href="nojs.html" onclick="FR(3131945);return false;">3131945</a><br></td>
+<td>Double-clicking on the system tray icon when PasswordSafe is not
+  minimized now brings it to front, instead of minimizing.</td>
+</tr>
+<tr>
+<td align="center" width="100"><a href="nojs.html" onclick="FR(3131935);return false;">3131935</a><br></td>
+<td>Rename of an entry or group in the Tree View can now only be
+performed via the Rename shortcut (default value F2), using the Edit
+menu or the right-click context menu. Edit in place by double clicking
+the entry is no longer allowed as, most of the time, this was not the
+desired action.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>Filtered views are now updated when an entry's edited, e.g., if an
+entry is edited such that it no longer satisfies the filter's
+criteria, it will be removed from the display.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>The Russian online help has been totally rewritten and updated,
+thanks to pm_kan.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>pm_kan has updated the Russian texts</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>The Spanish texts have been updated thanks to Jose.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>The Spanish texts have been updated thanks to Jose.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>Karlo has updated the German texts.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>Francois has updated the French texts.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>Bjorne has updated the Swedish version.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>freedoctor has updated the Chinese texts.</td>
+</tr>
+</tbody>
+</table>
+<h4><a name="V3.25BugsFixed"></a>Bugs fixed in V3.25</h4>
+<table>
+<tbody align="left" valign="top">
+<tr>
+<td align="center" width="100"><a href="nojs.html" onclick="BR(3194472);return false;">3194472</a><br></td>
+<td>
+Fix new group creation location. When a Group is selected, then
+selecting 'Add Group' from the Edit menu or from the context menu displayed by
+right clicking on that Group, the new group will be a child of the selected group.
+However, when using the context menu displayed on right clicking on 'white space'
+below the last entry/group displayed, the group will be created at the topmost level.
+</td>
+</tr>
+<tr>
+<td align="center" width="100"><a href="nojs.html" onclick="BR(3165889);return false;">3165889</a><br></td>
+<td>No longer crashes if search starts with Shift-Enter (search backwards).</td>
+</tr>
+<tr>
+<td align="center" width="100"><a href="nojs.html" onclick="BR(3148701);return false;">3148701</a><br></td>
+<td>Windows installer will now refuse to install on Win2K, referring user to last supported version on that OS (3.18).</td>
+</tr>
+<tr>
+<td align="center" width="100"><a href="nojs.html" onclick="BR(3115760);return false;">3115760</a></td>
+<td>Window view is now saved and restored if the user uses the Windows
+"Show Desktop" feature.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a<br>
+</td>
+<td>No longer crashes when doing an Undo after a Merge.</td>
+</tr>
+<tr>
+<td align="center" width="100">n/a</td>
+<td>Ensure Undo/Redo honour the changes to the display of the original change.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<tbody align="left" valign="top">
+<tr>
+<td align="center" width="100"></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr style="width: 100%; height: 2px;"><span style="text-decoration: underline;"><span style="font-weight: bold;"></span></span>
+<h2><a name="prev-vers"></a>Previous Versions Described in this Document</h2>
+<ul>
+<li><a href="ReleaseNotes.html#V3.24.1">V3.24.1</a> Released 2010-12-08</li>
+<ul>
+<li><a href="ReleaseNotes.html#V3.24.1New">New Features</a></li>
+<li><a href="ReleaseNotes.html#V3.24.1Changes">Changes to Existing Features</a></li>
+<li><a href="ReleaseNotes.html#V3.24.1BugsFixed">Bugs Fixed</a></li>
+</ul>
+</ul>
+<ul>
+<li><a href="ReleaseNotes.html#V3.24">V3.24</a> Released 2010-12-07</li>
+<ul>
+<li><a href="ReleaseNotes.html#V3.24New">New Features</a></li>
+<li><a href="ReleaseNotes.html#V3.24Changes">Changes to Existing Features</a></li>
+<li><a href="ReleaseNotes.html#V3.24BugsFixed">Bugs Fixed</a></li>
+</ul>
+</ul>
+<ul>
+<li><a href="ReleaseNotes.html#V3.23">V3.23</a> Released 2010-07-26</li>
+<ul>
+<li><a href="ReleaseNotes.html#V3.23New">New Features</a></li>
+<li><a href="ReleaseNotes.html#V3.23Changes">Changes to Existing Features</a></li>
+<li><a href="ReleaseNotes.html#V3.23BugsFixed">Bugs Fixed</a></li>
+</ul>
+</ul>
+<ul>
+<li><a href="#V3.22">V3.22</a> Released 2010-05-23</li>
+<ul>
+<li><a href="#V3.22New">New Features</a></li>
+<li><a href="#V3.22Changes">Changes to Existing Features</a></li>
+<li><a href="#V3.22BugsFixed">Bugs Fixed</a></li>
+</ul>
+</ul>
+<ul>
+<li><a href="#V3.21">V3.21</a> Released 2010-02-14</li>
+<ul>
+<li><a href="#V3.21New">New Features</a></li>
+<li><a href="#V3.21Changes">Changes to Existing Features</a></li>
+<li><a href="#V3.21BugsFixed">Bugs Fixed</a></li>
+</ul>
+</ul>
+<ul>
+<li><a href="#V3.20">V3.20</a> Released 2009-12-08</li>
+<ul>
+<li><a href="#V3.20New">New Features</a></li>
+<li><a href="#V3.20Changes">Changes to Existing Features</a></li>
+<li><a href="#V3.20BugsFixed">Bugs Fixed</a></li>
+</ul>
+</ul>
+<hr style="width: 100%; height: 2px;">
+<h3><a name="V3.24.1"></a>Version V3.24.1</h3>
 <h4><a name="V3.24.1New"></a>New Features for V3.24.1</h4>
 <table>
 <tbody align="left" valign="top">
@@ -54,9 +252,9 @@ Information about older versions may be found <a href="http://pwsafe.org/history
 <td align="center" width="100">n/a</td>
 <td>Allow an entry to be protected against modification even if the database
 is opened in read-write mode. See 'Basic Tab' in Edit dialog. In Tree mode,
-an asterisk after the name indicates the entry is protected. In List mode, the
+a number sign (&#35;) after the name indicates the entry is protected. In List mode, the
 'Protected' column may be added to the list. A protected entry can not be
-edited, renamed or deleted and retains this property if Dragged & Dropped onto
+edited, renamed or deleted and retains this property if Dragged &amp; Dropped onto
 another database.
 </td>
 </tr>
@@ -81,61 +279,15 @@ another database.
 </tr>
 </tbody>
 </table>
-<hr style="width: 100%; height: 2px;"><span style="text-decoration: underline;"><span style="font-weight: bold;"></span></span>
-<h2><a name="prev-vers"></a>Previous Versions Described in this Document</h2>
-<ul>
-<li><a href="ReleaseNotes.html#V3.24">V3.24</a> Released 2010-12-07</li>
-<ul>
-<li><a href="ReleaseNotes.html#V3.24New">New Features</a></li>
-<li><a href="ReleaseNotes.html#V3.24Changes">Changes to Existing Features</a></li>
-<li><a href="ReleaseNotes.html#V3.24BugsFixed">Bugs Fixed</a></li>
-</ul>
-</ul>
-
-<ul>
-<li><a href="ReleaseNotes.html#V3.23">V3.23</a> Released 2010-07-26</li>
-<ul>
-<li><a href="ReleaseNotes.html#V3.23New">New Features</a></li>
-<li><a href="ReleaseNotes.html#V3.23Changes">Changes to Existing Features</a></li>
-<li><a href="ReleaseNotes.html#V3.23BugsFixed">Bugs Fixed</a></li>
-</ul>
-</ul>
-
-<ul>
-<li><a href="#V3.22">V3.22</a> Released 2010-05-23</li>
-<ul>
-<li><a href="#V3.22New">New Features</a></li>
-<li><a href="#V3.22Changes">Changes to Existing Features</a></li>
-<li><a href="#V3.22BugsFixed">Bugs Fixed</a></li>
-</ul>
-</ul>
-
-<ul>
-<li><a href="#V3.21">V3.21</a> Released 2010-02-14</li>
-<ul>
-<li><a href="#V3.21New">New Features</a></li>
-<li><a href="#V3.21Changes">Changes to Existing Features</a></li>
-<li><a href="#V3.21BugsFixed">Bugs Fixed</a></li>
-</ul>
-</ul>
-
-<ul>
-<li><a href="#V3.20">V3.20</a> Released 2009-12-08</li>
-<ul>
-<li><a href="#V3.20New">New Features</a></li>
-<li><a href="#V3.20Changes">Changes to Existing Features</a></li>
-<li><a href="#V3.20BugsFixed">Bugs Fixed</a></li>
-</ul>
-</ul>
 <hr style="width: 100%; height: 2px;">
-<h3>Version V3.24</h3>
+<h3><a name="V3.24"></a>Version V3.24</h3>
 <h4><a name="V3.24New"></a>New Features for V3.24</h4>
 <table>
 <tbody align="left" valign="top">
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="FR(3111585);return false;">3111585</a></td>
 <td>User can now duplicate Groups. Aliases and shortcuts referring to base
-entries outside this group will still point to their respective bases. Those
+entries outside this group will still point to their respective bases. Those 
 referring to base entries within the group will then point to the new copy.</td>
 </tr>
 <tr>
@@ -195,12 +347,13 @@ value of the number of last used entries remembered in System Tray menu.</td>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(3062850);return false;">3062850</a></td>
 <td>Dialogs are now correctly closed if open when the workstation locks
-(with preference "Lock password database on workstation lock" set), enabling
-the application to be opened again.</td>
+(with preference "Lock password database on workstation lock" set),
+enabling the application to be opened again.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(3062769);return false;">3062769</a></td>
-<td>Groups list in Add/Edit dialog box no longer "remembers" groups from previously opened database.</td>
+<td>Groups list in Add/Edit dialog box no longer
+"remembers" groups from previously opened database.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(3058043);return false;">3058043</a></td>
@@ -212,7 +365,7 @@ the application to be opened again.</td>
 </tr>
 </tbody>
 </table>
-<h3>Version V3.23</h3>
+<h3><a name="V3.23"></a>Version V3.23</h3>
 <h4><a name="V3.23New"></a>New Features for V3.23</h4>
 <table>
 <tbody align="left" valign="top">
@@ -229,7 +382,7 @@ icon and the button on the Taskbar can be hidden.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="FR(3011546);return false;">3011546</a></td>
-<td>"autotype" can now be added to the List View via the Column Picker
+<td>"AutoType" can now be added to the List View via the Column Picker
 (right click on column labels).</td>
 </tr>
 </tbody>
@@ -287,8 +440,7 @@ System Tray icon.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(3009130);return false;">3009130</a></td>
-<td>Changes to an entry's password policy are now saved
-upon OK or Apply.</td>
+<td>Changes to an entry's password policy are now saved upon OK or Apply.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(3008203);return false;">3008203</a></td>
@@ -303,8 +455,8 @@ when the database is later displayed.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(3006069);return false;">3006069</a></td>
-<td>Autotype now works correctly when the user specifies that
-PasswordSafe should minimize after Autotype and has also set that the
+<td>AutoType now works correctly when the user specifies that
+PasswordSafe should minimize after AutoType and has also set that the
 database should be locked on minimize.</td>
 </tr>
 <tr>
@@ -359,20 +511,16 @@ open process.</td>
 </tr>
 <tr>
 <td align="center" width="100">n/a</td>
-<td>Allow user to select external editor for Notes field in
-Add/Edit dialog.</td>
+<td>Allow user to select external editor for Notes field in Add/Edit dialog.</td>
 </tr>
 <tr>
 <td align="center" width="100">n/a</td>
-<td>Add entry size to the available filters to be able view
-entries.</td>
+<td>Add entry size to the available filters to be able view entries.</td>
 </tr>
 <tr>
 <td align="center" width="100">n/a</td>
-<td>Warn users during database open and entry import if
-there are entries
-with large text fields (e.g. Notes) that cannot be fully displayed and
-may
+<td>Warn users during database open and entry import if there are entries
+with large text fields (e.g. Notes) that cannot be fully displayed and may
 be truncated if edited.</td>
 </tr>
 </tbody>
@@ -404,8 +552,7 @@ under "My Documents".</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2994118);return false;">2994118</a></td>
-<td>Swedish version no longer crashes when checking for
-latest version.</td>
+<td>Swedish version no longer crashes when checking for latest version.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2990734);return false;">2990734</a></td>
@@ -419,8 +566,8 @@ database is read-only.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2984527);return false;">2984527</a></td>
-<td>Database preferences (including the Idle Timer setting) now retained
-during a locking minimize to the System Tray.</td>
+<td>Database preferences (including the Idle Timer setting)
+now retained during a locking minimize to the System Tray.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2977941);return false;">2977941</a></td>
@@ -430,8 +577,7 @@ editing it.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2977045);return false;">2977045</a></td>
-<td>Can now make password expiration date any value from
-the current date.</td>
+<td>Can now make password expiration date any value from the current date.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2962916);return false;">2962916</a></td>
@@ -457,7 +603,7 @@ characters from any entry field substitution.</td>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2951871);return false;">2951871</a></td>
 <td>Shortcut related menu items now returned to the Edit menu and
-the "Run Command", "Browse to URL", "Browse to URL + Autotype" and
+the "Run Command", "Browse to URL", "Browse to URL + AutoType" and
 "Send email" functions now work again, when a Shortcut entry is
 selected.</td>
 </tr>
@@ -469,17 +615,17 @@ is Locked, Minimized or "AutoType with Minimize" and then Restored.</td>
 </tr>
 <tr>
 <td align="center" width="100">n/a</td>
-<td>Use of External Editor on Notes field from Edit dialog now activates Apply
-and OK buttons.</td>
+<td>Use of External Editor on Notes field from Edit dialog
+now activates Apply and OK buttons.</td>
 </tr>
 <tr>
 <td align="center" width="100">n/a</td>
-<td>Fix errors if importing an XML file with entries with duplicate unique IDs
-(UUID elements).</td>
+<td>Fix errors if importing an XML file with entries with
+duplicate unique IDs (UUID elements).</td>
 </tr>
 <tr>
 <td align="center" width="100">n/a</td>
-<td>Remove "Confirm Deletion of Entries" checkbox from theMisc. Options
+<td>Remove "Confirm Deletion of Entries" checkbox from the Misc. Options
 page. New support for Undo/Redo made this unnecessary. Users are always
 asked to confirm the deletion of Groups or entries that have aliases or
 shortcuts.</td>
@@ -511,8 +657,8 @@ successfully found the first time.</td>
 <td>Undo/Redo of changes to the currently open database. Any change to
 the database can now be undone and redone, as long as the database is
 open. This is similar to the undo/redo feature available in most word
-processors, and is activated the same way (Ctrl-Z for undo, Ctrl-Y for
-redo, or via the Edit menu).</td>
+processors, and is activated the same way (Ctrl-Z for Undo, Ctrl-Y for
+Redo, or via the Edit menu).</td>
 </tr>
 <tr>
 <td align="center" width="100">n/a</td>
@@ -562,8 +708,8 @@ entry.</td>
 <a href="nojs.html" onclick="BR(2798788);return false;">2798788</a>,<br>
 <a href="nojs.html" onclick="BR(2446052);return false;">2446052</a>,<br>
 ...</td>
-<td>Re-instate AutoType via shortcut and when an entry has been selected via the
-Find Toolbar.</td>
+<td>Re-instate AutoType via shortcut and when an entry has
+been selected via the Find Toolbar.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2921935);return false;">2921935</a></td>
@@ -572,33 +718,34 @@ mouse to activate.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2918849);return false;">2918849</a></td>
-<td>Fixed icon no longer appearing in taskbar when locking due to
-workstation lock and terminal services running.</td>
+<td>Fixed icon no longer appearing in taskbar when locking
+due to workstation lock and terminal services running.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2916338);return false;">2916338</a></td>
-<td>"Edit Base entry" now works for Alias entries as well as for Shortcuts.
+<td>"Edit Base entry" now works for Alias entries as well
+as for Shortcuts.
 </td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2913440);return false;">2913440</a></td>
-<td>Copy/Send Email menu items now correctly activated if email field
-is set or 'mailto:' used in URL field.</td>
+<td>Copy/Send Email menu items now correctly activated if
+email field is set or 'mailto:' used in URL field.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2912177);return false;">2912177</a></td>
-<td>Adding Groups via right-click menu now works again under
-default configuration.</td>
+<td>Adding Groups via right-click menu now works again
+under default configuration.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2894100);return false;">2894100</a></td>
-<td>PasswordSafe window no longer creeps down the screen if the Windows
-taskbar is at the top of the screen.</td>
+<td>PasswordSafe window no longer creeps down the screen if
+the Windows taskbar is at the top of the screen.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2818401);return false;">2818401</a></td>
-<td>AutoType backspace field ('\b') now honoured in both "AutoType" and
-"Browse To + AutoType" consistently.</td>
+<td>AutoType backspace field ('\b') now honoured in both
+"AutoType" and "Browse To + AutoType" consistently.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="BR(2431438);return false;">2431438</a></td>
@@ -618,8 +765,8 @@ are now reset.</td>
 </tr>
 <tr>
 <td align="center" width="100">n/a</td>
-<td>Fix issue when changing the displayed columns in List View and then switching
-to Tree View.</td>
+<td>Fix issue when changing the displayed columns in List
+View and then switching to Tree View.</td>
 </tr>
 </tbody>
 </table>
@@ -630,13 +777,13 @@ to Tree View.</td>
 <tbody align="left" valign="top">
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="FR(2895167);return false;">2895167</a></td>
-<td>Dragbar tooltips changed to provide relevant information for each
-image and reduce the amount of text.</td>
+<td>Dragbar tooltips changed to provide relevant
+information for each image and reduce the amount of text.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="FR(2881604);return false;">2881604</a></td>
-<td>Allow edit of base entry of a shortcut via the Edit menu and/or
-by right-clicking on a shortcut entry.</td>
+<td>Allow edit of base entry of a shortcut via the Edit
+menu and/or by right-clicking on a shortcut entry.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="FR(2872273);return false;">2872273</a></td>
@@ -644,13 +791,12 @@ by right-clicking on a shortcut entry.</td>
 </tr>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="FR(2826509);return false;">2826509</a></td>
-<td>Can now update passwords of existing entries via Import
-Text or XML:<br>
+<td>Can now update passwords of existing entries via Text or XML:<br>
 &#8226;&nbsp;For Text import, the 'Group/Title', 'Username' and
 'Password' fields are required.<br>
 &#8226;&nbsp;For XML import, the Title and Password elements are
-required. If the Group and Username elements are missing, they are assumed to be
-empty. All other fields or elements can be present but will be ignored.
+required. If the Group and Username elements are missing, they are
+assumed to be empty. All other fields or elements can be present but will be ignored.
 </td>
 </tr>
 <tr>
@@ -666,7 +812,7 @@ The latter can seen via View&#8594;Show Changed Entries.</td>
 <tr>
 <td align="center" width="100"><a href="nojs.html" onclick="FR(2880663);return false;">2880663</a></td>
 <td>'Browse to' special fields (currently: [alt], {alt}, [ssh],
-[autotype] and [xa]) are removed from the URL field when copied to the
+[AutoType] and [xa]) are removed from the URL field when copied to the
 clipboard or when used in the RunCommand (via $url). If the [alt] or
 {alt} were present, then the RunCommand will execute this program.</td>
 </tr>
@@ -680,8 +826,9 @@ Restore menu item.</td>
 <td align="center" width="100"><a href="nojs.html" onclick="SR(2874520);return false;">2874520</a></td>
 <td>To prevent junk showing in the Notes field in List View due to end
 of line characters, now only show the first line but indicate more are
-there using [&gt;&gt;&gt;] at end of line. Setting preference "Show Notes as
-Tooltips in Tree &amp; List View" will show these (up to 250 characters).</td>
+there using [&gt;&gt;&gt;] at end of line. Setting
+preference "Show Notes as Tooltips in Tree &amp; List View" will show these 
+(up to 250 characters).</td>
 </tr>
 </tbody>
 </table>

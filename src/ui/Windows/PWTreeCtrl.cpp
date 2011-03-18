@@ -226,6 +226,8 @@ BEGIN_MESSAGE_MAP(CPWTreeCtrl, CTreeCtrl)
   ON_WM_TIMER()
   ON_WM_MOUSEMOVE()
   ON_WM_ERASEBKGND()
+  ON_WM_PAINT()
+  ON_WM_VSCROLL()
   //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -257,6 +259,22 @@ void CPWTreeCtrl::OnDestroy()
   m_DropTarget->Revoke();
 }
 
+void CPWTreeCtrl::OnPaint()
+{
+  CTreeCtrl::OnPaint();
+
+  if (m_pDbx != NULL)
+    m_pDbx->SaveGUIStatusEx(DboxMain::iTreeOnly);
+}
+
+void CPWTreeCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
+{
+  CTreeCtrl::OnVScroll(nSBCode, nPos, pScrollBar);
+
+  if (m_pDbx != NULL)
+    m_pDbx->SaveGUIStatusEx(DboxMain::iTreeOnly);
+}
+
 BOOL CPWTreeCtrl::PreTranslateMessage(MSG* pMsg)
 {
   // When an item is being edited make sure the edit control
@@ -277,9 +295,8 @@ BOOL CPWTreeCtrl::PreTranslateMessage(MSG* pMsg)
   
   // Process user's Rename shortcut
   if (m_pDbx != NULL && m_pDbx->CheckPreTranslateRename(pMsg)) {
-    HTREEITEM hItem = GetSelectedItem();
-    if (hItem != NULL && !m_pDbx->IsDBReadOnly())
-      EditLabel(hItem);
+    //  Send via main window to ensure it isn't an Edit in place
+    m_pDbx->SendMessage(WM_COMMAND, ID_MENUITEM_RENAME);
     return TRUE;
   }
 
@@ -448,21 +465,23 @@ void CPWTreeCtrl::OnBeginLabelEdit(NMHDR *pNMHDR, LRESULT *pLResult)
   NMTVDISPINFO *ptvinfo = (NMTVDISPINFO *)pNMHDR;
 
   *pLResult = TRUE; // TRUE cancels label editing
-  if (m_pDbx->IsDBReadOnly())
+
+  // Check IsInRename to prevent unintentional Edit in place
+  if (m_pDbx->IsDBReadOnly() || (!m_pDbx->IsInRename() && !m_pDbx->IsInAddGroup()))
     return;
 
   m_bEditLabelCompleted = false;
 
   /*
-  Allowed formats:
-  1.   title
-  If preference ShowUsernameInTree is set:
-  2.   title [username]
-  If preferences ShowUsernameInTree and ShowPasswordInTree are set:
-  3.   title [username] {password}
+    Allowed formats:
+    1.   title
+      If preference ShowUsernameInTree is set:
+      2.   title [username]
+        If preferences ShowUsernameInTree and ShowPasswordInTree are set:
+        3.   title [username] {password}
 
-  Neither Title, Username or Password may contain square or curly brackes to be
-  edited in place and visible.
+    Neither Title, Username or Password may contain square or curly brackes to be
+    edited in place and visible.
   */
   HTREEITEM ti = ptvinfo->item.hItem;
   PWSprefs *prefs = PWSprefs::GetInstance();
@@ -665,8 +684,8 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNMHDR, LRESULT *pLResult)
       ptvinfo->item.pszText[0] == L'\0') { // empty if text deleted - not allowed
     // If called from AddGroup, user cancels EditLabel - save it
     // (Still called "New Group")
-    if (m_pDbx->m_bInAddGroup) {
-      m_pDbx->m_bInAddGroup = false;
+    if (m_pDbx->IsInAddGroup()) {
+      m_pDbx->ResetInAddGroup();
       *pLResult = TRUE;
     }
     return;
@@ -699,7 +718,8 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNMHDR, LRESULT *pLResult)
     }
 
     StringX sxGroup = pci->GetGroup();
-    if (m_pDbx->Find(sxGroup, sxNewTitle, sxNewUser) != m_pDbx->End()) {
+    if ((sxNewTitle != pci->GetTitle() || sxNewUser != pci->GetUser()) &&
+        m_pDbx->Find(sxGroup, sxNewTitle, sxNewUser) != m_pDbx->End()) {
       CGeneralMsgBox gmb;
       CSecString temp;
       if (sxGroup.empty()) {
@@ -754,8 +774,10 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNMHDR, LRESULT *pLResult)
       m_pDbx->UpdateListItemTitle(lindex, sxNewTitle);
     }
 
-    if (bShowUsernameInTree && sxNewUser != pci->GetUser()) {
-      m_pDbx->UpdateListItemUser(lindex, sxNewUser);
+    if (bShowUsernameInTree) {
+      if(sxNewUser != pci->GetUser()) {
+        m_pDbx->UpdateListItemUser(lindex, sxNewUser);
+      }
       if (bShowPasswordInTree && sxNewPassword != pci->GetPassword()) {
         m_pDbx->UpdateListItemPassword(lindex, sxNewPassword);
       }
@@ -827,9 +849,11 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNMHDR, LRESULT *pLResult)
                                                  CItemData::TITLE, sxNewTitle));
     }
 
-    if (bShowUsernameInTree && sxNewUser != pci->GetUser()) {
-      pmulticmds->Add(UpdateEntryCommand::Create(pcore, *pci,
-                                                 CItemData::USER, sxNewUser));
+    if (bShowUsernameInTree) {
+      if (sxNewUser != pci->GetUser()) {
+        pmulticmds->Add(UpdateEntryCommand::Create(pcore, *pci,
+                                                   CItemData::USER, sxNewUser));
+      }
       if (bShowPasswordInTree && sxNewPassword != pci->GetPassword()) {
         pmulticmds->Add(UpdateEntryCommand::Create(pcore, *pci,
                                                    CItemData::PASSWORD, sxNewPassword));
@@ -1604,7 +1628,7 @@ void CPWTreeCtrl::OnExpandCollapse(NMHDR *, LRESULT *)
   // (unless we're in the middle of restoring the state!)
 
   if (!m_isRestoring) {
-    m_pDbx->SaveGroupDisplayState();
+    m_pDbx->SaveGUIStatusEx(DboxMain::iTreeOnly);
   }
 }
 
@@ -1621,6 +1645,8 @@ void CPWTreeCtrl::OnExpandAll()
   } while (hItem);
   EnsureVisible(GetSelectedItem());
   SetRedraw(TRUE);
+
+  m_pDbx->SaveGUIStatusEx(DboxMain::iTreeOnly);
 }
 
 void CPWTreeCtrl::OnCollapseAll() 
@@ -1635,6 +1661,8 @@ void CPWTreeCtrl::OnCollapseAll()
     CollapseBranch(hItem);
   } while((hItem = GetNextSiblingItem(hItem)) != NULL);
   SetRedraw(TRUE);
+
+  m_pDbx->SaveGUIStatusEx(DboxMain::iTreeOnly);
 }
 
 void CPWTreeCtrl::CollapseBranch(HTREEITEM hItem)
@@ -1672,6 +1700,25 @@ HTREEITEM CPWTreeCtrl::GetNextTreeItem(HTREEITEM hItem)
   }
   return hReturn;
 } 
+
+void CPWTreeCtrl::Iterate(HTREEITEM hItem, TreeItemFunctor &functor)
+{
+  if (hItem) {
+    functor(hItem); // apply whatever needs to be done
+    hItem = GetNextItem(hItem, TVGN_CHILD);
+    while (hItem) {
+      Iterate(hItem, functor);
+      hItem = GetNextItem(hItem, TVGN_NEXT);
+    }
+  } else {
+    HTREEITEM hItem = GetNextItem(NULL, TVGN_ROOT);
+    while (hItem) {
+      Iterate(hItem, functor);
+      hItem = GetNextItem(hItem, TVGN_NEXT);
+    }
+  }
+}
+
 
 bool CPWTreeCtrl::CollectData(BYTE * &out_buffer, long &outLen)
 {

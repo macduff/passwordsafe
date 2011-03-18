@@ -91,6 +91,12 @@ class CommandInterface
                                       CItemData::FieldType ft = CItemData::START,
                                       bool bUpdateGUI = true) = 0;
 
+  virtual void AddExpiryEntry(const CItemData &ci) = 0;
+  virtual void UpdateExpiryEntry(const CItemData &ci) = 0;
+  virtual void UpdateExpiryEntry(const uuid_array_t &uuid, const CItemData::FieldType ft,
+                                 const StringX &value) = 0;
+  virtual void RemoveExpiryEntry(const CItemData &ci) = 0;
+
   // Attachment members
   virtual size_t HasAttachments(const uuid_array_t &entry_uuid) = 0;
 
@@ -111,7 +117,6 @@ class CommandInterface
                                    PWSAttfile::VERSION version = PWSAttfile::VCURRENT) = 0;
   virtual int XCompleteImportFile(const stringT &impfilename,
                                   PWSAttfile::VERSION version = PWSAttfile::VCURRENT) = 0;
-
   virtual ~CommandInterface() {}
 };
 

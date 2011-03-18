@@ -214,6 +214,8 @@ wxMenu* SystemTray::SetupRecentEntryMenu(const CItemData* pci, size_t idx)
 
 void SystemTray::OnSysTrayMenuItem(wxCommandEvent& evt)
 {
+  EventHandlerDisabler ehd(this);
+
   const int id = evt.GetId();
   if (IsRUECommand(id)) {
     RUEOperation opn = GetRUEOperation(id);
@@ -222,8 +224,12 @@ void SystemTray::OnSysTrayMenuItem(wxCommandEvent& evt)
     }
     else {
       wxCommandEvent cmd(evt.GetEventType(), GetFrameCommandId(opn));
-      cmd.SetExtraLong(GetRUEIndex(id));
+      cmd.SetExtraLong(id);
+#if wxCHECK_VERSION(2,9,0)
+      m_frame->GetEventHandler()->ProcessEvent(cmd);
+#else
       m_frame->ProcessEvent(cmd);
+#endif
     }
   }
   else {
@@ -250,7 +256,11 @@ void SystemTray::OnSysTrayMenuItem(wxCommandEvent& evt)
       case ID_CLEARCLIPBOARD:
       case wxID_ABOUT:
       case wxID_CLOSE:
+#if wxCHECK_VERSION(2,9,0)
+        m_frame->GetEventHandler()->ProcessEvent(evt);
+#else
         m_frame->ProcessEvent(evt);
+#endif
         break;
 
       default:
@@ -261,5 +271,6 @@ void SystemTray::OnSysTrayMenuItem(wxCommandEvent& evt)
 
 void SystemTray::OnTaskBarLeftDoubleClick(wxTaskBarIconEvent& /*evt*/)
 {
+  EventHandlerDisabler ehd(this);
   m_frame->UnlockSafe(true); //true => restore UI
 }

@@ -27,13 +27,15 @@
 #include "wx/dirdlg.h"
 #include "wx/msgdlg.h"
 #include "wx/debug.h"
+#if defined(__X__) || defined(__WXGTK__)
+#include <wx/clipbrd.h>
+#endif
 
 #include "passwordsafeframe.h"
 #include "optionspropsheet.h"
 #include "core/PWSprefs.h"
 #include "core/Util.h" // for datetime string
 #include "core/PWSAuxParse.h" // for DEFAULT_AUTOTYPE
-
 ////@begin XPM images
 ////@end XPM images
 
@@ -703,6 +705,12 @@ void COptions::CreateControls()
   itemCheckBox141->SetValue(false);
   itemBoxSizer126->Add(itemCheckBox141, 0, wxALIGN_LEFT|wxALL, 5);
 
+#if defined(__X__) || defined(__WXGTK__)
+  wxCheckBox* itemCheckBox142 = new wxCheckBox( itemPanel125, ID_CHECKBOX35, _("Use Primary Selection for clipboard"), wxDefaultPosition, wxDefaultSize, 0 );
+  itemCheckBox142->SetValue(false);
+  itemBoxSizer126->Add(itemCheckBox142, 0, wxALIGN_LEFT|wxALL, 5);
+#endif
+
   GetBookCtrl()->AddPage(itemPanel125, _("System"));
 
   wxPanel* itemPanel142 = new wxPanel( GetBookCtrl(), ID_PANEL7, wxDefaultPosition, wxDefaultSize, wxSUNKEN_BORDER|wxTAB_TRAVERSAL );
@@ -749,6 +757,9 @@ void COptions::CreateControls()
   // Connect events and objects
   m_usrbuprefixTxt->Connect(ID_TEXTCTRL9, wxEVT_SET_FOCUS, wxFocusEventHandler(COptions::OnBuPrefixTxtSetFocus), NULL, this);
 ////@end COptions content construction
+#if defined(__X__) || defined(__WXGTK__)
+  itemCheckBox142->SetValidator(wxGenericValidator(&m_usePrimarySelection));
+#endif
 }
 
 
@@ -881,6 +892,9 @@ void COptions::PrefsToPropSheet()
   m_sysmruonfilemenu = prefs->GetPref(PWSprefs::MRUOnFileMenu);
   m_sysdefopenro = prefs->GetPref(PWSprefs::DefaultOpenRO);
   m_sysmultinst = prefs->GetPref(PWSprefs::MultipleInstances);
+#if defined(__X__) || defined(__WXGTK__)
+  m_usePrimarySelection = prefs->GetPref(PWSprefs::UsePrimarySelectionForClipboard);
+#endif
 }
 
 void COptions::PropSheetToPrefs()
@@ -892,7 +906,7 @@ void COptions::PropSheetToPrefs()
   wxString buprefixValue;
   if (m_usrbuprefixRB->GetValue())
     buprefixValue = m_usrbuprefixTxt->GetValue();
-  prefs->SetPref(PWSprefs::BackupPrefixValue, buprefixValue.c_str());
+  prefs->SetPref(PWSprefs::BackupPrefixValue, tostringx(buprefixValue));
   int suffixIndex = m_busuffixCB->GetCurrentSelection();
   prefs->SetPref(PWSprefs::BackupSuffix, suffixIndex);
   if (suffixIndex == INC_SFX)
@@ -900,7 +914,7 @@ void COptions::PropSheetToPrefs()
   wxString budirValue;
   if (m_usrbudirRB->GetValue())
     budirValue = m_usrbudirTxt->GetValue();
-  prefs->SetPref(PWSprefs::BackupDir, budirValue.c_str());
+  prefs->SetPref(PWSprefs::BackupDir, tostringx(budirValue));
 
   // display-related preferences
   prefs->SetPref(PWSprefs::AlwaysOnTop, m_alwaysontop);
@@ -956,14 +970,14 @@ void COptions::PropSheetToPrefs()
   prefs->SetPref(PWSprefs::MinimizeOnAutotype, m_minauto);
   if (m_autotypeStr.empty() || m_autotypeStr == DEFAULT_AUTOTYPE)
       prefs->SetPref(PWSprefs::DefaultAutotypeString, L"");
-  else prefs->SetPref(PWSprefs::DefaultAutotypeString, m_autotypeStr.c_str());
+  else prefs->SetPref(PWSprefs::DefaultAutotypeString, tostringx(m_autotypeStr));
   prefs->SetPref(PWSprefs::UseDefaultUser, m_usedefuser);
   prefs->SetPref(PWSprefs::DefaultUsername,
-                 m_defusernameTXT->GetValue().c_str());
+                 tostringx(m_defusernameTXT->GetValue()));
   prefs->SetPref(PWSprefs::QuerySetDef, m_querysetdef);
-  prefs->SetPref(PWSprefs::AltBrowser, m_otherbrowser.c_str());
+  prefs->SetPref(PWSprefs::AltBrowser, tostringx(m_otherbrowser));
   prefs->SetPref(PWSprefs::AltBrowserCmdLineParms,
-                 m_otherbrowserparams.c_str());
+                 tostringx(m_otherbrowserparams));
 
   // Password Policy preferences:
   prefs->SetPref(PWSprefs::PWDefaultLength, m_pwdefaultlength);
@@ -1002,6 +1016,10 @@ void COptions::PropSheetToPrefs()
   prefs->SetPref(PWSprefs::MRUOnFileMenu, m_sysmruonfilemenu);
   prefs->SetPref(PWSprefs::DefaultOpenRO, m_sysdefopenro);
   prefs->SetPref(PWSprefs::MultipleInstances, m_sysmultinst);
+#if defined(__X__) || defined(__WXGTK__)
+  prefs->SetPref(PWSprefs::UsePrimarySelectionForClipboard, m_usePrimarySelection);
+  wxTheClipboard->UsePrimarySelection(m_usePrimarySelection);
+#endif
 }
 
 void COptions::OnOk(wxCommandEvent& /* evt */)

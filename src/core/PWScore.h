@@ -23,10 +23,10 @@
 #include "UIinterface.h"
 #include "Command.h"
 #include "CommandInterface.h"
+#include "DBCompareData.h"
+#include "ExpiredList.h"
 
 #include "coredefs.h"
-
-#define MAXDEMO 10
 
 // Parameter list for ParseBaseEntryPWD
 struct BaseEntryParms {
@@ -68,9 +68,8 @@ public:
 
   static uuid_array_t NULL_UUID;
 
-  void SetUIInterFace(UIInterFace *pUIIF, 
-    std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions)
-  {m_pUIIF = pUIIF; m_bsSupportedFunctions = bsSupportedFunctions;}
+  bool SetUIInterFace(UIInterFace *pUIIF, size_t num_supported,
+                      std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions);
 
   // Set following to a Reporter-derived object
   // so that we can inform user of events of interest
@@ -156,23 +155,47 @@ public:
   void ChangePasskey(const StringX &newPasskey);
   void SetPassKey(const StringX &new_passkey);
 
-  // Export databases
-  int TestForExport(const bool bAdvanced,
+  // Database functions
+  int TestSelection(const bool bAdvanced,
                     const stringT &subgroup_name,
                     const int &subgroup_object,
                     const int &subgroup_function,
                     const OrderedItemList *il);
+
+  void Compare(PWScore *pothercore,
+               const CItemData::FieldBits &bsFields, const bool &subgroup_bset,
+               const bool &bTreatWhiteSpaceasEmpty, const stringT &subgroup_name,
+               const int &subgroup_object, const int &subgroup_function,
+               CompareData &list_OnlyInCurrent, CompareData &list_OnlyInComp,
+               CompareData &list_Conflicts, CompareData &list_Identical);
+
+  stringT Merge(PWScore *pothercore,
+                const bool &subgroup_bset,
+                const stringT &subgroup_name,
+                const int &subgroup_object, const int &subgroup_function,
+                CReport *prpt);
+
+  void Synchronize(PWScore *pothercore, 
+                   const CItemData::FieldBits &bsFields, const bool &subgroup_bset,
+                   const stringT &subgroup_name,
+                   const int &subgroup_object, const int &subgroup_function,
+                   int &numUpdated, CReport *prpt);
+
+  // Export databases
   int WritePlaintextFile(const StringX &filename,
                          const CItemData::FieldBits &bsExport,
                          const stringT &subgroup, const int &iObject,
                          const int &iFunction, const TCHAR &delimiter,
-                         const OrderedItemList *il = NULL);
+                         int &numExported, const OrderedItemList *il = NULL,
+                         CReport *prpt = NULL);
+
   int WriteXMLFile(const StringX &filename,
                    const CItemData::FieldBits &bsExport,
                    const stringT &subgroup, const int &iObject,
                    const int &iFunction, const TCHAR &delimiter,
-                   const OrderedItemList *il = NULL,
-                   const bool &bFilterActive = false);
+                   int &numExported, const OrderedItemList *il = NULL,
+                   const bool &bFilterActive = false,
+                   CReport *prpt = NULL);
   int WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf, 
                              ATRExVector &vAIRecordExs, size_t &num_exported);
 
@@ -325,6 +348,7 @@ public:
 
   void GUISetupDisplayInfo(CItemData &ci);
   void GUIRefreshEntry(const CItemData &ci);
+  void UpdateWizard(const stringT &s);
 
   // Get/Set Display information from/to database
   void SetDisplayStatus(const std::vector<bool> &s);
@@ -351,6 +375,9 @@ public:
   {RUElist = m_RUEList;}
   void SetRUEList(const UUIDList &RUElist)
   {m_RUEList = RUElist;}
+
+  size_t GetExpirySize() {return m_ExpireCandidates.size();}
+  ExpiredList GetExpired(int idays) {return m_ExpireCandidates.GetExpired(idays);}
 
 private:
   // Database update routines
@@ -401,6 +428,11 @@ private:
   // Following used by SetPassKey
   void EncryptPassword(const unsigned char *plaintext, size_t len,
                        unsigned char *ciphertext) const;
+
+  int MergeDependents(PWScore *pothercore, MultiCommands *pmulticmds,
+                      uuid_array_t &base_uuid, uuid_array_t &new_base_uuid, 
+                      const bool bTitleRenamed, stringT &timeStr, 
+                      const CItemData::EntryType et, std::vector<StringX> &vs_added);
 
   StringX m_currfile; // current pw db filespec
 
@@ -501,6 +533,17 @@ private:
   static Reporter *m_pReporter; // set as soon as possible to show errors
   static Asker *m_pAsker;
   PWSFileSig *m_fileSig;
+
+  // Entries with an expiry date
+  ExpiredList m_ExpireCandidates;
+  void AddExpiryEntry(const CItemData &ci)
+  {m_ExpireCandidates.Add(ci);}
+  void UpdateExpiryEntry(const CItemData &ci)
+  {m_ExpireCandidates.Update(ci);}
+  void UpdateExpiryEntry(const uuid_array_t &uuid, const CItemData::FieldType ft,
+                         const StringX &value);
+  void RemoveExpiryEntry(const CItemData &ci)
+  {m_ExpireCandidates.Remove(ci);}
 };
 
 #endif /* __PWSCORE_H */

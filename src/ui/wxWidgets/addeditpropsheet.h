@@ -97,7 +97,11 @@ class UIInterFace;
 #define ID_CHECKBOX8 10123
 #define ID_CHECKBOX9 10124
 #define ID_BUTTON7 10125
+#if WXWIN_COMPATIBILITY_2_6
 #define SYMBOL_ADDEDITPROPSHEET_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX|wxDIALOG_MODAL
+#else
+#define SYMBOL_ADDEDITPROPSHEET_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
+#endif
 #define SYMBOL_ADDEDITPROPSHEET_TITLE _("Edit Entry")
 #define SYMBOL_ADDEDITPROPSHEET_IDNAME ID_ADDEDITPROPSHEET
 #define SYMBOL_ADDEDITPROPSHEET_SIZE wxSize(400, 300)
@@ -121,6 +125,7 @@ public:
   // item is NULL for ADD, otherwise its values are retrieved and displayed
   AddEditPropSheet(wxWindow* parent, PWScore &core,
                    AddOrEdit type, const CItemData *item = NULL,
+                   const wxString& selectedGroup = wxEmptyString,
                    wxWindowID id = SYMBOL_ADDEDITPROPSHEET_IDNAME,
                    const wxString& caption = SYMBOL_ADDEDITPROPSHEET_TITLE,
                    const wxPoint& pos = SYMBOL_ADDEDITPROPSHEET_POSITION,
@@ -314,6 +319,7 @@ private:
   PWPolicy m_PWP;
   PWScore &m_core;
   UIInterFace *m_ui;
+  wxString m_selectedGroup;  //Group title in tree view user right-clicked on to add an item
 
   AddOrEdit m_type;
   CItemData m_item;

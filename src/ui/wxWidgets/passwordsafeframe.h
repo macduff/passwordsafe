@@ -126,7 +126,8 @@ enum {
   ID_TRAYRECENT_ENTRY_HELP2,
   ID_TOOLBAR_NEW,
   ID_TOOLBAR_CLASSIC,
-  ID_SYNCHRONIZE
+  ID_SYNCHRONIZE,
+  ID_VALIDATE
 };
 
 
@@ -160,9 +161,11 @@ public:
 
     // UIinterface concrete methods:
     virtual void DatabaseModified(bool bChanged);
+
     virtual void UpdateGUI(UpdateGUICommand::GUI_Action ga,
                            uuid_array_t &entry_uuid,
                            CItemData::FieldType ft);
+
     virtual void GUISetupDisplayInfo(CItemData &ci);
 
     virtual void UpdateGUI(UpdateGUICommand::GUI_Action ga,
@@ -170,7 +173,9 @@ public:
                            CItemData::FieldType ft = CItemData::START,
                            bool bUpdateGUI = true);
     
-    virtual void GUIRefreshEntry(const CItemData&);
+    virtual void GUIRefreshEntry(const CItemData &ci);
+
+    virtual void UpdateWizard(const stringT &s);
     
   ////@begin PasswordSafeFrame event handler declarations
 
@@ -337,6 +342,12 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_TOOLBAR_CLASSIC and ID_TOOLBAR_NEW
   void OnChangeToolbarType(wxCommandEvent& /*evt*/);
 
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_VALIDATE
+  void OnValidate(wxCommandEvent& evt);
+
+  void OnBackupSafe(wxCommandEvent& evt);
+  void OnRestoreSafe(wxCommandEvent& evt);
+
 ////@begin PasswordSafeFrame member function declarations
 
   /// Retrieves bitmap resources
@@ -397,6 +408,8 @@ public:
   CItemData *GetSelectedEntry() const;
     wxString GetCurrentSafe() const { return towxstring(m_core.GetCurFile()); }
     
+  void ValidateCurrentDatabase();
+    
 ////@begin PasswordSafeFrame member variables
   PWSGrid* m_grid;
   PWSTreeCtrl* m_tree;
@@ -405,8 +418,13 @@ public:
   enum SaveType {ST_INVALID = -1, ST_NORMALEXIT = 0, 
                  ST_ENDSESSIONEXIT, ST_WTSLOGOFFEXIT, ST_FAILSAFESAVE};
 
+  //we need to restrict the size of individual text fields, to prevent creating
+  //enormous databases.  See the comments in DboxMain.h
+  enum {MAXTEXTCHARS = 30000};  
+
   int New();
   int NewFile(StringX &fname);
+  int DoOpen(const wxString& title);
   int Open(const wxString &fname); // prompt for password, try to Load.
   int SaveIfChanged();
   int SaveAs(void);
@@ -424,16 +442,15 @@ public:
   enum ChangeType {Clear, Data, TimeStamp, DBPrefs, ClearDBPrefs};
   void SetChanged(ChangeType changed);
   void CreateMainToolbar();
-  bool IsRUEEvent(const wxCommandEvent& evt) {
-    long index = evt.GetExtraLong();
-    return index && index < 256 && size_t(index) < m_RUEList.GetCount(); 
-  }
-  long GetRUEIndex(const wxCommandEvent& evt) { return evt.GetExtraLong(); }
+  long GetEventRUEIndex(const wxCommandEvent& evt) const;
+  bool IsRUEEvent(const wxCommandEvent& evt) const;
   void RebuildGUI(const int iView = iBothViews);
   void CreateDragBar();
   void RefreshToolbarButtons();
   PWSDragBar* GetDragBar();
-  
+  bool IsClosed() const;
+  void SaveSettings() const;
+
   void Merge(const StringX &sx_Filename2, PWScore *pothercore, const SelectionCriteria& selection);
   int MergeDependents(PWScore *pothercore, MultiCommands *pmulticmds,
                               uuid_array_t &base_uuid, uuid_array_t &new_base_uuid, 
@@ -467,6 +484,7 @@ public:
   CRUEList m_RUEList;
   GUIInfo* m_guiInfo;
   bool m_bTSUpdated;
+  wxString m_savedDBPrefs;
   enum {iListOnly = 1, iTreeOnly = 2, iBothViews = 3};
 };
 

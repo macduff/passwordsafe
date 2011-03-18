@@ -22,6 +22,7 @@
 #include "PWFont.h"
 #include "InfoDisplay.h"
 #include "ViewReport.h"
+#include "ExpPWListDlg.h"
 
 #include "VirtualKeyboard\VKeyBoardDlg.h"
 
@@ -118,8 +119,11 @@ void DboxMain::UpdateGUI(UpdateGUICommand::GUI_Action ga,
 
   switch (ga) {
     case UpdateGUICommand::GUI_UPDATE_STATUSBAR:
-      UpdateToolBarDoUndo();
-      UpdateStatusBar();
+      if (app.GetBaseThreadID() == AfxGetThread()->m_nThreadID) {
+        // Can't do UI from a worker thread - so check if it is the main thread!
+        UpdateToolBarDoUndo();
+        UpdateStatusBar();
+      }
       break;
     case UpdateGUICommand::GUI_ADD_ENTRY:
       AddToGUI(*pci);
@@ -160,6 +164,15 @@ void DboxMain::UpdateGUI(UpdateGUICommand::GUI_Action ga,
   }
 }
 
+void DboxMain::UpdateGUIDisplay()
+{
+  ChangeOkUpdate();
+  RefreshViews();
+
+  // May need to update menu/toolbar if original database was empty
+  UpdateMenuAndToolBar(m_bOpen);
+}
+
 // Called from PWScore to get GUI to update its reserved field
 void DboxMain::GUISetupDisplayInfo(CItemData &ci)
 {
@@ -169,6 +182,12 @@ void DboxMain::GUISetupDisplayInfo(CItemData &ci)
 void DboxMain::GUIRefreshEntry(const CItemData &ci)
 {
   UpdateEntryImages(ci);
+}
+
+void DboxMain::UpdateWizard(const stringT &s)
+{
+  if (m_pWZWnd != NULL)
+    m_pWZWnd->SetWindowText(s.c_str());
 }
 
 //-----------------------------------------------------------------------------
@@ -282,6 +301,9 @@ int CALLBACK DboxMain::CompareFunc(LPARAM lParam1, LPARAM lParam2,
       break;
     case CItemData::POLICY:
       iResult = CompareNoCase(pLHS->GetPWPolicy(), pRHS->GetPWPolicy());
+      break;
+    case CItemData::PROTECTED:
+      iResult = pLHS->IsProtected() ? 1 : (pRHS->IsProtected() ? -1 : 1);
       break;
     default:
       iResult = 0; // should never happen - just keep compiler happy
@@ -479,7 +501,7 @@ void DboxMain::setupBars()
   int NumBits = (pDC ? pDC->GetDeviceCaps(12 /*BITSPIXEL*/) : 32);
   m_MainToolBar.Init(NumBits);
   m_FindToolBar.Init(NumBits, this, PWS_MSG_TOOLBAR_FIND,
-                     &m_SaveAdvValues[CAdvancedDlg::ADV_FIND]);
+                     &m_SaveAdvValues[CAdvancedDlg::FIND]);
   ReleaseDC(pDC);
 
   // Add the Main ToolBar.
@@ -491,15 +513,15 @@ void DboxMain::setupBars()
     return;      // fail to create
   }
   DWORD dwStyle = m_MainToolBar.GetBarStyle();
-  dwStyle = dwStyle | CBRS_BORDER_BOTTOM | CBRS_BORDER_TOP |
+  dwStyle = dwStyle | CBRS_BORDER_BOTTOM | CBRS_BORDER_TOP   |
                       CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
-                      CBRS_TOOLTIPS | CBRS_FLYBY;
+                      CBRS_TOOLTIPS      | CBRS_FLYBY;
   m_MainToolBar.SetBarStyle(dwStyle);
   m_MainToolBar.SetWindowText(L"Standard");
 
   // Add the Find ToolBar.
   if (!m_FindToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
-                              WS_CHILD | WS_VISIBLE |
+                              WS_CHILD    | WS_VISIBLE |
                               CBRS_BOTTOM | CBRS_SIZE_DYNAMIC,
                               CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + 2)) {
     pws_os::Trace(L"Failed to create Find toolbar\n");
@@ -508,7 +530,7 @@ void DboxMain::setupBars()
   dwStyle = m_FindToolBar.GetBarStyle();
   dwStyle = dwStyle | CBRS_BORDER_BOTTOM | CBRS_BORDER_TOP |
                       CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
-                      CBRS_TOOLTIPS | CBRS_FLYBY;
+                      CBRS_TOOLTIPS      | CBRS_FLYBY;
   m_FindToolBar.SetBarStyle(dwStyle);
   m_FindToolBar.SetWindowText(L"Find");
 
@@ -597,14 +619,14 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
   CItemData::FieldBits bsFields;
   bsFields.set();  // Default search is all text fields!
 
-  return FindAll(str, CaseSensitive, indices, bsFields, BST_UNCHECKED, 
+  return FindAll(str, CaseSensitive, indices, bsFields, false, 
                  L"", 0, 0);
 }
 
 size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
                          vector<int> &indices,
-                         const CItemData::FieldBits &bsFields, const int subgroup_set, 
-                         const CString &subgroup_name, const int subgroup_object,
+                         const CItemData::FieldBits &bsFields, const bool &subgroup_bset, 
+                         const std::wstring &subgroup_name, const int subgroup_object,
                          const int subgroup_function)
 {
   ASSERT(!str.IsEmpty());
@@ -642,7 +664,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
 
   while (m_IsListView ? (listPos != listEnd) : (olistPos != olistEnd)) {
     const CItemData &curitem = m_IsListView ? listPos->second : *olistPos;
-    if (subgroup_set == BST_CHECKED &&
+    if (subgroup_bset &&
         !curitem.Matches(std::wstring(subgroup_name),
                          subgroup_object, subgroup_function))
       goto nextentry;
@@ -898,10 +920,7 @@ void DboxMain::RefreshViews(const int iView)
   }
 
   m_bNumPassedFiltering = 0;
-
-  // Get current selected items and save ptr to the entries (unchanged over 
-  // refresh of Tree/List
-  SaveDisplayBeforeMinimize();
+  m_bInRefresh = true;
 
   // can't use LockWindowUpdate 'cause only one window at a time can be locked
   if (iView & iListOnly) {
@@ -951,10 +970,12 @@ void DboxMain::RefreshViews(const int iView)
     m_ctlItemTree.Invalidate();
   }
 
-  RestoreDisplayAfterMinimize();
+  RestoreGUIStatusEx();
 
   if (m_bFilterActive)
     UpdateStatusBar();
+
+  m_bInRefresh = false;
 }
 
 static void Shower(CWnd *pWnd)
@@ -982,7 +1003,7 @@ void DboxMain::RestoreWindows()
   BringWindowToTop();
   CPWDialog::GetDialogTracker()->Apply(Shower);
 
-  RestoreDisplayAfterMinimize();
+  //RestoreDisplayAfterMinimize();
 }
 
 // this tells OnSize that the user is currently
@@ -1071,7 +1092,7 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
 #if !defined(POCKET_PC)
   switch (nType) {
     case SIZE_MINIMIZED:
-      pws_os::Trace(L"OnSize:SIZE_MINIMIZED\n");
+      //pws_os::Trace(L"OnSize:SIZE_MINIMIZED\n");
 
       // Called when minimize button select on main dialog control box
       // or the system menu or by right clicking in the Taskbar
@@ -1104,7 +1125,6 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
         OnClearClipboard();
 
       if (prefs->GetPref(PWSprefs::UseSystemTray)) {      
-        app.SetMenuDefaultItem(ID_MENUITEM_RESTORE);
         ShowWindow(SW_HIDE);
 
         // User can have 'stealth' mode where, as long as a hot-key is defined,
@@ -1121,12 +1141,13 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
     case SIZE_RESTORED:
       if (!m_bSizing) { // here if actually restored
 #endif
+        /*
         if (nType == SIZE_MAXIMIZED)
           pws_os::Trace(L"OnSize:SIZE_MAXIMIZED\n");
         else
           pws_os::Trace(L"OnSize:SIZE_RESTORED\n");
+        */
 
-        app.SetMenuDefaultItem(ID_MENUITEM_MINIMIZE);
         if (!RestoreWindowsData(false))
           return;
 
@@ -1149,7 +1170,7 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
 
         CPWDialog::GetDialogTracker()->Apply(Shower);
 
-        RestoreDisplayAfterMinimize();
+        RestoreGUIStatusEx();
 
         if (prefs->GetPref(PWSprefs::UseSystemTray) && app.IsIconVisible() == FALSE) {      
           app.ShowIcon();
@@ -1180,10 +1201,10 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
       }
       break;
     case SIZE_MAXHIDE:
-      pws_os::Trace(L"OnSize:SIZE_MAXHIDE\n");
+      //pws_os::Trace(L"OnSize:SIZE_MAXHIDE\n");
       break;
     case SIZE_MAXSHOW:
-      pws_os::Trace(L"OnSize:SIZE_MAXSHOW\n");
+      //pws_os::Trace(L"OnSize:SIZE_MAXSHOW\n");
       break;
   } // nType switch statement
 #endif
@@ -1195,8 +1216,6 @@ void DboxMain::OnMinimize()
   // Called when the System Tray Minimize menu option is used
   if (m_bStartHiddenAndMinimized)
     m_bStartHiddenAndMinimized = false;
-
-  SaveDisplayBeforeMinimize();
 
   // Let OnSize handle this
   ShowWindow(SW_MINIMIZE);
@@ -1215,6 +1234,8 @@ void DboxMain::OnRestore()
   //RestoreDisplayAfterMinimize();
 
   m_ctlItemTree.SetRestoreMode(false);
+
+  TellUserAboutExpiredPasswords();
 }
 
 void DboxMain::OnListItemSelected(NMHDR *pNMHDR, LRESULT *pLResult)
@@ -1489,23 +1510,23 @@ int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex,
 
 CItemData *DboxMain::getSelectedItem()
 {
-  CItemData *retval = NULL;
+  CItemData *pci = NULL;
   if (m_ctlItemList.IsWindowVisible()) { // list view
     POSITION p = m_ctlItemList.GetFirstSelectedItemPosition();
     if (p) {
       int i = m_ctlItemList.GetNextSelectedItem(p);
-      retval = (CItemData *)m_ctlItemList.GetItemData(i);
-      ASSERT(retval != NULL);
-      DisplayInfo *pdi = (DisplayInfo *)retval->GetDisplayInfo();
+      pci = (CItemData *)m_ctlItemList.GetItemData(i);
+      ASSERT(pci != NULL);
+      DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
       ASSERT(pdi != NULL && pdi->list_index == i);
     }
   } else { // tree view; go from HTREEITEM to index
     HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
     if (ti != NULL) {
-      retval = (CItemData *)m_ctlItemTree.GetItemData(ti);
-      if (retval != NULL) {
+      pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
+      if (pci != NULL) {
         // leaf: do some sanity tests
-        DisplayInfo *pdi = (DisplayInfo *)retval->GetDisplayInfo();
+        DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
         ASSERT(pdi != NULL);
         if (pdi->tree_item != ti) {
           pws_os::Trace(L"DboxMain::getSelectedItem: fixing pdi->tree_item!\n");
@@ -1514,7 +1535,7 @@ CItemData *DboxMain::getSelectedItem()
       }
     } // ti != NULL
   } // tree view
-  return retval;
+  return pci;
 }
 
 void DboxMain::ClearData(const bool clearMRE)
@@ -1860,8 +1881,6 @@ void DboxMain::OnTimer(UINT_PTR nIDEvent)
     // also requires children be hidden explicitly)
     pws_os::Trace(L"Locking due to Timer lock countdown or ws lock\n");
     m_vGroupDisplayState = GetGroupDisplayState();
-    if (m_bOpen && app.GetSystemTrayState() == UNLOCKED && !IsIconic())
-      SaveDisplayBeforeMinimize();
 
     if (!LockDataBase())
       return;
@@ -1875,10 +1894,12 @@ void DboxMain::OnTimer(UINT_PTR nIDEvent)
     } else {
       CPWDialog::GetDialogTracker()->Apply(Hider);
       ShowWindow(SW_HIDE);
-      app.SetMenuDefaultItem(ID_MENUITEM_RESTORE);
     }
     if (nIDEvent == TIMER_LOCKONWTSLOCK)
       KillTimer(TIMER_LOCKONWTSLOCK);
+  } else if (nIDEvent == TIMER_EXPENT) {
+    // once a day, we want to check the expired entries list
+    CheckExpireList();
   } else {
     pws_os::Trace(L"Timer lock kicked in (countdown=%u), not locking. Timer ID=%d\n",
           m_IdleLockCountDown, nIDEvent);
@@ -1902,9 +1923,6 @@ LRESULT DboxMain::OnSessionChange(WPARAM wParam, LPARAM )
       if (m_bOpen && app.GetSystemTrayState() == UNLOCKED) {
         m_bWSLocked = true;
 
-        if (!IsIconic())
-          SaveDisplayBeforeMinimize();
-
         if (prefs->GetPref(PWSprefs::LockOnWindowLock) &&
             LockDataBase()) {
           bool usingsystray = prefs->GetPref(PWSprefs::UseSystemTray);
@@ -1913,7 +1931,6 @@ LRESULT DboxMain::OnSessionChange(WPARAM wParam, LPARAM )
           } else {
             CPWDialog::GetDialogTracker()->Apply(Hider);
             ShowWindow(SW_HIDE);
-            app.SetMenuDefaultItem(ID_MENUITEM_RESTORE);
           }
         }
       }
@@ -1949,12 +1966,12 @@ bool DboxMain::LockDataBase()
    */
 
   // Now try and save changes
-  if (m_core.IsChanged() ||  m_bTSUpdated) {
+  if (m_core.IsChanged() ||  m_bTSUpdated || m_core.HaveDBPrefsChanged()) {
     if (Save() != PWSRC::SUCCESS) {
       // If we don't warn the user, data may be lost!
       CGeneralMsgBox gmb;
       CString cs_text(MAKEINTRESOURCE(IDS_COULDNOTSAVE)), 
-      cs_title(MAKEINTRESOURCE(IDS_SAVEERROR));
+              cs_title(MAKEINTRESOURCE(IDS_SAVEERROR));
       gmb.MessageBox(cs_text, cs_title, MB_ICONSTOP);
       return false;
     }
@@ -2874,10 +2891,11 @@ void DboxMain::OnViewReports()
 
   int Reports[] = {
     IDS_RPTCOMPARE, IDS_RPTFIND, IDS_RPTIMPORTTEXT, IDS_RPTIMPORTXML,
+    IDS_RPTEXPORTTEXT, IDS_RPTEXPORTXML,
     IDS_RPTMERGE, IDS_RPTSYNCH, IDS_RPTVALIDATE,
   };
 
-  for (int i = 0; i < sizeof(Reports)/sizeof(Reports[0]); i++) {
+  for (int i = 0; i < sizeof(Reports) / sizeof(Reports[0]); i++) {
     csAction.LoadString(Reports[i]);
     cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
     if (::_tstat(cs_filename, &statbuf) == 0) {
@@ -2902,6 +2920,8 @@ void DboxMain::OnViewReports()
     case IDS_RPTFIND:
     case IDS_RPTIMPORTTEXT:
     case IDS_RPTIMPORTXML:
+    case IDS_RPTEXPORTTEXT:
+    case IDS_RPTEXPORTXML:
     case IDS_RPTMERGE:
     case IDS_RPTSYNCH:
     case IDS_RPTVALIDATE:
@@ -2919,9 +2939,6 @@ void DboxMain::OnViewReports()
 
 void DboxMain::OnViewReports(UINT nID)
 {
-  ASSERT((nID >= ID_MENUITEM_REPORT_COMPARE) &&
-    (nID <= ID_MENUITEM_REPORT_VALIDATE || nID == ID_MENUITEM_REPORT_SYNCHRONIZE));
-
   CString cs_filename, cs_path, csAction;
   CString cs_drive, cs_directory;
 
@@ -2948,6 +2965,12 @@ void DboxMain::OnViewReports(UINT nID)
     case ID_MENUITEM_REPORT_SYNCHRONIZE:
       uistring = IDS_RPTSYNCH;
       break;
+    case ID_MENUITEM_REPORT_EXPORTTEXT:
+      uistring = IDS_RPTEXPORTTEXT;
+      break;
+    case ID_MENUITEM_REPORT_EXPORTXML:
+      uistring = IDS_RPTEXPORTXML;
+      break;
     case ID_MENUITEM_REPORT_VALIDATE:
       uistring = IDS_RPTVALIDATE;
       break;
@@ -2960,14 +2983,14 @@ void DboxMain::OnViewReports(UINT nID)
   ViewReport(cs_filename);
 }
 
-void DboxMain::ViewReport(CReport &rpt)
+void DboxMain::ViewReport(CReport &rpt) const
 {
-  CViewReport vr_dlg(this, &rpt);
+  CViewReport vr_dlg(const_cast<DboxMain*>(this), &rpt);
 
   vr_dlg.DoModal();
 }
 
-void DboxMain::ViewReport(const CString &cs_ReportFileName)
+void DboxMain::ViewReport(const CString &cs_ReportFileName) const
 {
   CString cs_drive, cs_directory;
 
@@ -3045,6 +3068,12 @@ int DboxMain::OnUpdateViewReports(const int nID)
       break;
     case ID_MENUITEM_REPORT_IMPORTXML:
       uistring = IDS_RPTIMPORTXML;
+      break;
+    case ID_MENUITEM_REPORT_EXPORTTEXT:
+      uistring = IDS_RPTEXPORTTEXT;
+      break;
+    case ID_MENUITEM_REPORT_EXPORTXML:
+      uistring = IDS_RPTEXPORTXML;
       break;
     case ID_MENUITEM_REPORT_MERGE:
       uistring = IDS_RPTMERGE;
@@ -3226,21 +3255,22 @@ void DboxMain::OnToolBarFindReport()
   rpt.StartReport(cs_temp, m_core.GetCurFile().c_str());
 
   CItemData::FieldBits bsFFields;
-  BOOL bFAdvanced;
-  CString Fsubgroup_name;
-  int Fsubgroup_set, Fsubgroup_object, Fsubgroup_function;
+  bool bFAdvanced;
+  std::wstring Fsubgroup_name;
+  int Fsubgroup_object, Fsubgroup_function;
+  bool Fsubgroup_set;
 
   m_FindToolBar.GetSearchInfo(bFAdvanced, bsFFields, Fsubgroup_name, 
                               Fsubgroup_set, Fsubgroup_object, Fsubgroup_function);
 
   // tell the user we're done & provide short Compare report
-  if (bFAdvanced == FALSE) {
+  if (!bFAdvanced) {
     cs_temp.LoadString(IDS_NONE);
     buffer.Format(IDS_ADVANCEDOPTIONS, cs_temp);
     rpt.WriteLine((LPCWSTR)buffer);
     rpt.WriteLine();
   } else {
-    if (Fsubgroup_set == BST_UNCHECKED) {
+    if (!Fsubgroup_set) {
       cs_temp.LoadString(IDS_NONE);
     } else {
       CString cs_Object, cs_case, cs_text;
@@ -3384,7 +3414,7 @@ void DboxMain::OnToolBarFindReport()
   m_FindToolBar.SetStatus(cs_temp);
 }
 
-int DboxMain::GetEntryImage(const CItemData &ci)
+int DboxMain::GetEntryImage(const CItemData &ci) const
 {
   int nImage;
   int entrytype = ci.GetEntryType();
@@ -3412,17 +3442,17 @@ int DboxMain::GetEntryImage(const CItemData &ci)
       nImage = CPWTreeCtrl::NORMAL;
   }
 
-  time_t tXTime;
-  ci.GetXTime(tXTime);
-  if ((long)tXTime > 0L && (long)tXTime <= 3650L) {
-    time_t tCPMTime;
-    ci.GetPMTime(tCPMTime);
-    if ((long)tCPMTime == 0L)
-      ci.GetCTime(tCPMTime);
-    tXTime = (time_t)((long)tCPMTime + (long)tXTime * 86400);
+  time_t tttXTime;
+  ci.GetXTime(tttXTime);
+  if (tttXTime > time_t(0) && tttXTime <= time_t(3650)) {
+    time_t tttCPMTime;
+    ci.GetPMTime(tttCPMTime);
+    if ((long)tttCPMTime == 0L)
+      ci.GetCTime(tttCPMTime);
+    tttXTime = (time_t)((long)tttCPMTime + (long)tttXTime * 86400);
   }
 
-  if (tXTime != 0) {
+  if (tttXTime != 0) {
     time_t now, warnexptime((time_t)0);
     time(&now);
     if (PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarn)) {
@@ -3442,9 +3472,9 @@ int DboxMain::GetEntryImage(const CItemData &ci)
       if (warnexptime == (time_t)-1)
         warnexptime = (time_t)0;
     }
-    if (tXTime <= now) {
+    if (tttXTime <= now) {
       nImage += 2;  // Expired
-    } else if (tXTime < warnexptime) {
+    } else if (tttXTime < warnexptime) {
       nImage += 1;  // Warn nearly expired
     }
   }
@@ -3679,7 +3709,7 @@ bool DboxMain::SetNotesWindow(const CPoint point, const bool bVisible)
   return !cs_notes.empty();
 }
 
-CItemData *DboxMain::GetLastSelected()
+CItemData *DboxMain::GetLastSelected() const
 {
   CItemData *retval(NULL);
   if (m_core.GetNumEntries() == 0)
@@ -3697,7 +3727,7 @@ CItemData *DboxMain::GetLastSelected()
   return retval;
 }
 
-StringX DboxMain::GetGroupName()
+StringX DboxMain::GetGroupName() const
 {
   HTREEITEM hi = m_ctlItemTree.GetSelectedItem();
   StringX s(L"");
@@ -3715,7 +3745,7 @@ StringX DboxMain::GetGroupName()
 void DboxMain::UpdateGroupNamesInMap(const StringX sxOldPath, const StringX sxNewPath)
 {
   // When a group node is renamed, need to update the group to HTREEITEM map
-  // We need to build a new map, as we can't erase&add while iterating.
+  // We need to build a new map, as we can't erase & add while iterating.
   std::map<StringX, HTREEITEM> new_map;
 
   size_t len = sxOldPath.length();
@@ -3770,10 +3800,15 @@ void DboxMain::OnShowUnsavedEntries()
     m_showunsavedfilter.num_Mactive = (int)m_showunsavedfilter.vMfldata.size();
   }
 
-  m_bFilterActive = !m_bFilterActive;
-  if (m_bFilterActive)
+  if (!m_bExpireDisplayed)
+    m_bFilterActive = !m_bFilterActive;
+
+  if (m_bFilterActive) {
+    if (m_bExpireDisplayed)
+      m_bExpireDisplayed = !m_bExpireDisplayed;
+
     m_currentfilter = m_showunsavedfilter;
-  else
+  } else
     m_currentfilter.Empty();
 
   ApplyFilters();
@@ -3784,6 +3819,49 @@ void DboxMain::OnShowUnsavedEntries()
     m_bUnsavedDisplayed ? FALSE : TRUE);
   m_MainToolBar.GetToolBarCtrl().EnableButton(ID_MENUITEM_MANAGEFILTERS,
     m_bUnsavedDisplayed ? FALSE : TRUE);
+}
+
+void DboxMain::OnShowExpireList()
+{
+  m_bExpireDisplayed = !m_bExpireDisplayed;
+
+  if (m_bExpireDisplayed) {
+    CString cs_temp(MAKEINTRESOURCE(IDS_EXPIREPASSWORDS));
+    m_showexpirefilter.Empty();
+    m_showexpirefilter.fname = cs_temp;
+
+    st_FilterRow fr;
+
+    fr.bFilterComplete = true;
+    fr.ftype = FT_XTIME;
+    fr.mtype = PWSMatch::MT_DATE;
+    fr.rule = PWSMatch::MR_NOTEQUAL;
+    fr.ltype = LC_OR;
+
+    fr.fdate1 = 0;
+    m_showexpirefilter.vMfldata.push_back(fr);
+    m_showexpirefilter.num_Mactive = (int)m_showexpirefilter.vMfldata.size();
+  }
+
+  if (!m_bUnsavedDisplayed)
+    m_bFilterActive = !m_bFilterActive;
+
+  if (m_bFilterActive) {
+    if (m_bUnsavedDisplayed)
+      m_bUnsavedDisplayed = !m_bUnsavedDisplayed;
+
+    m_currentfilter = m_showexpirefilter;
+  } else
+    m_currentfilter.Empty();
+
+  ApplyFilters();
+
+  m_MainToolBar.GetToolBarCtrl().EnableButton(ID_MENUITEM_APPLYFILTER,
+    (m_bExpireDisplayed || !m_bFilterActive) ? FALSE : TRUE);
+  m_MainToolBar.GetToolBarCtrl().EnableButton(ID_MENUITEM_EDITFILTER,
+    m_bExpireDisplayed ? FALSE : TRUE);
+  m_MainToolBar.GetToolBarCtrl().EnableButton(ID_MENUITEM_MANAGEFILTERS,
+    m_bExpireDisplayed ? FALSE : TRUE);
 }
 
 void DboxMain::UpdateToolBarDoUndo()
@@ -3811,6 +3889,8 @@ void DboxMain::AddToGUI(CItemData &ci)
 void DboxMain::RemoveFromGUI(CItemData &ci, bool bUpdateGUI)
 {
   // RemoveFromGUI should always occur BEFORE the entry is deleted!
+  // Note: Also called if a filter is active and an entry is changed and no longer
+  // satisfies the filter criteria.
   uuid_array_t entry_uuid;
   ci.GetUUID(entry_uuid);
   ItemListIter iter = m_core.Find(entry_uuid);
@@ -3834,8 +3914,10 @@ void DboxMain::RemoveFromGUI(CItemData &ci, bool bUpdateGUI)
 
     m_ctlItemList.DeleteItem(pdi->list_index);
     m_ctlItemTree.DeleteWithParents(pdi->tree_item);
+    pdi->list_index = -1;
+    pdi->tree_item = NULL;
 
-    FixListIndexes(); // sucks, as make m deletions an NxM operation
+    FixListIndexes(); // sucks, as make M deletions an NxM operation
     if (bUpdateGUI) { // Make controls redraw
       m_ctlItemList.Invalidate();
       m_ctlItemTree.Invalidate();
@@ -3859,7 +3941,7 @@ void DboxMain::RefreshEntryFieldInGUI(CItemData &ci, CItemData::FieldType ft)
 
   UpdateListItem(pdi->list_index, ft, ci.GetFieldValue(ft));
 
-  if (ft == CItemData::GROUP) {
+  if (ft == CItemData::GROUP || m_bFilterActive) {
     RefreshViews();
   } else {
     PWSprefs *prefs = PWSprefs::GetInstance();
@@ -3878,6 +3960,9 @@ void DboxMain::RefreshEntryFieldInGUI(CItemData &ci, CItemData::FieldType ft)
       if (ci.IsProtected())
         treeDispString += L" #";
       UpdateTreeItem(pdi->tree_item, treeDispString);
+      if (ft == CItemData::PASSWORD && bShowPasswordInTree) {
+        UpdateEntryImages(ci);
+      }
     }
   }
 }
@@ -3887,8 +3972,11 @@ void DboxMain::RebuildGUI(const int iView)
   RefreshViews(iView);
 }
 
-void DboxMain::SaveDisplayBeforeMinimize()
+void DboxMain::SaveGUIStatusEx(const int iView)
 {
+  if (m_bInRefresh || m_bInRestoreWindows)
+    return;
+
   if (!m_bOpen || app.GetSystemTrayState() != UNLOCKED || IsIconic())
     return;
 
@@ -3898,93 +3986,102 @@ void DboxMain::SaveDisplayBeforeMinimize()
   if (m_ctlItemList.GetItemCount() == 0 || m_ctlItemTree.GetCount() == 0)
     return;
 
-  pws_os::Trace(L"SaveDisplayBeforeMinimize\n");
-
-  // Save expand/collapse status of groups
-  m_vGroupDisplayState = GetGroupDisplayState();
+  //pws_os::Trace(L"SaveGUIStatusEx\n");
 
   CItemData *pci(NULL);
+  POSITION p;
+  HTREEITEM ti;
+  int i;
 
   // Note: User can have different entries selected/visible in Tree & List Views
-  memset(m_LUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_TUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_LUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_TUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
+  if ((iView & iListOnly) == iListOnly) {
+    memset(m_LUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
+    memset(m_LUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
 
-  m_sxSelectedGroup.clear();
-  m_sxVisibleGroup.clear();
-
-  // List view
-  // Get selected entry in CListCtrl
-  POSITION p = m_ctlItemList.GetFirstSelectedItemPosition();
-  if (p) {
-    int i = m_ctlItemList.GetNextSelectedItem(p);
-    pci = (CItemData *)m_ctlItemList.GetItemData(i);
-    ASSERT(pci != NULL);  // No groups in List View
-    DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-    ASSERT(pdi != NULL && pdi->list_index == i);
-    pci->GetUUID(m_LUUIDSelectedAtMinimize);
-  } // p != 0
-
-  // Get first entry visible in CListCtrl
-  int i = m_ctlItemList.GetTopIndex();
-  if (i >= 0) {
-    pci = (CItemData *)m_ctlItemList.GetItemData(i);
-    ASSERT(pci != NULL);  // No groups in List View
-    DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-    ASSERT(pdi != NULL && pdi->list_index == i);
-    pci->GetUUID(m_LUUIDVisibleAtMinimize);
-  } // i >= 0
-
-  // Tree view
-  // Get selected entry in CTreeCtrl
-  HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
-  if (ti != NULL) {
-    pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
-    if (pci != NULL) {
-      // Entry: do some sanity tests
+    // List view
+    // Get selected entry in CListCtrl
+    p = m_ctlItemList.GetFirstSelectedItemPosition();
+    if (p) {
+      int i = m_ctlItemList.GetNextSelectedItem(p);
+      pci = (CItemData *)m_ctlItemList.GetItemData(i);
+      ASSERT(pci != NULL);  // No groups in List View
       DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-      ASSERT(pdi != NULL);
-      if (pdi->tree_item != ti) {
-        pws_os::Trace(L"DboxMain::GetSelectedItems: fixing pdi->tree_item!\n");
-        pdi->tree_item = ti;
-      }
-      pci->GetUUID(m_TUUIDSelectedAtMinimize);
-    } else {
-      // Group: save entry text
-      m_sxSelectedGroup = m_ctlItemTree.GetGroup(ti);
-    }
-  } // ti != NULL
+      ASSERT(pdi != NULL && pdi->list_index == i);
+      pci->GetUUID(m_LUUIDSelectedAtMinimize);
+    } // p != 0
 
-  // Get first entry visible in CTreeCtrl
-  ti = m_ctlItemTree.GetFirstVisibleItem();
-  if (ti != NULL) {
-    pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
-    if (pci != NULL) {
-      // Entry: do some sanity tests
+    // Get first entry visible in CListCtrl
+    i = m_ctlItemList.GetTopIndex();
+    if (i >= 0) {
+      pci = (CItemData *)m_ctlItemList.GetItemData(i);
+      ASSERT(pci != NULL);  // No groups in List View
       DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-      ASSERT(pdi != NULL);
-      if (pdi->tree_item != ti) {
-        pws_os::Trace(L"DboxMain::GetSelectedItems: fixing pdi->tree_item!\n");
-        pdi->tree_item = ti;
+      ASSERT(pdi != NULL && pdi->list_index == i);
+      pci->GetUUID(m_LUUIDVisibleAtMinimize);
+    } // i >= 0
+  }
+  if ((iView & iTreeOnly) == iTreeOnly) {
+    // Save expand/collapse status of groups
+    m_vGroupDisplayState = GetGroupDisplayState();
+
+    memset(m_TUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
+    memset(m_TUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
+
+    m_sxSelectedGroup.clear();
+    m_sxVisibleGroup.clear();
+
+    // Tree view
+    // Get selected entry in CTreeCtrl
+    ti = m_ctlItemTree.GetSelectedItem();
+    if (ti != NULL) {
+      pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
+      if (pci != NULL) {
+        // Entry: do some sanity tests
+        DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
+        ASSERT(pdi != NULL);
+        if (pdi->tree_item != ti) {
+          pws_os::Trace(L"DboxMain::SaveGUIStatusEx: fixing pdi->tree_item!\n");
+          pdi->tree_item = ti;
+        }
+        pci->GetUUID(m_TUUIDSelectedAtMinimize);
+      } else {
+        // Group: save entry text
+        m_sxSelectedGroup = m_ctlItemTree.GetGroup(ti);
       }
-      pci->GetUUID(m_TUUIDVisibleAtMinimize);
-    } else {
-      // Group: save entry text
-      m_sxVisibleGroup = m_ctlItemTree.GetGroup(ti);
-    }
-  } // ti != NULL
+    } // ti != NULL
+
+    // Get first entry visible in CTreeCtrl
+    ti = m_ctlItemTree.GetFirstVisibleItem();
+    if (ti != NULL) {
+      pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
+      if (pci != NULL) {
+        // Entry: do some sanity tests
+        DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
+        ASSERT(pdi != NULL);
+        if (pdi->tree_item != ti) {
+          pws_os::Trace(L"DboxMain::SaveGUIStatusEx: fixing pdi->tree_item!\n");
+          pdi->tree_item = ti;
+        }
+        pci->GetUUID(m_TUUIDVisibleAtMinimize);
+      } else {
+        // Group: save entry text
+        m_sxVisibleGroup = m_ctlItemTree.GetGroup(ti);
+      }
+    } // ti != NULL
+  }
 }
 
-void DboxMain::RestoreDisplayAfterMinimize()
+void DboxMain::RestoreGUIStatusEx()
 {
-  pws_os::Trace(L"RestoreDisplayAfterMinimize\n");
+  //pws_os::Trace(L"RestoreGUIStatusEx\n");
 
   if (m_core.GetNumEntries() == 0)
     return;
 
   if (m_ctlItemList.GetItemCount() == 0 || m_ctlItemTree.GetCount() == 0)
     return;
+
+  m_bInRestoreWindows = true;
 
   // Restore expand/collapse status of groups
   m_bIsRestoring = true;
@@ -4009,7 +4106,6 @@ void DboxMain::RestoreDisplayAfterMinimize()
       if (pdi != NULL) {
         htsel = pdi->tree_item;
         pci = &iter->second;
-        //memset(m_TUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
       }
     }
   } else {
@@ -4020,7 +4116,6 @@ void DboxMain::RestoreDisplayAfterMinimize()
       iter = m_mapGroupToTreeItem.find(m_sxSelectedGroup);
       if (iter != m_mapGroupToTreeItem.end()) {
         htsel = iter->second;
-        //m_sxSelectedGroup.clear();
       }
     }
   }
@@ -4043,7 +4138,6 @@ void DboxMain::RestoreDisplayAfterMinimize()
       ASSERT(pdi != NULL);
       if (pdi != NULL) {
         htvis = pdi->tree_item;
-        //memset(m_TUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
       }
     }
   } else {
@@ -4054,7 +4148,6 @@ void DboxMain::RestoreDisplayAfterMinimize()
       iter = m_mapGroupToTreeItem.find(m_sxVisibleGroup);
       if (iter != m_mapGroupToTreeItem.end()) {
         htvis = iter->second;
-        //m_sxVisibleGroup.clear();
       }
     }
   }
@@ -4062,7 +4155,6 @@ void DboxMain::RestoreDisplayAfterMinimize()
   // Just in case MFC actually selected the first visible entry
   if (htvis != NULL) {
     m_ctlItemTree.Select(htvis, TVGN_FIRSTVISIBLE);
-    //m_ctlItemTree.SetItemState(htvis, 0, TVIS_SELECTED | TVIS_DROPHILITED);
     RECT rect;
     m_ctlItemTree.GetItemRect(htvis, &rect, FALSE);
     m_ctlItemTree.InvalidateRect(&rect, TRUE);
@@ -4080,7 +4172,6 @@ void DboxMain::RestoreDisplayAfterMinimize()
                                    LVIS_FOCUSED | LVIS_SELECTED,
                                    LVIS_FOCUSED | LVIS_SELECTED);
         m_ctlItemList.Update(pdi->list_index);
-        //memset(m_LUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
         if (m_ctlItemList.IsWindowVisible())
           UpdateToolBarForSelectedItem(&iter->second);
       }
@@ -4105,10 +4196,10 @@ void DboxMain::RestoreDisplayAfterMinimize()
         // Just in case MFC actually selected the first visible entry
         m_ctlItemList.SetItemState(pdi->list_index, 0, LVIS_FOCUSED | LVIS_SELECTED);
         m_ctlItemList.Update(pdi->list_index);
-        //memset(m_LUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
       }
     }
   }
+  m_bInRestoreWindows = false;
 }
 
 void DboxMain::SaveGroupDisplayState()
@@ -4247,4 +4338,14 @@ void DboxMain::RestoreGUIStatus()
   SetGroupDisplayState(SaveGUIInfo.vGroupDisplayState);
 
   m_stkSaveGUIInfo.pop();
+}
+
+void DboxMain::GetAllGroups(std::vector<std::wstring> &vGroups) const
+{
+  std::map<StringX, HTREEITEM>::const_iterator iter;
+
+  for (iter = m_mapGroupToTreeItem.begin(); 
+       iter != m_mapGroupToTreeItem.end(); iter++) {
+    vGroups.push_back(iter->first.c_str());
+  }
 }

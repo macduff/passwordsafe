@@ -87,8 +87,8 @@ CSystemTray::CSystemTray(CWnd* pParent, UINT uCallbackMessage, LPCWSTR szToolTip
                          HICON icon, CRUEList &RUEList,
                          UINT uID, UINT menuID)
   : m_RUEList(RUEList), m_pParent(pParent), m_bEnabled(FALSE),
-  m_bHidden(FALSE), m_uIDTimer(0), m_hSavedIcon(NULL), m_DefaultMenuItemID(0),
-  m_DefaultMenuItemByPos(TRUE), m_pTarget(NULL), m_menuID(0)
+  m_bHidden(FALSE), m_uIDTimer(0), m_hSavedIcon(NULL), m_DefaultMenuItemID(ID_MENUITEM_RESTORE),
+  m_DefaultMenuItemByPos(FALSE), m_pTarget(NULL), m_menuID(0)
 {
   ASSERT(m_pParent != NULL);
   SecureZeroMemory(&m_tnd, sizeof(m_tnd));
@@ -192,30 +192,22 @@ BOOL CSystemTray::SetIcon(HICON hIcon)
 
 BOOL CSystemTray::SetIcon(LPCWSTR lpszIconName)
 {
-  HICON hIcon = AfxGetApp()->LoadIcon(lpszIconName);
-
-  return SetIcon(hIcon);
+  return SetIcon(AfxGetApp()->LoadIcon(lpszIconName));
 }
 
 BOOL CSystemTray::SetIcon(UINT nIDResource)
 {
-  HICON hIcon = AfxGetApp()->LoadIcon(nIDResource);
-
-  return SetIcon(hIcon);
+  return SetIcon(AfxGetApp()->LoadIcon(nIDResource));
 }
 
 BOOL CSystemTray::SetStandardIcon(LPCWSTR lpIconName)
 {
-  HICON hIcon = LoadIcon(NULL, lpIconName);
-
-  return SetIcon(hIcon);
+  return SetIcon(LoadIcon(NULL, lpIconName));
 }
 
 BOOL CSystemTray::SetStandardIcon(UINT nIDResource)
 {
-  HICON hIcon = LoadIcon(NULL, MAKEINTRESOURCE(nIDResource));
-
-  return SetIcon(hIcon);
+  return SetIcon(LoadIcon(NULL, MAKEINTRESOURCE(nIDResource)));
 }
 
 HICON CSystemTray::GetIcon() const
@@ -225,31 +217,22 @@ HICON CSystemTray::GetIcon() const
 
 BOOL CSystemTray::SetIconList(UINT uFirstIconID, UINT uLastIconID) 
 {
-  if (uFirstIconID > uLastIconID)
+  ASSERT(uFirstIconID <= uLastIconID); // logical error
+  if (uFirstIconID > uLastIconID) // fail gracefully in Release build
     return FALSE;
 
-  const CWinApp * pApp = AfxGetApp();
-  ASSERT(pApp != 0);
+  const CWinApp *pApp = AfxGetApp();
+  ASSERT(pApp != NULL);
 
-  for (int i = 0; i < m_IconList.GetCount(); i++) {
-   HICON& hicon = m_IconList.ElementAt(i);
-   ::DestroyIcon(hicon);
-  }
+  UINT nIcons = uLastIconID - uFirstIconID + 1;
+  HICON *icons = new HICON[nIcons];
 
-  m_IconList.RemoveAll();
-  try {
-    for (UINT i = uFirstIconID; i <= uLastIconID; i++)
-      m_IconList.Add(pApp->LoadIcon(i));
-  }
-  catch (CMemoryException *pe)
-  {
-    pe->ReportError();
-    pe->Delete();
-    m_IconList.RemoveAll();
-    return FALSE;
-  }
+  for (UINT i = uFirstIconID; i <= uLastIconID; i++)
+    icons[i - uFirstIconID] = pApp->LoadIcon(i);
 
-  return TRUE;
+  BOOL retval = SetIconList(icons, nIcons);
+  delete[] icons;
+  return retval;
 }
 
 BOOL CSystemTray::SetIconList(HICON* pHIconList, UINT nNumIcons)
@@ -378,38 +361,6 @@ CWnd* CSystemTray::GetNotificationWnd() const
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CSystemTray menu manipulation
-
-BOOL CSystemTray::SetMenuDefaultItem(UINT uItem, BOOL bByPos)
-{
-  if ((m_DefaultMenuItemID == uItem) && (m_DefaultMenuItemByPos == bByPos)) 
-    return TRUE;
-
-  m_DefaultMenuItemID = uItem;
-  m_DefaultMenuItemByPos = bByPos;   
-
-  CMenu menu, *pSubMenu;
-
-  if (!menu.LoadMenu(m_menuID))
-    return FALSE;
-
-  pSubMenu = menu.GetSubMenu(0);
-  if (!pSubMenu)
-    return FALSE;
-
-  ::SetMenuDefaultItem(pSubMenu->m_hMenu, m_DefaultMenuItemID,
-                       m_DefaultMenuItemByPos);
-
-  return TRUE;
-}
-
-void CSystemTray::GetMenuDefaultItem(UINT& uItem, BOOL& bByPos) const
-{
-  uItem = m_DefaultMenuItemID;
-  bByPos = m_DefaultMenuItemByPos;
-}
-
-/////////////////////////////////////////////////////////////////////////////
 // CSystemTray message handlers
 
 BEGIN_MESSAGE_MAP(CSystemTray, CWnd)
@@ -441,11 +392,11 @@ void CSystemTray::OnTimer(UINT_PTR )
 static BOOL SetupRecentEntryMenu(CMenu *&pMenu, const int i, const CItemData *pci)
 {
   BOOL brc;
+  CString cs_text, cs_select;
   pMenu = new CMenu;
   brc = pMenu->CreatePopupMenu();
-  if (brc == 0) return FALSE;
+  if (brc == 0) goto exit;
 
-  CString cs_text, cs_select;
   cs_text.LoadStringW(ID_MENUITEM_TRAYSELECT);
   cs_select = cs_text.Mid(1);
   brc = pMenu->InsertMenu(0, MF_BYPOSITION | MF_STRING,
@@ -735,7 +686,7 @@ LRESULT CSystemTray::OnTrayNotification(WPARAM wParam, LPARAM lParam)
     }
     m_menulist.clear();
     menu.DestroyMenu();
-  } else if (LOWORD(lParam) == WM_LBUTTONDBLCLK) {
+  } else if (LOWORD(lParam) == WM_LBUTTONDBLCLK) { // WM_RBUTTONUP
     ASSERT(m_pTarget != NULL);
     // double click received, the default action is to execute default menu item
     m_pTarget->SetForegroundWindow();  

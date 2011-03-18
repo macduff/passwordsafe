@@ -44,11 +44,11 @@ public:
   {return m_bCaseSensitive ? TRUE : FALSE;}
   void RefreshImages();
   void InvalidateSearch() {m_lastshown = size_t(-1);}
-  void GetSearchInfo(BOOL &bAdvanced, CItemData::FieldBits &bsFields, 
-                     CString &subgroup_name, 
-                     int &subgroup_set, int &subgroup_object, int &subgroup_function)
+  void GetSearchInfo(bool &bAdvanced, CItemData::FieldBits &bsFields, 
+                     std::wstring &subgroup_name, 
+                     bool &subgroup_bset, int &subgroup_object, int &subgroup_function)
   {bAdvanced = m_bAdvanced; bsFields = m_bsFields;
-   subgroup_name = m_subgroup_name; subgroup_set = m_subgroup_set;
+   subgroup_name = m_subgroup_name; subgroup_bset = m_subgroup_bset;
    subgroup_object = m_subgroup_object; subgroup_function = m_subgroup_function;}
 
   std::vector<int> * GetSearchResults() {return &m_indices;}
@@ -81,15 +81,15 @@ private:
   int m_iWMSGID;
   int m_toolbarMode, m_bitmode, m_iFindDirection;
   bool m_bVisible, m_bCaseSensitive;
-  BOOL m_bAdvanced;
+  bool m_bAdvanced;
 
   std::vector<int> m_indices; // array of found items
 
   bool m_cs_search, m_last_cs_search;
   CSecString m_search_text, m_last_search_text;
   CItemData::FieldBits m_bsFields, m_last_bsFields;
-  CString m_subgroup_name, m_last_subgroup_name;
-  int m_subgroup_set, m_last_subgroup_set;
+  std::wstring m_subgroup_name, m_last_subgroup_name;
+  bool m_subgroup_bset, m_last_subgroup_bset;
   int m_subgroup_object, m_last_subgroup_object;
   int m_subgroup_function, m_last_subgroup_function;
 

@@ -90,18 +90,20 @@ int MultiCommands::Execute(const bool bRedo)
 {
   std::vector<Command *>::iterator cmd_Iter;
 
-  pws_os::Trace(_T("Multicommands Execute\n"));
   for (cmd_Iter = m_vpcmds.begin(); cmd_Iter != m_vpcmds.end(); cmd_Iter++) {
-    int rc = (*cmd_Iter)->Execute(bRedo);
+    int rc(-1);
+    if (*cmd_Iter != NULL) {
+      rc = (*cmd_Iter)->Execute(bRedo);
+    }
     m_vRCs.push_back(rc);
   }
+
   m_bState = true;
   return 0;
 }
 
 int MultiCommands::Redo()
 {
-  pws_os::Trace(_T("Multicommands Redo\n"));
   return Execute(true);
 }
 
@@ -109,24 +111,33 @@ void MultiCommands::Undo()
 {
   std::vector<Command *>::reverse_iterator cmd_rIter;
 
-  pws_os::Trace(_T("Multicommands Undo\n"));
   for (cmd_rIter = m_vpcmds.rbegin(); cmd_rIter != m_vpcmds.rend(); cmd_rIter++) {
-    (*cmd_rIter)->Undo();
+    if (*cmd_rIter != NULL)
+      (*cmd_rIter)->Undo();
   }
+
   m_bState = false;
 }
 
 void MultiCommands::Add(Command *pcmd)
 {
-  pws_os::Trace(_T("Multicommands Add\n"));
+  ASSERT(pcmd != NULL);
   m_vpcmds.push_back(pcmd);
+}
+
+void MultiCommands::Insert(Command *pcmd)
+{
+  // VERY INEFFICIENT - use sparingly to add commands at the front of the
+  // multi-command vector
+  ASSERT(pcmd != NULL);
+  m_vpcmds.insert(m_vpcmds.begin(), pcmd);
 }
 
 bool MultiCommands::Remove(Command *pcmd)
 {
+  ASSERT(pcmd != NULL);
   std::vector<Command *>::iterator cmd_Iter;
 
-  pws_os::Trace(_T("Multicommands Remove\n"));
   cmd_Iter = find(m_vpcmds.begin(), m_vpcmds.end(), pcmd);
   if (cmd_Iter != m_vpcmds.end()) {
     delete (*cmd_Iter);
@@ -138,7 +149,6 @@ bool MultiCommands::Remove(Command *pcmd)
 
 bool MultiCommands::Remove()
 {
-  pws_os::Trace(_T("Multicommands Remove\n"));
   if (!m_vpcmds.empty()) {
     delete m_vpcmds.back();
     m_vpcmds.pop_back();
@@ -151,7 +161,6 @@ bool MultiCommands::GetRC(Command *pcmd, int &rc)
 {
   std::vector<Command *>::iterator cmd_Iter;
 
-  pws_os::Trace(_T("Multicommands GetRC\n"));
   cmd_Iter = find(m_vpcmds.begin(), m_vpcmds.end(), pcmd);
   if (cmd_Iter != m_vpcmds.end()) {
     rc = m_vRCs[cmd_Iter - m_vpcmds.begin()];
@@ -194,9 +203,8 @@ UpdateGUICommand::UpdateGUICommand(CommandInterface *pcomInt,
 
 int UpdateGUICommand::Execute(const bool /*bRedo*/)
 {
-  pws_os::Trace(_T("UpdateGUICommand Execute\n"));
   if (m_When == WN_EXECUTE || m_When == WN_EXECUTE_REDO || 
-      m_When == WN_ALL) {
+      m_When == WN_REDO || m_When == WN_ALL) {
     uuid_array_t entry_uuid = {'0'}; // dummy
     m_pcomInt->NotifyGUINeedsUpdating(m_ga, entry_uuid);
   }
@@ -205,9 +213,8 @@ int UpdateGUICommand::Execute(const bool /*bRedo*/)
 
 int UpdateGUICommand::Redo()
 {
-  pws_os::Trace(_T("UpdateGUICommand Redo\n"));
-  if (m_When == WN_REDO || m_When == WN_EXECUTE_REDO || 
-      m_When == WN_ALL) {
+  if (m_When == WN_EXECUTE || m_When == WN_EXECUTE_REDO || 
+      m_When == WN_REDO || m_When == WN_ALL) {
     uuid_array_t entry_uuid = {'0'}; // dummy
     m_pcomInt->NotifyGUINeedsUpdating(m_ga, entry_uuid);
   }
@@ -216,7 +223,6 @@ int UpdateGUICommand::Redo()
 
 void UpdateGUICommand::Undo()
 {
-  pws_os::Trace(_T("UpdateGUICommand Undo\n"));
   if (m_When == WN_UNDO || m_When == WN_ALL) {
     uuid_array_t entry_uuid = {'0'}; // dummy
     m_pcomInt->NotifyGUINeedsUpdating(m_ga, entry_uuid);
@@ -280,18 +286,23 @@ void DBPrefsCommand::Undo()
 
 // Normal or Base entry
 AddEntryCommand::AddEntryCommand(CommandInterface *pcomInt, const CItemData &ci, 
-                                 const ATRVector *pvNewATRecords)
+                                 const Command *pcmd, const ATRVector *pvNewATRecords)
   : Command(pcomInt), m_ci(ci)
 {
   ASSERT(!ci.IsDependent()); // use other c'tor for dependent entries!
+
   if (pvNewATRecords != NULL)
     m_vNewATRecords = *pvNewATRecords;
+
   m_ci.GetUUID(m_entry_uuid);
+
+  if (pcmd != NULL)
+    m_bNotifyGUI = pcmd->GetGUINotify();
 }
 
 // Alias or Shortcut entry (Shortcuts do not have attachments)
 AddEntryCommand::AddEntryCommand(CommandInterface *pcomInt, const CItemData &ci,
-                                 const uuid_array_t base_uuid,
+                                 const uuid_array_t base_uuid, const Command *pcmd,
                                  const ATRVector *pvNewATRecords)
   : Command(pcomInt), m_ci(ci)
 {
@@ -301,6 +312,8 @@ AddEntryCommand::AddEntryCommand(CommandInterface *pcomInt, const CItemData &ci,
   m_ci.GetUUID(m_entry_uuid);
 
   memcpy(m_base_uuid, base_uuid, sizeof(uuid_array_t));
+  if (pcmd != NULL)
+    m_bNotifyGUI = pcmd->GetGUINotify();
 }
 
 AddEntryCommand::~AddEntryCommand()
@@ -310,7 +323,7 @@ AddEntryCommand::~AddEntryCommand()
 int AddEntryCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
-  pws_os::Trace(_T("Command DoAddEntry\n"));
+
 
   if (m_pcomInt->IsReadOnly())
     return 0;
@@ -335,6 +348,12 @@ int AddEntryCommand::Execute(const bool /*bRedo*/)
                                       entry_uuid);
   }
 
+  time_t tttXTime;
+  m_ci.GetXTime(tttXTime);
+  if (tttXTime != time_t(0)) {
+    m_pcomInt->AddExpiryEntry(m_ci);
+  } 
+
   m_bState = true;
   return 0;
 }
@@ -353,8 +372,9 @@ void AddEntryCommand::Undo()
   // Just mark for deletion - don't actually remove them yet
   m_pcomInt->MarkAllAttachmentsForDeletion(m_entry_uuid);
 
-  DeleteEntryCommand dec(m_pcomInt, m_ci);
+  DeleteEntryCommand dec(m_pcomInt, m_ci, this);
   dec.Execute();
+
   if (m_ci.IsDependent()) {
     uuid_array_t entry_uuid;
     m_ci.GetUUID(entry_uuid);
@@ -370,13 +390,17 @@ void AddEntryCommand::Undo()
 // ------------------------------------------------
 
 DeleteEntryCommand::DeleteEntryCommand(CommandInterface *pcomInt,
-                                       const CItemData &ci)
+                                       const CItemData &ci, const Command *pcmd)
   : Command(pcomInt), m_ci(ci), m_dependents(0)
 {
    if (ci.IsShortcut())
      memset(m_entry_uuid, 0, sizeof(uuid_array_t));
    else
      m_ci.GetUUID(m_entry_uuid);
+
+  if (pcmd != NULL) {
+    m_bNotifyGUI = pcmd->GetGUINotify();
+  }
 
   if (ci.IsNormal()) {
     memset(m_base_uuid, 0, sizeof(uuid_array_t));
@@ -421,7 +445,7 @@ DeleteEntryCommand::~DeleteEntryCommand()
 int DeleteEntryCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
-  pws_os::Trace(_T("DeleteEntryCommand::Execute()\n"));
+
 
   if (m_pcomInt->IsReadOnly())
     return 0;
@@ -434,6 +458,7 @@ int DeleteEntryCommand::Execute(const bool /*bRedo*/)
   m_pcomInt->MarkAllAttachmentsForDeletion(m_entry_uuid);
   m_pcomInt->DoDeleteEntry(m_ci);
   m_pcomInt->AddChangedNodes(m_ci.GetGroup());
+  m_pcomInt->RemoveExpiryEntry(m_ci);
 
   m_bState = true;
   return 0;
@@ -447,11 +472,11 @@ int DeleteEntryCommand::Redo()
 void DeleteEntryCommand::Undo()
 {
   if (m_ci.IsDependent()) {
-    Command *pcmd = AddEntryCommand::Create(m_pcomInt, m_ci, m_base_uuid);
+    Command *pcmd = AddEntryCommand::Create(m_pcomInt, m_ci, m_base_uuid, this);
     pcmd->Execute();
     delete pcmd;
   } else {
-    AddEntryCommand undo(m_pcomInt, m_ci);
+    AddEntryCommand undo(m_pcomInt, m_ci, this);
     undo.Execute();
     if (m_ci.IsShortcutBase()) { // restore dependents
       for (std::vector<CItemData>::iterator iter = m_dependents.begin();
@@ -466,18 +491,18 @@ void DeleteEntryCommand::Undo()
       // and create new aliases.
       for (std::vector<CItemData>::iterator iter = m_dependents.begin();
            iter != m_dependents.end(); iter++) {
-        DeleteEntryCommand delExAlias(m_pcomInt, *iter);
+        DeleteEntryCommand delExAlias(m_pcomInt, *iter, this);
         delExAlias.Execute(); // out with the old...
         uuid_array_t alias_uuid;
         iter->GetUUID(alias_uuid);
-        Command *pcmd = AddEntryCommand::Create(m_pcomInt, *iter, m_entry_uuid);
+        Command *pcmd = AddEntryCommand::Create(m_pcomInt, *iter, m_entry_uuid, this);
         pcmd->Execute(); // in with the new!
         delete pcmd;
       }
     }
   }
-
   m_pcomInt->UnMarkAllAttachmentsForDeletion(m_entry_uuid);
+
   RestoreState();
 
   m_bState = false;
@@ -517,7 +542,7 @@ EditEntryCommand::~EditEntryCommand()
 int EditEntryCommand::Execute(const bool bRedo)
 {
   SaveState();
-  pws_os::Trace(_T("EditEntry::Execute\n"));
+
   int rc = 0;
 
   if (m_pcomInt->IsReadOnly())
@@ -527,6 +552,7 @@ int EditEntryCommand::Execute(const bool bRedo)
 
   m_pcomInt->AddChangedNodes(m_old_ci.GetGroup());
   m_pcomInt->AddChangedNodes(m_new_ci.GetGroup());
+
   if (m_bNotifyGUI) {
     // if the group's changed, refresh the entire tree, otherwise, just the field
     UpdateGUICommand::GUI_Action gac = (m_old_ci.GetGroup() != m_new_ci.GetGroup()) ?
@@ -573,7 +599,6 @@ int EditEntryCommand::Redo()
 
 void EditEntryCommand::Undo()
 {
-  pws_os::Trace(_T("EditEntry::Undo\n"));
   if (m_pcomInt->IsReadOnly())
     return;
 
@@ -592,7 +617,6 @@ void EditEntryCommand::Undo()
   }
 
   // Need to restore other changes
-
   RestoreState();
   m_bState = false;
 }
@@ -615,15 +639,31 @@ UpdateEntryCommand::UpdateEntryCommand(CommandInterface *pcomInt,
 void UpdateEntryCommand::Doit(const uuid_array_t &entry_uuid,
                               CItemData::FieldType ftype,
                               const StringX &value,
-                              CItemData::EntryStatus es)
+                              CItemData::EntryStatus es,
+                              UpdateGUICommand::ExecuteFn efn)
 {
-  pws_os::Trace(_T("UpdateEntryCommand::Doit\n"));
   if (m_pcomInt->IsReadOnly())
     return;
 
   ItemListIter pos = m_pcomInt->Find(entry_uuid);
   if (pos != m_pcomInt->GetEntryEndIter()) {
-    pos->second.SetFieldValue(ftype, value);
+    if (ftype != CItemData::PASSWORD)
+      pos->second.SetFieldValue(ftype, value);
+    else {
+      if (efn == UpdateGUICommand::WN_EXECUTE_REDO) {
+        m_oldpwhistory = pos->second.GetPWHistory();
+        pos->second.GetXTime(m_tttoldXtime);
+        pos->second.UpdatePassword(value);
+      } else {
+        pos->second.SetPassword(value);
+        pos->second.SetXTime(m_tttoldXtime);
+        pos->second.SetPWHistory(m_oldpwhistory);
+      }
+    }
+    if (ftype == CItemData::PASSWORD ||
+        ftype == CItemData::XTIME)
+      m_pcomInt->UpdateExpiryEntry(pos->second);
+
     pos->second.SetStatus(es);
     m_pcomInt->SetDBChanged(true, false);
     m_pcomInt->AddChangedNodes(pos->second.GetGroup());
@@ -634,14 +674,14 @@ int UpdateEntryCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
 
-  pws_os::Trace(_T("Command UpdateEntry: Field=0x%02x; Old Value=%s; NewValue=%s\n"),
-           m_ftype, m_old_value.c_str(), m_value.c_str());
-
-  Doit(m_entry_uuid, m_ftype, m_value, CItemData::ES_MODIFIED);
+  Doit(m_entry_uuid, m_ftype, m_value, CItemData::ES_MODIFIED, UpdateGUICommand::WN_EXECUTE_REDO);
 
   if (m_bNotifyGUI)
     m_pcomInt->NotifyGUINeedsUpdating(UpdateGUICommand::GUI_REFRESH_ENTRYFIELD,
                                       m_entry_uuid, m_ftype);
+
+  if (m_ftype == CItemData::XTIME)
+    m_pcomInt->UpdateExpiryEntry(m_entry_uuid, m_ftype, m_value);
 
   m_bState = true;
   return 0;
@@ -654,10 +694,7 @@ int UpdateEntryCommand::Redo()
 
 void UpdateEntryCommand::Undo()
 {
-  pws_os::Trace(_T("Command UndoUpdateEntry: Field=0x%02x; Old Value=%s;\n"),
-    m_ftype, m_old_value.c_str());
-
-  Doit(m_entry_uuid, m_ftype, m_old_value, m_old_status);
+  Doit(m_entry_uuid, m_ftype, m_old_value, m_old_status, UpdateGUICommand::WN_UNDO);
   RestoreState();
 
   if (m_bNotifyGUI)
@@ -679,19 +716,24 @@ UpdatePasswordCommand::UpdatePasswordCommand(CommandInterface *pcomInt,
   m_old_status = ci.GetStatus();
   m_sxOldPassword = ci.GetPassword();
   m_sxOldPWHistory = ci.GetPWHistory();
+  ci.GetXTime(m_tttOldXTime);
 }
 
 int UpdatePasswordCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
 
-  pws_os::Trace(_T("UpdatePassword::Execute\n"));
   if (m_pcomInt->IsReadOnly())
     return 0;
 
   ItemListIter pos = m_pcomInt->Find(m_entry_uuid);
   if (pos != m_pcomInt->GetEntryEndIter()) {
     pos->second.UpdatePassword(m_sxNewPassword);
+    time_t tttNewXTime;
+    pos->second.GetXTime(tttNewXTime);
+    if (m_tttOldXTime != tttNewXTime) {
+      m_pcomInt->UpdateExpiryEntry(pos->second);
+    }
     pos->second.SetStatus(CItemData::ES_MODIFIED);
     m_pcomInt->SetDBChanged(true, false);
     m_pcomInt->AddChangedNodes(pos->second.GetGroup());
@@ -712,7 +754,6 @@ int UpdatePasswordCommand::Redo()
 
 void UpdatePasswordCommand::Undo()
 {
-  pws_os::Trace(_T("UpdatePasswordCommand::Undo\n"));
   if (m_pcomInt->IsReadOnly())
     return;
 
@@ -721,7 +762,9 @@ void UpdatePasswordCommand::Undo()
     pos->second.SetPassword(m_sxOldPassword);
     pos->second.SetPWHistory(m_sxOldPWHistory);
     pos->second.SetStatus(m_old_status);
+    pos->second.SetXTime(m_tttOldXTime);
   }
+
   RestoreState();
 
   if (m_bNotifyGUI)
@@ -747,7 +790,6 @@ AddDependentEntryCommand::AddDependentEntryCommand(CommandInterface *pcomInt,
 int AddDependentEntryCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
-  pws_os::Trace(_T("AddDependentEntryCommand::Execute\n"));
 
   if (m_pcomInt->IsReadOnly())
     return 0;
@@ -764,7 +806,6 @@ int AddDependentEntryCommand::Redo()
 
 void AddDependentEntryCommand::Undo()
 {
-  pws_os::Trace(_T("AddDependentEntryCommand::Undo\n"));
   if (m_pcomInt->IsReadOnly())
     return;
 
@@ -798,7 +839,6 @@ AddDependentEntriesCommand::~AddDependentEntriesCommand()
 int AddDependentEntriesCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
-  pws_os::Trace(_T("AddDependentEntriesCommand::Execute\n"));
 
   if (m_type == CItemData::ET_ALIAS) {
     m_saved_base2aliases_mmap = m_pcomInt->GetBase2AliasesMmap();
@@ -807,6 +847,7 @@ int AddDependentEntriesCommand::Execute(const bool /*bRedo*/)
     m_saved_base2shortcuts_mmap = m_pcomInt->GetBase2ShortcutsMmap();
     m_saved_shortcut2base_map = m_pcomInt->GetShortcuts2BaseMap();
   }
+
   if (m_pcomInt->IsReadOnly())
     return 0;
 
@@ -824,7 +865,6 @@ int AddDependentEntriesCommand::Redo()
 
 void AddDependentEntriesCommand::Undo()
 {
-  pws_os::Trace(_T("AddDependentEntriesCommand::Undo\n"));
   if (m_pcomInt->IsReadOnly())
     return;
 
@@ -858,7 +898,6 @@ RemoveDependentEntryCommand::RemoveDependentEntryCommand(CommandInterface *pcomI
 int RemoveDependentEntryCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
-  pws_os::Trace(_T("RemoveDependentEntryCommand::Execute\n"));
 
   if (m_pcomInt->IsReadOnly())
     return 0;
@@ -875,7 +914,6 @@ int RemoveDependentEntryCommand::Redo()
 
 void RemoveDependentEntryCommand::Undo()
 {
-  pws_os::Trace(_T("RemoveDependentEntryCommand::Undo\n"));
   if (m_pcomInt->IsReadOnly())
     return;
 
@@ -902,7 +940,6 @@ MoveDependentEntriesCommand::MoveDependentEntriesCommand(CommandInterface *pcomI
 int MoveDependentEntriesCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
-  pws_os::Trace(_T("MoveDependentEntriesCommand::Execute\n"));
 
   if (m_pcomInt->IsReadOnly())
     return 0;
@@ -919,7 +956,6 @@ int MoveDependentEntriesCommand::Redo()
 
 void MoveDependentEntriesCommand::Undo()
 {
-  pws_os::Trace(_T("MoveDependentEntriesCommand::Undo\n"));
   if (m_pcomInt->IsReadOnly())
     return;
 
@@ -942,7 +978,7 @@ UpdatePasswordHistoryCommand::UpdatePasswordHistoryCommand(CommandInterface *pco
 int UpdatePasswordHistoryCommand::Execute(const bool /*bRedo*/)
 {
   SaveState();
-  pws_os::Trace(_T("UpdatePasswordHistoryCommand::Execute\n"));
+
 
   if (m_pcomInt->IsReadOnly())
     return 0;
@@ -960,7 +996,6 @@ int UpdatePasswordHistoryCommand::Redo()
 
 void UpdatePasswordHistoryCommand::Undo()
 {
-  pws_os::Trace(_T("UpdatePasswordHistoryCommand::Undo\n"));
   if (m_pcomInt->IsReadOnly())
     return;
 

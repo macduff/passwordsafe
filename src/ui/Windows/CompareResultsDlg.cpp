@@ -58,12 +58,12 @@ CCompareResultsDlg::CCompareResultsDlg(CWnd* pParent,
 bool GTUCompare2(st_CompareData elem1, st_CompareData elem2)
 {
   if (elem1.group != elem2.group)
-    return elem1.group.CompareNoCase(elem2.group) < 0;
+    return _wcsicmp(elem1.group.c_str(), elem2.group.c_str()) < 0;
 
   if (elem1.title != elem2.title)
-    return elem1.title.CompareNoCase(elem2.title) < 0;
+    return _wcsicmp(elem1.title.c_str(), elem2.title.c_str()) < 0;
 
-  return elem1.user.CompareNoCase(elem2.user) < 0;
+  return _wcsicmp(elem1.user.c_str(), elem2.user.c_str()) < 0;
 }
 
 void CCompareResultsDlg::DoDataExchange(CDataExchange* pDX)
@@ -80,7 +80,6 @@ BEGIN_MESSAGE_MAP(CCompareResultsDlg, CPWResizeDialog)
   ON_BN_CLICKED(ID_HELP, OnHelp)
   ON_BN_CLICKED(IDOK, OnOK)
   ON_BN_CLICKED(IDC_SHOW_IDENTICAL_ENTRIES, OnShowIdenticalEntries)
-  ON_BN_CLICKED(IDC_VIEWCOMPAREREPORT, OnViewCompareReport)
   ON_NOTIFY(HDN_ITEMCLICK, IDC_RESULTLISTHDR, OnColumnClick)
   ON_COMMAND(ID_MENUITEM_COMPVIEWEDIT, OnCompareViewEdit)
   ON_COMMAND(ID_MENUITEM_SYNCHRONIZE, OnCompareSynchronize)
@@ -91,7 +90,6 @@ END_MESSAGE_MAP()
 BOOL CCompareResultsDlg::OnInitDialog()
 {
   std::vector<UINT> vibottombtns;
-  vibottombtns.push_back(IDC_VIEWCOMPAREREPORT);
   vibottombtns.push_back(IDOK);
 
   AddMainCtrlID(IDC_RESULTLIST);
@@ -119,6 +117,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
   } FixedCols[] = {{IDS_ORIGINALDB, CURRENT}, {IDS_COMPARISONDB, COMPARE},
                    {IDS_GROUP, GROUP}, {IDS_TITLE, TITLE}, {IDS_USERNAME, USER},
   };
+
   for (i = 0; i < sizeof(FixedCols) / sizeof(FixedCols[0]); i++) {
     cs_header.LoadString(FixedCols[i].ids);
     m_LCResults.InsertColumn(FixedCols[i].ncol, cs_header);
@@ -178,6 +177,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
     if (header_width > data_width)
       m_LCResults.SetColumnWidth(i, LVSCW_AUTOSIZE_USEHEADER);
   }
+
   m_LCResults.SetColumnWidth(m_nCols - 1, LVSCW_AUTOSIZE_USEHEADER);
   m_LCResults.SetRedraw(TRUE);
   m_LCResults.Invalidate();
@@ -223,9 +223,12 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
       else
         m_LCResults.SetItemText(iItem, COMPARE, L"=");
 
-      m_LCResults.SetItemText(iItem, GROUP, st_data.group);
-      m_LCResults.SetItemText(iItem, TITLE, st_data.title);
-      m_LCResults.SetItemText(iItem, USER, st_data.user);
+      m_LCResults.SetItemText(iItem, GROUP, st_data.group.c_str());
+      if (st_data.bIsProtected0)
+        m_LCResults.SetItemText(iItem, TITLE, (st_data.title + StringX(L" #")).c_str());
+      else
+        m_LCResults.SetItemText(iItem, TITLE, st_data.title.c_str());
+      m_LCResults.SetItemText(iItem, USER, st_data.user.c_str());
       for (i = USER + 1; i < m_nCols; i++)
         m_LCResults.SetItemText(iItem, i, L"-");
 
@@ -245,9 +248,12 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
         m_LCResults.InsertItem(iItem, L"Y");
 
       m_LCResults.SetItemText(iItem, COMPARE, L"-");
-      m_LCResults.SetItemText(iItem, GROUP, st_data.group);
-      m_LCResults.SetItemText(iItem, TITLE, st_data.title);
-      m_LCResults.SetItemText(iItem, USER, st_data.user);
+      m_LCResults.SetItemText(iItem, GROUP, st_data.group.c_str());
+      if (st_data.bIsProtected0)
+        m_LCResults.SetItemText(iItem, TITLE, (st_data.title + StringX(L" #")).c_str());
+      else
+        m_LCResults.SetItemText(iItem, TITLE, st_data.title.c_str());
+      m_LCResults.SetItemText(iItem, USER, st_data.user.c_str());
       for (i = USER + 1; i < m_nCols; i++)
         m_LCResults.SetItemText(iItem, i, L"-");
 
@@ -267,9 +273,9 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
       else
         m_LCResults.SetItemText(iItem, COMPARE, L"Y");
 
-      m_LCResults.SetItemText(iItem, GROUP, st_data.group);
-      m_LCResults.SetItemText(iItem, TITLE, st_data.title);
-      m_LCResults.SetItemText(iItem, USER, st_data.user);
+      m_LCResults.SetItemText(iItem, GROUP, st_data.group.c_str());
+      m_LCResults.SetItemText(iItem, TITLE, st_data.title.c_str());
+      m_LCResults.SetItemText(iItem, USER, st_data.user.c_str());
       for (i = USER + 1; i < m_nCols; i++)
         m_LCResults.SetItemText(iItem, i, L"-");
 
@@ -294,9 +300,12 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
       else
         m_LCResults.SetItemText(iItem, COMPARE, L"Y");
 
-      m_LCResults.SetItemText(iItem, GROUP, st_data.group);
-      m_LCResults.SetItemText(iItem, TITLE, st_data.title);
-      m_LCResults.SetItemText(iItem, USER, st_data.user);
+      m_LCResults.SetItemText(iItem, GROUP, st_data.group.c_str());
+      if (st_data.bIsProtected0)
+        m_LCResults.SetItemText(iItem, TITLE, (st_data.title + StringX(L" #")).c_str());
+      else
+        m_LCResults.SetItemText(iItem, TITLE, st_data.title.c_str());
+      m_LCResults.SetItemText(iItem, USER, st_data.user.c_str());
 
       // Start of the 'data' columns (if present)
       icol = PASSWORD;
@@ -392,17 +401,11 @@ void CCompareResultsDlg::OnHelp()
   HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 }
 
-void CCompareResultsDlg::OnViewCompareReport()
-{
-  EndDialog(IDC_VIEWCOMPAREREPORT);
-}
-
 void CCompareResultsDlg::UpdateStatusBar()
 {
-  CString s;
-  s.Format(IDS_COMPARERESULTS, m_numOnlyInCurrent, m_numOnlyInComp,
-    m_numConflicts, m_numIdentical);
-  m_statusBar.SetPaneText(0, s, TRUE);
+  m_results.Format(IDS_COMPARERESULTS, m_numOnlyInCurrent, m_numOnlyInComp,
+                                       m_numConflicts, m_numIdentical);
+  m_statusBar.SetPaneText(0, m_results, TRUE);
   m_statusBar.SetPaneInfo(0, m_statusBar.GetItemID(0), SBPS_STRETCH, NULL);
   m_statusBar.UpdateWindow();
 }
@@ -855,7 +858,7 @@ void CCompareResultsDlg::WriteReportData()
          cd_iter++) {
       const st_CompareData &st_data = *cd_iter;
 
-      buffer.Format(IDS_COMPARESTATS, st_data.group, st_data.title, st_data.user);
+      buffer.Format(IDS_COMPARESTATS, st_data.group.c_str(), st_data.title.c_str(), st_data.user.c_str());
       m_pRpt->WriteLine((LPCWSTR)buffer);
     }
     m_pRpt->WriteLine();
@@ -868,7 +871,7 @@ void CCompareResultsDlg::WriteReportData()
          cd_iter++) {
       const st_CompareData &st_data = *cd_iter;
 
-      buffer.Format(IDS_COMPARESTATS, st_data.group, st_data.title, st_data.user);
+      buffer.Format(IDS_COMPARESTATS, st_data.group.c_str(), st_data.title.c_str(), st_data.user.c_str());
       m_pRpt->WriteLine((LPCWSTR)buffer);
     }
     m_pRpt->WriteLine();
@@ -898,7 +901,7 @@ void CCompareResultsDlg::WriteReportData()
          cd_iter++) {
       const st_CompareData &st_data = *cd_iter;
 
-      buffer.Format(IDS_COMPARESTATS2, st_data.group, st_data.title, st_data.user);
+      buffer.Format(IDS_COMPARESTATS2, st_data.group.c_str(), st_data.title.c_str(), st_data.user.c_str());
       m_pRpt->WriteLine(std::wstring(buffer));
       buffer.Empty();
 

@@ -85,12 +85,12 @@ IMPLEMENT_DYNAMIC(CPWFindToolBar, CToolBar)
 
 CPWFindToolBar::CPWFindToolBar()
   : m_bitmode(1), m_bVisible(true), 
-  m_bCaseSensitive(false), m_bAdvanced(FALSE),
+  m_bCaseSensitive(false), m_bAdvanced(false),
   m_lastshown(size_t(-1)), m_numFound(size_t(-1)),
   m_last_search_text(L""), m_last_cs_search(false),
-  m_subgroup_name(L""), m_subgroup_set(BST_UNCHECKED),
+  m_subgroup_name(L""), m_subgroup_bset(false),
   m_subgroup_object(CItemData::GROUP), m_subgroup_function(0),
-  m_last_subgroup_name(L""), m_last_subgroup_set(BST_UNCHECKED),
+  m_last_subgroup_name(L""), m_last_subgroup_bset(false),
   m_last_subgroup_object(CItemData::GROUP), m_last_subgroup_function(0),
   m_iCase_Insensitive_BM_offset(-1), m_iCase_Sensitive_BM_offset(-1),
   m_iAdvanced_BM_offset(-1), m_iAdvancedOn_BM_offset(-1),
@@ -437,11 +437,11 @@ void CPWFindToolBar::ClearFind()
   m_findresults.SetWindowText(L"");
 
   m_bCaseSensitive = m_last_cs_search = false;
-  m_bAdvanced = FALSE;
+  m_bAdvanced = false;
   m_numFound = size_t(-1);
   m_last_search_text = L"";
   m_subgroup_name = m_last_subgroup_name = L"";
-  m_subgroup_set = m_last_subgroup_set = BST_UNCHECKED;
+  m_subgroup_bset = m_last_subgroup_bset;
   m_subgroup_object = m_subgroup_function = 0;
   m_last_subgroup_object = m_last_subgroup_function = 0;
   m_lastshown = size_t(-1);
@@ -472,25 +472,25 @@ void CPWFindToolBar::Find()
       m_cs_search != m_last_cs_search ||
       m_pst_SADV->bsFields != m_last_bsFields ||
       m_pst_SADV->subgroup_name != m_last_subgroup_name ||
-      m_pst_SADV->subgroup_set != m_last_subgroup_set ||
+      m_pst_SADV->subgroup_bset != m_last_subgroup_bset ||
       m_pst_SADV->subgroup_object != m_last_subgroup_object ||
       m_pst_SADV->subgroup_function != m_last_subgroup_function) {
     m_last_search_text = m_search_text;
     m_last_cs_search = m_cs_search;
     m_last_bsFields = m_pst_SADV->bsFields;
     m_last_subgroup_name = m_pst_SADV->subgroup_name;
-    m_last_subgroup_set = m_pst_SADV->subgroup_set;
+    m_last_subgroup_bset = m_pst_SADV->subgroup_bset;
     m_last_subgroup_object = m_pst_SADV->subgroup_object;
     m_last_subgroup_function = m_pst_SADV->subgroup_function;
     m_lastshown = size_t(-1);
   }
 
-  if (m_lastshown == -1) {
+  if (m_lastshown == size_t(-1)) {
     m_indices.clear();
 
-    if (m_bAdvanced == TRUE)
+    if (m_bAdvanced)
       m_numFound = pDbx->FindAll(m_search_text, m_cs_search, m_indices,
-                                 m_pst_SADV->bsFields, m_pst_SADV->subgroup_set,
+                                 m_pst_SADV->bsFields, m_pst_SADV->subgroup_bset,
                                  m_pst_SADV->subgroup_name, m_pst_SADV->subgroup_object, 
                                  m_pst_SADV->subgroup_function);
     else
@@ -508,24 +508,25 @@ void CPWFindToolBar::Find()
         break;
     }
     pDbx->ResumeOnDBNotification();
-  } // m_lastshown == -1
+  } // m_lastshown == size_t(-1)
 
   // OK, so now we have a (possibly empty) list of items to select.
   if (m_numFound > 0) {
     if (m_numFound == 1) {
       pDbx->SelectFindEntry(m_indices[0], TRUE);
-    } else {
+    } else { // m_numFound > 1
       if (m_iFindDirection == FIND_DOWN) {
         m_lastshown++;
       } else {
-        m_lastshown--;
+        if (m_lastshown != size_t(-1)) // prevent m_lastshown <- -2 !
+          m_lastshown--;
       }
       if (m_iFindDirection == FIND_DOWN && m_lastshown >= m_numFound) {
         cs_temp.LoadString(IDS_SEARCHTOP);
         cs_status.Format(IDS_SEARCHWRAPPED, cs_temp);
         m_lastshown = 0;
       } else
-      if (m_iFindDirection == FIND_UP   && m_lastshown == 0xffffffff) {
+        if (m_iFindDirection == FIND_UP && m_lastshown == size_t(-1)) {
         cs_temp.LoadString(IDS_SEARCHBOTTOM);
         cs_status.Format(IDS_SEARCHWRAPPED, cs_temp);
         m_lastshown = m_numFound - 1;
@@ -545,24 +546,31 @@ void CPWFindToolBar::Find()
 
 void CPWFindToolBar::ShowFindAdvanced()
 {
-  if (m_bAdvanced == TRUE) {
-    m_bAdvanced = FALSE;
-  } else {
+  CToolBarCtrl& tbCtrl = GetToolBarCtrl();
+
+  TBBUTTONINFO tbinfo = {0};
+  tbinfo.cbSize = sizeof(tbinfo);
+  tbinfo.dwMask = TBIF_STATE;
+
+  tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDADVANCED, &tbinfo);
+
+  bool bAdvanced = (tbinfo.fsState & TBSTATE_CHECKED) == TBSTATE_CHECKED;
+
+  if (bAdvanced) {
     const CItemData::FieldBits old_bsFields(m_pst_SADV->bsFields);
-    const CString old_subgroup_name(m_pst_SADV->subgroup_name);
-    const int old_subgroup_set(m_pst_SADV->subgroup_set);
+    const std::wstring old_subgroup_name(m_pst_SADV->subgroup_name);
+    const bool old_subgroup_bset(m_pst_SADV->subgroup_bset);
     const int old_subgroup_object(m_pst_SADV->subgroup_object);
     const int old_subgroup_function(m_pst_SADV->subgroup_function);
 
-    CAdvancedDlg Adv(this, CAdvancedDlg::ADV_FIND, m_pst_SADV);
+    CAdvancedDlg Adv(this, CAdvancedDlg::FIND, m_pst_SADV);
 
     INT_PTR rc = Adv.DoModal();
 
     if (rc == IDOK) {
-      m_bAdvanced = TRUE;
       m_pst_SADV->bsFields = Adv.m_bsFields;
-      m_pst_SADV->subgroup_set = Adv.m_subgroup_set;
-      if (m_pst_SADV->subgroup_set == BST_CHECKED) {
+      m_pst_SADV->subgroup_bset = Adv.m_subgroup_set == BST_CHECKED;
+      if (m_pst_SADV->subgroup_bset) {
         m_pst_SADV->subgroup_name = Adv.m_subgroup_name;
         m_pst_SADV->subgroup_object = Adv.m_subgroup_object;
         m_pst_SADV->subgroup_function = Adv.m_subgroup_function;
@@ -570,9 +578,9 @@ void CPWFindToolBar::ShowFindAdvanced()
  
       // Check if anything changed
       if (old_bsFields != m_pst_SADV->bsFields ||
-          old_subgroup_set != m_pst_SADV->subgroup_set ||
-          (old_subgroup_set == m_pst_SADV->subgroup_set &&
-           old_subgroup_set == BST_CHECKED &&
+          old_subgroup_bset != m_pst_SADV->subgroup_bset ||
+          (old_subgroup_bset == m_pst_SADV->subgroup_bset &&
+           old_subgroup_bset &&
            (old_subgroup_name != m_pst_SADV->subgroup_name ||
             old_subgroup_object != m_pst_SADV->subgroup_object ||
             old_subgroup_function != m_pst_SADV->subgroup_function))) {
@@ -584,19 +592,30 @@ void CPWFindToolBar::ShowFindAdvanced()
         m_indices.clear();
       }
     } else {
-      m_bAdvanced = FALSE;
+      bAdvanced = false;
     }
   }
 
-  CToolBarCtrl& tbCtrl = GetToolBarCtrl();
-  tbCtrl.CheckButton(ID_TOOLBUTTON_FINDADVANCED, m_bAdvanced);
+  if ((m_bAdvanced != bAdvanced) || !bAdvanced) {
+    // State has changed or user doesn't want advanced selection criteria!
+    m_findresults.ResetColour();
+    m_findresults.SetWindowText(L"");
 
-  TBBUTTONINFO tbinfo = {0};
+    m_numFound = size_t(-1);
+    m_lastshown = size_t(-1);
+    m_indices.clear();
+  }
+  // Set new state
+  m_bAdvanced = bAdvanced;
+
+  // Now set button state
+  tbCtrl.CheckButton(ID_TOOLBUTTON_FINDADVANCED, m_bAdvanced ? TRUE : FALSE);
+
   tbinfo.cbSize = sizeof(tbinfo);
   tbinfo.dwMask = TBIF_IMAGE;
   tbCtrl.GetButtonInfo(ID_TOOLBUTTON_FINDADVANCED, &tbinfo);
 
-  tbinfo.iImage = m_bAdvanced == TRUE ? m_iAdvancedOn_BM_offset : m_iAdvanced_BM_offset;
+  tbinfo.iImage = m_bAdvanced ? m_iAdvancedOn_BM_offset : m_iAdvanced_BM_offset;
   tbinfo.dwMask = TBIF_IMAGE;
   tbCtrl.SetButtonInfo(ID_TOOLBUTTON_FINDADVANCED, &tbinfo);
 }

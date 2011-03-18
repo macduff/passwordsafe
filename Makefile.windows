@@ -8,8 +8,8 @@
 #
 # Oh, this works with GNU make under Cygwin. YMMV on other makes...
 
-RELEASENUM := 3.24.2
-RELEASE_SPECIAL :=
+RELEASENUM := 3.25
+RELEASE_SPECIAL := 
 RELEASENAME= $(RELEASENUM)$(RELEASE_SPECIAL)
 
 RELEASEDIR := /cygdrive/c/local/src/PasswordSafe/Releases
@@ -30,7 +30,7 @@ GPG_KEY := ronys@users.sourceforge.net
 GPG_SIGN := $(GPG) --detach-sign --default-key $(GPG_KEY)
 SHA1SUM := /usr/bin/sha1sum
 UPLOAD_CMD := /usr/local/bin/rsync -avP -e ssh
-UPLOAD_DST :=  ronys@frs.sourceforge.net:/home/pfs/project/p/pa/passwordsafe/passwordsafe/$(RELEASENUM)
+UPLOAD_DST :=  ronys@frs.sourceforge.net:/home/frs/project/p/pa/passwordsafe/passwordsafe/$(RELEASENUM)
 PYTHON := /usr/bin/python
 SVN2LOG := ../../python/svn2log.py
 MAKENSIS := /cygdrive/c/local/NSIS/makensis.exe
@@ -62,7 +62,8 @@ I18N_MANIFEST := help/pwsafeDE/pwsafeDE.chm help/pwsafeZH/pwsafeZH.chm \
 								$(I18N_DLL_DIR)/pwsafeDE.dll $(I18N_DLL_DIR)/pwsafeES.dll \
 								$(I18N_DLL_DIR)/pwsafePL.dll $(I18N_DLL_DIR)/pwsafeRU.dll \
 	              $(I18N_DLL_DIR)/pwsafeSV.dll $(I18N_DLL_DIR)/pwsafeZH.dll \
-								$(I18N_DLL_DIR)/pwsafeFR.dll $(I18N_DLL_DIR)/pwsafeDA.dll
+								$(I18N_DLL_DIR)/pwsafeFR.dll $(I18N_DLL_DIR)/pwsafeDA.dll \
+								$(I18N_DLL_DIR)/pwsafeKR.dll $(I18N_DLL_DIR)/pwsafeNL.dll
 
 .PHONY: all release bin-release src-release installables signatures \
 	upload sha1sums msi nsis upload-latest updat-pos i18n save-map help \

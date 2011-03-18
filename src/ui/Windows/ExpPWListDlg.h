@@ -7,40 +7,69 @@
 */
 #pragma once
 
-#include "core/StringX.h"
 #include "PWDialog.h"
+#include "ExpPswdLC.h"
 
-#include <vector>
-
-// Expired password Entry structure for CList
-class CItemData;
-
-struct ExpPWEntry {
-  ExpPWEntry(const CItemData &ci, time_t now, time_t XTime);
-  StringX group;
-  StringX title;
-  StringX user;
-  StringX expirylocdate;  // user's long dat/time   - format displayed in ListCtrl
-  StringX expiryexpdate;  // "YYYY/MM/DD HH:MM:SS"  - format copied to clipboard - best for sorting
-  time_t expirytttdate;
-  int type;
-};
-
-typedef std::vector<ExpPWEntry> ExpiredList;
+#include "core/ExpiredList.h"
 
 // CExpPWListDlg dialog
+
+class ExpiredList;
+class DboxMain;
+
+// Local vector - has the group/title/user and locale version of expiry date
+// Generated from similar vector in core, which doesn't need these.
+struct st_ExpLocalListEntry {
+  st_ExpLocalListEntry()
+  : sx_group(L""), sx_title(L""), sx_user(L""), sx_expirylocdate(L""),
+  expirytttXTime(time_t(0)), et(CItemData::ET_INVALID)
+  {
+    memset(uuid, 0, sizeof(uuid));
+  }
+
+  st_ExpLocalListEntry(const st_ExpLocalListEntry &elle)
+    : sx_group(elle.sx_group), sx_title(elle.sx_title), sx_user(elle.sx_user),
+    sx_expirylocdate(elle.sx_expirylocdate), expirytttXTime(elle.expirytttXTime),
+    et(elle.et)
+  {
+    memcpy(uuid, elle.uuid, sizeof(uuid));
+  }
+
+  st_ExpLocalListEntry &operator =(const st_ExpLocalListEntry &elle)
+  {
+    if (this != &elle) {
+      sx_group = elle.sx_group;
+      sx_title = elle.sx_title;
+      sx_user = elle.sx_user;
+      sx_expirylocdate = elle.sx_expirylocdate;
+      expirytttXTime = elle.expirytttXTime;
+      et = elle.et;
+      memcpy(uuid, elle.uuid, sizeof(uuid));
+    }
+    return *this;
+  }
+ 
+  StringX sx_group;
+  StringX sx_title;
+  StringX sx_user;
+  StringX sx_expirylocdate;  // user's long date/time  - format displayed to user in UI
+  time_t expirytttXTime;
+  CItemData::EntryType et; // Used to select image for display to user e.g.
+                           // 'warn will expire' or 'has expired' &
+                           // 'normal, aliasbase or shortcut base' entry
+  uuid_array_t uuid;
+};
 
 class CExpPWListDlg : public CPWDialog
 {
 public:
-  CExpPWListDlg(CWnd* pParent,
-    const ExpiredList &expPWList,
-    const CString& a_filespec = L"");
+  CExpPWListDlg(CWnd* pParent, ExpiredList &expPWList,
+                const CString& a_filespec = L"");
   virtual ~CExpPWListDlg();
 
   // Dialog Data
   enum { IDD = IDD_DISPLAY_EXPIRED_ENTRIES };
-  CListCtrl m_expPWListCtrl;
+  CExpPswdLC m_expPWListCtrl;
   CImageList *m_pImageList;
   CString m_message;
   int m_iSortedColumn; 
@@ -48,17 +77,22 @@ public:
 
 protected:
   virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+  BOOL PreTranslateMessage(MSG* pMsg);
   virtual BOOL OnInitDialog();
   afx_msg void OnDestroy();
+  afx_msg void OnIconHelp();
+  afx_msg void OnHeaderClicked(NMHDR* pNMHDR, LRESULT* pResult);
+  afx_msg void OnItemDoubleClick(NMHDR* pNotifyStruct, LRESULT* result);
   virtual void OnOK();
 
   DECLARE_MESSAGE_MAP()
 
-public:
-  afx_msg void OnBnClickedCopyExpToClipboard();
-  afx_msg void OnHeaderClicked(NMHDR* pNMHDR, LRESULT* pResult);
-
 private:
-  const ExpiredList &m_expPWList;
+  int GetEntryImage(const st_ExpLocalListEntry &elle);
+  ExpiredList &m_expPWList;
+  DboxMain *m_pDbx;
+
+  std::vector<st_ExpLocalListEntry> m_vExpLocalListEntries;
+  int m_idays;
   static int CALLBACK ExpPWCompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 };

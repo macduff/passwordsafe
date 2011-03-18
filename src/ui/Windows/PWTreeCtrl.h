@@ -42,6 +42,11 @@ public:
     ALIASBASE, WARNEXPIRED_ALIASBASE, EXPIRED_ALIASBASE, ALIAS,
     SHORTCUTBASE, WARNEXPIRED_SHORTCUTBASE, EXPIRED_SHORTCUTBASE, SHORTCUT};
 
+  struct TreeItemFunctor { // For use by Iterate()
+    virtual void operator()(HTREEITEM) = 0;
+    virtual ~TreeItemFunctor() {}                                   
+  };
+  
   void Initialize();
   void ActivateND(const bool bActivate);
 
@@ -57,6 +62,9 @@ public:
   void OnCollapseAll();
   void OnExpandAll();
   HTREEITEM GetNextTreeItem(HTREEITEM hItem);
+  // Iterate() applies functor to all items in subtree rooted at hItem,
+  // including hItem
+  void Iterate(HTREEITEM hItem, TreeItemFunctor &functor);
   // Drag-n-Drop interface - called indirectly via src/tgt member functions
   // Source methods
   SCODE GiveFeedback(DROPEFFECT dropEffect);
@@ -92,6 +100,8 @@ protected:
   afx_msg void OnTimer(UINT_PTR nIDEvent);
   afx_msg BOOL OnEraseBkgnd(CDC* pDC);
   afx_msg void OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult);
+  afx_msg void OnPaint();
+  afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar);
   //}}AFX_MSG
 
   BOOL PreTranslateMessage(MSG* pMsg);

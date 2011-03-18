@@ -100,6 +100,9 @@ ThisMfcApp::ThisMfcApp() :
   m_bACCEL_Table_Created(false), m_noSysEnvWarnings(false),
   m_bPermitTestdump(false), m_hInstResDLL(NULL), m_dwHHCookie(NULL)
 {
+  // Get my Thread ID
+  m_nBaseThreadID = AfxGetThread()->m_nThreadID;
+
   // Get application version information
   GetApplicationVersionData();
 
@@ -660,16 +663,19 @@ BOOL ThisMfcApp::InitInstance()
   SetRegistryKey(L"Password Safe");
 
   DboxMain dbox(NULL);
+
   std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions;
   bsSupportedFunctions.set(UIInterFace::DATABASEMODIFIED);
   bsSupportedFunctions.set(UIInterFace::UPDATEGUI);
   bsSupportedFunctions.set(UIInterFace::GUISETUPDISPLAYINFO);
   bsSupportedFunctions.set(UIInterFace::GUIREFRESHENTRY);
+  bsSupportedFunctions.set(UIInterFace::UPDATEWIZARD);
   bsSupportedFunctions.set(UIInterFace::ATTACHMENTPROGRESS);
   bsSupportedFunctions.set(UIInterFace::WRITEATTACHMENTFILE);
   bsSupportedFunctions.set(UIInterFace::COMPLETEIMPORTFILE);
 
-  m_core.SetUIInterFace(&dbox, bsSupportedFunctions);
+  m_core.SetUIInterFace(&dbox, UIInterFace::NUM_SUPPORTED, bsSupportedFunctions);
+
   m_core.SetReadOnly(false);
 
   // Command line parsing MUST be done before the first PWSprefs lookup!

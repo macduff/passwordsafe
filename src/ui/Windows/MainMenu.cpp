@@ -392,10 +392,11 @@ void DboxMain::SetUpInitialMenuStrings()
   for (size_t i = 0; i < N; i++) {
     const st_prefShortcut &stxst = vShortcuts[i];
     // User should not have these sub-entries in their config file
-    if (stxst.id == ID_MENUITEM_GROUPENTER ||
-        stxst.id == ID_MENUITEM_VIEW ||
+    if (stxst.id == ID_MENUITEM_GROUPENTER  ||
+        stxst.id == ID_MENUITEM_VIEW        ||
         stxst.id == ID_MENUITEM_DELETEENTRY ||
         stxst.id == ID_MENUITEM_DELETEGROUP ||
+        stxst.id == ID_MENUITEM_RENAME      ||
         stxst.id == ID_MENUITEM_RENAMEENTRY ||
         stxst.id == ID_MENUITEM_RENAMEGROUP) {
       continue;
@@ -587,6 +588,9 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
 
     pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOWHIDE_UNSAVED, MF_BYCOMMAND |
                               m_bUnsavedDisplayed ? MF_CHECKED : MF_UNCHECKED);
+
+    pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOW_ALL_EXPIRY, MF_BYCOMMAND |
+                              m_bExpireDisplayed ? MF_CHECKED : MF_UNCHECKED);
 
     pPopupMenu->ModifyMenu(ID_MENUITEM_APPLYFILTER, MF_BYCOMMAND |
                            m_bFilterActive ? MF_CHECKED : MF_UNCHECKED,
@@ -1129,7 +1133,7 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
       CMenu* pPopup = menu.GetSubMenu(0);
       ASSERT_VALID(pPopup);
 
-      // use this window for commands
+      // Use this DboxMain for commands
       pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);
     }
     return;
@@ -1195,13 +1199,16 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
           CMenu* pPopup = menu.GetSubMenu(0);
           ASSERT_VALID(pPopup);
           m_TreeViewGroup = m_ctlItemTree.GetGroup(ti);
+
           int numProtected, numUnprotected;
           bool bProtect = GetSubtreeEntriesProtectedStatus(numProtected, numUnprotected);
+
           if (!bProtect || numUnprotected == 0)
             pPopup->RemoveMenu(ID_MENUITEM_PROTECTGROUP, MF_BYCOMMAND);
           if (!bProtect || numProtected == 0)
             pPopup->RemoveMenu(ID_MENUITEM_UNPROTECTGROUP, MF_BYCOMMAND);
-          // use this DboxMain for commands
+
+          // Use this DboxMain for commands
           pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);
         }
       }
@@ -1213,7 +1220,13 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
         ASSERT(brc != 0);
         CMenu* pPopup = menu.GetSubMenu(0);
         ASSERT_VALID(pPopup);
-        // use this DboxMain for commands
+        
+        ti = m_ctlItemTree.GetSelectedItem();
+        if (ti == NULL || (ti != NULL && (CItemData *)m_ctlItemTree.GetItemData(ti) != NULL))
+          pPopup->RemoveMenu(ID_MENUITEM_DUPLICATEGROUP, MF_BYCOMMAND);
+
+        // Use this DboxMain for commands
+        m_bWhitespaceRightClick = true;
         pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);
       }
     }
@@ -1320,6 +1333,7 @@ void DboxMain::OnContextMenu(CWnd* /* pWnd */, CPoint screen)
     // Since an entry - remove Duplicate Group
     pPopup->RemoveMenu(ID_MENUITEM_DUPLICATEGROUP, MF_BYCOMMAND);
 
+    // Use this DboxMain for commands
     UINT uiID = pPopup->TrackPopupMenu(dwTrackPopupFlags,
                                        screen.x, screen.y, this);
 
