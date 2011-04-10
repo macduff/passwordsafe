@@ -297,7 +297,7 @@ public:
   void SetStartSilent(bool state);
   void SetStartClosed(bool state) {m_IsStartClosed = state;}
   void SetValidate(bool state) {m_bValidate = state;}
-  void MakeRandomPassword(StringX& password, PWPolicy &pwp, 
+  void MakeRandomPassword(StringX& password, PWPolicy &pwp, stringT st_symbols,
                           bool bIssueMsg = false);
   BOOL LaunchBrowser(const CString &csURL, const StringX &sxAutotype,
                      const std::vector<size_t> &vactionverboffsets,
@@ -658,14 +658,14 @@ protected:
   afx_msg void OnSendEmail();
   afx_msg void OnCopyUsername();
   afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
-  afx_msg void OnListItemSelected(NMHDR *pNMHDR, LRESULT *pLResult);
-  afx_msg void OnTreeItemSelected(NMHDR *pNMHDR, LRESULT *pLResult);
-  afx_msg void OnKeydownItemlist(NMHDR *pNMHDR, LRESULT *pResult);
-  afx_msg void OnItemDoubleClick(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg void OnHeaderRClick(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg void OnHeaderNotify(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg void OnHeaderBeginDrag(NMHDR* pNotifyStruct, LRESULT* result);
-  afx_msg void OnHeaderEndDrag(NMHDR* pNotifyStruct, LRESULT* result);
+  afx_msg void OnListItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnTreeItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnKeydownItemlist(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnItemDoubleClick(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnHeaderRClick(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnHeaderNotify(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnHeaderBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  afx_msg void OnHeaderEndDrag(NMHDR *pNotifyStruct, LRESULT *pLResult);
   afx_msg void OnCopyPassword();
   afx_msg void OnCopyPasswordMinimize();
   afx_msg void OnDisplayPswdSubset();
@@ -740,13 +740,13 @@ protected:
 #else
   afx_msg void OnDropFiles(HDROP hDrop);
 #endif
-  afx_msg void OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
+  afx_msg void OnColumnClick(NMHDR *pNotifyStruct, LRESULT *pLResult);
   afx_msg void OnUpdateNSCommand(CCmdUI *pCmdUI);  // Make entry unsupported (grayed out)
   afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
   afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
   //}}AFX_MSG
 
-  afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
+  afx_msg BOOL OnToolTipText(UINT, NMHDR *pNotifyStruct, LRESULT *pLResult);
   afx_msg void OnExportVx(UINT nID);
   afx_msg void OnExportText();
   afx_msg void OnExportXML();
@@ -874,9 +874,10 @@ private:
   void RegistryAnonymity();
   void CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID, const bool bDoShortcuts);
   void SetUpMenuStrings(CMenu *pPopupMenu);
-  void SetUpInitialMenuStrings();
+  void SetUpInitialMenuStrings(LCID lcid = 0);
   void UpdateAccelTable();
   void SetupSpecialShortcuts();
+  bool ProcessLanguageMenu(CMenu *pPopupMenu);
   void DoBrowse(const bool bDoAutotype, const bool bSendEmail);
   bool GetSubtreeEntriesProtectedStatus(int &numProtected, int &numUnprotected);
   void ChangeSubtreeEntriesProtectStatus(const UINT nID);
@@ -1002,6 +1003,11 @@ private:
   bool m_bInRename;
   // When in AddGroup and where AddGroup initiated
   bool m_bInAddGroup, m_bWhitespaceRightClick;
+
+  // Change languages on the fly
+  void SetLanguage(LCID lcid);
+  int m_ilastaction;  // Last action
+  void SetDragbarToolTips();
 
   // The following is for saving information over an execute/undo/redo
   // Might need to add more e.g. if filter is active and which one?

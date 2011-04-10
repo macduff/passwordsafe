@@ -15,6 +15,7 @@
 #include "ThisMfcApp.h"    // For Help
 #include "Options_PropertySheet.h"
 
+#include "core/PWCharPool.h"
 #include "core/PwsPlatform.h"
 #include "core/PWSprefs.h"
 
@@ -79,6 +80,9 @@ void COptionsPasswordPolicy::DoDataExchange(CDataExchange* pDX)
   DDX_Check(pDX, IDC_EASYVISION, m_pweasyvision);
   DDX_Check(pDX, IDC_USEHEXDIGITS, m_pwusehexdigits);
   DDX_Check(pDX, IDC_PRONOUNCEABLE, m_pwmakepronounceable);
+  
+  DDX_Radio(pDX, IDC_USEDEFAULTSYMBOLS, m_useownsymbols);
+  DDX_Control(pDX, IDC_OWNSYMBOLS, (CEdit&)m_symbols);
 
   // Because we can show the generated password when used from Mangage->Generate
   DDX_Control(pDX, IDC_PASSWORD, m_ex_password);
@@ -89,11 +93,11 @@ BEGIN_MESSAGE_MAP(COptionsPasswordPolicy, COptions_PropertyPage)
   //{{AFX_MSG_MAP(COptionsPasswordPolicy)
   ON_BN_CLICKED(ID_HELP, OnHelp)
 
-  ON_BN_CLICKED(IDC_USEHEXDIGITS, OnUsehexdigits)
-  ON_BN_CLICKED(IDC_USELOWERCASE, OnUselowercase)
-  ON_BN_CLICKED(IDC_USEUPPERCASE, OnUseuppercase)
-  ON_BN_CLICKED(IDC_USEDIGITS, OnUsedigits)
-  ON_BN_CLICKED(IDC_USESYMBOLS, OnUsesymbols)
+  ON_BN_CLICKED(IDC_USEHEXDIGITS, OnUseHexdigits)
+  ON_BN_CLICKED(IDC_USELOWERCASE, OnUseLowerCase)
+  ON_BN_CLICKED(IDC_USEUPPERCASE, OnUseUpperCase)
+  ON_BN_CLICKED(IDC_USEDIGITS, OnUseDigits)
+  ON_BN_CLICKED(IDC_USESYMBOLS, OnUseSymbols)
   ON_BN_CLICKED(IDC_EASYVISION, OnEasyVision)
   ON_BN_CLICKED(IDC_PRONOUNCEABLE, OnMakePronounceable)
 
@@ -101,6 +105,9 @@ BEGIN_MESSAGE_MAP(COptionsPasswordPolicy, COptions_PropertyPage)
   ON_BN_CLICKED(IDC_RANDOM, OnRandom)
   ON_BN_CLICKED(IDC_COPYPASSWORD, OnCopyPassword)
   ON_EN_CHANGE(IDC_PASSWORD, OnENChangePassword)
+
+  ON_BN_CLICKED(IDC_USEDEFAULTSYMBOLS, OnSymbols)
+  ON_BN_CLICKED(IDC_USEOWNSYMBOLS, OnSymbols)
 
   ON_MESSAGE(PSM_QUERYSIBLINGS, OnQuerySiblings)
   //}}AFX_MSG_MAP
@@ -131,6 +138,7 @@ BOOL COptionsPasswordPolicy::OnInitDialog()
   COptions_PropertyPage::OnInitDialog();
 
   if (m_bFromOptions) {
+    // These are only used in Manage -> Generate Password
     GetDlgItem(IDC_RANDOM)->EnableWindow(FALSE);
     GetDlgItem(IDC_RANDOM)->ShowWindow(SW_HIDE);
     GetDlgItem(IDC_COPYPASSWORD)->EnableWindow(FALSE);
@@ -194,9 +202,12 @@ BOOL COptionsPasswordPolicy::OnInitDialog()
   pspinU->SetBase(10);
   pspinU->SetPos(m_pwupperminlength);
 
-  m_save[0] = m_pwuselowercase; m_save[1] = m_pwuseuppercase;
-  m_save[2] = m_pwusedigits;    m_save[3] = m_pwusesymbols;
-  m_save[4] = m_pweasyvision;   m_save[5] = m_pwmakepronounceable;
+  m_save[SAVE_LOWERCASE] = m_pwuselowercase;
+  m_save[SAVE_UPPERCASE] = m_pwuseuppercase;
+  m_save[SAVE_DIGITS] = m_pwusedigits;
+  m_save[SAVE_SYMBOLS] = m_pwusesymbols;
+  m_save[SAVE_EASYVISION] = m_pweasyvision;
+  m_save[SAVE_PRONOUNCEABLE] = m_pwmakepronounceable;
 
   if (m_pwuselowercase == TRUE && m_pwlowerminlength == 0)
     m_pwlowerminlength = 1;
@@ -207,11 +218,10 @@ BOOL COptionsPasswordPolicy::OnInitDialog()
   if (m_pwusesymbols == TRUE && m_pwsymbolminlength == 0)
     m_pwsymbolminlength = 1;
 
-  m_savelen[0] = m_pwlowerminlength; m_savelen[1] = m_pwupperminlength;
-  m_savelen[2] = m_pwdigitminlength; m_savelen[3] = m_pwsymbolminlength;
-
-  do_nohex(m_pwusehexdigits == FALSE);
-  do_easyorpronounceable(m_pweasyvision == TRUE || m_pwmakepronounceable == TRUE);
+  m_savelen[SAVE_LOWERCASE] = m_pwlowerminlength;
+  m_savelen[SAVE_UPPERCASE] = m_pwupperminlength;
+  m_savelen[SAVE_DIGITS] = m_pwdigitminlength;
+  m_savelen[SAVE_SYMBOLS] = m_pwsymbolminlength;
 
   m_savepwdefaultlength = m_pwdefaultlength;
   m_savepwuselowercase = m_pwuselowercase;
@@ -226,34 +236,34 @@ BOOL COptionsPasswordPolicy::OnInitDialog()
   m_savepwsymbolminlength = m_pwsymbolminlength;
   m_savepwupperminlength = m_pwupperminlength;
 
-  return TRUE;  // return TRUE unless you set the focus to a control
-  // EXCEPTION: OCX Property Pages should return FALSE
+  // Set up the correct controls (enabled/disabled)
+  do_hex(m_pwusehexdigits == TRUE);
+  do_easyorpronounceable(m_pweasyvision == TRUE || m_pwmakepronounceable == TRUE);
+
+  // Setup symbols
+  m_saveuseownsymbols = m_useownsymbols;
+  m_cs_savesymbols = m_cs_symbols;
+
+  stringT st_symbols;
+  CPasswordCharPool::GetDefaultSymbols(st_symbols);
+
+  GetDlgItem(IDC_STATIC_DEFAULTSYMBOLS)->SetWindowText(st_symbols.c_str());
+  m_symbols.SetWindowText(m_cs_symbols);
+
+  GetDlgItem(IDC_USEDEFAULTSYMBOLS)->EnableWindow(m_pwusesymbols);
+  GetDlgItem(IDC_USEOWNSYMBOLS)->EnableWindow(m_pwusesymbols);
+  GetDlgItem(IDC_OWNSYMBOLS)->EnableWindow((m_pwusesymbols == TRUE && m_useownsymbols == OWN_SYMBOLS) ? TRUE : FALSE);
+
+  return TRUE;
 }
 
-void COptionsPasswordPolicy::do_nohex(const bool bNonHex)
+void COptionsPasswordPolicy::do_hex(const bool bHex)
 {
   CString cs_value;
   int i;
-  if (bNonHex) { // true means enable non-hex, restore state
-    for (i = 0; i < N_NOHEX; i++) {
-      UINT id = nonHex[i];
-      GetDlgItem(id)->EnableWindow(TRUE);
-      ((CButton*)GetDlgItem(id))->SetCheck(m_save[i]);
-    }
-
-    for (i = 0; i < N_HEX_LENGTHS; i++) {
-      UINT id = nonHexLengths[i];
-      cs_value.Format(L"%d", m_savelen[i]);
-      GetDlgItem(id)->SetWindowText(cs_value);
-      GetDlgItem(id)->EnableWindow(m_save[i]);
-      GetDlgItem(nonHexLengthSpins[i])->EnableWindow(m_save[i]);
-      GetDlgItem(LenTxts[i*2])->EnableWindow(m_save[i]);
-      GetDlgItem(LenTxts[i*2 + 1])->EnableWindow(m_save[i]);
-    }
-    m_pwlowerminlength = m_savelen[0]; m_pwupperminlength = m_savelen[1];
-    m_pwdigitminlength = m_savelen[2]; m_pwsymbolminlength = m_savelen[3];
-
-  } else { // hex, save state for possible re-enable
+  if (bHex) {
+    // true means enable hex, save state for possible re-enable
+    // Disable non-hex controls
     for (i = 0; i < N_NOHEX; i++) {
       UINT id = nonHex[i];
       m_save[i] = ((CButton*)GetDlgItem(id))->GetCheck();
@@ -267,19 +277,57 @@ void COptionsPasswordPolicy::do_nohex(const bool bNonHex)
       GetDlgItem(id)->EnableWindow(FALSE);
 
       GetDlgItem(nonHexLengthSpins[i])->EnableWindow(FALSE);
-      GetDlgItem(LenTxts[i*2])->EnableWindow(FALSE);
-      GetDlgItem(LenTxts[i*2 + 1])->EnableWindow(FALSE);
+      GetDlgItem(LenTxts[i * 2])->EnableWindow(FALSE);
+      GetDlgItem(LenTxts[i * 2 + 1])->EnableWindow(FALSE);
     }
 
-    m_savelen[0] = m_pwlowerminlength; m_savelen[1] = m_pwupperminlength;
-    m_savelen[2] = m_pwdigitminlength; m_savelen[3] = m_pwsymbolminlength;
+    GetDlgItem(IDC_USEDEFAULTSYMBOLS)->EnableWindow(FALSE);
+    GetDlgItem(IDC_USEOWNSYMBOLS)->EnableWindow(FALSE);
+    GetDlgItem(IDC_STATIC_DEFAULTSYMBOLS)->EnableWindow(FALSE);
+    GetDlgItem(IDC_OWNSYMBOLS)->EnableWindow(FALSE);
+
+    m_savelen[SAVE_LOWERCASE] = m_pwlowerminlength;
+    m_savelen[SAVE_UPPERCASE] = m_pwupperminlength;
+    m_savelen[SAVE_DIGITS] = m_pwdigitminlength;
+    m_savelen[SAVE_SYMBOLS] = m_pwsymbolminlength;
+  } else {
+    // non-hex, restore state
+    // Enable non-hex controls and restore checked state
+    for (i = 0; i < N_NOHEX; i++) {
+      UINT id = nonHex[i];
+      GetDlgItem(id)->EnableWindow(TRUE);
+      ((CButton*)GetDlgItem(id))->SetCheck(m_save[i]);
+    }
+
+    for (i = 0; i < N_HEX_LENGTHS; i++) {
+      UINT id = nonHexLengths[i];
+      cs_value.Format(L"%d", m_savelen[i]);
+      GetDlgItem(id)->SetWindowText(cs_value);
+      GetDlgItem(id)->EnableWindow(m_save[i]);
+      GetDlgItem(nonHexLengthSpins[i])->EnableWindow(m_save[i]);
+      GetDlgItem(LenTxts[i * 2])->EnableWindow(m_save[i]);
+      GetDlgItem(LenTxts[i * 2 + 1])->EnableWindow(m_save[i]);
+    }
+
+    BOOL bEnable = (IsDlgButtonChecked(IDC_USESYMBOLS) == BST_CHECKED &&
+                   m_pweasyvision == FALSE && m_pwmakepronounceable == FALSE) ? TRUE : FALSE;
+    GetDlgItem(IDC_USEDEFAULTSYMBOLS)->EnableWindow(bEnable);
+    GetDlgItem(IDC_USEOWNSYMBOLS)->EnableWindow(bEnable);
+    GetDlgItem(IDC_STATIC_DEFAULTSYMBOLS)->EnableWindow(bEnable);
+    GetDlgItem(IDC_OWNSYMBOLS)->EnableWindow((bEnable == TRUE && m_useownsymbols == OWN_SYMBOLS) ?
+                                             TRUE : FALSE);
+
+    m_pwlowerminlength = m_savelen[SAVE_LOWERCASE];
+    m_pwupperminlength = m_savelen[SAVE_UPPERCASE];
+    m_pwdigitminlength = m_savelen[SAVE_DIGITS];
+    m_pwsymbolminlength = m_savelen[SAVE_SYMBOLS];
   }
 }
 
 void COptionsPasswordPolicy::do_easyorpronounceable(const bool bSet)
 {
   // Can't have minimum lengths!
-  if ((m_pweasyvision == TRUE || m_pwmakepronounceable == TRUE) &&
+  if ((m_pweasyvision == TRUE  || m_pwmakepronounceable == TRUE) &&
       (m_pwdigitminlength > 1  || m_pwlowerminlength > 1 || 
        m_pwsymbolminlength > 1 || m_pwupperminlength > 1)) {
     CGeneralMsgBox gmb;
@@ -296,22 +344,38 @@ void COptionsPasswordPolicy::do_easyorpronounceable(const bool bSet)
       GetDlgItem(LenTxts[2*i + 1])->ShowWindow(SW_HIDE);
     }
 
-    m_savelen[0] = m_pwlowerminlength; m_savelen[1] = m_pwupperminlength;
-    m_savelen[2] = m_pwdigitminlength; m_savelen[3] = m_pwsymbolminlength;
+    GetDlgItem(IDC_USEDEFAULTSYMBOLS)->EnableWindow(FALSE);
+    GetDlgItem(IDC_USEOWNSYMBOLS)->EnableWindow(FALSE);
+    GetDlgItem(IDC_STATIC_DEFAULTSYMBOLS)->EnableWindow((IsDlgButtonChecked(IDC_USESYMBOLS) == BST_CHECKED) ? TRUE : FALSE);
+    GetDlgItem(IDC_OWNSYMBOLS)->EnableWindow(FALSE);
+
+    m_savelen[SAVE_LOWERCASE] = m_pwlowerminlength;
+    m_savelen[SAVE_UPPERCASE] = m_pwupperminlength;
+    m_savelen[SAVE_DIGITS] = m_pwdigitminlength;
+    m_savelen[SAVE_SYMBOLS] = m_pwsymbolminlength;
   } else {
     for (i = 0; i < N_HEX_LENGTHS; i++) {
       GetDlgItem(nonHexLengths[i])->ShowWindow(SW_SHOW);
       GetDlgItem(nonHexLengthSpins[i])->ShowWindow(SW_SHOW);
-      GetDlgItem(LenTxts[2*i])->ShowWindow(SW_SHOW);
-      GetDlgItem(LenTxts[2*i + 1])->ShowWindow(SW_SHOW);
+      GetDlgItem(LenTxts[2 * i])->ShowWindow(SW_SHOW);
+      GetDlgItem(LenTxts[2 * i + 1])->ShowWindow(SW_SHOW);
     }
 
-    m_pwlowerminlength = m_savelen[0]; m_pwupperminlength = m_savelen[1];
-    m_pwdigitminlength = m_savelen[2]; m_pwsymbolminlength = m_savelen[3];
+    BOOL bEnable = (IsDlgButtonChecked(IDC_USESYMBOLS) == BST_CHECKED) ? TRUE : FALSE;
+    GetDlgItem(IDC_USEDEFAULTSYMBOLS)->EnableWindow(bEnable);
+    GetDlgItem(IDC_USEOWNSYMBOLS)->EnableWindow(bEnable);
+    GetDlgItem(IDC_STATIC_DEFAULTSYMBOLS)->EnableWindow(bEnable);
+    GetDlgItem(IDC_OWNSYMBOLS)->EnableWindow((bEnable == TRUE && m_useownsymbols == OWN_SYMBOLS) ?
+                                             TRUE : FALSE);
+
+    m_pwlowerminlength = m_savelen[SAVE_LOWERCASE];
+    m_pwupperminlength = m_savelen[SAVE_UPPERCASE];
+    m_pwdigitminlength = m_savelen[SAVE_DIGITS];
+    m_pwsymbolminlength = m_savelen[SAVE_SYMBOLS];
   }
 }
 
-void COptionsPasswordPolicy::OnUselowercase() 
+void COptionsPasswordPolicy::OnUseLowerCase() 
 {
   UpdateData(TRUE);
   BOOL bChecked = (IsDlgButtonChecked(IDC_USELOWERCASE) == BST_CHECKED) ? TRUE : FALSE;
@@ -324,7 +388,7 @@ void COptionsPasswordPolicy::OnUselowercase()
   UpdateData(FALSE);
 }
 
-void COptionsPasswordPolicy::OnUseuppercase() 
+void COptionsPasswordPolicy::OnUseUpperCase() 
 {
   UpdateData(TRUE);
   BOOL bChecked = (IsDlgButtonChecked(IDC_USEUPPERCASE) == BST_CHECKED) ? TRUE : FALSE;
@@ -337,7 +401,7 @@ void COptionsPasswordPolicy::OnUseuppercase()
   UpdateData(FALSE);
 }
 
-void COptionsPasswordPolicy::OnUsedigits() 
+void COptionsPasswordPolicy::OnUseDigits() 
 {
   UpdateData(TRUE);
   BOOL bChecked = (IsDlgButtonChecked(IDC_USEDIGITS) == BST_CHECKED) ? TRUE : FALSE;
@@ -350,23 +414,31 @@ void COptionsPasswordPolicy::OnUsedigits()
   UpdateData(FALSE);
 }
 
-void COptionsPasswordPolicy::OnUsesymbols() 
+void COptionsPasswordPolicy::OnUseSymbols() 
 {
   UpdateData(TRUE);
-  BOOL bChecked = (IsDlgButtonChecked(IDC_USESYMBOLS) == BST_CHECKED) ? TRUE : FALSE;
+
+  BOOL bChecked = (IsDlgButtonChecked(IDC_USESYMBOLS) == BST_CHECKED &&
+                   m_pweasyvision == FALSE && m_pwmakepronounceable == FALSE) ? TRUE : FALSE;
 
   GetDlgItem(IDC_MINSYMBOLLENGTH)->EnableWindow(bChecked);
   GetDlgItem(IDC_SPINSYMBOLS)->EnableWindow(bChecked);
   GetDlgItem(IDC_STATIC_SY1)->EnableWindow(bChecked);
   GetDlgItem(IDC_STATIC_SY2)->EnableWindow(bChecked);
+
+  GetDlgItem(IDC_USEDEFAULTSYMBOLS)->EnableWindow(bChecked);
+  GetDlgItem(IDC_USEOWNSYMBOLS)->EnableWindow(bChecked);
+  GetDlgItem(IDC_STATIC_DEFAULTSYMBOLS)->EnableWindow((IsDlgButtonChecked(IDC_USESYMBOLS) == BST_CHECKED) ? TRUE : FALSE);
+  GetDlgItem(IDC_OWNSYMBOLS)->EnableWindow((bChecked == TRUE && m_useownsymbols == OWN_SYMBOLS) ? TRUE : FALSE);
+
   m_pwsymbolminlength = bChecked;  // Based on FALSE=0 & TRUE=1
   UpdateData(FALSE);
 }
 
-void COptionsPasswordPolicy::OnUsehexdigits() 
+void COptionsPasswordPolicy::OnUseHexdigits() 
 {
   UpdateData(TRUE);
-  do_nohex(IsDlgButtonChecked(IDC_USEHEXDIGITS) == BST_UNCHECKED);
+  do_hex(IsDlgButtonChecked(IDC_USEHEXDIGITS) == BST_CHECKED);
   // Do not use UpdateData(FALSE) here or
   // all the good work in "do_hex" will be undone
 }
@@ -405,6 +477,16 @@ void COptionsPasswordPolicy::OnMakePronounceable()
   do_easyorpronounceable(bChecked);
   // Do not use UpdateData(FALSE) here or
   // all the good work in "do_easyorpronounceable" will be undone
+}
+
+void COptionsPasswordPolicy::OnSymbols()
+{
+  m_useownsymbols = ((CButton *)GetDlgItem(IDC_USEDEFAULTSYMBOLS))->GetCheck() == BST_CHECKED ?
+                        DEFAULT_SYMBOLS : OWN_SYMBOLS;
+
+  GetDlgItem(IDC_OWNSYMBOLS)->EnableWindow(m_useownsymbols == DEFAULT_SYMBOLS ? FALSE : TRUE);
+  if (m_useownsymbols == OWN_SYMBOLS)
+    GetDlgItem(IDC_OWNSYMBOLS)->SetFocus();
 }
 
 BOOL COptionsPasswordPolicy::Validate()
@@ -470,6 +552,9 @@ LRESULT COptionsPasswordPolicy::OnQuerySiblings(WPARAM wParam, LPARAM )
   if (wParam == PP_UPDATE_VARIABLES && Validate() == FALSE)
     return 1L;
 
+  // Get symbol string from Edit control
+  m_symbols.GetWindowText(m_cs_symbols);
+
   // Have any of my fields been changed?
   switch (wParam) {
     case PP_DATA_CHANGED:
@@ -488,7 +573,10 @@ LRESULT COptionsPasswordPolicy::OnQuerySiblings(WPARAM wParam, LPARAM )
            m_savepwsymbolminlength  != m_pwsymbolminlength)  ||
           m_savepweasyvision        != m_pweasyvision        ||
           m_savepwusehexdigits      != m_pwusehexdigits      ||
-          m_savepwmakepronounceable != m_pwmakepronounceable)
+          m_savepwmakepronounceable != m_pwmakepronounceable ||
+          m_saveuseownsymbols       != m_useownsymbols    ||
+          (m_useownsymbols          == OWN_SYMBOLS &&
+          m_cs_savesymbols          != m_cs_symbols))
         return 1L;
       break;
     case PP_UPDATE_VARIABLES:
@@ -532,7 +620,14 @@ void COptionsPasswordPolicy::OnRandom()
   pwp.upperminlength = m_pwupperminlength;
   
   StringX passwd;
-  m_pDbx->MakeRandomPassword(passwd, pwp, false);
+  stringT st_symbols;
+  if (m_useownsymbols == OWN_SYMBOLS) {
+    m_symbols.GetWindowText(m_cs_symbols);
+    st_symbols = LPCWSTR(m_cs_symbols);
+  } else
+    CPasswordCharPool::GetDefaultSymbols(st_symbols);
+
+  m_pDbx->MakeRandomPassword(passwd, pwp, st_symbols.c_str(), false);
   m_password = passwd.c_str();
   m_ex_password.SetWindowText(m_password);
   m_ex_password.Invalidate();

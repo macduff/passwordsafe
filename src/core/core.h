@@ -4,7 +4,6 @@
 
 #define IDSC_PASSWORDTOOSHORT           3000
 #define IDSC_PASSWORDPOOR               3001
-#define IDSC_EXPORTHEADER               3002
 #define IDSC_FLDNMGROUPTITLE            3003
 #define IDSC_FLDNMUSERNAME              3004
 #define IDSC_FLDNMPASSWORD              3005
@@ -48,7 +47,6 @@
 #define IDSC_XMLVALIDATION              3045
 #define IDSC_XMLIMPORT                  3046
 #define IDSC_NOMSXMLREADER              3047
-#define IDSC_XMLHEADER                  3048
 #define IDSC_XMLFILEERROR               3049
 #define IDSC_XMLLOADFAILURE             3050
 #define IDSC_XMLSAVEFAILURE             3051
@@ -67,6 +65,7 @@
 #define IDSC_FLDNMEMAIL                 3065
 #define IDSC_FLDNMPROTECTED             3066
 #define IDSC_FLDNMUUID                  3067
+#define IDSC_FLDNMSYMBOLS               3068
 
 #define IDSC_CONFIG_NONE                3230
 #define IDSC_CONFIG_REGISTRY            3231
@@ -236,6 +235,10 @@
 #define IDSC_CONFLICTS                  3417
 #define IDSC_MERGED                     3418
 #define IDSC_MERGEADDED                 3419
+#define IDSC_CONTAINSANY                3420
+#define IDSC_DOESNOTCONTAINANY          3421
+#define IDSC_CONTAINSALL                3422
+#define IDSC_DOESNOTCONTAINALL          3423
 
 #define IDSC_ATT_ERRORS                 3500
 #define IDSC_ATT_HDRMISMATCH            3501

@@ -144,7 +144,7 @@ DboxMain::DboxMain(CWnd* pParent)
   m_bInAT(false), m_bInRestoreWindowsData(false), m_bSetup(false),
   m_bInRefresh(false), m_bInRestoreWindows(false), m_bExpireDisplayed(false),
   m_bTellUserExpired(false), m_bInRename(false), m_bWhitespaceRightClick(false),
-  m_pProgressDlg(NULL), m_pAttThread(NULL), m_bNoChangeToAttachments(false)
+  m_ilastaction(0), m_pProgressDlg(NULL), m_pAttThread(NULL), m_bNoChangeToAttachments(false)
 {
   // Need to do the following as using the direct calls will fail for Windows versions before Vista
   // (Load Library using absolute path to avoid dll poisoning attacks)
@@ -207,10 +207,10 @@ DboxMain::~DboxMain()
   std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions(0);
   m_core.SetUIInterFace(NULL, UIInterFace::NUM_SUPPORTED, bsSupportedFunctions);
 
-  MapKeyNameIDIter iter;
-  for (iter = m_MapKeyNameID.begin(); iter != m_MapKeyNameID.end(); iter++) {
-    free((void *)iter->second);
-    iter->second = NULL;
+  MapKeyNameIDIter KNIDiter;
+  for (KNIDiter = m_MapKeyNameID.begin(); KNIDiter != m_MapKeyNameID.end(); KNIDiter++) {
+    free((void *)KNIDiter->second);
+    KNIDiter->second = NULL;
   }
 
   ::DestroyIcon(m_hIcon);
@@ -924,11 +924,12 @@ void DboxMain::InitPasswordSafe()
     case CItemData::RMTIME:
     case CItemData::URL:
     case CItemData::EMAIL:
+    case CItemData::SYMBOLS:
     case CItemData::RUNCMD:
     case CItemData::AUTOTYPE:
     case CItemData::POLICY:
     case CItemData::PROTECTED:
-    break;
+      break;
     case CItemData::PWHIST:  // Not displayed in ListView
     default:
       // Title is a mandatory column - so can't go wrong!
@@ -1135,7 +1136,7 @@ BOOL DboxMain::OnInitDialog()
       ShowWindow(SW_SHOW);
   }
 
-  BOOL bOOI(FALSE);
+  BOOL bOOI(TRUE);
   if (!m_IsStartClosed && !m_IsStartSilent) {
     if (m_bSetup) { // --setup flag passed?
       // If default dbase exists, DO NOT overwrite it, else
@@ -1197,10 +1198,24 @@ BOOL DboxMain::OnInitDialog()
     gmb.AfxMessageBox(IDS_CANTLOAD_AUTOTYPEDLL, MB_ICONERROR);
   }
 
+  // Set up DragBar Tooltips
+  SetDragbarToolTips();
+
+  return TRUE;  // return TRUE unless you set the focus to a control
+}
+
+void DboxMain::SetDragbarToolTips()
+{
+  // Remove it if already present
+  if (m_pToolTipCtrl != NULL) {
+    delete m_pToolTipCtrl;
+    m_pToolTipCtrl = NULL;
+  }
+
   // create tooltip unconditionally
   m_pToolTipCtrl = new CToolTipCtrl;
   if (!m_pToolTipCtrl->Create(this, TTS_BALLOON | TTS_NOPREFIX)) {
-    pws_os::Trace(L"Unable To create mainf DboxMain Dialog ToolTip\n");
+    pws_os::Trace(L"Unable To create main DboxMain Dialog ToolTip\n");
     delete m_pToolTipCtrl;
     m_pToolTipCtrl = NULL;
   } else {
@@ -1251,8 +1266,6 @@ BOOL DboxMain::OnInitDialog()
     cs_ToolTip.Format(IDS_DRAGTOCOPY, cs_field);
     m_pToolTipCtrl->AddTool(GetDlgItem(IDC_STATIC_DRAGEMAIL), cs_ToolTip);
   }
-
-  return TRUE;  // return TRUE unless you set the focus to a control
 }
 
 void DboxMain::SetInitialDatabaseDisplay()
@@ -1365,7 +1378,7 @@ void DboxMain::FixListIndexes()
   }
 }
 
-void DboxMain::OnItemDoubleClick(NMHDR * /* pNotifyStruct */, LRESULT *pLResult)
+void DboxMain::OnItemDoubleClick(NMHDR *, LRESULT *pLResult)
 {
   *pLResult = 0L;
   UnFindItem();
@@ -1822,27 +1835,25 @@ void DboxMain::CancelPendingPasswordDialog()
     dbox_pkentry->SendMessage(WM_CLOSE);
 }
 
-BOOL DboxMain::OnToolTipText(UINT,
-                             NMHDR *pNMHDR,
-                             LRESULT *pResult)
+BOOL DboxMain::OnToolTipText(UINT, NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
   // This code is copied from the DLGCBR32 example that comes with MFC
   // Updated by MS on 25/09/2005
 #if !defined(POCKET_PC)
-  ASSERT(pNMHDR->code == TTN_NEEDTEXTA || pNMHDR->code == TTN_NEEDTEXTW);
+  ASSERT(pNotifyStruct->code == TTN_NEEDTEXTA || pNotifyStruct->code == TTN_NEEDTEXTW);
 
   // allow top level routing frame to handle the message
   if (GetRoutingFrame() != NULL)
     return FALSE;
 
   // need to handle both ANSI and UNICODE versions of the message
-  TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNMHDR;
-  TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNMHDR;
+  TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNotifyStruct;
+  TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNotifyStruct;
   wchar_t tc_FullText[4096];  // Maxsize of a string in a resource file
   CString cs_TipText;
-  UINT nID = (UINT)pNMHDR->idFrom;
-  if (pNMHDR->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
-      pNMHDR->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND)) {
+  UINT nID = (UINT)pNotifyStruct->idFrom;
+  if (pNotifyStruct->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
+      pNotifyStruct->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND)) {
     // idFrom is actually the HWND of the tool
     nID = ((UINT)(WORD)::GetDlgCtrlID((HWND)nID));
   }
@@ -1867,7 +1878,7 @@ BOOL DboxMain::OnToolTipText(UINT,
 #define LONG_TOOLTIPS
 
 #ifdef LONG_TOOLTIPS
-  if (pNMHDR->code == TTN_NEEDTEXTA) {
+  if (pNotifyStruct->code == TTN_NEEDTEXTA) {
     delete m_pchTip;
 
     m_pchTip = new char[cs_TipText.GetLength() + 1];
@@ -1892,7 +1903,7 @@ BOOL DboxMain::OnToolTipText(UINT,
     pTTTW->lpszText = (LPWSTR)m_pwchTip;
   }
 #else // Short Tooltips!
-  if (pNMHDR->code == TTN_NEEDTEXTA) {
+  if (pNotifyStruct->code == TTN_NEEDTEXTA) {
     int n = WideCharToMultiByte(CP_ACP, 0, cs_TipText, -1,
                                 pTTTA->szText,
                                 _countof(pTTTA->szText),
@@ -1909,10 +1920,10 @@ BOOL DboxMain::OnToolTipText(UINT,
   }
 #endif // LONG_TOOLTIPS
 
-  *pResult = 0;
+  *pLResult = 0;
 
   // bring the tooltip window above other popup windows
-  ::SetWindowPos(pNMHDR->hwndFrom, HWND_TOP, 0, 0, 0, 0,
+  ::SetWindowPos(pNotifyStruct->hwndFrom, HWND_TOP, 0, 0, 0, 0,
                  SWP_NOACTIVATE|SWP_NOSIZE|SWP_NOMOVE);
 #endif  // POCKET_PC
   return TRUE;    // message was handled
@@ -2339,7 +2350,80 @@ LRESULT DboxMain::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
       message == WM_SETTINGCHANGE)
     RefreshImages();
 
+  const WORD wNCode = HIWORD(wParam);
+  const WORD wID = LOWORD(wParam);
+  /*
+    wNCode = Notification Code if from a control, 1 if from an accelerator
+             and 0 if from a menu.
+    wID    = Identifier of control, accelerator or menu item.
+    lParam = If from a control, then its handle otherwise NULL.
+  */
+  if (message == WM_COMMAND && lParam == NULL &&
+      wNCode == 0 && wID >= ID_LANGUAGES ) {
+    // Process Language Selection
+    const size_t iLang = wID - ID_LANGUAGES;
+    if (iLang < app.m_vlanguagefiles.size()) {
+      // Default is normal locale processing
+      StringX sxLL(L""), sxCC(L"");
+      LCID lcid(0);
+      if ((app.m_vlanguagefiles[iLang].xFlags & 0x80) != 0x80) {
+        // Wasn't checked - select it
+        sxLL = app.m_vlanguagefiles[iLang].wsLL.c_str();
+        sxCC = app.m_vlanguagefiles[iLang].wsCC.c_str();
+        if (!sxCC.empty()) {
+          sxLL += L"_";
+          sxLL += sxCC;
+        }
+        app.m_vlanguagefiles[iLang].lcid = app.m_vlanguagefiles[iLang].lcid;
+      }
+      PWSprefs::GetInstance()->SetPref(PWSprefs::LanguageFile, sxLL);
+      SetLanguage(lcid);
+    }
+  }
+
   return CDialog::WindowProc(message, wParam, lParam);
+}
+
+void DboxMain::SetLanguage(LCID lcid)
+{
+  // Show wait cursor
+  CWaitCursor wait;
+
+  SetMenu(NULL);
+
+  // Set up the new language and main menu
+  app.SetLanguage();
+
+  // Reset new language equivalent to Ctrl, Alt & shift
+  CMenuShortcut::InitStrings();
+
+  // Set up menu shortcuts
+  SetUpInitialMenuStrings(lcid);
+
+  // Set up local strings
+  SetLocalStrings();
+
+  // Now show menu...
+  SetMenu(app.m_pMainMenu);
+
+  // Make sure shortcuts updated
+  for (int i = 0; i < NUMPOPUPMENUS; i++) {
+    m_bDoShortcuts[i] = true;
+  }
+
+  // Update Statusbar
+  CItemData *pci = getSelectedItem();
+  SetDCAText(pci);
+  if (m_ilastaction != 0)
+    UpdateLastClipboardAction(m_ilastaction);
+  else
+    UpdateStatusBar();
+
+  // Set up DragBar Tooltips
+  SetDragbarToolTips();
+
+  // Remove wait cursor
+  wait.Restore();
 }
 
 void DboxMain::RefreshImages()
@@ -2839,6 +2923,10 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
   if (m_bNoChangeToAttachments &&
       (nID == ID_MENUITEM_DELETE || nID == ID_MENUITEM_DELETEENTRY || nID == ID_MENUITEM_DELETEGROUP))
     return FALSE;
+
+  // Special control IDs e.g. Language dynamic menus should always be true
+  if (nID >= 64000)
+    return TRUE;
 
   MapUICommandTableConstIter it;
   it = m_MapUICommandTable.find(nID);

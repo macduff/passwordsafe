@@ -1,5 +1,5 @@
-Password Safe 3.25 Release Notes - March 2011
-=============================================
+Password Safe 3.25.1 Release Notes - March 2011
+===============================================
 
 This note describe the new features, fixed bugs and known problems
 with the latest versions of Password Safe. For a short description of
@@ -8,8 +8,31 @@ information on the product and the project, please visit
 http://passwordsafe.sourceforge.net. Details about changes to older
 releases may be found in the file ChangeLog.txt.
 
-New Features for 3.25
+New Features for 3.25.1
 =======================
+[3203152] The language can changed 'on-the-fly'. It requires that the
+resource-only DLLs be built with V2.0 or later of ResPWSL (i.e. supplied
+with PasswordSafe V3.25.1 or later).
+[3065111] Add/Edit now displays both the Application's (PasswordSafe) and the
+current database's default Autotype string (if set via Manage->Options).
+[2964804] The user can specify the list of symbols valid for a database and can
+override this for any particular entry. Note: the inbuilt special symbols
+for EasyVision and Pronounceable passwords can not be overriden in either case.
+
+Changes to Existing Features in 3.25.1
+======================================
+[] Polish installation texts added thanks to Michal Niklas.
+[] An entry's password exipry date is set or cleared directly rather than using
+the Set and Clear buttons after changing values.
+
+Bugs fixed in 3.25.1
+====================
+[3234204] PasswordSafe no longer ends if the command flag is set to "-s <databasename>".
+[] Controls in Edit are now disabled if entry is protected, even though the user could
+not have saved any changes.
+
+New Features for 3.25
+=====================
 [] Dutch installation instructions thank to Kees, and a first
 (incomplete) Dutch translation of the application thank to Bert, Kees
 and Fred.
@@ -21,7 +44,7 @@ program.
 displaying entries with passwords that are expired or about to expire.
 
 Changes to Existing Features in 3.25
-======================================
+====================================
 [3171962] The password expiration warning mechanism now checks for
 expiration daily. The display of expired and almost-expired entries
 has been redesigned, allowing users to update the entry directly. When
@@ -45,11 +68,10 @@ thanks to pm_kan.
 [] Karlo has updated the German texts.
 [] Francois has updated the French texts.
 [] Bjorne has updated the Swedish version.
-[] freedoctor has updated the Chinese texts.
-
+[] Freedoctor has updated the Chinese texts.
 
 Bugs fixed in 3.25
-====================
+==================
 [3194472] Fix new group creation location. When a Group is selected, then
 selecting 'Add Group' from the Edit menu or from the context menu
 displayed by right clicking on that Group, the new group will be a

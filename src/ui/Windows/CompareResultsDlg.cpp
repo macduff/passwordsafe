@@ -140,6 +140,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
                  {CItemData::RUNCMD, IDS_RUNCOMMAND, RUNCMD},
                  {CItemData::DCA, IDS_DCA, DCA},
                  {CItemData::EMAIL, IDS_EMAIL, EMAIL},
+                 {CItemData::SYMBOLS, IDS_SYMBOLS, SYMBOLS},
   };
 
   for (i = 0; i < sizeof(OptCols) / sizeof(OptCols[0]); i++)
@@ -339,6 +340,8 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
         m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::DCA) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::EMAIL))
         m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::EMAIL) ? L"X" : L"-");
+      if (m_bsFields.test(CItemData::SYMBOLS))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::SYMBOLS) ? L"X" : L"-");
 
       st_data.listindex = iItem;
       m_LCResults.SetItemData(iItem, MAKELONG(BOTH, st_data.id));
@@ -673,9 +676,9 @@ bool CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
   return true;
 }
 
-void CCompareResultsDlg::OnItemDoubleClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
+void CCompareResultsDlg::OnItemDoubleClick(NMHDR *, LRESULT *pLResult)
 {
-  *pResult = 0;
+  *pLResult = 0;
 
   m_row = m_LCResults.GetNextItem(-1, LVNI_SELECTED);
 
@@ -697,9 +700,9 @@ void CCompareResultsDlg::OnItemDoubleClick(NMHDR* /* pNMHDR */, LRESULT *pResult
   OnCompareViewEdit();
 }
 
-void CCompareResultsDlg::OnItemRightClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
+void CCompareResultsDlg::OnItemRightClick(NMHDR *, LRESULT *pLResult)
 {
-  *pResult = 0;
+  *pLResult = 0;
 
   m_row = m_LCResults.GetNextItem(-1, LVNI_SELECTED);
 
@@ -771,9 +774,9 @@ void CCompareResultsDlg::OnItemRightClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
   }
 }
 
-void CCompareResultsDlg::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
+void CCompareResultsDlg::OnColumnClick(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-  NMHEADER *pNMHeaderCtrl  = (NMHEADER *)pNMHDR;
+  NMHEADER *pNMHeaderCtrl  = (NMHEADER *)pNotifyStruct;
 
   // Get column number to CItemData value
   int isortcolumn = pNMHeaderCtrl->iItem;
@@ -813,7 +816,7 @@ void CCompareResultsDlg::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
   hdi.fmt |= ((m_bSortAscending == TRUE) ? HDF_SORTUP : HDF_SORTDOWN);
   pHDRCtrl->SetItem(isortcolumn, &hdi);
 
-  *pResult = TRUE;
+  *pLResult = TRUE;
 }
 
 /*
@@ -896,6 +899,7 @@ void CCompareResultsDlg::WriteReportData()
     const CString csx_runcmd(MAKEINTRESOURCE(IDS_COMPRUNCOMMAND));
     const CString csx_dca(MAKEINTRESOURCE(IDS_COMPDCA));
     const CString csx_email(MAKEINTRESOURCE(IDS_COMPEMAIL));
+    const CString csx_symbols(MAKEINTRESOURCE(IDS_COMPSYMBOLS));
 
     for (cd_iter = m_Conflicts.begin(); cd_iter != m_Conflicts.end();
          cd_iter++) {
@@ -915,6 +919,7 @@ void CCompareResultsDlg::WriteReportData()
       if (st_data.bsDiffs.test(CItemData::RUNCMD)) buffer += csx_runcmd;
       if (st_data.bsDiffs.test(CItemData::DCA)) buffer += csx_dca;
       if (st_data.bsDiffs.test(CItemData::EMAIL)) buffer += csx_email;
+      if (st_data.bsDiffs.test(CItemData::SYMBOLS)) buffer += csx_symbols;
 
       // Time fields
       if (st_data.bsDiffs.test(CItemData::CTIME)) buffer += csx_ctime;

@@ -148,6 +148,10 @@ msgstr "'Bruger'"
 msgid " 'email'"
 msgstr "'email'"
 
+#. Resource IDs: (366)
+msgid " 'symbols'"
+msgstr ""
+
 #. Resource IDs: (362)
 #, c-format
 msgid " / renamed %d"
@@ -298,6 +302,11 @@ msgstr "%d poster"
 msgid "%d of %d matches."
 msgstr "%d af %d passer sammen."
 
+#. Resource IDs: (366)
+#, c-format
+msgid "%s (database-specific)"
+msgstr ""
+
 #. Resource IDs: (3887)
 #, c-format
 msgid "%s [Recovered]"
@@ -352,6 +361,26 @@ msgstr "%s, Titel=\"%\", Bruger=\"%s\* eksisterer allerede i din database eller 
 #, c-format
 msgid "%s. Either try to save database with another name or exit without saving."
 msgstr "%s. Prøv enten at gemme databasen med et andet navn eller afslut uden at gemme."
+
+#. Resource IDs: (343)
+#, c-format
+msgid "%sA newer release is available.%s"
+msgstr ""
+
+#. Resource IDs: (343)
+#, c-format
+msgid "%sCould not read server version data.%s"
+msgstr ""
+
+#. Resource IDs: (342)
+#, c-format
+msgid "%sCouldn't contact server.%s"
+msgstr ""
+
+#. Resource IDs: (343)
+#, c-format
+msgid "%sThis is the latest release!%s"
+msgstr ""
 
 #. Resource IDs: (333)
 #, c-format
@@ -423,10 +452,6 @@ msgstr "&Ændre Sikkerheds Adgangskoden..."
 #. Resource IDs: (32105)
 msgid "&Classic Toolbar"
 msgstr "&Klassisk Værktøjslinie"
-
-#. Resource IDs: (1118)
-msgid "&Clear"
-msgstr "&Slet"
 
 #. Resource IDs: (32252)
 msgid "&Clear Recent History"
@@ -564,6 +589,10 @@ msgstr "&Ignorer"
 msgid "&Import"
 msgstr "&Importer"
 
+#. Resource IDs: (1228)
+msgid "&In"
+msgstr ""
+
 #. Resource IDs: (1143)
 msgid "&Keep"
 msgstr "&Behold"
@@ -608,9 +637,17 @@ msgstr "&Ny/Rediger Filter"
 msgid "&No"
 msgstr "&Nej"
 
+#. Resource IDs: (1229)
+msgid "&None"
+msgstr ""
+
 #. Resource IDs: (1354, 65535)
 msgid "&Notes:"
 msgstr "&Notater:"
+
+#. Resource IDs: (1227)
+msgid "&On"
+msgstr ""
 
 #. Resource IDs: (360)
 msgid "&Open"
@@ -1128,30 +1165,6 @@ msgstr "<"
 #. Resource IDs: (1157)
 msgid "<<"
 msgstr "<<"
-
-#. Resource IDs: (191)
-msgid "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<Pwsafe_Settings></Pwsafe_Settings>"
-msgstr "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"Ja\"?>\n<Pwsafe_Indstillinger></Pwsafe_Indstillinger>"
-
-#. Resource IDs: (343)
-msgid "<b><font color=\"green\">This is the latest release!</font></b>"
-msgstr "<b><font color=\"green\">Dette er den seneste udgave!</font></b>"
-
-#. Resource IDs: (343)
-msgid "<b><font color=\"red\">A newer release is available.</font></b>"
-msgstr "<b><font color=\"red\">En nyere version er tilgængelig.</font></b>"
-
-#. Resource IDs: (343)
-msgid "<b><font color=\"red\">Could not read server version data.</font></b>"
-msgstr "<b><font color=\"red\">Kunne ikke læse server version data.</font></b>"
-
-#. Resource IDs: (342)
-msgid "<b><font color=\"red\">Couldn't contact server.</font></b>"
-msgstr "<b><font color=\"red\">Kunne ikke forbinde til serveren.</font></b>"
-
-#. Resource IDs: (360)
-msgid "<b><font color=\"red\">WARNING</font></b> If you continue, fields will be updated in your existing database from your selected input database.  The OK button on the password entry dialog for your input database will not be enabled <b>until you have accessed the Advanced dialog to confirm what you will be updating.</b>"
-msgstr ""
 
 #. Resource IDs: (1154)
 msgid ">"
@@ -1682,6 +1695,10 @@ msgstr "Følsom over for små/store bogst. søgning"
 msgid "Change &Font"
 msgstr "Skift &Skrift"
 
+#. Resource IDs: (32158)
+msgid "Change &Language"
+msgstr ""
+
 #. Resource IDs: (1414)
 msgid "Change Base"
 msgstr "Skift basis"
@@ -1705,10 +1722,6 @@ msgstr "Ændre det maximale antal af gemte adgangskoder for poster i for øjebli
 #. Resource IDs: (1187)
 msgid "Changes to existing entries will be applied on pressing OK"
 msgstr "Ændringer til eksisterende poster vil blive anvendt ved tryk på OK"
-
-#. Resource IDs: (65535)
-msgid "Changing the values/settings below does not become effective until the 'Set' button is pressed"
-msgstr "Ændring af værdier/indstillinger herunder bliver ikke effektive før der bliver trykket på 'Sæt' knappen"
 
 #. Resource IDs: (210)
 msgid "Characters present between end of index ']' and '}'"
@@ -2207,6 +2220,10 @@ msgid "Dates and Times"
 msgstr "Datoer og Tider"
 
 #. Resource IDs: (65535)
+msgid "Default"
+msgstr ""
+
+#. Resource IDs: (65535)
 msgid "Default Autotype string:"
 msgstr "Standart Autoindsæt streng:"
 
@@ -2217,6 +2234,10 @@ msgstr "Standart Brugernavn"
 #. Resource IDs: (331)
 msgid "Default number of saved password history entries must be between 1 and 255."
 msgstr "Standart antal af gemte adgangskoders historik adgange skal være mellem 1 og 255."
+
+#. Resource IDs: (1438)
+msgid "Default set"
+msgstr ""
 
 #. Resource IDs: (352)
 msgid "Delete"
@@ -3041,10 +3062,6 @@ msgstr "Gruppe kopieret "
 msgid "Group/Title"
 msgstr "Gruppe/Titel"
 
-#. Resource IDs: (188)
-msgid "Group/Title\tUsername\tPassword\tURL\tAutoType\tCreated Time\tPassword Modified Time\tLast Access Time\tPassword Expiry Date\tPassword Expiry Interval\tRecord Modified Time\tPassword Policy\tHistory\tRun Command\tDCA\te-mail\tProtected\tNotes"
-msgstr ""
-
 #. Resource IDs: (1350, 65535)
 msgid "Group:"
 msgstr "Gruppe:"
@@ -3338,10 +3355,6 @@ msgstr "Importeret"
 #, c-format
 msgid "Imported %d %s"
 msgstr "Importeret%d %s"
-
-#. Resource IDs: (1229)
-msgid "In"
-msgstr "I"
 
 #. Resource IDs: (340)
 #, c-format
@@ -4480,6 +4493,11 @@ msgstr ""
 msgid "Protected"
 msgstr ""
 
+#. Resource IDs: (366)
+#, c-format
+msgid "Protected Entry:   «%s» «%s» «%s»"
+msgstr ""
+
 #. Resource IDs: (355)
 msgid "Pswd copied "
 msgstr "Adkod kopieret "
@@ -4723,10 +4741,6 @@ msgstr "Russian (Typewriter)"
 #. Resource IDs: (328)
 msgid "S"
 msgstr "S"
-
-#. Resource IDs: (1119)
-msgid "S&et"
-msgstr "S&æt"
 
 #. Resource IDs: (32022)
 msgid "S&ynchronize..."
@@ -5153,6 +5167,10 @@ msgstr "Spanish"
 msgid "Spanish Variation"
 msgstr "Spanish Variation"
 
+#. Resource IDs: (1439)
+msgid "Special set"
+msgstr ""
+
 #. Resource IDs: (1220)
 msgid "Start PasswordSafe at Login"
 msgstr "Start PasswordSafe med windows"
@@ -5224,6 +5242,10 @@ msgstr "Swiss French"
 #. Resource IDs: (517)
 msgid "Swiss German"
 msgstr "Swiss German"
+
+#. Resource IDs: (192)
+msgid "Symbols"
+msgstr ""
 
 #. Resource IDs: (362)
 msgid "Synchronization failed"
@@ -5446,13 +5468,13 @@ msgstr "Den gamle hoved nøgle er ikke korrekt"
 
 #. Resource IDs: (333)
 #, c-format
-msgid "The original database, \"%s\", is in pre-3.0 format. It will be unchanged.\nYour changes will be written as \"%s\" in the new format, which is unusable by old versions of PasswordSafe. To save your changes in the old format, use the \"File->Export To-> Old (1.x or 2) format\" command."
-msgstr "Den original database, \"%s\", er i før-3.0 format. Den vi ikkel blive ændret.\nDine ændringer vil blive skrevet som \"%s\" i det nye format, som er ubrugelig af ældre versioner af PasswordSafe. For at gemme dine ændringer i det gamle format, brug kommandoen \"Fil->Eksporter Til-> Gammel (1.x eller 2) format\"."
+msgid "The original database, \"%s\", is in pre-3.0 format. It will be unchanged.\nYour changes will be written as \"%s\" in the new format, which is unusable by old versions of PasswordSafe. To save your changes in the old format, use the \"File->Export To->Old (1.x or 2) format\" command."
+msgstr ""
 
 #. Resource IDs: (333)
 #, c-format
-msgid "The original database, \"%s\", is in pre-3.0 format. The data will now be written in the new format, which is unusable by old versions of PasswordSafe. To save the data in the old format, use the \"File->Export To-> Old (1.x or 2) format\" command."
-msgstr "Den original database, \"%s\", er i før-3.0 format. Data vil nu blive skrevet i det nye format,  som er ubrugelig af ældre versioner af PasswordSafe. For at gemme dine ændringer i det gamle format, brug kommandoen \"Fil->Eksporter Til-> Gammel (1.x eller 2) format\"."
+msgid "The original database, \"%s\", is in pre-3.0 format. The data will now be written in the new format, which is unusable by old versions of PasswordSafe. To save the data in the old format, use the \"File->Export To->Old (1.x or 2) format\" command."
+msgstr ""
 
 #. Resource IDs: (342)
 #, c-format
@@ -6152,10 +6174,6 @@ msgstr "Ja:"
 msgid "Yoruba"
 msgstr "Yoruba"
 
-#. Resource IDs: (363)
-msgid "You may not set a password expiry date in the past."
-msgstr "Du må ikke sætte en adgangskodes udløbs dato i fortid."
-
 #. Resource IDs: (362)
 #, c-format
 msgid "You must save this database%s before it can be %s."
@@ -6641,6 +6659,14 @@ msgstr "konflikter"
 msgid "contains"
 msgstr "indeholder"
 
+#. Resource IDs: (214)
+msgid "contains all of"
+msgstr ""
+
+#. Resource IDs: (214)
+msgid "contains any of"
+msgstr ""
+
 #. Resource IDs: (1093)
 msgid "databases."
 msgstr "databaser."
@@ -6664,6 +6690,14 @@ msgstr "begynder ikke med"
 #. Resource IDs: (206)
 msgid "does not contain"
 msgstr "indeholder ikke"
+
+#. Resource IDs: (214)
+msgid "does not contain all of"
+msgstr ""
+
+#. Resource IDs: (214)
+msgid "does not contain any of"
+msgstr ""
 
 #. Resource IDs: (206)
 msgid "does not end with"
@@ -6882,6 +6916,10 @@ msgstr "statisk"
 #, c-format
 msgid "subset: '%s' field '%s' '%s' %s"
 msgstr "delmængde: '%s' felt '%s' '%s' %s"
+
+#. Resource IDs: (366)
+msgid "symbols"
+msgstr ""
 
 #. Resource IDs: (366)
 msgid "synchronized"

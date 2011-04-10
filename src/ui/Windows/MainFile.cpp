@@ -214,6 +214,7 @@ BOOL DboxMain::OpenOnInit()
     CString cs_msg;
     cs_msg.Format(IDS_FILECORRUPT, m_core.GetCurFile().c_str());
     CString cs_title(MAKEINTRESOURCE(IDS_FILEREADERROR));
+
     if (gmb.MessageBox(cs_msg, cs_title, MB_YESNO | MB_ICONERROR) == IDNO) {
       CDialog::OnCancel();
       goto exit;
@@ -527,6 +528,7 @@ int DboxMain::Close(const bool bTrySave)
   m_titlebar = L"Password Safe";
   SetWindowText(LPCWSTR(m_titlebar));
   m_lastclipboardaction = L"";
+  m_ilastaction = 0;
   UpdateStatusBar();
 
   // Delete any saved status information
@@ -794,8 +796,8 @@ int DboxMain::Open(const StringX &sx_Filename, const bool bReadOnly,  const bool
 #ifdef DEMO
     case PWSRC::LIMIT_REACHED:
     {
-      CString cs_msg; cs_msg.Format(IDS_LIMIT_MSG, MAXDEMO);
-      CString cs_title(MAKEINTRESOURCE(IDS_LIMIT_TITLE));
+      CString cs_title(MAKEINTRESOURCE(IDS_LIMIT_TITLE)), cs_msg;
+      cs_msg.Format(IDS_LIMIT_MSG, MAXDEMO);
       const int yn = gmb.MessageBox(cs_msg, cs_title, MB_YESNO | MB_ICONWARNING);
       if (yn == IDNO) {
         rc = PWSRC::USER_CANCEL;
@@ -2999,42 +3001,8 @@ void DboxMain::ReportAdvancedOptions(CReport *pRpt, const bool bAdvanced, const 
 
       cs_case.LoadString(st_SADV.subgroup_function > 0 ? IDS_ADVCASE_INSENSITIVE : IDS_ADVCASE_SENSITIVE);
 
-      switch (st_SADV.subgroup_function) {
-        case -PWSMatch::MR_EQUALS:
-        case  PWSMatch::MR_EQUALS:
-          uistring = IDSC_EQUALS;
-          break;
-        case -PWSMatch::MR_NOTEQUAL:
-        case  PWSMatch::MR_NOTEQUAL:
-          uistring = IDSC_DOESNOTEQUAL;
-          break;
-        case -PWSMatch::MR_BEGINS:
-        case  PWSMatch::MR_BEGINS:
-          uistring = IDSC_BEGINSWITH;
-          break;
-        case -PWSMatch::MR_NOTBEGIN:
-        case  PWSMatch::MR_NOTBEGIN:
-          uistring = IDSC_DOESNOTBEGINSWITH;
-          break;
-        case -PWSMatch::MR_ENDS:
-        case  PWSMatch::MR_ENDS:
-          uistring = IDSC_ENDSWITH;
-          break;
-        case -PWSMatch::MR_NOTEND:
-        case  PWSMatch::MR_NOTEND:
-          uistring = IDSC_DOESNOTENDWITH;
-          break;
-        case -PWSMatch::MR_CONTAINS:
-        case  PWSMatch::MR_CONTAINS:
-          uistring = IDSC_CONTAINS;
-          break;
-        case -PWSMatch::MR_NOTCONTAIN:
-        case  PWSMatch::MR_NOTCONTAIN:
-          uistring = IDSC_DOESNOTCONTAIN;
-          break;
-        default:
-          ASSERT(0);
-      }
+      uistring = PWSMatch::GetRule(PWSMatch::MatchRule(abs(st_SADV.subgroup_function)));
+
       cs_text.LoadString(uistring);
       cs_temp.Format(IDS_ADVANCEDSUBSET, cs_Object, cs_text, st_SADV.subgroup_name.c_str(),
                      cs_case);
@@ -3055,10 +3023,12 @@ void DboxMain::ReportAdvancedOptions(CReport *pRpt, const bool bAdvanced, const 
     // Non-time fields
     int ifields[] = {CItemData::PASSWORD, CItemData::NOTES, CItemData::URL,
                      CItemData::AUTOTYPE, CItemData::PWHIST, CItemData::POLICY,
-                     CItemData::RUNCMD, CItemData::DCA, CItemData::EMAIL};
+                     CItemData::RUNCMD, CItemData::DCA, CItemData::EMAIL,
+                     CItemData::SYMBOLS};
     UINT uimsgids[] = {IDS_COMPPASSWORD, IDS_COMPNOTES, IDS_COMPURL,
                        IDS_COMPAUTOTYPE, IDS_COMPPWHISTORY, IDS_COMPPWPOLICY,
-                       IDS_COMPRUNCOMMAND, IDS_COMPDCA, IDS_COMPEMAIL};
+                       IDS_COMPRUNCOMMAND, IDS_COMPDCA, IDS_COMPEMAIL,
+                       IDS_COMPSYMBOLS};
     ASSERT(_countof(ifields) == _countof(uimsgids));
 
     // Time fields

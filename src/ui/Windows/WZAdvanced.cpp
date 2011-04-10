@@ -179,30 +179,19 @@ BOOL CWZAdvanced::OnInitDialog()
     // These controls are only in the top half
     CComboBox *cboSubgroupFunction = (CComboBox *)GetDlgItem(IDC_ADVANCED_SUBGROUP_FUNCTION);
     if (cboSubgroupFunction->GetCount() == 0) {
-      cs_text.LoadString(IDSC_EQUALS);
-      iItem = cboSubgroupFunction->AddString(cs_text);
-      cboSubgroupFunction->SetItemData(iItem, PWSMatch::MR_EQUALS);
-      cs_text.LoadString(IDSC_DOESNOTEQUAL);
-      iItem = cboSubgroupFunction->AddString(cs_text);
-      cboSubgroupFunction->SetItemData(iItem, PWSMatch::MR_NOTEQUAL);
-      cs_text.LoadString(IDSC_BEGINSWITH);
-      iItem = cboSubgroupFunction->AddString(cs_text);
-      cboSubgroupFunction->SetItemData(iItem, PWSMatch::MR_BEGINS);
-      cs_text.LoadString(IDSC_DOESNOTBEGINSWITH);
-      iItem = cboSubgroupFunction->AddString(cs_text);
-      cboSubgroupFunction->SetItemData(iItem, PWSMatch::MR_NOTBEGIN);
-      cs_text.LoadString(IDSC_ENDSWITH);
-      iItem = cboSubgroupFunction->AddString(cs_text);
-      cboSubgroupFunction->SetItemData(iItem, PWSMatch::MR_ENDS);
-      cs_text.LoadString(IDSC_DOESNOTENDWITH);
-      iItem = cboSubgroupFunction->AddString(cs_text);
-      cboSubgroupFunction->SetItemData(iItem, PWSMatch::MR_NOTEND);
-      cs_text.LoadString(IDSC_CONTAINS);
-      iItem = cboSubgroupFunction->AddString(cs_text);
-      cboSubgroupFunction->SetItemData(iItem, PWSMatch::MR_CONTAINS);
-      cs_text.LoadString(IDSC_DOESNOTCONTAIN);
-      iItem = cboSubgroupFunction->AddString(cs_text);
-      cboSubgroupFunction->SetItemData(iItem, PWSMatch::MR_NOTCONTAIN);
+      const PWSMatch::MatchRule mrx[] = {PWSMatch::MR_EQUALS,   PWSMatch::MR_NOTEQUAL,
+                                         PWSMatch::MR_BEGINS,   PWSMatch::MR_NOTBEGIN,
+                                         PWSMatch::MR_ENDS,     PWSMatch::MR_NOTEND,
+                                         PWSMatch::MR_CONTAINS, PWSMatch::MR_NOTCONTAIN,
+                                         PWSMatch::MR_CNTNANY,  PWSMatch::MR_NOTCNTNANY,
+                                         PWSMatch::MR_CNTNALL,  PWSMatch::MR_NOTCNTNALL};
+
+      for (size_t i = 0; i < _countof(mrx); i++) {
+        UINT iumsg = PWSMatch::GetRule(mrx[i]);
+        cs_text.LoadString(iumsg);
+        iItem = cboSubgroupFunction->AddString(cs_text);
+        cboSubgroupFunction->SetItemData(iItem, mrx[i]);
+      }
     }
 
     for (i = 0; i < cboSubgroupFunction->GetCount(); i++) {
@@ -428,6 +417,12 @@ BOOL CWZAdvanced::OnInitDialog()
   m_pLC_Selected->SetItemData(iItem, CItemData::EMAIL | NORMALFIELD);
   m_bsAllowedFields.set(CItemData::EMAIL);
   m_bsDefaultSelectedFields.set(CItemData::EMAIL);
+
+  cs_text.LoadString(IDS_SYMBOLS);
+  iItem = m_pLC_Selected->InsertItem(++iItem, cs_text);
+  m_pLC_Selected->SetItemData(iItem, CItemData::SYMBOLS | NORMALFIELD);
+  m_bsAllowedFields.set(CItemData::SYMBOLS);
+  m_bsDefaultSelectedFields.set(CItemData::SYMBOLS);
 
   // Deal with standard text fields - selected by default
   switch (m_iIndex) {
@@ -935,17 +930,17 @@ void CWZAdvanced::OnDeselectAll()
   m_pLC_List->SortItems(AdvCompareFunc, NULL);
 }
 
-void CWZAdvanced::OnSelectedItemChanging(NMHDR *pNMHDR, LRESULT *pResult)
+void CWZAdvanced::OnSelectedItemChanging(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
   // Prevent mandatory fields being deselected
-  NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+  NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNotifyStruct;
 
   if (m_bsMandatoryFields.test(pNMListView->lParam & 0xff) &&
       (pNMListView->uNewState & LVIS_SELECTED)) {
     pNMListView->uNewState &= ~LVIS_SELECTED;
-    *pResult = TRUE;
+    *pLResult = TRUE;
   } else
-    *pResult = FALSE;
+    *pLResult = FALSE;
 }
 
 // Override PreTranslateMessage() so RelayEvent() can be

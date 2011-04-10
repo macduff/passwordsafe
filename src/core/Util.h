@@ -157,6 +157,8 @@ namespace PWSUtil {
   void Get_CRC_Incremental_Init();
   void Get_CRC_Incremental_Update(unsigned char *pData, const size_t &iLen);
   unsigned int Get_CRC_Incremental_Final();
+
+  StringX DeDupString(StringX &in_string);
 }
 
 ///////////////////////////////////////////////////////

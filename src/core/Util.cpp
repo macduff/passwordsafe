@@ -555,13 +555,14 @@ void PWSUtil::Base64Decode(const StringX &inString, BYTE* &decoded, size_t &buff
   buffer_len = st_length;
 }
 
+
 static const size_t MAX_TTT_LEN = 64; // Max tooltip text length
 
 StringX PWSUtil::NormalizeTTT(const StringX &in)
 {
   StringX ttt;
   if (in.length() >= MAX_TTT_LEN) {
-    ttt = in.substr(0, MAX_TTT_LEN / 2-6) + 
+    ttt = in.substr(0, MAX_TTT_LEN / 2 - 6) + 
       _T(" ... ") + in.substr(in.length() - MAX_TTT_LEN / 2);
   } else {
     ttt = in;
@@ -789,4 +790,26 @@ int GetStringBufSize(const TCHAR *fmt, va_list args)
     delete[] buffer;
   ASSERT(len>0);
   return len;
+}
+
+StringX PWSUtil::DeDupString(StringX &in_string)
+{
+  // Size of input string
+  const size_t len = in_string.length();
+
+  // Create output string
+  StringX out_string;
+
+  // It will never be longer than the input string
+  out_string.reserve(len);
+  const charT *c = in_string.c_str();
+
+  // Cycle through characters - only appending if not already there
+  for (size_t i = 0; i < len; i++) {
+    if (out_string.find_first_of(c) == StringX::npos) {
+      out_string.append(c, 1);
+    }
+    c++;
+  }
+  return out_string;
 }

@@ -201,8 +201,10 @@ BOOL CAddEdit_Basic::OnInitDialog()
   ApplyPasswordFont(GetDlgItem(IDC_PASSWORD));
   ApplyPasswordFont(GetDlgItem(IDC_PASSWORD2));
 
-  if (M_uicaller() != IDS_EDITENTRY || M_protected() == 0)
-    GetDlgItem(IDC_STATIC_PROTECTED)->ShowWindow(SW_HIDE);
+  if (M_uicaller() == IDS_EDITENTRY && M_protected() != 0) {
+    GetDlgItem(IDC_STATIC_PROTECTED)->ShowWindow(SW_SHOW);
+    m_stc_protected.SetColour(RGB(255,0,0));
+  }
 
   if (M_uicaller() != IDS_ADDENTRY) {
     m_pToolTipCtrl = new CToolTipCtrl;
@@ -234,7 +236,6 @@ BOOL CAddEdit_Basic::OnInitDialog()
       if (M_uicaller() == IDS_EDITENTRY && M_protected() != 0) {
         cs_ToolTip.LoadString(IDS_UNPROTECT);
         m_pToolTipCtrl->AddTool(GetDlgItem(IDC_STATIC_PROTECTED), cs_ToolTip);
-        m_stc_protected.SetColour(RGB(255,0,0));
       }
 
       m_pToolTipCtrl->Activate(TRUE);
@@ -253,12 +254,11 @@ BOOL CAddEdit_Basic::OnInitDialog()
   GetDlgItem(IDC_LAUNCH)->EnableWindow(M_URL().IsEmpty() ? FALSE : TRUE);
   GetDlgItem(IDC_SENDEMAIL)->EnableWindow(M_email().IsEmpty() ? FALSE : TRUE);
 
-  if (M_uicaller() == IDS_VIEWENTRY || (M_uicaller() == IDS_EDITENTRY && M_protected() != 0)) {
+  if (M_uicaller() == IDS_VIEWENTRY ||
+      (M_uicaller() == IDS_EDITENTRY && M_protected() != 0)) {
     // Change 'OK' to 'Close' and disable 'Cancel'
     CancelToClose();
-  }
 
-  if (M_uicaller() == IDS_VIEWENTRY) {
     // Disable Group Combo
     GetDlgItem(IDC_GROUP)->EnableWindow(FALSE);
 
@@ -452,6 +452,7 @@ LRESULT CAddEdit_Basic::OnQuerySiblings(WPARAM wParam, LPARAM )
               M_realnotes()    != M_originalrealnotesTRC() ||
               M_URL()          != M_pci()->GetURL()        ||
               M_email()        != M_pci()->GetEmail()      ||
+              M_symbols()      != M_pci()->GetSymbols()    ||
               M_realpassword() != M_oldRealPassword())
             return 1L;
           break;
@@ -462,7 +463,8 @@ LRESULT CAddEdit_Basic::OnQuerySiblings(WPARAM wParam, LPARAM )
               !M_realpassword().IsEmpty() ||
               !M_realnotes().IsEmpty()    ||
               !M_URL().IsEmpty()          ||
-              !M_email().IsEmpty())
+              !M_email().IsEmpty()        ||
+              !M_symbols().IsEmpty()        )
             return 1L;
           break;
       }
@@ -473,42 +475,6 @@ LRESULT CAddEdit_Basic::OnQuerySiblings(WPARAM wParam, LPARAM )
       if (OnApply() == FALSE)
         return 1L;
       break;
-    case PP_PROTECT_CHANGED:
-    {
-      const BOOL bProtect = M_protected() != 0 ? TRUE : FALSE;
-      // Change 'OK' to 'Close' and disable 'Cancel'
-      if (bProtect == TRUE) {
-        CString cs_Close(MAKEINTRESOURCE(IDS_CLOSE));
-        m_ae_psh->GetDlgItem(IDOK)->SetWindowText(cs_Close);
-        m_ae_psh->GetDlgItem(IDCANCEL)->EnableWindow(TRUE);
-        m_ae_psh->GetDlgItem(ID_APPLY_NOW)->EnableWindow(FALSE);
-      } else {
-        // There isn't a "CloseToCancel()" function - do it ourselves!
-        if (m_ae_psh != NULL && IsWindow(m_ae_psh->m_hWnd)) {
-          CString cs_OK(MAKEINTRESOURCE(IDS_OK));
-          m_ae_psh->GetDlgItem(IDOK)->SetWindowText(cs_OK);
-          m_ae_psh->GetDlgItem(IDCANCEL)->EnableWindow(TRUE);
-          m_ae_psh->GetDlgItem(ID_APPLY_NOW)->EnableWindow(TRUE);
-        }
-      }
-
-      // Enable/Disable Group Combo
-      GetDlgItem(IDC_GROUP)->EnableWindow(1 - bProtect);
-
-      // Enable/Disable normal Edit controls
-      GetDlgItem(IDC_TITLE)->SendMessage(EM_SETREADONLY, bProtect, 0);
-      GetDlgItem(IDC_USERNAME)->SendMessage(EM_SETREADONLY, bProtect, 0);
-      GetDlgItem(IDC_PASSWORD)->SendMessage(EM_SETREADONLY, bProtect, 0);
-      GetDlgItem(IDC_PASSWORD2)->SendMessage(EM_SETREADONLY, bProtect, 0);
-      GetDlgItem(IDC_NOTES)->SendMessage(EM_SETREADONLY, bProtect, 0);
-      GetDlgItem(IDC_NOTESWW)->SendMessage(EM_SETREADONLY, bProtect, 0);
-      GetDlgItem(IDC_URL)->SendMessage(EM_SETREADONLY, bProtect, 0);
-      GetDlgItem(IDC_EMAIL)->SendMessage(EM_SETREADONLY, bProtect, 0);
-
-      // Enable/Disable Button
-      GetDlgItem(IDC_RANDOM)->EnableWindow(1 - bProtect);
-      break;
-    }
   }
   return 0L;
 }
@@ -554,7 +520,7 @@ BOOL CAddEdit_Basic::PreTranslateMessage(MSG* pMsg)
 BOOL CAddEdit_Basic::OnApply()
 {
   if (M_uicaller() == IDS_VIEWENTRY || M_protected() != 0)
-    return CAddEdit_PropertyPage::OnApply();
+    return FALSE; //CAddEdit_PropertyPage::OnApply();
 
   CWnd *pFocus(NULL);
   CGeneralMsgBox gmb;
@@ -568,6 +534,7 @@ BOOL CAddEdit_Basic::OnApply()
   M_username().EmptyIfOnlyWhiteSpace();
   M_URL().EmptyIfOnlyWhiteSpace();
   M_email().EmptyIfOnlyWhiteSpace();
+  M_symbols().EmptyIfOnlyWhiteSpace();
 
   m_notes.EmptyIfOnlyWhiteSpace();
   m_notesww.EmptyIfOnlyWhiteSpace();
@@ -826,7 +793,7 @@ void CAddEdit_Basic::OnRandom()
   }
 
   StringX passwd;
-  M_pDbx()->MakeRandomPassword(passwd, M_pwp());
+  M_pDbx()->MakeRandomPassword(passwd, M_pwp(), M_symbols());
   if (rc == CChangeAliasPswd::CHANGEBASE) {
     // Change Base
     ItemListIter iter = M_pDbx()->Find(M_base_uuid());

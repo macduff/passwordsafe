@@ -46,6 +46,8 @@
 #include <algorithm>
 #include <set>
 
+const TCHAR *EXPORTHEADER  = _T("Group/Title\tUsername\tPassword\tURL\tAutoType\tCreated Time\tPassword Modified Time\tLast Access Time\tPassword Expiry Date\tPassword Expiry Interval\tRecord Modified Time\tPassword Policy\tHistory\tRun Command\tDCA\te-mail\tProtected\tSymbols\tNotes");
+
 using namespace std;
 
 // hide w_char/char differences where possible:
@@ -186,6 +188,9 @@ StringX PWScore::BuildHeader(const CItemData::FieldBits &bsFields, const bool bI
   if (bittest(bsFields, CItemData::PROTECTED, bIncluded)) {
     hdr += CItemData::FieldName(CItemData::PROTECTED) + TAB;
   }
+  if (bittest(bsFields, CItemData::SYMBOLS, bIncluded)) {
+    hdr += CItemData::FieldName(CItemData::SYMBOLS) + TAB;
+  }
   if (bittest(bsFields, CItemData::NOTES, bIncluded)) {
     hdr += CItemData::FieldName(CItemData::NOTES);
   }
@@ -300,8 +305,7 @@ int PWScore::WritePlaintextFile(const StringX &filename,
 
   if (bsFields.count() == bsFields.size()) {
     // all fields to be exported, use pre-built header
-    StringX exphdr;
-    LoadAString(exphdr, IDSC_EXPORTHEADER);
+    StringX exphdr = EXPORTHEADER;
     conv.ToUTF8(exphdr, utf8, utf8Len);
     ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
     ofs << endl;
@@ -619,6 +623,22 @@ int PWScore::WriteXMLFile(const StringX &filename,
         case -PWSMatch::MR_NOTCONTAIN:
           iFunction = IDSC_DOESNOTCONTAIN;
           break;
+        case  PWSMatch::MR_CNTNANY:
+        case -PWSMatch::MR_CNTNANY:
+          iFunction = IDSC_CONTAINSANY;
+          break;
+        case  PWSMatch::MR_NOTCNTNANY:
+        case -PWSMatch::MR_NOTCNTNANY:
+          iFunction = IDSC_DOESNOTCONTAINANY;
+          break;
+        case  PWSMatch::MR_CNTNALL:
+        case -PWSMatch::MR_CNTNALL:
+          iFunction = IDSC_CONTAINSALL;
+          break;
+        case  PWSMatch::MR_NOTCNTNALL:
+        case -PWSMatch::MR_NOTCNTNALL:
+          iFunction = IDSC_DOESNOTCONTAINALL;
+          break;
         default:
           ASSERT(0);
       }
@@ -830,8 +850,8 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
 
   CItemData ci_temp;
   vector<string> vs_Header;
-  stringT cs_hdr;
-  LoadAString(cs_hdr, IDSC_EXPORTHEADER);
+  stringT cs_hdr = EXPORTHEADER;
+
   const unsigned char *hdr;
   size_t hdrlen;
   conv.ToUTF8(cs_hdr.c_str(), hdr, hdrlen);
@@ -842,7 +862,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
   // Order of fields determined in CItemData::GetPlaintext()
   enum Fields {GROUPTITLE, USER, PASSWORD, URL, AUTOTYPE,
                CTIME, PMTIME, ATIME, XTIME, XTIME_INT, RMTIME,
-               POLICY, HISTORY, RUNCMD, DCA, EMAIL, PROTECTED, NOTES, 
+               POLICY, HISTORY, RUNCMD, DCA, EMAIL, PROTECTED, SYMBOLS, NOTES, 
                NUMFIELDS};
 
   int i_Offset[NUMFIELDS];
@@ -1243,6 +1263,8 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
     if (i_Offset[PROTECTED] >= 0 && tokens.size() > static_cast<size_t>(i_Offset[PROTECTED]))
       if (tokens[i_Offset[PROTECTED]].compare(_T("Y")) == 0 || tokens[i_Offset[PROTECTED]].compare(_T("1")) == 0)
         ci_temp.SetProtected(true);
+    if (i_Offset[SYMBOLS] >= 0 && tokens.size() > static_cast<size_t>(i_Offset[SYMBOLS]))
+      ci_temp.SetSymbols(tokens[i_Offset[SYMBOLS]].c_str());
 
     // The notes field begins and ends with a double-quote, with
     // replacement of delimiter by CR-LF.

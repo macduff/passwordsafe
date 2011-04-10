@@ -35,9 +35,6 @@ public:
 
   DECLARE_DYNAMIC(CAddEdit_PropertySheet)
 
-  // Password Policy related stuff
-  enum {DEFAULT_POLICY = 0, SPECIFIC_POLICY};
-
   // Get/Set routines needed by DboxMain Add & Edit
   CSecString &GetGroup() {return m_AEMD.group;}
   void SetGroup(StringX group) {m_AEMD.group = CSecString(group);}
@@ -66,10 +63,14 @@ public:
 
   void SetChanged(const bool bChanged);
   bool IsChanged() {return m_bChanged;}
-  void SetNotesChanged(const bool bChanged) {m_bNotesChanged = bChanged;}
+
+  void SetNotesChanged(const bool bNotesChanged) {m_bNotesChanged = bNotesChanged;}
   bool IsNotesChanged() {return m_bNotesChanged;}
   void SetAttachmentsChanged(const bool bChanged);
   bool HaveAttachmentsChanged() {return m_bAttachmentsChanged;}
+
+  void SetSymbolsChanged(const bool bSymbolsChanged);
+  bool IsSymbolsChanged() {return m_bSymbolsChanged;}
 
 protected:
   st_AE_master_data m_AEMD;
@@ -83,7 +84,7 @@ private:
   CAddEdit_PasswordPolicy  *m_pp_pwpolicy;
   CAddEdit_Attachments     *m_pp_attachments;
 
-  bool m_bIsModified, m_bChanged, m_bNotesChanged, m_bAttachmentsChanged;
+  bool m_bIsModified, m_bChanged, m_bNotesChanged, m_bSymbolsChanged, m_bAttachmentsChanged;
 };
 //-----------------------------------------------------------------------------
 // Local variables:

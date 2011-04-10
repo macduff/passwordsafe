@@ -148,6 +148,10 @@ msgstr "'Utente'"
 msgid " 'email'"
 msgstr ""
 
+#. Resource IDs: (366)
+msgid " 'symbols'"
+msgstr ""
+
 #. Resource IDs: (362)
 #, c-format
 msgid " / renamed %d"
@@ -298,6 +302,11 @@ msgstr "%d oggetti"
 msgid "%d of %d matches."
 msgstr "%d di %d concordano."
 
+#. Resource IDs: (366)
+#, c-format
+msgid "%s (database-specific)"
+msgstr ""
+
 #. Resource IDs: (3887)
 #, c-format
 msgid "%s [Recovered]"
@@ -351,6 +360,26 @@ msgstr ""
 #. Resource IDs: (363)
 #, c-format
 msgid "%s. Either try to save database with another name or exit without saving."
+msgstr ""
+
+#. Resource IDs: (343)
+#, c-format
+msgid "%sA newer release is available.%s"
+msgstr ""
+
+#. Resource IDs: (343)
+#, c-format
+msgid "%sCould not read server version data.%s"
+msgstr ""
+
+#. Resource IDs: (342)
+#, c-format
+msgid "%sCouldn't contact server.%s"
+msgstr ""
+
+#. Resource IDs: (343)
+#, c-format
+msgid "%sThis is the latest release!%s"
 msgstr ""
 
 #. Resource IDs: (333)
@@ -423,10 +452,6 @@ msgstr "&Cambia la Combinazione di Sicurezza"
 #. Resource IDs: (32105)
 msgid "&Classic Toolbar"
 msgstr ""
-
-#. Resource IDs: (1118)
-msgid "&Clear"
-msgstr "&Cancella"
 
 #. Resource IDs: (32252)
 msgid "&Clear Recent History"
@@ -564,6 +589,10 @@ msgstr ""
 msgid "&Import"
 msgstr "&Importa"
 
+#. Resource IDs: (1228)
+msgid "&In"
+msgstr ""
+
 #. Resource IDs: (1143)
 msgid "&Keep"
 msgstr "&Mantieni"
@@ -608,9 +637,17 @@ msgstr "&Nuovo/Modifica Filtro"
 msgid "&No"
 msgstr "&No"
 
+#. Resource IDs: (1229)
+msgid "&None"
+msgstr ""
+
 #. Resource IDs: (1354, 65535)
 msgid "&Notes:"
 msgstr "&Note:"
+
+#. Resource IDs: (1227)
+msgid "&On"
+msgstr ""
 
 #. Resource IDs: (360)
 msgid "&Open"
@@ -1128,30 +1165,6 @@ msgstr "<"
 #. Resource IDs: (1157)
 msgid "<<"
 msgstr "<<"
-
-#. Resource IDs: (191)
-msgid "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<Pwsafe_Settings></Pwsafe_Settings>"
-msgstr "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<Pwsafe_Settings></Pwsafe_Settings>"
-
-#. Resource IDs: (343)
-msgid "<b><font color=\"green\">This is the latest release!</font></b>"
-msgstr "<b><font color=\"green\">Il programma è aggiornato all'ultima versione!</font></b>"
-
-#. Resource IDs: (343)
-msgid "<b><font color=\"red\">A newer release is available.</font></b>"
-msgstr "<b><font color=\"red\">E' disponibile una nuova versione.</font></b>"
-
-#. Resource IDs: (343)
-msgid "<b><font color=\"red\">Could not read server version data.</font></b>"
-msgstr "<b><font color=\"red\">Impossibile leggere i dati di versione sul server.</font></b>"
-
-#. Resource IDs: (342)
-msgid "<b><font color=\"red\">Couldn't contact server.</font></b>"
-msgstr "<b><font color=\"red\">Impossibile contattare il server.</font></b>"
-
-#. Resource IDs: (360)
-msgid "<b><font color=\"red\">WARNING</font></b> If you continue, fields will be updated in your existing database from your selected input database.  The OK button on the password entry dialog for your input database will not be enabled <b>until you have accessed the Advanced dialog to confirm what you will be updating.</b>"
-msgstr ""
 
 #. Resource IDs: (1154)
 msgid ">"
@@ -1682,6 +1695,10 @@ msgstr "Ricerca che tiene conto del maiuscolo"
 msgid "Change &Font"
 msgstr "Cambia &Carattere"
 
+#. Resource IDs: (32158)
+msgid "Change &Language"
+msgstr ""
+
 #. Resource IDs: (1414)
 msgid "Change Base"
 msgstr ""
@@ -1704,10 +1721,6 @@ msgstr "Cambia il numero massimo consentito di password salvate per scheda salva
 
 #. Resource IDs: (1187)
 msgid "Changes to existing entries will be applied on pressing OK"
-msgstr ""
-
-#. Resource IDs: (65535)
-msgid "Changing the values/settings below does not become effective until the 'Set' button is pressed"
 msgstr ""
 
 #. Resource IDs: (210)
@@ -2207,6 +2220,10 @@ msgid "Dates and Times"
 msgstr ""
 
 #. Resource IDs: (65535)
+msgid "Default"
+msgstr ""
+
+#. Resource IDs: (65535)
 msgid "Default Autotype string:"
 msgstr "Stringa di Autoinserimento di default"
 
@@ -2217,6 +2234,10 @@ msgstr "Nome utente di default"
 #. Resource IDs: (331)
 msgid "Default number of saved password history entries must be between 1 and 255."
 msgstr "Il numero di default dello storico di password salvate per scheda dev'essere compreso fra 1 e 255."
+
+#. Resource IDs: (1438)
+msgid "Default set"
+msgstr ""
 
 #. Resource IDs: (352)
 msgid "Delete"
@@ -3041,10 +3062,6 @@ msgstr ""
 msgid "Group/Title"
 msgstr ""
 
-#. Resource IDs: (188)
-msgid "Group/Title\tUsername\tPassword\tURL\tAutoType\tCreated Time\tPassword Modified Time\tLast Access Time\tPassword Expiry Date\tPassword Expiry Interval\tRecord Modified Time\tPassword Policy\tHistory\tRun Command\tDCA\te-mail\tProtected\tNotes"
-msgstr ""
-
 #. Resource IDs: (1350, 65535)
 msgid "Group:"
 msgstr ""
@@ -3337,10 +3354,6 @@ msgstr ""
 #. Resource IDs: (334)
 #, c-format
 msgid "Imported %d %s"
-msgstr ""
-
-#. Resource IDs: (1229)
-msgid "In"
 msgstr ""
 
 #. Resource IDs: (340)
@@ -4480,6 +4493,11 @@ msgstr ""
 msgid "Protected"
 msgstr ""
 
+#. Resource IDs: (366)
+#, c-format
+msgid "Protected Entry:   «%s» «%s» «%s»"
+msgstr ""
+
 #. Resource IDs: (355)
 msgid "Pswd copied "
 msgstr ""
@@ -4722,10 +4740,6 @@ msgstr ""
 
 #. Resource IDs: (328)
 msgid "S"
-msgstr ""
-
-#. Resource IDs: (1119)
-msgid "S&et"
 msgstr ""
 
 #. Resource IDs: (32022)
@@ -5153,6 +5167,10 @@ msgstr ""
 msgid "Spanish Variation"
 msgstr ""
 
+#. Resource IDs: (1439)
+msgid "Special set"
+msgstr ""
+
 #. Resource IDs: (1220)
 msgid "Start PasswordSafe at Login"
 msgstr ""
@@ -5223,6 +5241,10 @@ msgstr ""
 
 #. Resource IDs: (517)
 msgid "Swiss German"
+msgstr ""
+
+#. Resource IDs: (192)
+msgid "Symbols"
 msgstr ""
 
 #. Resource IDs: (362)
@@ -5446,12 +5468,12 @@ msgstr ""
 
 #. Resource IDs: (333)
 #, c-format
-msgid "The original database, \"%s\", is in pre-3.0 format. It will be unchanged.\nYour changes will be written as \"%s\" in the new format, which is unusable by old versions of PasswordSafe. To save your changes in the old format, use the \"File->Export To-> Old (1.x or 2) format\" command."
+msgid "The original database, \"%s\", is in pre-3.0 format. It will be unchanged.\nYour changes will be written as \"%s\" in the new format, which is unusable by old versions of PasswordSafe. To save your changes in the old format, use the \"File->Export To->Old (1.x or 2) format\" command."
 msgstr ""
 
 #. Resource IDs: (333)
 #, c-format
-msgid "The original database, \"%s\", is in pre-3.0 format. The data will now be written in the new format, which is unusable by old versions of PasswordSafe. To save the data in the old format, use the \"File->Export To-> Old (1.x or 2) format\" command."
+msgid "The original database, \"%s\", is in pre-3.0 format. The data will now be written in the new format, which is unusable by old versions of PasswordSafe. To save the data in the old format, use the \"File->Export To->Old (1.x or 2) format\" command."
 msgstr ""
 
 #. Resource IDs: (342)
@@ -6152,10 +6174,6 @@ msgstr ""
 msgid "Yoruba"
 msgstr ""
 
-#. Resource IDs: (363)
-msgid "You may not set a password expiry date in the past."
-msgstr ""
-
 #. Resource IDs: (362)
 #, c-format
 msgid "You must save this database%s before it can be %s."
@@ -6641,6 +6659,14 @@ msgstr ""
 msgid "contains"
 msgstr ""
 
+#. Resource IDs: (214)
+msgid "contains all of"
+msgstr ""
+
+#. Resource IDs: (214)
+msgid "contains any of"
+msgstr ""
+
 #. Resource IDs: (1093)
 msgid "databases."
 msgstr ""
@@ -6663,6 +6689,14 @@ msgstr ""
 
 #. Resource IDs: (206)
 msgid "does not contain"
+msgstr ""
+
+#. Resource IDs: (214)
+msgid "does not contain all of"
+msgstr ""
+
+#. Resource IDs: (214)
+msgid "does not contain any of"
 msgstr ""
 
 #. Resource IDs: (206)
@@ -6881,6 +6915,10 @@ msgstr ""
 #. Resource IDs: (346)
 #, c-format
 msgid "subset: '%s' field '%s' '%s' %s"
+msgstr ""
+
+#. Resource IDs: (366)
+msgid "symbols"
 msgstr ""
 
 #. Resource IDs: (366)

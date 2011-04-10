@@ -263,6 +263,9 @@ int CALLBACK DboxMain::CompareFunc(LPARAM lParam1, LPARAM lParam2,
     case CItemData::EMAIL:
       iResult = CompareNoCase(pLHS->GetEmail(), pRHS->GetEmail());
       break;
+    case CItemData::SYMBOLS:
+      iResult = CompareNoCase(pLHS->GetSymbols(), pRHS->GetSymbols());
+      break;
     case CItemData::RUNCMD:
       iResult = CompareNoCase(pLHS->GetRunCommand(), pRHS->GetRunCommand());
       break;
@@ -633,7 +636,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
   ASSERT(indices.empty());
 
   StringX curGroup, curTitle, curUser, curNotes, curPassword, curURL, curAT, curXInt;
-  StringX curEmail, curRunCommand, listTitle, saveTitle;
+  StringX curEmail, curSymbols, curRunCommand, listTitle, saveTitle;
   bool bFoundit;
   CString searchstr(str); // Since str is const, and we might need to MakeLower
   size_t retval = 0;
@@ -677,6 +680,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
     curNotes = curitem.GetNotes();
     curURL = curitem.GetURL();
     curEmail = curitem.GetEmail();
+    curSymbols = curitem.GetSymbols();
     curRunCommand = curitem.GetRunCommand();
     curAT = curitem.GetAutoType();
     curXInt = curitem.GetXTimeInt();
@@ -721,6 +725,10 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
         break;
       }
       if (bsFields.test(CItemData::EMAIL) && ::wcsstr(curEmail.c_str(), searchstr)) {
+        bFoundit = true;
+        break;
+      }
+      if (bsFields.test(CItemData::SYMBOLS) && ::wcsstr(curSymbols.c_str(), searchstr)) {
         bFoundit = true;
         break;
       }
@@ -1238,17 +1246,17 @@ void DboxMain::OnRestore()
   TellUserAboutExpiredPasswords();
 }
 
-void DboxMain::OnListItemSelected(NMHDR *pNMHDR, LRESULT *pLResult)
+void DboxMain::OnListItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-  OnItemSelected(pNMHDR, pLResult);
+  OnItemSelected(pNotifyStruct, pLResult);
 }
 
-void DboxMain::OnTreeItemSelected(NMHDR *pNMHDR, LRESULT *pLResult)
+void DboxMain::OnTreeItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-  OnItemSelected(pNMHDR, pLResult);
+  OnItemSelected(pNotifyStruct, pLResult);
 }
 
-void DboxMain::OnItemSelected(NMHDR *pNMHDR, LRESULT *pLResult)
+void DboxMain::OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
   *pLResult = 0L;
   CItemData *pci(NULL);
@@ -1265,7 +1273,7 @@ void DboxMain::OnItemSelected(NMHDR *pNMHDR, LRESULT *pLResult)
     HTREEITEM hItem(NULL);
 
     UnFindItem();
-    switch (pNMHDR->code) {
+    switch (pNotifyStruct->code) {
       case NM_CLICK:
       {
         // Mouseclick - Need to find the item clicked via HitTest
@@ -1296,7 +1304,7 @@ void DboxMain::OnItemSelected(NMHDR *pNMHDR, LRESULT *pLResult)
       }
       case TVN_SELCHANGED:
         // Keyboard - We are given the new selected entry
-        hItem = ((NMTREEVIEW *)pNMHDR)->itemNew.hItem;
+        hItem = ((NMTREEVIEW *)pNotifyStruct)->itemNew.hItem;
         break;
       default:
         // No idea how we got here!
@@ -1315,16 +1323,16 @@ void DboxMain::OnItemSelected(NMHDR *pNMHDR, LRESULT *pLResult)
     // ListView
 
     int iItem(-1);
-    switch (pNMHDR->code) {
+    switch (pNotifyStruct->code) {
       case NM_CLICK:
       {
-        LPNMITEMACTIVATE pLVItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+        LPNMITEMACTIVATE pLVItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNotifyStruct);
         iItem = pLVItemActivate->iItem;
         break;
       }
       case LVN_KEYDOWN:
       {
-        LPNMLVKEYDOWN pLVKeyDown = reinterpret_cast<LPNMLVKEYDOWN>(pNMHDR);
+        LPNMLVKEYDOWN pLVKeyDown = reinterpret_cast<LPNMLVKEYDOWN>(pNotifyStruct);
         iItem = m_ctlItemList.GetNextItem(-1, LVNI_SELECTED);
         int nCount = m_ctlItemList.GetItemCount();
         if (pLVKeyDown->wVKey == VK_DOWN)
@@ -1350,12 +1358,12 @@ void DboxMain::OnItemSelected(NMHDR *pNMHDR, LRESULT *pLResult)
   m_LastFoundListItem = -1;
 }
 
-void DboxMain::OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult)
+void DboxMain::OnKeydownItemlist(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-  LPNMLVKEYDOWN pLVKeyDown = reinterpret_cast<LPNMLVKEYDOWN>(pNMHDR);
+  LPNMLVKEYDOWN pLVKeyDown = reinterpret_cast<LPNMLVKEYDOWN>(pNotifyStruct);
 
   // TRUE = we have processed the key stroke - don't call anyone else
-  *pResult = TRUE;
+  *pLResult = TRUE;
 
   switch (pLVKeyDown->wVKey) {
     case VK_DELETE:
@@ -1375,7 +1383,7 @@ void DboxMain::OnKeydownItemlist(NMHDR* pNMHDR, LRESULT* pResult)
   }
 
   // FALSE = call next in line to process event
-  *pResult = FALSE;
+  *pLResult = FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1562,9 +1570,9 @@ void DboxMain::ClearData(const bool clearMRE)
   m_bDBNeedsReading = true;
 }
 
-void DboxMain::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult) 
+void DboxMain::OnColumnClick(NMHDR *pNotifyStruct, LRESULT *pLResult) 
 {
-  NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+  NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNotifyStruct;
 
   // Get column index to CItemData value
   int iIndex = pNMListView->iSubItem;
@@ -1602,7 +1610,7 @@ void DboxMain::OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult)
   SortListView();
   OnHideFindToolBar();
 
-  *pResult = TRUE;
+  *pLResult = TRUE;
 }
 
 void DboxMain::SortListView()
@@ -1626,7 +1634,7 @@ void DboxMain::SortListView()
     OnHideFindToolBar();
 }
 
-void DboxMain::OnHeaderRClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
+void DboxMain::OnHeaderRClick(NMHDR *, LRESULT *pLResult)
 {
 #if defined(POCKET_PC)
   const DWORD dwTrackPopupFlags = TPM_LEFTALIGN;
@@ -1654,46 +1662,46 @@ void DboxMain::OnHeaderRClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
 
     pPopup->TrackPopupMenu(dwTrackPopupFlags, ptMousePos.x, ptMousePos.y, this);
   }
-  *pResult = TRUE;
+  *pLResult = TRUE;
 }
 
-void DboxMain::OnHeaderBeginDrag(NMHDR* pNMHDR, LRESULT *pResult)
+void DboxMain::OnHeaderBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
   // Called for HDN_BEGINDRAG which changes the column order when CC not visible
   // Stop drag of first column (image)
 
-  NMHEADER *phdn = (NMHEADER *) pNMHDR;
+  NMHEADER *phdn = (NMHEADER *)pNotifyStruct;
 
-  *pResult = (m_bImageInLV && phdn->iItem == 0) ? TRUE : FALSE;
+  *pLResult = (m_bImageInLV && phdn->iItem == 0) ? TRUE : FALSE;
 }
 
-void DboxMain::OnHeaderEndDrag(NMHDR* pNMHDR, LRESULT *pResult)
+void DboxMain::OnHeaderEndDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
   // Called for HDN_ENDDRAG which changes the column order when CC not visible
   // Unfortunately the changes are only really done when this call returns,
   // hence the PostMessage to get the information later
 
   // Get control after operation is really complete
-  NMHEADER *phdn = (NMHEADER *) pNMHDR;
+  NMHEADER *phdn = (NMHEADER *)pNotifyStruct;
 
   // Stop drag of first column (image)
   if (m_bImageInLV && 
       (phdn->iItem == 0 || 
        (((phdn->pitem->mask & HDI_ORDER) == HDI_ORDER) && 
         phdn->pitem->iOrder == 0))) {
-    *pResult = TRUE;
+    *pLResult = TRUE;
     return;
   }
 
   // Otherwise allow
   PostMessage(PWS_MSG_HDR_DRAG_COMPLETE);
-  *pResult = FALSE;
+  *pLResult = FALSE;
 }
 
-void DboxMain::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
+void DboxMain::OnHeaderNotify(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-  NMHEADER *phdn = (NMHEADER *) pNMHDR;
-  *pResult = FALSE;
+  NMHEADER *phdn = (NMHEADER *)pNotifyStruct;
+  *pLResult = FALSE;
 
   if (m_nColumnWidthByIndex == NULL || phdn->pitem == NULL)
     return;
@@ -2733,6 +2741,9 @@ CString DboxMain::GetHeaderText(int iType) const
     case CItemData::EMAIL:
       cs_header.LoadString(IDS_EMAIL);
       break;
+    case CItemData::SYMBOLS:
+      cs_header.LoadString(IDS_SYMBOLS);
+      break;
     case CItemData::RUNCMD:
       cs_header.LoadString(IDS_RUNCOMMAND);
       break;
@@ -2783,6 +2794,7 @@ int DboxMain::GetHeaderWidth(int iType) const
     case CItemData::AUTOTYPE:
     case CItemData::URL:
     case CItemData::EMAIL:
+    case CItemData::SYMBOLS:
     case CItemData::RUNCMD:
     case CItemData::POLICY:
     case CItemData::XTIME_INT:
@@ -3295,6 +3307,9 @@ void DboxMain::OnToolBarFindReport()
         case CItemData::EMAIL:
           uistring = IDS_EMAIL;
           break;
+        case CItemData::SYMBOLS:
+          uistring = IDS_SYMBOLS;
+          break;
         case CItemData::RUNCMD:
           uistring = IDS_RUNCOMMAND;
           break;
@@ -3309,42 +3324,8 @@ void DboxMain::OnToolBarFindReport()
       cs_case.LoadString(Fsubgroup_function > 0 ? 
                          IDS_ADVCASE_INSENSITIVE : IDS_ADVCASE_SENSITIVE);
 
-      switch (Fsubgroup_function) {
-        case -PWSMatch::MR_EQUALS:
-        case  PWSMatch::MR_EQUALS:
-          uistring = IDSC_EQUALS;
-          break;
-        case -PWSMatch::MR_NOTEQUAL:
-        case  PWSMatch::MR_NOTEQUAL:
-          uistring = IDSC_DOESNOTEQUAL;
-          break;
-        case -PWSMatch::MR_BEGINS:
-        case  PWSMatch::MR_BEGINS:
-          uistring = IDSC_BEGINSWITH;
-          break;
-        case -PWSMatch::MR_NOTBEGIN:
-        case  PWSMatch::MR_NOTBEGIN:
-          uistring = IDSC_DOESNOTBEGINSWITH;
-          break;
-        case -PWSMatch::MR_ENDS:
-        case  PWSMatch::MR_ENDS:
-          uistring = IDSC_ENDSWITH;
-          break;
-        case -PWSMatch::MR_NOTEND:
-        case  PWSMatch::MR_NOTEND:
-          uistring = IDSC_DOESNOTENDWITH;
-          break;
-        case -PWSMatch::MR_CONTAINS:
-        case  PWSMatch::MR_CONTAINS:
-          uistring = IDSC_CONTAINS;
-          break;
-        case -PWSMatch::MR_NOTCONTAIN:
-        case  PWSMatch::MR_NOTCONTAIN:
-          uistring = IDSC_DOESNOTCONTAIN;
-          break;
-        default:
-          ASSERT(0);
-      }
+      uistring = PWSMatch::GetRule(PWSMatch::MatchRule(abs(Fsubgroup_function)));
+
       cs_text.LoadString(uistring);
       cs_temp.Format(IDS_ADVANCEDSUBSET, cs_Object, cs_text, Fsubgroup_name,
                      cs_case);
@@ -3373,6 +3354,8 @@ void DboxMain::OnToolBarFindReport()
       buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPURL));
     if (bsFFields.test(CItemData::EMAIL))
       buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPEMAIL));
+    if (bsFFields.test(CItemData::SYMBOLS))
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPSYMBOLS));
     if (bsFFields.test(CItemData::RUNCMD))
       buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPRUNCOMMAND));
     if (bsFFields.test(CItemData::AUTOTYPE))

@@ -38,6 +38,12 @@ COptionsShortcuts::COptionsShortcuts()
 
 COptionsShortcuts::~COptionsShortcuts()
 {
+  MapKeyNameIDIter iter;
+  for (iter = m_MapKeyNameID.begin(); iter != m_MapKeyNameID.end(); iter++) {
+    free((void *)iter->second);
+    iter->second = NULL;
+  }
+  m_MapKeyNameID.clear();
 }
 
 void COptionsShortcuts::DoDataExchange(CDataExchange* pDX)
@@ -70,7 +76,15 @@ void COptionsShortcuts::InitialSetup(const MapMenuShortcuts MapMenuShortcuts,
                     const std::vector<st_MenuShortcut> &ReservedShortcuts)
 {
   m_MapMenuShortcuts = m_MapSaveMenuShortcuts = MapMenuShortcuts;
-  m_MapKeyNameID = MapKeyNameID;
+
+  // Need to make our own copy as KNIDciter->second is a pointer to whar_t variable
+  MapKeyNameIDConstIter KNIDciter;
+  std::pair< MapKeyNameIDIter, bool > prMKNID;
+
+  for (KNIDciter = MapKeyNameID.begin(); KNIDciter != MapKeyNameID.end(); KNIDciter++) {
+    prMKNID = m_MapKeyNameID.insert(MapKeyNameIDPair(KNIDciter->first,  _wcsdup(KNIDciter->second)));
+  }
+
   m_ExcludedMenuItems = ExcludedMenuItems;
   m_ReservedShortcuts = ReservedShortcuts;
 }
@@ -223,10 +237,10 @@ void COptionsShortcuts::OnBnClickedResetAll()
   m_ShortcutLC.UpdateWindow();
 }
 
-void COptionsShortcuts::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
+void COptionsShortcuts::OnHeaderNotify(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-  NMHEADER *phdn = (NMHEADER *) pNMHDR;
-  *pResult = FALSE;
+  NMHEADER *phdn = (NMHEADER *) pNotifyStruct;
+  *pLResult = FALSE;
 
   if (phdn->pitem == NULL)
     return;
@@ -247,7 +261,7 @@ void COptionsShortcuts::OnHeaderNotify(NMHDR* pNMHDR, LRESULT *pResult)
   }
 }
 
-void COptionsShortcuts::OnHeaderRClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
+void COptionsShortcuts::OnHeaderRClick(NMHDR *, LRESULT *pLResult)
 {
   if (m_iColWidth == m_iDefColWidth)
     return;
@@ -269,7 +283,7 @@ void COptionsShortcuts::OnHeaderRClick(NMHDR* /* pNMHDR */, LRESULT *pResult)
 
     pPopup->TrackPopupMenu(dwTrackPopupFlags, ptMousePos.x, ptMousePos.y, this);
   }
-  *pResult = TRUE;
+  *pLResult = TRUE;
 }
 
 void COptionsShortcuts::OnResetColumnWidth()

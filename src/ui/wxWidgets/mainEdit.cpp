@@ -35,6 +35,7 @@
 #include "editshortcut.h"
 #include "createshortcutdlg.h"
 #include "wxutils.h"
+#include "guiinfo.h"
 
 #include "../../core/PWSAuxParse.h"
 #include "../../core/Util.h"
@@ -54,7 +55,9 @@ void PasswordSafeFrame::OnEditClick( wxCommandEvent& /* evt */ )
     DoEdit(*item);
 }
 
-void PasswordSafeFrame::DoEdit(CItemData &item)
+//This function intentionally takes the argument by value and not by
+//reference to avoid touching an item invalidated by idle timeout
+void PasswordSafeFrame::DoEdit(CItemData item)
 {
   int rc = 0;
   if (!item.IsShortcut()) {
@@ -65,8 +68,20 @@ void PasswordSafeFrame::DoEdit(CItemData &item)
     rc = editDbox.ShowModal();
   }
   if (rc == wxID_OK) {
-    UpdateAccessTime(item);
-    SetChanged(Data);
+    uuid_array_t uuid;
+    item.GetUUID(uuid);
+    //Find the item in the database, which might have been loaded afresh
+    //after lock/unlock, so the old data structures are no longer valid
+    ItemListIter iter = m_core.Find(uuid);
+    if ( iter != m_core.GetEntryEndIter()) {
+      CItemData& origItem = m_core.GetEntry(iter);
+      //The Item is updated in DB by AddEditPropSheet
+      UpdateAccessTime(origItem);
+      SetChanged(Data);
+    }
+    else {
+      wxFAIL_MSG(wxT("Item being edited not found in currently loaded DB"));
+    }
   }
 }
 
@@ -453,8 +468,10 @@ void PasswordSafeFrame::DoAutotype(CItemData &ci)
     Iconize(true);
     while (!IsIconized())
       wxSafeYield();
-  } else
+  } else {
+    m_guiInfo->Save(this);
     Hide();
+  }
  
   std::vector<size_t> vactionverboffsets;
   const StringX sxautotype = PWSAuxParse::GetAutoTypeString(ci, m_core,
@@ -470,8 +487,10 @@ void PasswordSafeFrame::DoAutotype(CItemData &ci)
     /* TODO - figure out how to keep a wxWidgets window always on top */
     if (IsIconized())
       Iconize(false);
-    else
+    else {
       Show();
+      m_guiInfo->Restore(this);
+    }
   }
 }
 

@@ -114,7 +114,7 @@ public:
     ColumnWidths, DefaultAutotypeString, AltBrowserCmdLineParms,
     MainToolBarButtons, PasswordFont, TreeListSampleText, PswdSampleText,
     LastUsedKeyboard, VKeyboardFontName, VKSampleText, AltNotesEditor,
-    EraseProgram, ErasePgmCmdLineParms,
+    LanguageFile, DefaultSymbols, EraseProgram, ErasePgmCmdLineParms,
     NumStringPrefs};
 
   // for DoubleClickAction

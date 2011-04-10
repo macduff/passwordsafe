@@ -25,7 +25,8 @@ CAddEdit_PropertySheet::CAddEdit_PropertySheet(UINT nID, CWnd* pParent,
                                                CItemData *pci_original, CItemData *pci,
                                                const StringX currentDB)
   : CPWPropertySheet(nID, pParent), m_bIsModified(false), m_bChanged(false),
-  m_bNotesChanged(false), m_bAttachmentsChanged(false), m_pp_basic(NULL),
+  m_bNotesChanged(false), m_bSymbolsChanged(false),
+	m_bAttachmentsChanged(false), m_pp_basic(NULL),
   m_pp_additional(NULL), m_pp_datetimes(NULL), m_pp_pwpolicy(NULL), m_pp_attachments(NULL)
 {
   m_AEMD.uicaller = nID;
@@ -75,6 +76,7 @@ CAddEdit_PropertySheet::CAddEdit_PropertySheet(UINT nID, CWnd* pParent,
     m_AEMD.realnotes = m_AEMD.originalrealnotesTRC = L"";
     m_AEMD.URL = L"";
     m_AEMD.email = L"";
+    m_AEMD.symbols = m_AEMD.oldsymbols = L"";
 
     // Entry type initialisation
     m_AEMD.original_entrytype = CItemData::ET_NORMAL;
@@ -101,6 +103,8 @@ CAddEdit_PropertySheet::CAddEdit_PropertySheet(UINT nID, CWnd* pParent,
     // PWPolicy fields
     m_AEMD.pwp = m_AEMD.oldpwp = m_AEMD.default_pwp;
     m_AEMD.ipolicy = m_AEMD.oldipolicy = DEFAULT_POLICY;
+    m_AEMD.iownsymbols = m_AEMD.ioldownsymbols = DEFAULT_SYMBOLS;
+    m_AEMD.symbols = L"";
 
     // Protected
     m_AEMD.ucprotected = 0;
@@ -154,7 +158,9 @@ BOOL CAddEdit_PropertySheet::OnInitDialog()
         sx_user = m_AEMD.pci->GetUser();
 
       // Set up and pass Propertysheet caption showing entry being edited/viewed
-      cs_title.Format(m_AEMD.uicaller, sx_group.c_str(), sx_title.c_str(), sx_user.c_str());
+      // If entry is protected, set to 'View' even if DB is in R/W mode
+      cs_title.Format(m_AEMD.ucprotected != 0 ? IDS_PROTECTEDENTRY : m_AEMD.uicaller,
+                      sx_group.c_str(), sx_title.c_str(), sx_user.c_str());
       SetWindowText(cs_title);
       break;
       }
@@ -171,11 +177,21 @@ BOOL CAddEdit_PropertySheet::OnInitDialog()
       GetDlgItem(IDCANCEL)->ShowWindow(SW_HIDE);
       break;
     case IDS_EDITENTRY:
-      GetDlgItem(IDOK)->EnableWindow((m_bChanged || m_AEMD.ucprotected != 0) ? TRUE : FALSE);
-      GetDlgItem(ID_APPLY_NOW)->EnableWindow(m_bChanged ? TRUE : FALSE);
+      GetDlgItem(IDOK)->EnableWindow((m_bChanged || m_bSymbolsChanged || m_AEMD.ucprotected != 0) ? TRUE : FALSE);
+      GetDlgItem(ID_APPLY_NOW)->EnableWindow(m_bChanged || m_bSymbolsChanged ? TRUE : FALSE);
       break;
   }
   return TRUE;
+}
+
+void CAddEdit_PropertySheet::SetSymbolsChanged(const bool bSymbolsChanged)
+{
+  m_bSymbolsChanged = bSymbolsChanged;
+  bool bChanged = m_bChanged || m_bSymbolsChanged;
+
+  GetDlgItem(IDOK)->EnableWindow(bChanged ? TRUE : FALSE);
+  if (m_AEMD.uicaller == IDS_EDITENTRY)
+    GetDlgItem(ID_APPLY_NOW)->EnableWindow(bChanged ? TRUE : FALSE);
 }
 
 void CAddEdit_PropertySheet::SetChanged(const bool bChanged)
@@ -223,8 +239,14 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
     // loaded - i.e. the user has selected to view them, since obviously
     // the user would not have changed their values if not displayed. Duh!
     if (SendMessage(PSM_QUERYSIBLINGS,
-                (WPARAM)CPWPropertyPage::PP_UPDATE_VARIABLES, 0L) != 0)
-      return TRUE;
+                (WPARAM)CPWPropertyPage::PP_UPDATE_VARIABLES, 0L) != 0) {
+      if (iCID == IDOK) {
+        // Just end it
+        CPWPropertySheet::EndDialog(IDOK);
+      } else {
+        return TRUE;
+      }
+    }
 
     time_t t;
     bool bIsPSWDModified;
@@ -247,6 +269,7 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
                          m_AEMD.runcommand  != m_AEMD.pci->GetRunCommand() ||
                          m_AEMD.DCA         != iDCA                        ||
                          m_AEMD.email       != m_AEMD.pci->GetEmail()      ||
+                         m_AEMD.symbols     != m_AEMD.oldsymbols           ||
                          m_AEMD.PWHistory   != m_AEMD.pci->GetPWHistory()  ||
                          m_AEMD.locXTime    != m_AEMD.oldlocXTime          ||
                          m_AEMD.XTimeInt    != m_AEMD.oldXTimeInt          ||
@@ -277,10 +300,12 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
 
           m_AEMD.oldipolicy = m_AEMD.ipolicy;
           m_AEMD.oldpwp = m_AEMD.pwp;
+          m_AEMD.oldsymbols = m_AEMD.symbols;
 
           m_AEMD.pci->SetRunCommand(m_AEMD.runcommand);
           m_AEMD.pci->SetDCA(m_AEMD.DCA);
           m_AEMD.pci->SetEmail(m_AEMD.email);
+          m_AEMD.pci->SetSymbols(m_AEMD.symbols);
           m_AEMD.pci->SetProtected(m_AEMD.ucprotected != 0);
         }
 
@@ -330,6 +355,7 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
         m_AEMD.pci->SetRunCommand(m_AEMD.runcommand);
         m_AEMD.pci->SetDCA(m_AEMD.DCA);
         m_AEMD.pci->SetEmail(m_AEMD.email);
+        m_AEMD.pci->SetSymbols(m_AEMD.symbols);
         m_AEMD.pci->SetProtected(m_AEMD.ucprotected != 0);
 
         time(&t);
@@ -453,6 +479,10 @@ void CAddEdit_PropertySheet::SetupInitialValues()
   m_AEMD.realnotes = m_AEMD.originalrealnotesTRC = m_AEMD.pci->GetNotes();
   m_AEMD.URL = m_AEMD.pci->GetURL();
   m_AEMD.email = m_AEMD.pci->GetEmail();
+  m_AEMD.symbols = m_AEMD.oldsymbols = m_AEMD.pci->GetSymbols();
+  m_AEMD.ioldownsymbols = m_AEMD.symbols.IsEmpty() == TRUE ?
+                            DEFAULT_SYMBOLS : OWN_SYMBOLS;
+  m_AEMD.iownsymbols = m_AEMD.ioldownsymbols;
   m_AEMD.pci->GetProtected(m_AEMD.ucprotected);
 
   if (m_AEMD.realnotes.GetLength() > MAXTEXTCHARS) {
