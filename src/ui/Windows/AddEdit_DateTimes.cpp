@@ -77,9 +77,9 @@ BEGIN_MESSAGE_MAP(CAddEdit_DateTimes, CAddEdit_PropertyPage)
   ON_BN_CLICKED(IDC_SELECTBYDAYS, OnDays)
   ON_BN_CLICKED(IDC_REUSE_ON_CHANGE, OnRecurringPswdExpiry)
 
-  ON_EN_CHANGE(IDC_EXPDAYS, OnChanged)
-  ON_NOTIFY(DTN_DATETIMECHANGE, IDC_EXPIRYDATE, OnNotifyChanged)
-  ON_NOTIFY(DTN_DATETIMECHANGE, IDC_EXPIRYTIME, OnNotifyChanged)
+  ON_EN_CHANGE(IDC_EXPDAYS, OnDaysChanged)
+  ON_NOTIFY(DTN_DATETIMECHANGE, IDC_EXPIRYDATE, OnDateTimeChanged)
+  ON_NOTIFY(DTN_DATETIMECHANGE, IDC_EXPIRYTIME, OnDateTimeChanged)
 
   // Common
   ON_MESSAGE(PSM_QUERYSIBLINGS, OnQuerySiblings)
@@ -134,6 +134,7 @@ BOOL CAddEdit_DateTimes::OnInitDialog()
     GetDlgItem(IDC_STATIC_CURRENTVALUE)->EnableWindow(FALSE);
     GetDlgItem(IDC_STATIC_CURRENT_XTIME)->EnableWindow(FALSE);
     GetDlgItem(IDC_STATIC_LTINTERVAL_NOW)->EnableWindow(FALSE);
+    GetDlgItem(IDC_REUSE_ON_CHANGE)->EnableWindow(FALSE);
   }
 
   if (M_uicaller() == IDS_ADDENTRY) {
@@ -196,6 +197,8 @@ void CAddEdit_DateTimes::UpdateTimes()
   int nIndex;            // index of the string, if found
 
   GetDlgItem(IDC_EXPDAYS)->EnableWindow(FALSE);
+  GetDlgItem(IDC_STATIC_LTINTERVAL_NOW)->EnableWindow(FALSE);
+  GetDlgItem(IDC_REUSE_ON_CHANGE)->EnableWindow(FALSE);
 
   // Last 32-bit date is 03:14:07 UTC on Tuesday, January 19, 2038
   // Find number of days from now to 2038/01/18 = max value here
@@ -228,6 +231,7 @@ void CAddEdit_DateTimes::UpdateTimes()
   // Note: Only enable if 'how' is the correct value, this will also
   // disable if the other option or NONE_EXP
   GetDlgItem(IDC_EXPDAYS)->EnableWindow(m_how == RELATIVE_EXP ? TRUE : FALSE);
+  GetDlgItem(IDC_STATIC_LTINTERVAL_NOW)->EnableWindow(m_how == RELATIVE_EXP ? TRUE : FALSE);
   GetDlgItem(IDC_REUSE_ON_CHANGE)->EnableWindow(m_how == RELATIVE_EXP ? TRUE : FALSE);
   GetDlgItem(IDC_EXPIRYDATE)->EnableWindow(m_how == ABSOLUTE_EXP ? TRUE : FALSE);
   GetDlgItem(IDC_EXPIRYTIME)->EnableWindow(m_how == ABSOLUTE_EXP ? TRUE : FALSE);
@@ -305,9 +309,9 @@ void CAddEdit_DateTimes::UpdateStats()
   GetDlgItem(IDC_ENTRYSIZE)->Invalidate();
 
   CString cs_uuid(_T("N/A"));
-  if (memcmp(M_entry_uuid(), PWScore::NULL_UUID, sizeof(uuid_array_t)) != 0) {
+  if (M_entry_uuid() != CUUIDGen::NullUUID()) {
     ostringstreamT os;
-    CUUIDGen huuid(M_entry_uuid(), true); // true for canonical format
+    CUUIDGen huuid(*M_entry_uuid().GetUUID(), true); // true for canonical format
     os << std::uppercase << huuid;
     cs_uuid = os.str().c_str();
   }
@@ -357,18 +361,23 @@ BOOL CAddEdit_DateTimes::OnApply()
   return CAddEdit_PropertyPage::OnApply();
 }
 
-void CAddEdit_DateTimes::OnNotifyChanged(NMHDR *, LRESULT *pLResult)
+void CAddEdit_DateTimes::OnDateTimeChanged(NMHDR *, LRESULT *pLResult)
 {
   *pLResult = 0;
+  if (!m_bInitdone || m_AEMD.uicaller != IDS_EDITENTRY)
+    return;
 
-  OnChanged();
+  SetXTime();
+  UpdateData(TRUE);
+  m_ae_psh->SetChanged(true);
 }
 
-void CAddEdit_DateTimes::OnChanged()
+void CAddEdit_DateTimes::OnDaysChanged()
 {
   if (!m_bInitdone || m_AEMD.uicaller != IDS_EDITENTRY)
     return;
 
+  SetXTime();
   UpdateData(TRUE);
   m_ae_psh->SetChanged(true);
 }
@@ -390,6 +399,12 @@ void CAddEdit_DateTimes::OnClearXTime()
 
   M_tttXTime() = (time_t)0;
   M_XTimeInt() = 0;
+
+  GetDlgItem(IDC_EXPDAYS)->EnableWindow(FALSE);
+  GetDlgItem(IDC_STATIC_LTINTERVAL_NOW)->EnableWindow(FALSE);
+  GetDlgItem(IDC_REUSE_ON_CHANGE)->EnableWindow(FALSE);
+  GetDlgItem(IDC_EXPIRYDATE)->EnableWindow(FALSE);
+  GetDlgItem(IDC_EXPIRYTIME)->EnableWindow(FALSE);
 
   m_how = NONE_EXP;
 }
@@ -430,6 +445,7 @@ void CAddEdit_DateTimes::OnDays()
   m_ae_psh->SetChanged(true);
 
   GetDlgItem(IDC_EXPDAYS)->EnableWindow(TRUE);
+  GetDlgItem(IDC_STATIC_LTINTERVAL_NOW)->EnableWindow(TRUE);
   GetDlgItem(IDC_REUSE_ON_CHANGE)->EnableWindow(TRUE);
   GetDlgItem(IDC_EXPIRYDATE)->EnableWindow(FALSE);
   GetDlgItem(IDC_EXPIRYTIME)->EnableWindow(FALSE);
@@ -444,6 +460,7 @@ void CAddEdit_DateTimes::OnDateTime()
   m_ae_psh->SetChanged(true);
 
   GetDlgItem(IDC_EXPDAYS)->EnableWindow(FALSE);
+  GetDlgItem(IDC_STATIC_LTINTERVAL_NOW)->EnableWindow(FALSE);
   GetDlgItem(IDC_REUSE_ON_CHANGE)->EnableWindow(FALSE);
   GetDlgItem(IDC_EXPIRYDATE)->EnableWindow(TRUE);
   GetDlgItem(IDC_EXPIRYTIME)->EnableWindow(TRUE);

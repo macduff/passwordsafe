@@ -736,6 +736,9 @@ void PWSUtil::Get_CRC_Incremental_Update(unsigned char *pData, const size_t &iLe
   // Perform the algorithm on each character in the string, using the lookup table values.
   ASSERT(pData != NULL && iLen != 0);
 
+  if ((pData == NULL && iLen != 0) || (pData != NULL && iLen == 0))
+    return;
+
   size_t len(iLen);
   while (len--) {
     uiCRC = (uiCRC >> 8) ^ CRC32_Table[(uiCRC & 0xFF) ^ *pData++];

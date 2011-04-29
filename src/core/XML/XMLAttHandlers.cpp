@@ -28,26 +28,35 @@ using namespace std;
 
 void ConvertFromHex(const StringX sx_in, const size_t &out_len, unsigned char *pout_buffer)
 {
-    if (!sx_in.empty()) {
-      // _stscanf_s always outputs to an "int" using %x even though
-      // target is only 1.  Read into larger buffer to prevent data being
-      // overwritten and then copy to where we want it!
-      unsigned char *ptemp_array = new unsigned char [out_len + sizeof(int)];
-      int nscanned = 0;
-      const TCHAR *lpszuuid = sx_in.c_str();
-      for (unsigned i = 0; i < out_len; i++) {
+  if (!sx_in.empty()) {
+    // _stscanf_s always outputs to an "int" using %x even though
+    // target is only 1.  Read into larger buffer to prevent data being
+    // overwritten and then copy to where we want it!
+    unsigned char *ptemp_array = new unsigned char [out_len + sizeof(int)];
+    int nscanned = 0;
+    const TCHAR *lpszuuid = sx_in.c_str();
+    for (unsigned i = 0; i < out_len; i++) {
 #if (_MSC_VER >= 1400)
-        nscanned += _stscanf_s(lpszuuid, _T("%02x"), &ptemp_array[i]);
+      nscanned += _stscanf_s(lpszuuid, _T("%02x"), &ptemp_array[i]);
 #else
-        nscanned += _stscanf(lpszuuid, _T("%02x"), &ptemp_array[i]);
+      nscanned += _stscanf(lpszuuid, _T("%02x"), &ptemp_array[i]);
 #endif
-        lpszuuid += 2;
-      }
-      memcpy((void *)pout_buffer, (void *)ptemp_array, out_len);
-      delete ptemp_array;
-    } else {
-      memset((void *)pout_buffer, 0, out_len);
+      lpszuuid += 2;
     }
+    memcpy((void *)pout_buffer, (void *)ptemp_array, out_len);
+    delete ptemp_array;
+  } else {
+    memset((void *)pout_buffer, 0, out_len);
+  }
+}
+
+void ConvertFromHex(const StringX sx_in, const size_t &out_len, CUUIDGen &uuid)
+{
+  ASSERT(out_len == sizeof(uuid_array_t));
+
+  uuid_array_t uuid_array;
+  ConvertFromHex(sx_in, out_len, uuid_array);
+  uuid = uuid_array;
 }
 
 XMLAttHandlers::XMLAttHandlers()
@@ -322,7 +331,6 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
         break;
       }
 
-      delete [] pData;
       break;
     }
     case XLA_DATA81:
@@ -404,12 +412,11 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 void XMLAttHandlers::ValidateImportData(att_entry * &cur_entry)
 {
   // Ensure attachment UUID is unique
-  st_UUID st(cur_entry->atr.attmt_uuid);
-  if (std::find(m_vatt_uuid.begin(), m_vatt_uuid.end(), st) !=
+  if (std::find(m_vatt_uuid.begin(), m_vatt_uuid.end(), cur_entry->atr.attmt_uuid) !=
                 m_vatt_uuid.end()) {
     // Attachment uuid not unique - get a new one
     CUUIDGen auuid;
-    auuid.GetUUID(cur_entry->atr.attmt_uuid);
+    cur_entry->atr.attmt_uuid = auuid;
   }
 
   // Ensure dates are correct

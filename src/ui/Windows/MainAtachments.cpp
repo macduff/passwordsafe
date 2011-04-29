@@ -137,8 +137,8 @@ bool DboxMain::GetNewAttachmentInfo(ATRecord &atr, const bool bGetFileName)
           uuid_array_t new_attmt_uuid;
           CUUIDGen attmt_uuid;
           attmt_uuid.GetUUID(new_attmt_uuid);
-          memcpy(atr.attmt_uuid, new_attmt_uuid, sizeof(uuid_array_t));
-          memset(atr.entry_uuid, 0, sizeof(atr.entry_uuid));
+          atr.attmt_uuid = new_attmt_uuid;
+          atr.entry_uuid = CUUIDGen::NullUUID();
           memset(atr.odigest, 0, SHA1::HASHLEN);
           memset(atr.cdigest, 0, SHA1::HASHLEN);
           return true;
@@ -652,7 +652,7 @@ int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
     goto exit;
   }
 
-  // GETPRE - tells GetAttachment to search for out record and come back
+  // GETPRE - tells GetAttachment to search for our record and come back
   // when it has it or can't find it
   status = m_core.GetAttachment(atr, GETPRE, pUncData, unclength, readtype);
 
@@ -843,8 +843,8 @@ int DboxMain::WriteAttachmentFile(const bool bCleanup,
   return status;
 }
 
-int DboxMain::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
-                                   const uuid_array_t &new_entry_uuid,
+int DboxMain::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
+                                   const CUUIDGen &new_entry_uuid,
                                    PWSAttfile::VERSION version)
 {
   if (m_bNoChangeToAttachments)
@@ -852,8 +852,8 @@ int DboxMain::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
 
   ATThreadParms *pthdpms = new ATThreadParms;
   pthdpms->function = DUPLICATE;
-  memcpy(pthdpms->old_entry_uuid, old_entry_uuid, sizeof(uuid_array_t));
-  memcpy(pthdpms->new_entry_uuid, new_entry_uuid, sizeof(uuid_array_t));
+  pthdpms->old_entry_uuid = old_entry_uuid;
+  pthdpms->new_entry_uuid = new_entry_uuid;
   pthdpms->version = version;
 
   int status = DoAttachmentThread(pthdpms);

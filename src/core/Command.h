@@ -143,7 +143,7 @@ public:
 
   // Following for adding an alias or shortcut
   static AddEntryCommand *Create(CommandInterface *pcomInt,
-                                 const CItemData &ci, const uuid_array_t base_uuid,
+                                 const CItemData &ci, const CUUIDGen &base_uuid,
                                  const Command *pcmd = NULL,
                                  const ATRVector *pvNewATRecords = NULL)
   { return new AddEntryCommand(pcomInt, ci, base_uuid, pcmd, pvNewATRecords); }
@@ -160,11 +160,11 @@ private:
   AddEntryCommand(CommandInterface *pcomInt, const CItemData &ci,
                   const Command *pcmd = NULL, const ATRVector *pvNewATRecords = NULL);
   AddEntryCommand(CommandInterface *pcomInt,
-                  const CItemData &ci, const uuid_array_t base_uuid,
+                  const CItemData &ci, const CUUIDGen &base_uuid,
                   const Command *pcmd = NULL, const ATRVector *pvNewATRecords = NULL);
 
   const CItemData m_ci;
-  uuid_array_t m_base_uuid, m_entry_uuid;
+  CUUIDGen m_base_uuid, m_entry_uuid;
   ATRVector m_vNewATRecords;
   bool m_bExpired;
 };
@@ -187,7 +187,7 @@ private:
   DeleteEntryCommand(CommandInterface *pcomInt, const CItemData &ci,
                      const Command *pcmd = NULL);
   const CItemData m_ci;
-  uuid_array_t m_base_uuid; // for undo of shortcut or alias deletion
+  CUUIDGen m_base_uuid; // for undo of shortcut or alias deletion
   uuid_array_t m_entry_uuid;
   std::vector<CItemData> m_dependents; // for undo of base deletion
 };
@@ -213,7 +213,7 @@ private:
                    const ATRVector *pvATRecords);
   CItemData m_old_ci;
   CItemData m_new_ci;
-  uuid_array_t m_entry_uuid;
+  CUUIDGen m_entry_uuid;
   ATRVector m_vNewATRecords;
   ATRVector m_vATRecords;
   ATRVector m_vOriginalATRecords;
@@ -235,13 +235,13 @@ private:
   UpdateEntryCommand(CommandInterface *pcomInt, const CItemData &ci,
                      const CItemData::FieldType ftype,
                      const StringX &value);
-  void Doit(const uuid_array_t &entry_uuid,
+  void Doit(const CUUIDGen &entry_uuid,
             CItemData::FieldType ftype,
             const StringX &value,
             CItemData::EntryStatus es,
             UpdateGUICommand::ExecuteFn efn);
 
-  uuid_array_t m_entry_uuid;
+  CUUIDGen m_entry_uuid;
   CItemData::FieldType m_ftype;
   StringX m_value, m_old_value, m_oldpwhistory;
   time_t m_tttoldXtime;
@@ -262,7 +262,7 @@ public:
 private:
   UpdatePasswordCommand(CommandInterface *pcomInt,
                         CItemData &ci, const StringX sxNewPassword);
-  uuid_array_t m_entry_uuid;
+  CUUIDGen m_entry_uuid;
   StringX m_sxNewPassword, m_sxOldPassword, m_sxOldPWHistory;
   CItemData::EntryStatus m_old_status;
   time_t m_tttOldXTime;
@@ -272,8 +272,8 @@ class AddDependentEntryCommand : public Command
 {
 public:
   static AddDependentEntryCommand *Create(CommandInterface *pcomInt,
-                                          const uuid_array_t &base_uuid,
-                                          const uuid_array_t &entry_uuid,
+                                          const CUUIDGen &base_uuid,
+                                          const CUUIDGen &entry_uuid,
                                           const CItemData::EntryType type)
   { return new AddDependentEntryCommand(pcomInt, base_uuid, entry_uuid, type); }
   int Execute(const bool bRedo = false);
@@ -282,11 +282,11 @@ public:
 
 private:
   AddDependentEntryCommand(CommandInterface *pcomInt,
-                           const uuid_array_t &base_uuid,
-                           const uuid_array_t &entry_uuid,
+                           const CUUIDGen &base_uuid,
+                           const CUUIDGen &entry_uuid,
                            const CItemData::EntryType type);
-  uuid_array_t m_base_uuid;
-  uuid_array_t m_entry_uuid;
+  CUUIDGen m_base_uuid;
+  CUUIDGen m_entry_uuid;
   CItemData::EntryType m_type;
 };
 
@@ -331,8 +331,8 @@ class RemoveDependentEntryCommand : public Command
 {
 public:
   static RemoveDependentEntryCommand *Create(CommandInterface *pcomInt,
-                                             const uuid_array_t &base_uuid,
-                                             const uuid_array_t &entry_uuid,
+                                             const CUUIDGen &base_uuid,
+                                             const CUUIDGen &entry_uuid,
                                              CItemData::EntryType type)
   { return new RemoveDependentEntryCommand(pcomInt, base_uuid, entry_uuid,
                                            type); }
@@ -342,11 +342,11 @@ public:
 
 private:
   RemoveDependentEntryCommand(CommandInterface *pcomInt,
-                              const uuid_array_t &base_uuid,
-                              const uuid_array_t &entry_uuid,
+                              const CUUIDGen &base_uuid,
+                              const CUUIDGen &entry_uuid,
                               CItemData::EntryType type);
-  uuid_array_t m_base_uuid;
-  uuid_array_t m_entry_uuid;
+  CUUIDGen m_base_uuid;
+  CUUIDGen m_entry_uuid;
   CItemData::EntryType m_type;
 };
 
@@ -354,8 +354,8 @@ class MoveDependentEntriesCommand : public Command
 {
 public:
   static MoveDependentEntriesCommand *Create(CommandInterface *pcomInt,
-                                             const uuid_array_t &from_baseuuid,
-                                             const uuid_array_t &to_baseuuid,
+                                             const CUUIDGen &from_baseuuid,
+                                             const CUUIDGen &to_baseuuid,
                                              CItemData::EntryType type)
   { return new MoveDependentEntriesCommand(pcomInt, from_baseuuid, to_baseuuid,
                                            type); }
@@ -365,11 +365,11 @@ public:
 
 private:
   MoveDependentEntriesCommand(CommandInterface *pcomInt,
-                              const uuid_array_t &from_baseuuid,
-                              const uuid_array_t &to_baseuuid,
+                              const CUUIDGen &from_baseuuid,
+                              const CUUIDGen &to_baseuuid,
                               CItemData::EntryType type);
-  uuid_array_t m_from_baseuuid;
-  uuid_array_t m_to_baseuuid;
+  CUUIDGen m_from_baseuuid;
+  CUUIDGen m_to_baseuuid;
   CItemData::EntryType m_type;
 };
 

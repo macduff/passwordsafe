@@ -577,7 +577,7 @@ ZEXTERN int ZEXPORT deflateInit2 OF((z_streamp strm,
 
 ZEXTERN int ZEXPORT deflateSetDictionary OF((z_streamp strm,
                                              const Bytef *dictionary,
-                                             uInt  dictLength));
+                                             uInt dictLength));
 /*
      Initializes the compression dictionary from the given byte sequence
    without producing any compressed output.  This function must be called
@@ -783,7 +783,7 @@ ZEXTERN int ZEXPORT inflateInit2 OF((z_streamp strm,
 
 ZEXTERN int ZEXPORT inflateSetDictionary OF((z_streamp strm,
                                              const Bytef *dictionary,
-                                             uInt  dictLength));
+                                             uInt dictLength));
 /*
      Initializes the decompression dictionary from the given uncompressed byte
    sequence.  This function must be called immediately after a call of inflate,
@@ -967,8 +967,8 @@ ZEXTERN int ZEXPORT inflateBackInit OF((z_streamp strm, int windowBits,
    the version of the header file.
 */
 
-typedef unsigned (*in_func) OF((void FAR *, unsigned char FAR * FAR *));
-typedef int (*out_func) OF((void FAR *, unsigned char FAR *, unsigned));
+typedef unsigned int (*in_func) OF((void FAR *, unsigned char FAR * FAR *));
+typedef int (*out_func) OF((void FAR *, unsigned char FAR *, unsigned int));
 
 ZEXTERN int ZEXPORT inflateBack OF((z_streamp strm,
                                     in_func in, void FAR *in_desc,
@@ -1099,7 +1099,7 @@ ZEXTERN uLong ZEXPORT zlibCompileFlags OF((void));
    you need special options.
 */
 
-ZEXTERN int ZEXPORT compress OF((Bytef *dest,   uLongf *destLen,
+ZEXTERN int ZEXPORT compress OF((Bytef *dest, uLongf *destLen,
                                  const Bytef *source, uLong sourceLen));
 /*
      Compresses the source buffer into the destination buffer.  sourceLen is
@@ -1113,7 +1113,7 @@ ZEXTERN int ZEXPORT compress OF((Bytef *dest,   uLongf *destLen,
    buffer.
 */
 
-ZEXTERN int ZEXPORT compress2 OF((Bytef *dest,   uLongf *destLen,
+ZEXTERN int ZEXPORT compress2 OF((Bytef *dest, uLongf *destLen,
                                   const Bytef *source, uLong sourceLen,
                                   int level));
 /*
@@ -1136,7 +1136,7 @@ ZEXTERN uLong ZEXPORT compressBound OF((uLong sourceLen));
    compress() or compress2() call to allocate the destination buffer.
 */
 
-ZEXTERN int ZEXPORT uncompress OF((Bytef *dest,   uLongf *destLen,
+ZEXTERN int ZEXPORT uncompress OF((Bytef *dest, uLongf *destLen,
                                    const Bytef *source, uLong sourceLen));
 /*
      Decompresses the source buffer into the destination buffer.  sourceLen is
@@ -1206,7 +1206,7 @@ ZEXTERN gzFile ZEXPORT gzdopen OF((int fd, const char *mode));
    will not detect if fd is invalid (unless fd is -1).
 */
 
-ZEXTERN int ZEXPORT gzbuffer OF((gzFile file, unsigned size));
+ZEXTERN int ZEXPORT gzbuffer OF((gzFile file, unsigned int size));
 /*
      Set the internal buffer size used by this library's functions.  The
    default buffer size is 8192 bytes.  This function must be called after
@@ -1232,7 +1232,7 @@ ZEXTERN int ZEXPORT gzsetparams OF((gzFile file, int level, int strategy));
    opened for writing.
 */
 
-ZEXTERN int ZEXPORT gzread OF((gzFile file, voidp buf, unsigned len));
+ZEXTERN int ZEXPORT gzread OF((gzFile file, voidp buf, unsigned int len));
 /*
      Reads the given number of uncompressed bytes from the compressed file.  If
    the input file was not in gzip format, gzread copies the given number of
@@ -1248,8 +1248,7 @@ ZEXTERN int ZEXPORT gzread OF((gzFile file, voidp buf, unsigned len));
    len for end of file, or -1 for error.
 */
 
-ZEXTERN int ZEXPORT gzwrite OF((gzFile file,
-                                voidpc buf, unsigned len));
+ZEXTERN int ZEXPORT gzwrite OF((gzFile file, voidpc buf, unsigned int len));
 /*
      Writes the given number of uncompressed bytes into the compressed file.
    gzwrite returns the number of uncompressed bytes written or 0 in case of
@@ -1332,8 +1331,7 @@ ZEXTERN int ZEXPORT gzflush OF((gzFile file, int flush));
 */
 
 /*
-ZEXTERN z_off_t ZEXPORT gzseek OF((gzFile file,
-                                   z_off_t offset, int whence));
+ZEXTERN z_off_t ZEXPORT gzseek OF((gzFile file, z_off_t offset, int whence));
 
      Sets the starting position for the next gzread or gzwrite on the given
    compressed file.  The offset represents a number of bytes in the
@@ -1495,7 +1493,7 @@ ZEXTERN uLong ZEXPORT adler32_combine OF((uLong adler1, uLong adler2,
    seq1 and seq2 concatenated, requiring only adler1, adler2, and len2.
 */
 
-ZEXTERN uLong ZEXPORT crc32   OF((uLong crc, const Bytef *buf, uInt len));
+ZEXTERN uLong ZEXPORT crc32 OF((uLong crc, const Bytef *buf, uInt len));
 /*
      Update a running CRC-32 with the bytes buf[0..len-1] and return the
    updated CRC-32.  If buf is Z_NULL, this function returns the required

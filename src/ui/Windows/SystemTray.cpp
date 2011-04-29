@@ -113,7 +113,9 @@ BOOL CSystemTray::Create(CWnd *pParent, UINT uCallbackMessage, LPCWSTR szToolTip
   StringX ttt = PWSUtil::NormalizeTTT(szToolTip);
 
   // Create an invisible window
-  CWnd::CreateEx(0, AfxRegisterWndClass(0), L"", WS_POPUP, 0,0,10,10, NULL, 0);
+  m_bEnabled = CWnd::CreateEx(0, AfxRegisterWndClass(0), L"", WS_POPUP, 0,0,10,10, NULL, 0);
+  if (!m_bEnabled)
+    return FALSE;
 
   // load up the NOTIFYICONDATA structure
   m_tnd.cbSize = sizeof(m_tnd);
@@ -141,7 +143,6 @@ CSystemTray::~CSystemTray()
   RemoveIcon();
   m_IconList.RemoveAll();
   ::DestroyIcon(m_hSavedIcon);
-  DestroyWindow();
 }
 
 /////////////////////////////////////////////////////////////////////////////

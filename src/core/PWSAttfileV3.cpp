@@ -199,8 +199,11 @@ int PWSAttfileV3::WriteAttmntRecordPreData(const ATRecord &atr)
   // so that it is read in before the actual attachment data is read  *
   // just in case we wish to skip reading it depending on its value   *
   // ******************************************************************
-  WriteCBC(ATTMT_UUID, atr.attmt_uuid, sizeof(uuid_array_t));
-  WriteCBC(ATTMT_ENTRY_UUID, atr.entry_uuid, sizeof(uuid_array_t));
+  uuid_array_t uuid_array;
+  atr.attmt_uuid.GetUUID(uuid_array);
+  WriteCBC(ATTMT_UUID, uuid_array, sizeof(uuid_array_t));
+  atr.entry_uuid.GetUUID(uuid_array);
+  WriteCBC(ATTMT_ENTRY_UUID, uuid_array, sizeof(uuid_array_t));
 
   WriteCBC(ATTMT_FLAGS, &atr.flags, sizeof(atr.flags));
 
@@ -277,6 +280,7 @@ int PWSAttfileV3::ReadAttmntRecordPreData(ATRecord &atr)
   uint32 uint;
   time_t t;
   bool go(true);
+  uuid_array_t uuid_array;
 
   do {
     unsigned char *utf8 = NULL;
@@ -290,13 +294,15 @@ int PWSAttfileV3::ReadAttmntRecordPreData(ATRecord &atr)
           if (utf8Len != sizeof(uuid_array_t)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
-          memcpy(atr.attmt_uuid, utf8, sizeof(uuid_array_t));
+          memcpy(uuid_array, utf8, sizeof(uuid_array_t));
+          atr.attmt_uuid = uuid_array;
           break;
         case ATTMT_ENTRY_UUID:
           if (utf8Len != sizeof(uuid_array_t)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
-          memcpy(atr.entry_uuid, utf8, sizeof(uuid_array_t));
+          memcpy(uuid_array, utf8, sizeof(uuid_array_t));
+          atr.entry_uuid = uuid_array;
           break;
         case ATTMT_FLAGS:
           if (utf8Len != 1) {

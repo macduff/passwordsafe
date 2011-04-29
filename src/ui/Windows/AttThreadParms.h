@@ -28,10 +28,7 @@ struct ATThreadParms {
   : status(0), function(INVALID), pDbx(NULL), pProgressDlg(NULL), pcore(NULL),
   bVerify(false), bCleanup(false), impfilename(_T("")), newfile(_T("")),
   filename(_T("")), num_exported(0), version(PWSAttfile::VCURRENT)
-
   {
-    memset(old_entry_uuid, 0, sizeof(uuid_array_t));
-    memset(new_entry_uuid, 0, sizeof(uuid_array_t));
   }
 
   ATThreadParms(const ATThreadParms &thpms)
@@ -41,10 +38,9 @@ struct ATThreadParms {
     impfilename(thpms.impfilename), newfile(thpms.newfile),
     atr(thpms.atr), filename(thpms.filename), vatf(thpms.vatf),
     vAIRecordExs(thpms.vAIRecordExs), num_exported(thpms.num_exported),
-    version(thpms.version)
+    version(thpms.version),
+    old_entry_uuid(thpms.old_entry_uuid), new_entry_uuid(thpms.new_entry_uuid)
   {
-    memcpy(old_entry_uuid, thpms.old_entry_uuid, sizeof(uuid_array_t));
-    memcpy(new_entry_uuid, thpms.new_entry_uuid, sizeof(uuid_array_t));
   }
 
   ATThreadParms &operator=(const ATThreadParms &thpms)
@@ -71,8 +67,8 @@ struct ATThreadParms {
 
       version = thpms.version;
 
-      memcpy(old_entry_uuid, thpms.old_entry_uuid, sizeof(uuid_array_t));
-      memcpy(new_entry_uuid, thpms.new_entry_uuid, sizeof(uuid_array_t));
+      old_entry_uuid = thpms.old_entry_uuid;
+      new_entry_uuid = thpms.new_entry_uuid;
     }
     return *this;
   }
@@ -90,8 +86,8 @@ struct ATThreadParms {
   bool bCleanup;
 
   // Duplicate Attachments
-  uuid_array_t old_entry_uuid;
-  uuid_array_t new_entry_uuid;
+  CUUIDGen old_entry_uuid;
+  CUUIDGen new_entry_uuid;
 
   // Complete XML Import
   stringT impfilename;

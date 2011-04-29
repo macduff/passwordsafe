@@ -20,6 +20,9 @@ namespace PWSRC {
     USER_CANCEL,                              // 0x0002 =    2
     USER_EXIT,                                // 0x0003 =    3
     LIMIT_REACHED,                            // 0x0004 =    4
+    USER_DECLINED_SAVE,                       // 0x0005 =    5
+    CANT_GET_LOCK,                            // 0x0005 =    6
+    DB_HAS_CHANGED,                           // 0x0005 =    7
  
     // Files
     CANT_OPEN_FILE = 0x0020,                  // 0x0020 =   32

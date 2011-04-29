@@ -139,9 +139,7 @@ void DboxMain::OnAdd()
     if (add_entry_psh.GetIBasedata() == 0) {
       pcmd = AddEntryCommand::Create(&m_core, ci, NULL, &vNewATRecords);
     } else { // creating an alias
-      uuid_array_t base_uuid;
-      memcpy(base_uuid, add_entry_psh.GetBaseUUID(), sizeof(base_uuid));
-      pcmd = AddEntryCommand::Create(&m_core, ci, base_uuid, NULL, &vNewATRecords);
+      pcmd = AddEntryCommand::Create(&m_core, ci, add_entry_psh.GetBaseUUID());
     }
 
     pmulticmds->Add(pcmd);
@@ -413,8 +411,8 @@ void DboxMain::OnDuplicateGroup()
     // Note that we need to do this twice - once to get all the normal entries
     // and bases and then the dependents as we need the mapping between the old
     // base UUIDs and their new UUIDs
-    std::map<st_UUID, st_UUID> mapOldToNewBaseUUIDs;
-    std::map<st_UUID, st_UUID>::const_iterator citer;
+    std::map<CUUIDGen, CUUIDGen> mapOldToNewBaseUUIDs;
+    std::map<CUUIDGen, CUUIDGen>::const_iterator citer;
 
     // Process normal & base entries
     bool bDependentsExist(false);
@@ -444,12 +442,8 @@ void DboxMain::OnDuplicateGroup()
         ci2.SetGroup(sxThisEntryNewGroup);
 
         if (pci->IsBase()) {
-          uuid_array_t old_uuid;
-          pci->GetUUID(old_uuid);
-          uuid_array_t new_uuid;
-          ci2.GetUUID(new_uuid);
-          st_UUID st_old(old_uuid), st_new(new_uuid);
-          mapOldToNewBaseUUIDs.insert(std::make_pair(st_old, st_new));
+          mapOldToNewBaseUUIDs.insert(std::make_pair(pci->GetUUID(),
+                                                     ci2.GetUUID()));
         } // pci->IsBase()
 
         // Make copy normal to begin with - if it has dependents then when those
@@ -502,10 +496,7 @@ void DboxMain::OnDuplicateGroup()
           ASSERT(pbci != NULL);
 
           StringX sxtmp;
-          uuid_array_t old_base_uuid;
-          pbci->GetUUID(old_base_uuid);
-          st_UUID st_old_base(old_base_uuid);
-          citer = mapOldToNewBaseUUIDs.find(st_old_base);
+          citer = mapOldToNewBaseUUIDs.find(pbci->GetUUID());
           if (citer != mapOldToNewBaseUUIDs.end()) {
             // Base is in duplicated group - use new values
             StringX subPath2 =  pbci->GetGroup();
@@ -517,7 +508,7 @@ void DboxMain::OnDuplicateGroup()
                       pbci->GetUser()  +
                     L"]";
             ci2.SetPassword(sxtmp);
-            pcmd = AddEntryCommand::Create(&m_core, ci2, citer->second.uuid);
+            pcmd = AddEntryCommand::Create(&m_core, ci2, citer->second);
           } else {
             // Base not in duplicated group - use old values
             sxtmp = L"[" +
@@ -526,7 +517,7 @@ void DboxMain::OnDuplicateGroup()
                       pbci->GetUser()  +
                     L"]";
             ci2.SetPassword(sxtmp);
-            pcmd = AddEntryCommand::Create(&m_core, ci2, old_base_uuid);
+            pcmd = AddEntryCommand::Create(&m_core, ci2, pbci->GetUUID());
           } // where's the base?
           pcmd->SetNoGUINotify();
           pmulti_cmd_deps->Add(pcmd);
@@ -944,7 +935,7 @@ bool DboxMain::EditItem(CItemData *pci, PWScore *pcore)
   // in the current database.
   // The one except is when the user wishes to View an entry from the comparison
   // database via "CompareResultsDlg" (the Compare Database results dialog).
-  // Note: In this instance, the comparison database is R/O and hence the user may
+  // Note: In this instance, the comparison database is R-O and hence the user may
   // only View these entries and any database preferences can be obtain from the
   // copy of the header within that instance of PWScore - see below when changing the
   // default username.
@@ -1020,15 +1011,15 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
   MultiCommands *pmulticmds = MultiCommands::Create(pcore);
 
   StringX newPassword = pci_new->GetPassword();
-  uuid_array_t original_uuid = {'\0'}, original_base_uuid = {'\0'}, new_base_uuid = {'\0'};
 
-  memcpy(new_base_uuid, pentry_psh->GetBaseUUID(), sizeof(new_base_uuid));
-  pci_original->GetUUID(original_uuid);
+  CUUIDGen original_base_uuid = CUUIDGen::NullUUID();
+  CUUIDGen new_base_uuid = pentry_psh->GetBaseUUID();
+  CUUIDGen original_uuid = pci_original->GetUUID();
 
   if (pci_original->IsDependent()) {
     const CItemData *pci_orig_base = m_core.GetBaseEntry(pci_original);
     ASSERT(pci_orig_base != NULL);
-    pci_orig_base->GetUUID(original_base_uuid);
+    original_base_uuid = pci_orig_base->GetUUID();
   }
 
   ItemListIter iter;
@@ -1293,8 +1284,6 @@ void DboxMain::OnDuplicateEntry()
 
       const CItemData *pbci = GetBaseEntry(pci);
       if (pbci != NULL) {
-        uuid_array_t base_uuid;
-        pbci->GetUUID(base_uuid);
         StringX sxtmp;
         sxtmp = L"[" +
                   pbci->GetGroup() + L":" +
@@ -1302,7 +1291,7 @@ void DboxMain::OnDuplicateEntry()
                   pbci->GetUser()  +
                 L"]";
         ci2.SetPassword(sxtmp);
-        pcmd = AddEntryCommand::Create(&m_core, ci2, base_uuid);
+        pcmd = AddEntryCommand::Create(&m_core, ci2, pbci->GetUUID());
       }
     } else { // not alias or shortcut
       ci2.SetNormal();
@@ -1602,7 +1591,7 @@ void DboxMain::OnAutoType()
 
 void DboxMain::AutoType(const CItemData &ci)
 {
-  // Called from OnAutoType and OnTrayAutoType
+  // Called from OnAutoType, OnTrayAutoType and OnDragAutoType
 
   // Rules are ("Minimize on Autotype" takes precedence):
   // 1. If "MinimizeOnAutotype" - minimize PWS during Autotype but do
@@ -1940,6 +1929,14 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
   SetChanged(Data);
   FixListIndexes();
   RefreshViews();
+}
+
+LRESULT DboxMain::OnDragAutoType(WPARAM wParam, LPARAM /* lParam */)
+{
+  const CItemData *pci = reinterpret_cast<const CItemData *>(wParam);
+
+  AutoType(*pci);
+  return 0L;
 }
 
 LRESULT DboxMain::OnToolBarFindMessage(WPARAM /* wParam */, LPARAM /* lParam */)

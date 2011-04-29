@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "InfoDisplay.h"      // for Tooltips
+
 // CPWStatusBar
 
 class CPWStatusBar : public CStatusBar
@@ -25,8 +27,9 @@ public:
   CPWStatusBar();
   virtual ~CPWStatusBar();
   virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
+  virtual BOOL OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT *pResult);
 
-  void SetFilterStatus(bool bStatus)
+  void SetFilterStatus(const bool bStatus)
   {m_bFilterStatus = bStatus;}
 
   int GetBitmapWidth()
@@ -34,12 +37,24 @@ public:
 
 protected:
   //{{AFX_MSG(CPWStatusBar)
+  afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+  afx_msg void OnTimer(UINT_PTR nIDEvent);
+  afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+  afx_msg LRESULT OnMouseLeave(WPARAM, LPARAM);
   //}}AFX_MSG
 
   DECLARE_MESSAGE_MAP()
 
 private:
+  bool ShowToolTip(int nPane, const bool bVisible);
+
+  CInfoDisplay *m_pSBToolTips;
   bool m_bFilterStatus;
   int m_bmHeight, m_bmWidth;
   CBitmap m_FilterBitmap;
+
+  UINT_PTR m_nHoverSBTimerID, m_nShowSBTimerID;
+  CPoint m_HoverSBPoint;
+  int m_HoverSBnPane;
+  bool m_bUseToolTips, m_bMouseInWindow;
 };

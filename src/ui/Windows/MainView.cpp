@@ -99,7 +99,7 @@ void DboxMain::DatabaseModified(bool bChanged)
 }
 
 void DboxMain::UpdateGUI(UpdateGUICommand::GUI_Action ga, 
-                         uuid_array_t &entry_uuid, CItemData::FieldType ft,
+                         const CUUIDGen &entry_uuid, CItemData::FieldType ft,
                          bool bUpdateGUI)
 {
   // Callback from PWScore if GUI needs updating
@@ -110,7 +110,7 @@ void DboxMain::UpdateGUI(UpdateGUICommand::GUI_Action ga,
   // the GUI should not be updated until after the Add.
   CItemData *pci(NULL);
 
-  ItemListIter pos = Find(entry_uuid);
+  ItemListIter pos = Find(*entry_uuid.GetUUID());
   if (pos != End()) {
     pci = &pos->second;
   }
@@ -331,6 +331,7 @@ void DboxMain::DoDataExchange(CDataExchange* pDX)
   DDX_Control(pDX, IDC_STATIC_DRAGNOTES, m_DDNotes);
   DDX_Control(pDX, IDC_STATIC_DRAGURL, m_DDURL);
   DDX_Control(pDX, IDC_STATIC_DRAGEMAIL, m_DDemail);
+  DDX_Control(pDX, IDC_STATIC_DRAGAUTO, m_DDAutotype);
   //}}AFX_DATA_MAP
 }
 
@@ -414,6 +415,7 @@ void DboxMain::UpdateToolBarForSelectedItem(const CItemData *pci)
         m_DDNotes.SetStaticState(false);
         m_DDURL.SetStaticState(false);
         m_DDemail.SetStaticState(false);
+        m_DDAutotype.SetStaticState(false);
       } else {
         m_DDGroup.SetStaticState(!pci_entry->IsGroupEmpty());
         m_DDTitle.SetStaticState(true);
@@ -422,6 +424,7 @@ void DboxMain::UpdateToolBarForSelectedItem(const CItemData *pci)
         m_DDNotes.SetStaticState(!pci_entry->IsNotesEmpty());
         m_DDURL.SetStaticState(!pci_entry->IsURLEmpty());
         m_DDemail.SetStaticState(!pci_entry->IsEmailEmpty());
+        m_DDAutotype.SetStaticState(true);
       }
     }
   }
@@ -569,6 +572,8 @@ void DboxMain::setupBars()
   m_DDURL.ShowWindow(SW_SHOW);
   m_DDemail.EnableWindow(TRUE);
   m_DDemail.ShowWindow(SW_SHOW);
+  m_DDAutotype.EnableWindow(TRUE);
+  m_DDAutotype.ShowWindow(SW_SHOW);
 #endif
 }
 
@@ -1060,9 +1065,9 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
     bool bDragBarState = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowDragbar);
     if (bDragBarState) {
       const int i = GetSystemMetrics(SM_CYBORDER);
+      const int j = rect.top + i;
       m_DDGroup.GetWindowRect(&dragrect);
       ScreenToClient(&dragrect);
-      const int j = rect.top + i;
       m_DDGroup.SetWindowPos(NULL, dragrect.left, j, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 
       m_DDTitle.GetWindowRect(&dragrect);
@@ -1088,6 +1093,10 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
       m_DDemail.GetWindowRect(&dragrect);
       ScreenToClient(&dragrect);
       m_DDemail.SetWindowPos(NULL, dragrect.left, j, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+
+      m_DDAutotype.GetWindowRect(&dragrect);
+      ScreenToClient(&dragrect);
+      m_DDAutotype.SetWindowPos(NULL, dragrect.left, j, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
       rect.top += dragrect.Height() + 2 * i;
     }
     m_ctlItemList.MoveWindow(&rect, TRUE);
@@ -1814,6 +1823,7 @@ void DboxMain::SetToolbar(const int menuItem, bool bInit)
       m_DDNotes.Init(IDB_DRAGNOTES_NEW, IDB_DRAGNOTESX_NEW);
       m_DDURL.Init(IDB_DRAGURL_NEW, IDB_DRAGURLX_NEW);
       m_DDemail.Init(IDB_DRAGEMAIL_NEW, IDB_DRAGEMAILX_NEW);
+      m_DDAutotype.ReInit(IDB_AUTOTYPE_NEW, IDB_DRAGAUTOX_NEW);
     } else if (menuItem == ID_MENUITEM_OLD_TOOLBAR) {
       m_DDGroup.Init(IDB_DRAGGROUP_CLASSIC, IDB_DRAGGROUPX_CLASSIC);
       m_DDTitle.Init(IDB_DRAGTITLE_CLASSIC, IDB_DRAGTITLEX_CLASSIC);
@@ -1822,6 +1832,7 @@ void DboxMain::SetToolbar(const int menuItem, bool bInit)
       m_DDNotes.Init(IDB_DRAGNOTES_CLASSIC, IDB_DRAGNOTESX_CLASSIC);
       m_DDURL.Init(IDB_DRAGURL_CLASSIC, IDB_DRAGURLX_CLASSIC);
       m_DDemail.Init(IDB_DRAGEMAIL_CLASSIC, IDB_DRAGEMAILX_CLASSIC);
+      m_DDAutotype.Init(IDB_AUTOTYPE_CLASSIC, IDB_DRAGAUTOX_CLASSIC);
     } else {
       ASSERT(0);
     }
@@ -1841,6 +1852,7 @@ void DboxMain::SetToolbar(const int menuItem, bool bInit)
       m_DDNotes.ReInit(IDB_DRAGNOTES_NEW, IDB_DRAGNOTESX_NEW);
       m_DDURL.ReInit(IDB_DRAGURL_NEW, IDB_DRAGURLX_NEW);
       m_DDemail.ReInit(IDB_DRAGEMAIL_NEW, IDB_DRAGEMAILX_NEW);
+      m_DDAutotype.ReInit(IDB_AUTOTYPE_NEW, IDB_DRAGAUTOX_NEW);
     } else if (menuItem == ID_MENUITEM_OLD_TOOLBAR) {
       m_DDGroup.ReInit(IDB_DRAGGROUP_CLASSIC, IDB_DRAGGROUPX_CLASSIC);
       m_DDTitle.ReInit(IDB_DRAGTITLE_CLASSIC, IDB_DRAGTITLEX_CLASSIC);
@@ -1849,12 +1861,14 @@ void DboxMain::SetToolbar(const int menuItem, bool bInit)
       m_DDNotes.ReInit(IDB_DRAGNOTES_CLASSIC, IDB_DRAGNOTESX_CLASSIC);
       m_DDURL.ReInit(IDB_DRAGURL_CLASSIC, IDB_DRAGURLX_CLASSIC);
       m_DDemail.ReInit(IDB_DRAGEMAIL_CLASSIC, IDB_DRAGEMAILX_CLASSIC);
+      m_DDAutotype.ReInit(IDB_AUTOTYPE_CLASSIC, IDB_DRAGAUTOX_CLASSIC);
     } else {
       ASSERT(0);
     }
     m_DDGroup.Invalidate(); m_DDTitle.Invalidate(); m_DDUser.Invalidate();
     m_DDPassword.Invalidate(); m_DDNotes.Invalidate(); m_DDURL.Invalidate();
     m_DDemail.Invalidate();
+    m_DDAutotype.Invalidate();
   }
   m_menuManager.SetImageList(&m_MainToolBar);
 
@@ -3170,7 +3184,8 @@ void DboxMain::SetToolBarPositions()
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
   bool bDragBarState = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowDragbar);
   CDDStatic *DDs[] = { &m_DDGroup, &m_DDTitle, &m_DDUser,
-                       &m_DDPassword, &m_DDNotes, &m_DDURL, &m_DDemail, };
+                       &m_DDPassword, &m_DDNotes, &m_DDURL, &m_DDemail,
+                       &m_DDAutotype};
   if (bDragBarState) {
     // Get the image states just incase another entry selected
     // since last shown
@@ -3183,6 +3198,7 @@ void DboxMain::SetToolBarPositions()
       m_DDNotes.SetStaticState(false);
       m_DDURL.SetStaticState(false);
       m_DDemail.SetStaticState(false);
+      m_DDAutotype.SetStaticState(false);
     } else {
       m_DDGroup.SetStaticState(!entry->IsGroupEmpty());
       m_DDTitle.SetStaticState(true);
@@ -3191,6 +3207,7 @@ void DboxMain::SetToolBarPositions()
       m_DDNotes.SetStaticState(!entry->IsNotesEmpty());
       m_DDURL.SetStaticState(!entry->IsURLEmpty());
       m_DDemail.SetStaticState(!entry->IsEmailEmpty());
+      m_DDAutotype.SetStaticState(true);
     }
 
     const int i = GetSystemMetrics(SM_CYBORDER);
@@ -3226,10 +3243,10 @@ void DboxMain::SetToolBarPositions()
       ScreenToClient(&stb_rect);
       // Move FindToolBar up by the height of the Statusbar
       m_FindToolBar.MoveWindow(ftb_rect.left, ftb_rect.top - stb_rect.Height(),
-        ftb_rect.Width(), ftb_rect.Height());
+                               ftb_rect.Width(), ftb_rect.Height());
       // Move Statusbar down by the height of the FindToolBar
       m_statusBar.MoveWindow(stb_rect.left, stb_rect.top + ftb_rect.Height(),
-        stb_rect.Width(), stb_rect.Height());
+                             stb_rect.Width(), stb_rect.Height());
       m_FindToolBar.Invalidate();
       m_statusBar.Invalidate();
     }
@@ -3663,7 +3680,7 @@ bool DboxMain::SetNotesWindow(const CPoint point, const bool bVisible)
       pci = (CItemData *)m_ctlItemList.GetItemData(nItem);
     }
   }
-  target.y += ::GetSystemMetrics(SM_CYCURSOR); // height of cursor
+  target.y += ::GetSystemMetrics(SM_CYCURSOR) / 2; // half-height of cursor
 
   if (pci != NULL) {
     if (pci->IsShortcut())
@@ -3978,8 +3995,8 @@ void DboxMain::SaveGUIStatusEx(const int iView)
 
   // Note: User can have different entries selected/visible in Tree & List Views
   if ((iView & iListOnly) == iListOnly) {
-    memset(m_LUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-    memset(m_LUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
+    m_LUUIDSelectedAtMinimize = CUUIDGen::NullUUID();
+    m_LUUIDVisibleAtMinimize = CUUIDGen::NullUUID();
 
     // List view
     // Get selected entry in CListCtrl
@@ -3990,7 +4007,7 @@ void DboxMain::SaveGUIStatusEx(const int iView)
       ASSERT(pci != NULL);  // No groups in List View
       DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
       ASSERT(pdi != NULL && pdi->list_index == i);
-      pci->GetUUID(m_LUUIDSelectedAtMinimize);
+      m_LUUIDSelectedAtMinimize = pci->GetUUID();
     } // p != 0
 
     // Get first entry visible in CListCtrl
@@ -4000,15 +4017,15 @@ void DboxMain::SaveGUIStatusEx(const int iView)
       ASSERT(pci != NULL);  // No groups in List View
       DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
       ASSERT(pdi != NULL && pdi->list_index == i);
-      pci->GetUUID(m_LUUIDVisibleAtMinimize);
+      m_LUUIDVisibleAtMinimize = pci->GetUUID();
     } // i >= 0
   }
   if ((iView & iTreeOnly) == iTreeOnly) {
     // Save expand/collapse status of groups
     m_vGroupDisplayState = GetGroupDisplayState();
 
-    memset(m_TUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-    memset(m_TUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
+    m_LUUIDSelectedAtMinimize = CUUIDGen::NullUUID();
+    m_LUUIDVisibleAtMinimize = CUUIDGen::NullUUID();
 
     m_sxSelectedGroup.clear();
     m_sxVisibleGroup.clear();
@@ -4026,7 +4043,7 @@ void DboxMain::SaveGUIStatusEx(const int iView)
           pws_os::Trace(L"DboxMain::SaveGUIStatusEx: fixing pdi->tree_item!\n");
           pdi->tree_item = ti;
         }
-        pci->GetUUID(m_TUUIDSelectedAtMinimize);
+        m_TUUIDSelectedAtMinimize = pci->GetUUID();
       } else {
         // Group: save entry text
         m_sxSelectedGroup = m_ctlItemTree.GetGroup(ti);
@@ -4045,7 +4062,7 @@ void DboxMain::SaveGUIStatusEx(const int iView)
           pws_os::Trace(L"DboxMain::SaveGUIStatusEx: fixing pdi->tree_item!\n");
           pdi->tree_item = ti;
         }
-        pci->GetUUID(m_TUUIDVisibleAtMinimize);
+        m_TUUIDVisibleAtMinimize = pci->GetUUID();
       } else {
         // Group: save entry text
         m_sxVisibleGroup = m_ctlItemTree.GetGroup(ti);
@@ -4080,7 +4097,7 @@ void DboxMain::RestoreGUIStatusEx()
   CItemData *pci(NULL);
 
   // Process Tree - Selected
-  if (memcmp(m_TUUIDSelectedAtMinimize, PWScore::NULL_UUID, sizeof(uuid_array_t)) != 0) {
+  if (m_TUUIDSelectedAtMinimize != CUUIDGen::NullUUID()) {
     // Entry selected
     ItemListIter iter = Find(m_TUUIDSelectedAtMinimize);
     if (iter != End()) {
@@ -4113,7 +4130,7 @@ void DboxMain::RestoreGUIStatusEx()
   }
 
   // Process Tree - Visible
-  if (memcmp(m_TUUIDVisibleAtMinimize, PWScore::NULL_UUID, sizeof(uuid_array_t)) != 0) {
+  if (m_TUUIDVisibleAtMinimize != CUUIDGen::NullUUID()) {
     // Entry topmost visible
     ItemListIter iter = Find(m_TUUIDVisibleAtMinimize);
     if (iter != End()) {
@@ -4144,7 +4161,7 @@ void DboxMain::RestoreGUIStatusEx()
   }
 
   // Process List - selected
-  if (memcmp(m_LUUIDSelectedAtMinimize, PWScore::NULL_UUID, sizeof(uuid_array_t)) != 0) {
+  if (m_LUUIDSelectedAtMinimize != CUUIDGen::NullUUID()) {
     ItemListIter iter = Find(m_LUUIDSelectedAtMinimize);
     if (iter != End()) {
       DisplayInfo *pdi = ((DisplayInfo *)(iter->second.GetDisplayInfo()));
@@ -4162,7 +4179,7 @@ void DboxMain::RestoreGUIStatusEx()
   }
 
   // Process List - visible
-  if (memcmp(m_LUUIDVisibleAtMinimize, PWScore::NULL_UUID, sizeof(uuid_array_t)) != 0) {
+  if (m_LUUIDVisibleAtMinimize != CUUIDGen::NullUUID()) {
     ItemListIter iter = Find(m_LUUIDVisibleAtMinimize);
     if (iter != End()) {
       DisplayInfo *pdi = ((DisplayInfo *)(iter->second.GetDisplayInfo()));
@@ -4259,7 +4276,7 @@ void DboxMain::SaveGUIStatus()
   if (pos != NULL) {
     pci_list = (CItemData *)m_ctlItemList.GetItemData((int)pos - 1);
     if (pci_list != NULL) {
-      pci_list->GetUUID(SaveGUIInfo.lSelected);
+      SaveGUIInfo.lSelected = pci_list->GetUUID();
       SaveGUIInfo.blSelectedValid = true;
     }
   }
@@ -4269,7 +4286,7 @@ void DboxMain::SaveGUIStatus()
     pci_tree = (CItemData *)m_ctlItemTree.GetItemData(hi);
     if (pci_tree != pci_list) {
       if (pci_tree != NULL) {
-        pci_tree->GetUUID(SaveGUIInfo.tSelected);
+        SaveGUIInfo.tSelected = pci_tree->GetUUID();
         SaveGUIInfo.btSelectedValid = true;
       } else {
         StringX s(L"");

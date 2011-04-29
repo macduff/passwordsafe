@@ -118,6 +118,7 @@ public:
   StringX GetPassword() const;
   StringX GetNotes(TCHAR delimiter = 0) const;
   void GetUUID(uuid_array_t &) const; // V20
+  const CUUIDGen GetUUID() const; // V20 - see comment in .cpp re return type
   StringX GetGroup() const; // V20
   StringX GetURL() const; // V30
   StringX GetAutoType() const; // V30
@@ -198,6 +199,7 @@ public:
   void UpdatePassword(const StringX &password); // use when password changed!
   void SetNotes(const StringX &notes, TCHAR delimiter = 0);
   void SetUUID(const uuid_array_t &uuid); // V20
+  void SetUUID(const CUUIDGen &uuid) {SetUUID(*uuid.GetUUID());}
   void SetGroup(const StringX &group); // V20
   void SetURL(const StringX &url); // V30
   void SetAutoType(const StringX &autotype); // V30

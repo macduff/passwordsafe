@@ -45,7 +45,7 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 // Change the master password for the database.
-void DboxMain::OnPasswordChange()
+void DboxMain::OnPassphraseChange()
 {
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
@@ -141,8 +141,11 @@ int DboxMain::RestoreSafe()
     PWSprefs::GetInstance()->GetPref(PWSprefs::CurrentBackup);
 
   rc = SaveIfChanged();
-  if (rc != PWSRC::SUCCESS)
+  if (rc != PWSRC::SUCCESS && rc != PWSRC::USER_DECLINED_SAVE)
     return rc;
+   
+  // Reset changed flag to stop being asked again (only if rc == PWSRC::USER_DECLINED_SAVE)
+  SetChanged(Clear);
 
   CString cs_text, cs_temp, cs_title;
   cs_text.LoadString(IDS_PICKRESTORE);

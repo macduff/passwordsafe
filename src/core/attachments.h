@@ -74,10 +74,9 @@ struct ATRecord {
   ATRecord()
   : uncsize(0), cmpsize(0), blksize(0), CRC(0), flags(0), uiflags(0),
     ctime(0), atime(0), mtime(0), dtime(0),
-    filename(_T("")), path(_T("")), description(_T(""))
+    filename(_T("")), path(_T("")), description(_T("")),
+    entry_uuid(CUUIDGen::NullUUID()), attmt_uuid(CUUIDGen::NullUUID())
   {
-    memset(entry_uuid, 0, sizeof(uuid_array_t));
-    memset(attmt_uuid, 0, sizeof(uuid_array_t));
     memset(odigest, 0, SHA1::HASHLEN);
     memset(cdigest, 0, SHA1::HASHLEN);
   }
@@ -90,10 +89,9 @@ struct ATRecord {
     : uncsize(atr.uncsize), cmpsize(atr.cmpsize), blksize(atr.blksize), CRC(atr.CRC),
     flags(atr.flags), uiflags(atr.uiflags),
     ctime(atr.ctime), atime(atr.atime), mtime(atr.mtime), dtime(atr.dtime),
-    filename(atr.filename), path(atr.path), description(atr.description)
+    filename(atr.filename), path(atr.path), description(atr.description),
+    entry_uuid(atr.entry_uuid), attmt_uuid(atr.attmt_uuid)
   {
-    memcpy(entry_uuid, atr.entry_uuid, sizeof(uuid_array_t));
-    memcpy(attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t));
     memcpy(odigest, atr.odigest, SHA1::HASHLEN);
     memcpy(cdigest, atr.cdigest, SHA1::HASHLEN);
   }
@@ -115,8 +113,8 @@ struct ATRecord {
       filename = atr.filename;
       path = atr.path;
       description = atr.description;
-      memcpy(entry_uuid, atr.entry_uuid, sizeof(uuid_array_t));
-      memcpy(attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t));
+      entry_uuid = atr.entry_uuid;
+      attmt_uuid = atr.attmt_uuid;
       memcpy(odigest, atr.odigest, SHA1::HASHLEN);
       memcpy(cdigest, atr.cdigest, SHA1::HASHLEN);
     }
@@ -129,8 +127,7 @@ struct ATRecord {
     CRC = 0;
     ctime = atime = mtime = dtime = 0;
     filename = path = description = _T("");
-    memset(entry_uuid, 0, sizeof(uuid_array_t));
-    memset(attmt_uuid, 0, sizeof(uuid_array_t));
+    entry_uuid = attmt_uuid = CUUIDGen::NullUUID();
     memset(odigest, 0, SHA1::HASHLEN);
     memset(cdigest, 0, SHA1::HASHLEN);
   }
@@ -151,8 +148,8 @@ struct ATRecord {
   StringX path;
   StringX description;
 
-  uuid_array_t attmt_uuid;
-  uuid_array_t entry_uuid;
+  CUUIDGen attmt_uuid;
+  CUUIDGen entry_uuid;
 };
 
 // Attachment Extended Record
@@ -165,7 +162,7 @@ struct ATRecordEx {
 
   ATRecordEx(const ATRecordEx &atrex)
     : atr(atrex.atr), sxGroup(atrex.sxGroup),
-      sxTitle(atrex.sxTitle), sxUser(atrex.sxUser)
+    sxTitle(atrex.sxTitle), sxUser(atrex.sxUser)
   {
   }
 
@@ -194,8 +191,7 @@ struct ATRecordEx {
 // Attachment Filter structure
 struct ATFilter {
   ATFilter()
-  : set(0), object(0), function(0),
-    value(_T(""))
+  : set(0), object(0), function(0), value(_T(""))
   {}
 
   ATFilter(const ATFilter &af)

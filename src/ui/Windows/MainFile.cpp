@@ -340,6 +340,7 @@ int DboxMain::New()
   m_DDNotes.SetStaticState(false);
   m_DDURL.SetStaticState(false);
   m_DDemail.SetStaticState(false);
+  m_DDAutotype.SetStaticState(false);
 
   UpdateMenuAndToolBar(true);
 
@@ -461,8 +462,11 @@ int DboxMain::Close(const bool bTrySave)
     if (m_bOpen) {
       // try and save it first
       int rc = SaveIfChanged();
-      if (rc != PWSRC::SUCCESS)
+      if (rc != PWSRC::SUCCESS && rc != PWSRC::USER_DECLINED_SAVE)
         return rc;
+
+      // Reset changed flag to stop being asked again (only if rc == PWSRC::USER_DECLINED_SAVE)
+      SetChanged(Clear);
     }
   }
 
@@ -491,10 +495,10 @@ int DboxMain::Close(const bool bTrySave)
   ClearData();
 
   // Zero entry UUID selected and first visible at minimize and group text
-  memset(m_LUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_TUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_LUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_TUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
+  m_LUUIDSelectedAtMinimize = CUUIDGen::NullUUID();
+  m_TUUIDSelectedAtMinimize = CUUIDGen::NullUUID();
+  m_LUUIDVisibleAtMinimize = CUUIDGen::NullUUID();
+  m_TUUIDVisibleAtMinimize = CUUIDGen::NullUUID();
   m_sxSelectedGroup.clear();
   m_sxVisibleGroup.clear();
 
@@ -519,6 +523,7 @@ int DboxMain::Close(const bool bTrySave)
   m_DDNotes.SetStaticState(false);
   m_DDURL.SetStaticState(false);
   m_DDemail.SetStaticState(false);
+  m_DDAutotype.SetStaticState(false);
 
   app.SetTooltipText(L"PasswordSafe");
   UpdateSystemTray(CLOSED);
@@ -683,8 +688,11 @@ int DboxMain::Open(const StringX &sx_Filename, const bool bReadOnly,  const bool
   }
 
   rc = SaveIfChanged();
-  if (rc != PWSRC::SUCCESS)
+  if (rc != PWSRC::SUCCESS && rc != PWSRC::USER_DECLINED_SAVE)
     return rc;
+
+  // Reset changed flag to stop being asked again (only if rc == PWSRC::USER_DECLINED_SAVE)
+  SetChanged(Clear);
 
   // If we were using a different file, unlock it do this before 
   // GetAndCheckPassword() as that routine gets a lock on the new file
@@ -741,10 +749,10 @@ int DboxMain::Open(const StringX &sx_Filename, const bool bReadOnly,  const bool
   ClearData();
 
   // Zero entry UUID selected and first visible at minimize and group text
-  memset(m_LUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_TUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_LUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_TUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
+  m_LUUIDSelectedAtMinimize = CUUIDGen::NullUUID();
+  m_TUUIDSelectedAtMinimize = CUUIDGen::NullUUID();
+  m_LUUIDVisibleAtMinimize = CUUIDGen::NullUUID();
+  m_TUUIDVisibleAtMinimize = CUUIDGen::NullUUID();
   m_sxSelectedGroup.clear();
   m_sxVisibleGroup.clear();
 
@@ -872,10 +880,7 @@ void DboxMain::PostOpenProcessing()
 
   UUIDList RUElist;
   m_core.GetRUEList(RUElist);
-  for (UUIDListRIter riter = RUElist.rbegin();
-             riter != RUElist.rend(); riter++) {
-    m_RUEList.AddRUEntry(riter->uuid);
-  }
+  m_RUEList.SetRUEList(RUElist);
 
   // Set timer for user-defined idle lockout, if selected (DB preference)
   KillTimer(TIMER_LOCKDBONIDLETIMEOUT);
@@ -990,7 +995,7 @@ int DboxMain::CheckEmergencyBackupFiles(StringX sx_Filename, StringX &passkey)
   // Close original - don't save anything
   Close(false);
 
-  // Now open the one selected by the user in R/O mode
+  // Now open the one selected by the user in R-O mode
   sx_fullfilename = vValidEBackupfiles[-dsprc].dbp.database;
   rc = m_core.ReadFile(sx_fullfilename, passkey);
   ASSERT(rc == PWSRC::SUCCESS);
@@ -1185,9 +1190,8 @@ int DboxMain::SaveIfChanged()
         else
           return PWSRC::CANT_OPEN_FILE;
       case IDNO:
-        // Reset changed flag to stop being asked again
-        SetChanged(Clear);
-        break;
+        // It is a success but we need to know that the user said no!
+        return PWSRC::USER_DECLINED_SAVE;
     }
   }
   return PWSRC::SUCCESS;
@@ -2042,6 +2046,105 @@ void DboxMain::OnProperties()
   dlg.DoModal();
 }
 
+void DboxMain::OnChangeMode()	 
+{
+  // From StatusBar and menu
+  const bool bWasRO = IsDBReadOnly();
+
+  if (!bWasRO) {
+    // Try to save if any changes done to database
+    int rc = SaveIfChanged();
+    if (rc != PWSRC::SUCCESS && rc != PWSRC::USER_DECLINED_SAVE)
+      return;
+
+    if (rc == PWSRC::USER_DECLINED_SAVE) {
+	   // But ask just in case	 
+       CGeneralMsgBox gmb;	 
+       CString cs_msg(MAKEINTRESOURCE(IDS_BACKOUT_CHANGES)), cs_title(MAKEINTRESOURCE(IDS_CHANGEMODE));	 
+       rc = gmb.MessageBox(cs_msg, cs_title, MB_YESNO | MB_ICONQUESTION);	 
+ 	 
+       if (rc == IDNO)	 
+         return;
+
+      // User said No to the save - so we must back-out all changes since last save
+      while (m_core.IsChanged()) {
+        OnUndo();
+      }
+    }
+ 
+    // Reset changed flag to stop being asked again (only if rc == PWScore::USER_DECLINED_SAVE)
+    SetChanged(Clear);
+
+    // Clear the Commands
+    m_core.ClearCommands();
+  }
+
+  CGeneralMsgBox gmb;
+  CString cs_msg, cs_title(MAKEINTRESOURCE(IDS_CHANGEMODE_FAILED));
+  std::wstring locker = L"";
+  int iErrorCode;
+  bool brc = m_core.ChangeMode(locker, iErrorCode);
+  if (brc) {
+    UpdateStatusBar();
+  } else {
+    // Better give them the bad news!
+    bool bInUse = false;
+    UINT uiMsg = 0;
+    if (bWasRO) {
+      switch (iErrorCode) {
+        case PWSRC::DB_HAS_CHANGED:
+          // We did get the lock but the DB has been changed
+          // Note: PWScore has already freed the lock
+          // The user must close and re-open it in R/W mode
+          uiMsg = IDS_CM_FAIL_REASON3;
+          break;
+        
+        case PWSRC::CANT_GET_LOCK:
+        {
+          CString cs_user_and_host, cs_PID;
+          cs_user_and_host = (CString)locker.c_str();
+          int i_pid = cs_user_and_host.ReverseFind(L':');
+          if (i_pid > -1) {
+            // If PID present then it is ":%08d" = 9 chars in length
+            ASSERT((cs_user_and_host.GetLength() - i_pid) == 9);
+            cs_PID.Format(IDS_PROCESSID, cs_user_and_host.Right(8));
+            cs_user_and_host = cs_user_and_host.Left(i_pid);
+          } else {
+            cs_PID = L"";
+          }
+
+          cs_msg.Format(IDS_CM_FAIL_REASON1, cs_user_and_host, cs_PID);
+          bInUse = true;
+          break;
+        }
+        case PWSRC::CANT_OPEN_FILE:
+          uiMsg = IDS_CM_FAIL_REASON4;
+          break;
+        case PWSRC::END_OF_FILE:
+          uiMsg = IDS_CM_FAIL_REASON5;
+          break;
+        default:
+          ASSERT(0);
+      }
+    } else {
+      // Don't need error code when going from R/W to R-O - only one issue -
+      // could not release the lock!
+      uiMsg = IDS_CM_FAIL_REASON2;
+    }
+    if (bInUse) {
+      // Big message
+      gmb.SetTitle(cs_title);
+      gmb.SetMsg(cs_msg);
+      gmb.SetStandardIcon(MB_ICONWARNING);
+      gmb.AddButton(IDS_CLOSE, IDS_CLOSE);
+      gmb.DoModal();
+    } else {
+      cs_msg.LoadString(uiMsg);
+      gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONWARNING);
+    }
+  }
+}
+
 void DboxMain::OnCompare()
 {
   if (m_core.GetCurFile().empty() || m_core.GetNumEntries() == 0) {
@@ -2477,13 +2580,13 @@ LRESULT DboxMain::OnProcessCompareResultFunction(WPARAM wParam, LPARAM lFunction
   return lres;
 }
 
-LRESULT DboxMain::ViewCompareResult(PWScore *pcore, uuid_array_t &entryUUID)
+LRESULT DboxMain::ViewCompareResult(PWScore *pcore, const CUUIDGen &entryUUID)
 {  
   ItemListIter pos = pcore->Find(entryUUID);
   ASSERT(pos != pcore->GetEntryEndIter());
   CItemData *pci = &pos->second;
 
-  // View the correct entry and make sure R/O
+  // View the correct entry and make sure R-O
   bool bSaveRO = pcore->IsReadOnly();
   pcore->SetReadOnly(true);
 
@@ -2494,7 +2597,7 @@ LRESULT DboxMain::ViewCompareResult(PWScore *pcore, uuid_array_t &entryUUID)
   return FALSE;
 }
 
-LRESULT DboxMain::EditCompareResult(PWScore *pcore, uuid_array_t &entryUUID)
+LRESULT DboxMain::EditCompareResult(PWScore *pcore, const CUUIDGen &entryUUID)
 {
   ItemListIter pos = pcore->Find(entryUUID);
   ASSERT(pos != pcore->GetEntryEndIter());
@@ -2505,7 +2608,7 @@ LRESULT DboxMain::EditCompareResult(PWScore *pcore, uuid_array_t &entryUUID)
 }
 
 LRESULT DboxMain::CopyCompareResult(PWScore *pfromcore, PWScore *ptocore,
-                                    uuid_array_t &fromUUID, uuid_array_t &toUUID)
+                                    const CUUIDGen &fromUUID, const CUUIDGen &toUUID)
 {
   bool bWasEmpty = ptocore->GetNumEntries() == 0;
 
@@ -2558,7 +2661,7 @@ LRESULT DboxMain::CopyCompareResult(PWScore *pfromcore, PWScore *ptocore,
 }
 
 LRESULT DboxMain::SynchCompareResult(PWScore *pfromcore, PWScore *ptocore,
-                                     uuid_array_t &fromUUID, uuid_array_t &toUUID)
+                                     const CUUIDGen &fromUUID, const CUUIDGen &toUUID)
 {
   // Synch 1 entry *pfromcore -> *ptocore
   CItemData::FieldBits bsFields;

@@ -89,13 +89,13 @@ typedef struct {
     int fd;                 /* file descriptor */
     char *path;             /* path or fd for error messages */
     z_off64_t pos;          /* current position in uncompressed data */
-    unsigned size;          /* buffer size, zero if not allocated yet */
-    unsigned want;          /* requested buffer size, default is GZBUFSIZE */
+    unsigned int size;      /* buffer size, zero if not allocated yet */
+    unsigned int want;      /* requested buffer size, default is GZBUFSIZE */
     unsigned char *in;      /* input buffer */
     unsigned char *out;     /* output buffer (double-sized when reading) */
     unsigned char *next;    /* next output data to deliver or write */
         /* just for reading */
-    unsigned have;          /* amount of output data unused at next */
+    unsigned int have;      /* amount of output data unused at next */
     int eof;                /* true if end of input file reached */
     z_off64_t start;        /* where the gzip data started, for rewinding */
     z_off64_t raw;          /* where the raw data started, for seeking */
@@ -127,6 +127,6 @@ char ZLIB_INTERNAL *gz_strwinerror OF((DWORD error));
 #ifdef INT_MAX
 #  define GT_OFF(x) (sizeof(int) == sizeof(z_off64_t) && (x) > INT_MAX)
 #else
-unsigned ZLIB_INTERNAL gz_intmax OF((void));
+unsigned int ZLIB_INTERNAL gz_intmax OF((void));
 #  define GT_OFF(x) (sizeof(int) == sizeof(z_off64_t) && (x) > gz_intmax())
 #endif

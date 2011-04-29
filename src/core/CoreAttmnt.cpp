@@ -67,42 +67,30 @@ typedef
 
 #define GetBlocksize(n) ((min(max(MINBLOCKSIZE, n / 50), MAXBLOCKSIZE) >> 12) << 12)
 
-// Return whether uuid elem1 is less than uuid elem2
-// Used in set_difference between 2 sets
-bool uuid_lesser(st_UUID elem1, st_UUID elem2)
-{
-  return memcmp(elem1.uuid, elem2.uuid, sizeof(uuid_array_t)) < 0;
-}
+// uuid_lesser is replace by bool CUUIDgen::operator<(const CUUIDgen &)
 
 // Return whether mulitmap pair uuid is less than the other uuid
 // Used in set_difference between 2 multimaps
 bool mp_uuid_lesser(ItemMap_Pair p1, ItemMap_Pair p2)
 {
-  uuid_array_t uuid1, uuid2;
-  p1.first.GetUUID(uuid1);
-  p2.first.GetUUID(uuid2);
-  int icomp = memcmp(uuid1, uuid2, sizeof(uuid_array_t));
-  if (icomp == 0) {
-    p1.second.GetUUID(uuid1);
-    p2.second.GetUUID(uuid2);
-    return memcmp(uuid1, uuid2, sizeof(uuid_array_t)) < 0;
-  } else
-    return icomp < 0;
+  // Assuming first and second point to CItemData
+
+  if (*p1.first.GetUUID() == *p2.first.GetUUID()) {
+    return (*p1.second.GetUUID() < *p2.second.GetUUID());
+   } else
+    return (*p1.first.GetUUID() < *p2.first.GetUUID());
 }
 
 struct GetATR {
-  GetATR(const st_UUID &st_uuid)
-  {
-    memcpy(m_attmt_uuid, st_uuid.uuid, sizeof(uuid_array_t));
-  }
+  GetATR(const CUUIDGen &uuid) : m_attmt_uuid(uuid) {}
 
-  bool operator()(pair<st_UUID, ATRecord> p)
+  bool operator()(pair<CUUIDGen, ATRecord> p)
   {
-    return (memcmp(p.second.attmt_uuid, m_attmt_uuid, sizeof(uuid_array_t)) == 0);
+    return (p.second.attmt_uuid == m_attmt_uuid);
   }
 
 private:
-  uuid_array_t m_attmt_uuid;
+  const CUUIDGen &m_attmt_uuid;
 };
 
 // Internal routines to compress in memory blocks
@@ -382,8 +370,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
         AttachmentProgress(st_atpg);
 
         mp_entry_uuid.insert(ItemMMap_Pair(atr.entry_uuid, atr.attmt_uuid));
-        st_UUID stuuid(atr.entry_uuid);
-        mm_entry_uuid_atr.insert(make_pair(stuuid, atr));
+        mm_entry_uuid_atr.insert(make_pair(atr.entry_uuid, atr));
         break;
       }
       case PWSRC::END_OF_FILE:
@@ -423,10 +410,10 @@ void PWScore::AddAttachments(ATRVector &vNewATRecords)
     return;
 
   // Add attachment record using the DB entry UUID as key
-  st_UUID stuuid(vNewATRecords[0].entry_uuid);
+  const CUUIDGen uuid(vNewATRecords[0].entry_uuid);
 
   for (size_t i = 0; i < vNewATRecords.size(); i++) {
-    m_MM_entry_uuid_atr.insert(make_pair(stuuid, vNewATRecords[i]));
+    m_MM_entry_uuid_atr.insert(make_pair(uuid, vNewATRecords[i]));
   }
 }
 
@@ -446,15 +433,14 @@ void PWScore::ChangeAttachment(const ATRecord &atr)
 
   // Now find this specific attachment record
   for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
-    if (memcmp(iter->second.attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t)) == 0) {
+    if (iter->second.attmt_uuid == atr.attmt_uuid) {
       m_MM_entry_uuid_atr.erase(iter);
       break;
     }
   }
 
   // Put back in the changed one
-  st_UUID stuuid(atr.entry_uuid);
-  m_MM_entry_uuid_atr.insert(make_pair(stuuid, atr));
+  m_MM_entry_uuid_atr.insert(make_pair(atr.entry_uuid, atr));
 }
 
 bool PWScore::MarkAttachmentForDeletion(const ATRecord &atr)
@@ -473,7 +459,7 @@ bool PWScore::MarkAttachmentForDeletion(const ATRecord &atr)
 
   // Now find this specific attachment record
   for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
-    if (memcmp(iter->second.attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t)) == 0) {
+    if (iter->second.attmt_uuid == atr.attmt_uuid) {
       iter->second.uiflags |= (ATT_ATTACHMENT_FLGCHGD | ATT_ATTACHMENT_DELETED);
       bRC = true;
       break;
@@ -498,7 +484,7 @@ bool PWScore::UnMarkAttachmentForDeletion(const ATRecord &atr)
 
   // Now find this specific attachment record
   for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
-    if (memcmp(iter->second.attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t)) == 0) {
+    if (iter->second.attmt_uuid == atr.attmt_uuid) {
       iter->second.uiflags &= ~(ATT_ATTACHMENT_FLGCHGD | ATT_ATTACHMENT_DELETED);
       bRC = true;
       break;
@@ -507,7 +493,7 @@ bool PWScore::UnMarkAttachmentForDeletion(const ATRecord &atr)
   return bRC;
 }
 
-void PWScore::MarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid)
+void PWScore::MarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid)
 {
   // Mark all attachment records for this database entry for deletion
   std::pair<UAMMiter, UAMMiter> uuidairpair;
@@ -526,7 +512,7 @@ void PWScore::MarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid)
   }
 }
 
-void PWScore::UnMarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid)
+void PWScore::UnMarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid)
 {
   // UnMark all attachment records for this database entry for deletion
   std::pair<UAMMiter, UAMMiter> uuidairpair;
@@ -547,7 +533,6 @@ void PWScore::UnMarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid)
 
 size_t PWScore::HasAttachments(const uuid_array_t &entry_uuid)
 {
-  st_UUID stuuid(entry_uuid);
   size_t num = m_MM_entry_uuid_atr.count(entry_uuid);
   if (num == 0)
     return 0;
@@ -649,7 +634,7 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
         return status;
 
       // If ours - return so we can be called again for the data
-      if (memcmp(atr.attmt_uuid, in_atr.attmt_uuid, sizeof(uuid_array_t)) == 0) {
+      if (atr.attmt_uuid == in_atr.attmt_uuid) {
         cmpsize = 0;
         return PWSRC::SUCCESS;
       }
@@ -706,9 +691,9 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
       return PWSRC::USER_CANCEL;
     }
 
-    // Save the data pointer and length
-    pUncData = new unsigned char[atr.blksize + 1];
-    size_t uiUncLength = atr.blksize + 1;
+    // Save the data pointer and length + 1024 for good measure!
+    pUncData = new unsigned char[atr.blksize + 1024];
+    size_t uiUncLength = atr.blksize + 1024;
     int zRC;
     zRC = PWS_Inflate_Buffer(strm, pCmpData, uiCmpLen,
                              pUncData, uiUncLength,
@@ -769,18 +754,17 @@ int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
   return PWSRC::FAILURE;
 }
 
-size_t PWScore::GetAttachments(const uuid_array_t &entry_uuid,
+size_t PWScore::GetAttachments(const CUUIDGen &entry_uuid,
                                ATRVector &vATRecords)
 {
   vATRecords.clear();
 
-  st_UUID stuuid(entry_uuid);
-  size_t num = m_MM_entry_uuid_atr.count(stuuid);
+  size_t num = m_MM_entry_uuid_atr.count(entry_uuid);
   if (num == 0)
     return 0;
 
   std::pair<UAMMciter, UAMMciter> uuidairpair;
-  uuidairpair = m_MM_entry_uuid_atr.equal_range(stuuid);
+  uuidairpair = m_MM_entry_uuid_atr.equal_range(entry_uuid);
   for (UAMMciter citer = uuidairpair.first; citer != uuidairpair.second; ++citer) {
     if ((citer->second.uiflags & ATT_ATTACHMENT_DELETED) != ATT_ATTACHMENT_DELETED)
       vATRecords.push_back(citer->second);
@@ -818,17 +802,15 @@ size_t PWScore::GetAllAttachments(ATRExVector &vATRecordExs)
   return num;
 }
 
-void PWScore::SetAttachments(const uuid_array_t &entry_uuid,
+void PWScore::SetAttachments(const CUUIDGen &entry_uuid,
                              ATRVector &vATRecords)
 {
   // Delete any existing
-  st_UUID stuuid(entry_uuid);
-  m_MM_entry_uuid_atr.erase(stuuid);
+  m_MM_entry_uuid_atr.erase(entry_uuid);
 
   // Put back supplied versions
   for (size_t i = 0; i < vATRecords.size(); i++) {
-    st_UUID stuuid(entry_uuid);
-    m_MM_entry_uuid_atr.insert(make_pair(stuuid, vATRecords[i]));
+    m_MM_entry_uuid_atr.insert(make_pair(entry_uuid, vATRecords[i]));
   }
 }
 
@@ -961,8 +943,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         // Update set with the attachments we want to keep.
         st_attmt_uuid.insert(atr.attmt_uuid);
         // Save the attachment record
-        st_UUID stuuid(atr.attmt_uuid);
-        mp_attmt_uuid_atr.insert(make_pair(stuuid, atr));
+        mp_attmt_uuid_atr.insert(make_pair(atr.attmt_uuid, atr));
       }
     }
 
@@ -1349,7 +1330,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         iter->second.CRC = atr.CRC;
         iter->second.cmpsize = atr.cmpsize;
         iter->second.blksize = atr.blksize;
-        memcpy(iter->second.attmt_uuid, atr.attmt_uuid, sizeof(uuid_array_t));
+        iter->second.attmt_uuid = atr.attmt_uuid;
 
         // Update info about records written
         vATRWritten.push_back(atr);
@@ -1388,7 +1369,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
 
     // Now find this specific attachment record
     for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
-      if (memcmp(iter->second.attmt_uuid, vATRWritten[i].attmt_uuid, sizeof(uuid_array_t)) == 0) {
+      if (iter->second.attmt_uuid == vATRWritten[i].attmt_uuid) {
         iter->second.uiflags &= ~ATT_ATTACHMENT_FLGCHGD;
         break;
       }
@@ -1410,14 +1391,13 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
   return status;
 }
 
-int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
-                                  const uuid_array_t &new_entry_uuid,
+int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
+                                  const CUUIDGen &new_entry_uuid,
                                   PWSAttfile::VERSION version)
 {
   int status;
 
-  st_UUID stuuid(old_entry_uuid);
-  size_t num = m_MM_entry_uuid_atr.count(stuuid);
+  size_t num = m_MM_entry_uuid_atr.count(old_entry_uuid);
   if (num == 0)
     return PWSRC::FAILURE;
 
@@ -1551,8 +1531,7 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
         // Update set with the attachments we want to keep.
         st_attmt_uuid.insert(iter->second.attmt_uuid);
         // Save the attachment record
-        st_UUID stuuid(iter->second.attmt_uuid);
-        mp_attmt_uuid_atr.insert(make_pair(stuuid, iter->second));
+        mp_attmt_uuid_atr.insert(make_pair(iter->second.attmt_uuid, iter->second));
       }
     }
 
@@ -1602,15 +1581,15 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
               ATRecord atr_dup(atr);
               bool bDuplicate(false);
               // Now maybe duplicate it
-              if (memcmp(iter->second.entry_uuid, old_entry_uuid, sizeof(uuid_array_t)) == 0) {
+              if (iter->second.entry_uuid == old_entry_uuid) {
                 bDuplicate = true;
                 uuid_array_t new_attmt_uuid;
                 CUUIDGen attmt_uuid;
                 attmt_uuid.GetUUID(new_attmt_uuid);
                 // Change date added timestamp even though it was added to original entry
                 atr_dup.dtime = dtime;
-                memcpy(atr_dup.attmt_uuid, new_attmt_uuid, sizeof(uuid_array_t));
-                memcpy(atr_dup.entry_uuid, new_entry_uuid, sizeof(uuid_array_t));
+                atr_dup.attmt_uuid = new_attmt_uuid;
+                atr_dup.entry_uuid = new_entry_uuid;
               }
 
               // Write out pre-data
@@ -1889,7 +1868,7 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
 
     // Now find this specific attachment record
     for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
-      if (memcmp(iter->second.attmt_uuid, vATRWritten[i].attmt_uuid, sizeof(uuid_array_t)) == 0) {
+      if (iter->second.attmt_uuid == vATRWritten[i].attmt_uuid) {
         iter->second.uiflags &= ~ATT_ATTACHMENT_FLGCHGD;
         break;
       }
@@ -1897,9 +1876,8 @@ int PWScore::DuplicateAttachments(const uuid_array_t &old_entry_uuid,
   }
 
   // Now update main multimap with the duplicate attachments
-  st_UUID st_newuuid(new_entry_uuid);
   for (size_t i = 0; i < vATRDuplicates.size(); i++) {
-    m_MM_entry_uuid_atr.insert(make_pair(st_newuuid, vATRDuplicates[i]));
+    m_MM_entry_uuid_atr.insert(make_pair(new_entry_uuid, vATRDuplicates[i]));
   }
 
   st_atpg.function = ATT_PROGRESS_END;
@@ -1986,19 +1964,18 @@ void PWScore::SetupAttachmentHeader()
 
 // functor to check if the current attachment matches the one we want to export
 struct MatchAUUID {
-  MatchAUUID(const uuid_array_t &attmt_uuid)
+  MatchAUUID(const CUUIDGen &attmt_uuid) : m_attmt_uuid(attmt_uuid)
   {
-    memcpy(m_attmt_uuid, attmt_uuid, sizeof(uuid_array_t));
   }
 
   // Does it match?
   bool operator()(const ATRecordEx &atrex) {
-    return memcmp(m_attmt_uuid, atrex.atr.attmt_uuid, sizeof(uuid_array_t)) == 0;
+    return (m_attmt_uuid == atrex.atr.attmt_uuid);
   }
 
 private:
   MatchAUUID& operator=(const MatchAUUID&); // Do not implement
-  uuid_array_t m_attmt_uuid;
+  CUUIDGen m_attmt_uuid;
 };
 
 int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
@@ -2066,8 +2043,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
        iter++) {
     ATRecord atr = iter->second;
     // Save the attachment record
-    st_UUID stuuid(atr.attmt_uuid);
-    mp_attmt_uuid_atr.insert(make_pair(stuuid, atr));
+    mp_attmt_uuid_atr.insert(make_pair(atr.attmt_uuid, atr));
   }
 
   oStringXStream oss_xml;
@@ -2162,8 +2138,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
 
     // Now find this in the in-storage copy (so we don't have to wait till the
     // end of the data to get items we need to write now!
-    st_UUID stuuid(atr.attmt_uuid);
-    UAMciter citer = mp_attmt_uuid_atr.find(stuuid);
+    UAMciter citer = mp_attmt_uuid_atr.find(atr.attmt_uuid);
     ASSERT(citer != mp_attmt_uuid_atr.end());
     atrex.atr = citer->second;
 
@@ -2191,12 +2166,10 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
       if (!atrex.sxUser.empty())
         PWSUtil::WriteXMLField(ofs, "username", atrex.sxUser, utf8conv);
 
-      uuid_array_t attachment_uuid, entry_uuid;
-      memcpy(attachment_uuid, atrex.atr.attmt_uuid, sizeof(uuid_array_t));
-      memcpy(entry_uuid, atrex.atr.entry_uuid, sizeof(uuid_array_t));
-      const CUUIDGen a_uuid(attachment_uuid), e_uuid(entry_uuid);
-      ofs << "\t\t<attachment_uuid><![CDATA[" << a_uuid << "]]></attachment_uuid>" << endl;
-      ofs << "\t\t<entry_uuid><![CDATA[" << e_uuid << "]]></entry_uuid>" << endl;
+      ofs << "\t\t<attachment_uuid><![CDATA[" << atrex.atr.attmt_uuid <<
+                      "]]></attachment_uuid>" << endl;
+      ofs << "\t\t<entry_uuid><![CDATA[" << atrex.atr.entry_uuid <<
+                      "]]></entry_uuid>" << endl;
 
       PWSUtil::WriteXMLField(ofs, "filename", atrex.atr.filename, utf8conv);
       PWSUtil::WriteXMLField(ofs, "path", atrex.atr.path, utf8conv);
@@ -2555,8 +2528,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
         // Update set with the attachments we want to keep.
         st_attmt_uuid.insert(iter->second.attmt_uuid);
         // Save the attachment record
-        st_UUID stuuid(iter->second.attmt_uuid);
-        mp_attmt_uuid_atr.insert(make_pair(stuuid, iter->second));
+        mp_attmt_uuid_atr.insert(make_pair(iter->second.attmt_uuid, iter->second));
       }
     }
 
@@ -2858,7 +2830,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
 
     // Now find this specific attachment record
     for (UAMMiter iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
-      if (memcmp(iter->second.attmt_uuid, vATRWritten[i].attmt_uuid, sizeof(uuid_array_t)) == 0) {
+      if (iter->second.attmt_uuid == vATRWritten[i].attmt_uuid) {
         iter->second.uiflags &= ~ATT_ATTACHMENT_FLGCHGD;
         break;
       }
@@ -2867,8 +2839,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
 
   // Now update main multimap with the imported attachments
   for (size_t i = 0; i < vATRImports.size(); i++) {
-    st_UUID st_uuid(vATRImports[i].entry_uuid);
-    m_MM_entry_uuid_atr.insert(make_pair(st_uuid, vATRImports[i]));
+    m_MM_entry_uuid_atr.insert(make_pair(vATRImports[i].entry_uuid, vATRImports[i]));
   }
 
   st_atpg.function = ATT_PROGRESS_END;
@@ -2884,9 +2855,8 @@ struct get_att_uuid {
   :  m_vatt_uuid(vatt_uuid)
   {}
 
-  void operator()(std::pair<const st_UUID, ATRecord> const& p) const {
-    st_UUID st(p.second.attmt_uuid);
-    m_vatt_uuid.push_back(st);
+  void operator()(std::pair<const CUUIDGen, ATRecord> const& p) const {
+    m_vatt_uuid.push_back(p.second.attmt_uuid);
   }
 
 private:

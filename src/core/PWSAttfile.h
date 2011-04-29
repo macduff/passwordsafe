@@ -32,15 +32,15 @@
 #define ATT_DEFAULT_ATTDUP_SUFFIX _T(".idupatt3")
 #define ATT_DEFAULT_ATTIMP_SUFFIX _T(".iimpatt3")
 
-typedef std::map<st_UUID, ATRecord> UUIDATRMap;
+typedef std::map<CUUIDGen, ATRecord> UUIDATRMap;
 typedef UUIDATRMap::const_iterator UAMciter;
 typedef UUIDATRMap::iterator UAMiter;
 
-typedef std::multimap<st_UUID, ATRecord> UUIDATRMMap;
+typedef std::multimap<CUUIDGen, ATRecord> UUIDATRMMap;
 typedef UUIDATRMMap::const_iterator UAMMciter;
 typedef UUIDATRMMap::iterator UAMMiter;
 
-typedef std::vector<st_UUID> UUIDAVector;
+typedef std::vector<CUUIDGen> UUIDAVector;
 typedef UUIDVector::iterator UViter;
 
 class Fish;

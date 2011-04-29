@@ -34,11 +34,12 @@ struct BaseEntryParms {
   StringX csPwdGroup;
   StringX csPwdTitle;
   StringX csPwdUser;
-  uuid_array_t base_uuid;
+  CUUIDGen base_uuid;
   CItemData::EntryType InputType;
   CItemData::EntryType TargetType;
   int ibasedata;
   bool bMultipleEntriesFound;
+  BaseEntryParms() : base_uuid(CUUIDGen::NullUUID()) {}
 };
 
 // Formatted Database properties
@@ -62,11 +63,8 @@ struct st_DBProperties {
 class PWScore : public CommandInterface
 {
 public:
-
   PWScore();
   ~PWScore();
-
-  static uuid_array_t NULL_UUID;
 
   bool SetUIInterFace(UIInterFace *pUIIF, size_t num_supported,
                       std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions);
@@ -123,14 +121,14 @@ public:
   size_t HasAttachments(const uuid_array_t &entry_uuid);
   int GetAttachment(const ATRecord &atr, const int ifunction, 
                     unsigned char * &pUncData, size_t &UncLength, unsigned char &readtype);
-  size_t GetAttachments(const uuid_array_t &entry_uuid, ATRVector &vATRecords);
+  size_t GetAttachments(const CUUIDGen &entry_uuid, ATRVector &vATRecords);
   size_t GetAllAttachments(ATRExVector &vATRecordsEx);
-  void SetAttachments(const uuid_array_t &entry_uuid, ATRVector &vATRecords);
+  void SetAttachments(const CUUIDGen &entry_uuid, ATRVector &vATRecords);
   int ReadAttachmentFile(bool bVerify = false);
   int WriteAttachmentFile(const bool bCleanup = false,
                            PWSAttfile::VERSION version = PWSAttfile::VCURRENT);
-  int DuplicateAttachments(const uuid_array_t &old_entry_uuid, 
-                           const uuid_array_t &new_entry_uuid,
+  int DuplicateAttachments(const CUUIDGen &old_entry_uuid, 
+                           const CUUIDGen &new_entry_uuid,
                            PWSAttfile::VERSION version = PWSAttfile::VCURRENT);
   void SaveAttachmentStatusAtSave()
   {m_MM_entry_uuid_atr_saved = m_MM_entry_uuid_atr;}
@@ -292,16 +290,20 @@ public:
   {return m_pwlist.find(entry_uuid);}
   ItemListConstIter Find(const uuid_array_t &entry_uuid) const
   {return m_pwlist.find(entry_uuid);}
+  ItemListIter Find(const CUUIDGen &entry_uuid)
+  {return m_pwlist.find(*entry_uuid.GetUUID());}
+  ItemListConstIter Find(const CUUIDGen &entry_uuid) const
+  {return m_pwlist.find(*entry_uuid.GetUUID());}
 
   // ask user when about to delete a base, otherwise just return true
   bool ConfirmDelete(const CItemData *pci);
 
   // General routines for aliases and shortcuts
-  void GetAllDependentEntries(const uuid_array_t &base_uuid,
+  void GetAllDependentEntries(const CUUIDGen &base_uuid,
                               UUIDVector &dependentslist, 
                               const CItemData::EntryType type);
-  bool GetDependentEntryBaseUUID(const uuid_array_t &entry_uuid,
-                                 uuid_array_t &base_uuid, 
+  bool GetDependentEntryBaseUUID(const CUUIDGen &entry_uuid,
+                                 CUUIDGen &base_uuid, 
                                  const CItemData::EntryType type) const;
   // Takes apart a 'special' password into its components:
   bool ParseBaseEntryPWD(const StringX &passwd, BaseEntryParms &pl);
@@ -311,9 +313,9 @@ public:
 
   // alias/base and shortcut/base handling
   void SortDependents(UUIDVector &dlist, StringX &csDependents);
-  size_t NumAliases(const uuid_array_t &base_uuid) const
+  size_t NumAliases(const CUUIDGen &base_uuid) const
   {return m_base2aliases_mmap.count(base_uuid);}
-  size_t NumShortcuts(const uuid_array_t &base_uuid) const
+  size_t NumShortcuts(const CUUIDGen &base_uuid) const
   {return m_base2shortcuts_mmap.count(base_uuid);}
 
   ItemListIter GetUniqueBase(const StringX &title, bool &bMultiple);
@@ -332,6 +334,9 @@ public:
   void SetDBPrefsChanged(bool bDBprefschanged)
   {m_bDBPrefsChanged = bDBprefschanged;
    NotifyDBModified();}
+
+  bool ChangeMode(stringT &locker, int &iErrorCode);
+  PWSFileSig& GetCurrentFileSig() {return *m_pFileSig;}
 
   bool IsChanged() const {return m_bDBChanged;}
   bool HaveDBPrefsChanged() const {return m_bDBPrefsChanged;}
@@ -390,13 +395,13 @@ private:
   virtual void DoReplaceEntry(const CItemData &old_ci, const CItemData &new_ci);
 
   // General routines for aliases and shortcuts
-  virtual void DoAddDependentEntry(const uuid_array_t &base_uuid,
-                                   const uuid_array_t &entry_uuid,
+  virtual void DoAddDependentEntry(const CUUIDGen &base_uuid,
+                                   const CUUIDGen &entry_uuid,
                                    const CItemData::EntryType type);
-  virtual void DoRemoveDependentEntry(const uuid_array_t &base_uuid,
-                                      const uuid_array_t &entry_uuid, 
+  virtual void DoRemoveDependentEntry(const CUUIDGen &base_uuid,
+                                      const CUUIDGen &entry_uuid, 
                                       const CItemData::EntryType type);
-  virtual void DoRemoveAllDependentEntries(const uuid_array_t &base_uuid, 
+  virtual void DoRemoveAllDependentEntries(const CUUIDGen &base_uuid, 
                                            const CItemData::EntryType type);
   virtual int DoAddDependentEntries(UUIDVector &dependentslist, CReport *pRpt, 
                                     const CItemData::EntryType type, 
@@ -405,8 +410,8 @@ private:
                                     SaveTypePWMap *pmapSaveTypePW = NULL);
   virtual void UndoAddDependentEntries(ItemList *pmapDeletedItems,
                                        SaveTypePWMap *pmapSaveTypePW);
-  virtual void DoMoveDependentEntries(const uuid_array_t &from_baseuuid, 
-                                      const uuid_array_t &to_baseuuid, 
+  virtual void DoMoveDependentEntries(const CUUIDGen &from_baseuuid, 
+                                      const CUUIDGen &to_baseuuid, 
                                       const CItemData::EntryType type);
 
   virtual int DoUpdatePasswordHistory(int iAction, int new_default_max,
@@ -417,12 +422,11 @@ private:
   virtual void AddAttachments(ATRVector &vNewATRecords);
   virtual bool MarkAttachmentForDeletion(const ATRecord &atr);
   virtual bool UnMarkAttachmentForDeletion(const ATRecord &atr);
-  virtual void MarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid);
-  virtual void UnMarkAllAttachmentsForDeletion(const uuid_array_t &entry_uuid);
+  virtual void MarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid);
+  virtual void UnMarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid);
 
   // End of Command Interface implementations
-
-  void ResetAllAliasPasswords(const uuid_array_t &base_uuid);
+  void ResetAllAliasPasswords(const CUUIDGen &base_uuid);
   
   StringX GetPassKey() const; // returns cleartext - USE WITH CARE
   // Following used by SetPassKey
@@ -505,7 +509,7 @@ private:
   UIInterFace *m_pUIIF; // pointer to UI interface abtraction
   std::bitset<UIInterFace::NUM_SUPPORTED> m_bsSupportedFunctions;
   
-  void NotifyGUINeedsUpdating(UpdateGUICommand::GUI_Action, uuid_array_t &,
+  void NotifyGUINeedsUpdating(UpdateGUICommand::GUI_Action, const CUUIDGen &,
                               CItemData::FieldType ft = CItemData::START,
                               bool bUpdateGUI = true);
 
@@ -532,7 +536,7 @@ private:
 
   static Reporter *m_pReporter; // set as soon as possible to show errors
   static Asker *m_pAsker;
-  PWSFileSig *m_fileSig;
+  PWSFileSig *m_pFileSig;
 
   // Entries with an expiry date
   ExpiredList m_ExpireCandidates;
@@ -540,7 +544,7 @@ private:
   {m_ExpireCandidates.Add(ci);}
   void UpdateExpiryEntry(const CItemData &ci)
   {m_ExpireCandidates.Update(ci);}
-  void UpdateExpiryEntry(const uuid_array_t &uuid, const CItemData::FieldType ft,
+  void UpdateExpiryEntry(const CUUIDGen &uuid, const CItemData::FieldType ft,
                          const StringX &value);
   void RemoveExpiryEntry(const CItemData &ci)
   {m_ExpireCandidates.Remove(ci);}

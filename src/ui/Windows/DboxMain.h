@@ -46,6 +46,7 @@
 #include "core/PwsPlatform.h"
 #include "core/PWSFilters.h"
 #include "core/Command.h"
+#include "core/UUIDGen.h"
 #include "core/attachments.h"
 
 #include "os/run.h"
@@ -79,10 +80,10 @@ class CDDObList;
 DECLARE_HANDLE(HDROP);
 #endif
 
-// custom message event used for system tray handling.
+// Custom message event used for system tray handling
 #define PWS_MSG_ICON_NOTIFY             (WM_APP + 10)
 
-// to catch post Header drag
+// To catch post Header drag
 #define PWS_MSG_HDR_DRAG_COMPLETE       (WM_APP + 20)
 #define PWS_MSG_CCTOHDR_DD_COMPLETE     (WM_APP + 21)
 #define PWS_MSG_HDRTOCC_DD_COMPLETE     (WM_APP + 22)
@@ -103,6 +104,9 @@ DECLARE_HANDLE(HDROP);
 // Simulate Ctrl+F from Find Toolbar "enter"
 #define PWS_MSG_TOOLBAR_FIND            (WM_APP + 50)
 
+// Perform Drag Autotype
+#define PWS_MSG_DRAGAUTOTYPE            (WM_APP + 55)
+
 // Update current filters whilst SetFilters dialog is open
 #define PWS_MSG_EXECUTE_FILTERS         (WM_APP + 60)
 
@@ -118,6 +122,10 @@ DECLARE_HANDLE(HDROP);
 // Update AddEdit_Attachments that the user has changed an entry's flags - also defined in PWAttLC.h
 #define PWS_MSG_ATTACHMENT_FLAG_CHANGED (WM_APP + 89)
 #define PWS_MSG_ATTACHMENT_THREAD_ENDED (WM_APP + 90)
+
+/*
+  Timer related values (note - all documented her but some defined only where needed.
+*/
 
 /* timer event number used to by PupText.  Here for doc. only
 #define TIMER_PUPTEXT             0x03 */
@@ -139,9 +147,12 @@ DECLARE_HANDLE(HDROP);
 #define TIMER_DRAGBAR             0x09
 /* timer event numbers used to by ControlExtns for ListBox tooltips.  Here for doc. only
 #define TIMER_LB_HOVER            0x0A
-#define TIMER_LB_SHOWING          0x0B */
+#define TIMER_LB_SHOWING          0x0B 
+/* timer event numbers used by StatusBar for tooltips.  Here for doc. only
+#define TIMER_SB_HOVER            0x0C
+#define TIMER_SB_SHOWING          0x0D */
 // Timer event for daily expired entries check
-#define TIMER_EXPENT              0x0C
+#define TIMER_EXPENT              0x0E
 
 /*
 HOVER_TIME_ND       The length of time the pointer must remain stationary
@@ -223,7 +234,7 @@ public:
   ItemListIter Find(int i);
 
   // Find entry by UUID
-  ItemListIter Find(const uuid_array_t &uuid)
+  ItemListIter Find(const CUUIDGen &uuid)
   {return m_core.Find(uuid);}
 
   // End of list markers
@@ -297,7 +308,7 @@ public:
   void SetStartSilent(bool state);
   void SetStartClosed(bool state) {m_IsStartClosed = state;}
   void SetValidate(bool state) {m_bValidate = state;}
-  void MakeRandomPassword(StringX& password, PWPolicy &pwp, stringT st_symbols,
+  void MakeRandomPassword(StringX &password, PWPolicy &pwp, stringT st_symbols,
                           bool bIssueMsg = false);
   BOOL LaunchBrowser(const CString &csURL, const StringX &sxAutotype,
                      const std::vector<size_t> &vactionverboffsets,
@@ -416,7 +427,8 @@ public:
   CLVHdrCtrl m_LVHdrCtrl;
   CColumnChooserDlg *m_pCC;
   CPoint m_RCMousePos;
-  CDDStatic m_DDGroup, m_DDTitle, m_DDUser, m_DDPassword, m_DDNotes, m_DDURL, m_DDemail;
+  CDDStatic m_DDGroup, m_DDTitle, m_DDUser, m_DDPassword, m_DDNotes, m_DDURL, m_DDemail,
+            m_DDAutotype;
   //}}AFX_DATA
 
   CRUEList m_RUEList;   // recent entry lists
@@ -547,13 +559,14 @@ protected:
 
   LRESULT OnProcessCompareResultFunction(WPARAM wParam, LPARAM lParam);
   LRESULT OnEditExpiredPasswordEntry(WPARAM wParam, LPARAM lParam);
-  LRESULT ViewCompareResult(PWScore *pcore, uuid_array_t &uuid);
-  LRESULT EditCompareResult(PWScore *pcore, uuid_array_t &uuid);
+  LRESULT ViewCompareResult(PWScore *pcore, const CUUIDGen &uuid);
+  LRESULT EditCompareResult(PWScore *pcore, const CUUIDGen &uuid);
   LRESULT CopyCompareResult(PWScore *pfromcore, PWScore *ptocore,
-                            uuid_array_t &fromuuid, uuid_array_t &touuid);
+                            const CUUIDGen &fromuuid, const CUUIDGen &touuid);
   LRESULT SynchCompareResult(PWScore *pfromcore, PWScore *ptocore,
-                             uuid_array_t &fromuuid, uuid_array_t &touuid);
+                             const CUUIDGen &fromuuid, const CUUIDGen &touuid);
   LRESULT OnToolBarFindMessage(WPARAM wParam, LPARAM lParam);
+  LRESULT OnDragAutoType(WPARAM wParam, LPARAM lParam);
   LRESULT OnExecuteFilters(WPARAM wParam, LPARAM lParam);
   LRESULT OnApplyEditChanges(WPARAM wParam, LPARAM lParam);
 
@@ -592,10 +605,8 @@ protected:
   void SetFindToolBar(bool bShow);
   void ApplyFilters();
 
-  HRGN GetWorkAreaRegion();
   void GetMonitorRect(HWND hwnd, RECT *prc, BOOL fWork);
   void ClipRectToMonitor(HWND hwnd, RECT *prc, BOOL fWork);
-  static BOOL CALLBACK EnumScreens(HMONITOR hMonitor, HDC hdc, LPRECT prc, LPARAM lParam);
   bool PassesFiltering(const CItemData &ci, const st_filters &filters);
   bool PassesPWHFiltering(const CItemData *pci,
                           const st_filters &filters) const;
@@ -680,6 +691,7 @@ protected:
   afx_msg void OnMerge();
   afx_msg void OnCompare();
   afx_msg void OnSynchronize();
+  afx_msg void OnChangeMode();
   afx_msg void OnProperties();
   afx_msg void OnRestoreSafe();
   afx_msg void OnSaveAs();
@@ -687,7 +699,7 @@ protected:
   afx_msg void OnListView();
   afx_msg void OnTreeView();
   afx_msg void OnBackupSafe();
-  afx_msg void OnPasswordChange();
+  afx_msg void OnPassphraseChange();
   afx_msg void OnClearClipboard();
   afx_msg void OnDelete();
   afx_msg void OnEdit();
@@ -788,20 +800,20 @@ protected:
 
 private:
   // UIInterFace implementations:
-  void DatabaseModified(bool bChanged);
-  void UpdateGUI(UpdateGUICommand::GUI_Action ga,
-                 uuid_array_t &entry_uuid,
-                 CItemData::FieldType ft, bool bUpdateGUI);
-  void GUISetupDisplayInfo(CItemData &ci);
-  void GUIRefreshEntry(const CItemData &ci);
-  void UpdateWizard(const stringT &s);
+  virtual void DatabaseModified(bool bChanged);
+  virtual void UpdateGUI(UpdateGUICommand::GUI_Action ga,
+                         const CUUIDGen &entry_uuid,
+                         CItemData::FieldType ft, bool bUpdateGUI);
+  virtual void GUISetupDisplayInfo(CItemData &ci);
+  virtual void GUIRefreshEntry(const CItemData &ci);
+  virtual void UpdateWizard(const stringT &s);
 
   int AttachmentProgress(const ATTProgress &st_atpg);
   int ReadAttachmentFile(bool bVerify);
   int WriteAttachmentFile(const bool bCleanup = false,
                           PWSAttfile::VERSION version = PWSAttfile::VCURRENT);
-  int DuplicateAttachments(const uuid_array_t &old_entry_uuid, 
-                           const uuid_array_t &new_entry_uuid,
+  int DuplicateAttachments(const CUUIDGen &old_entry_uuid, 
+                           const CUUIDGen &new_entry_uuid,
                            PWSAttfile::VERSION version = PWSAttfile::VCURRENT);
   int WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf, 
                              ATRExVector &vAIRecordExs, size_t &num_exported);
@@ -810,7 +822,7 @@ private:
   static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 
   // Only need these if not on default menus
-  static CString CS_SETFILTERS, CS_CLEARFILTERS;
+  static CString CS_SETFILTERS, CS_CLEARFILTERS,  CS_READWRITE, CS_READONLY;
 
   StringX m_BrowseURL; // set by OnContextMenu(), used by OnBrowse()
   PWScore &m_core;
@@ -832,11 +844,11 @@ private:
   CFont *m_pFontTree;
   size_t m_numNormalImages;
 
-  uuid_array_t m_LUUIDSelectedAtMinimize; // to restore List entry selection upon un-minimize
-  uuid_array_t m_TUUIDSelectedAtMinimize; // to restore Tree entry selection upon un-minimize
+  CUUIDGen m_LUUIDSelectedAtMinimize; // to restore List entry selection upon un-minimize
+  CUUIDGen m_TUUIDSelectedAtMinimize; // to restore Tree entry selection upon un-minimize
   StringX m_sxSelectedGroup;              // to restore Tree group selection upon un-minimize
-  uuid_array_t m_LUUIDVisibleAtMinimize;  // to restore List entry position  upon un-minimize
-  uuid_array_t m_TUUIDVisibleAtMinimize;  // to restore Tree entry position  upon un-minimize
+  CUUIDGen m_LUUIDVisibleAtMinimize;  // to restore List entry position  upon un-minimize
+  CUUIDGen m_TUUIDVisibleAtMinimize;  // to restore Tree entry position  upon un-minimize
   StringX m_sxVisibleGroup;               // to restore Tree group position  upon un-minimize
 
   bool m_inExit; // help U3ExitNow
@@ -1013,26 +1025,20 @@ private:
   // Might need to add more e.g. if filter is active and which one?
   struct st_SaveGUIInfo {
     bool blSelectedValid, btSelectedValid, btGroupValid;
-    uuid_array_t lSelected; // List selected item
-    uuid_array_t tSelected; // Tree selected item
+    CUUIDGen lSelected; // List selected item
+    CUUIDGen tSelected; // Tree selected item
     StringX sxGroupName;
     std::vector<bool> vGroupDisplayState;
 
     st_SaveGUIInfo()
-    : blSelectedValid(false), btSelectedValid(false), btGroupValid(false)
-    {
-      memset((void *)lSelected, 0, sizeof(uuid_array_t));
-      memset((void *)tSelected, 0, sizeof(uuid_array_t));
-    }
+    : blSelectedValid(false), btSelectedValid(false), btGroupValid(false),
+      lSelected(CUUIDGen::NullUUID()), tSelected(CUUIDGen::NullUUID()) {}
 
     st_SaveGUIInfo(const st_SaveGUIInfo &that)
     : blSelectedValid(that.blSelectedValid), btSelectedValid(that.btSelectedValid),
       btGroupValid(that.btGroupValid), vGroupDisplayState(that.vGroupDisplayState),
-      sxGroupName(that.sxGroupName)
-    {
-      memcpy((void *)lSelected, (void *)that.lSelected, sizeof(uuid_array_t));
-      memcpy((void *)tSelected, (void *)that.tSelected, sizeof(uuid_array_t));
-    }
+      lSelected(that.lSelected), tSelected(that.tSelected),
+      sxGroupName(that.sxGroupName) {}
 
     st_SaveGUIInfo &operator=(const st_SaveGUIInfo &that)
     {
@@ -1040,8 +1046,8 @@ private:
         blSelectedValid = that.blSelectedValid;
         btSelectedValid = that.blSelectedValid;
         btGroupValid = that.btGroupValid;
-        memcpy((void *)lSelected, (void *)that.lSelected, sizeof(uuid_array_t));
-        memcpy((void *)tSelected, (void *)that.tSelected, sizeof(uuid_array_t));
+        lSelected = that.lSelected;
+        tSelected = that.tSelected;
         sxGroupName = that.sxGroupName;
         vGroupDisplayState = that.vGroupDisplayState;
       }

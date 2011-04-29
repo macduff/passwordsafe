@@ -83,6 +83,10 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+// Also needed by CInfoDisplay
+extern HRGN GetWorkAreaRegion();
+extern BOOL CALLBACK EnumScreens(HMONITOR hMonitor, HDC , LPRECT , LPARAM lParam);
+
 IMPLEMENT_DYNAMIC(DboxMain, CDialog)
 
 /*
@@ -97,6 +101,8 @@ const wchar_t *EYE_CATCHER = L"DBXM";
 
 CString DboxMain::CS_SETFILTERS;
 CString DboxMain::CS_CLEARFILTERS;
+CString DboxMain::CS_READWRITE;
+CString DboxMain::CS_READONLY;
 
 LOGFONT dfltTreeListFont;
 
@@ -109,6 +115,8 @@ void DboxMain::SetLocalStrings()
   // VdG set the local strings to the language dependant values
   CS_SETFILTERS.LoadString(IDS_SETFILTERS);
   CS_CLEARFILTERS.LoadString(IDS_CLEARFILTERS);
+  CS_READWRITE.LoadString(IDS_CHANGE_READWRITE);
+  CS_READONLY.LoadString(IDS_CHANGE_READONLY);
 }
 
 //-----------------------------------------------------------------------------
@@ -144,7 +152,12 @@ DboxMain::DboxMain(CWnd* pParent)
   m_bInAT(false), m_bInRestoreWindowsData(false), m_bSetup(false),
   m_bInRefresh(false), m_bInRestoreWindows(false), m_bExpireDisplayed(false),
   m_bTellUserExpired(false), m_bInRename(false), m_bWhitespaceRightClick(false),
-  m_ilastaction(0), m_pProgressDlg(NULL), m_pAttThread(NULL), m_bNoChangeToAttachments(false)
+  m_ilastaction(0),
+  m_LUUIDSelectedAtMinimize(CUUIDGen::NullUUID()),
+  m_TUUIDSelectedAtMinimize(CUUIDGen::NullUUID()),
+  m_LUUIDVisibleAtMinimize(CUUIDGen::NullUUID()),
+  m_TUUIDVisibleAtMinimize(CUUIDGen::NullUUID()),
+  m_pProgressDlg(NULL), m_pAttThread(NULL), m_bNoChangeToAttachments(false)
 {
   // Need to do the following as using the direct calls will fail for Windows versions before Vista
   // (Load Library using absolute path to avoid dll poisoning attacks)
@@ -183,11 +196,6 @@ DboxMain::DboxMain(CWnd* pParent)
   m_hIconSm = (HICON) ::LoadImage(app.m_hInstance, MAKEINTRESOURCE(IDI_CORNERICON),
                                   IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 
-  // Zero entry UUID selected and first visible at minimize and group text
-  memset(m_LUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_TUUIDSelectedAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_LUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
-  memset(m_TUUIDVisibleAtMinimize, 0, sizeof(uuid_array_t));
   m_sxSelectedGroup.clear();
   m_sxVisibleGroup.clear();
 
@@ -385,6 +393,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_MERGE, OnMerge)
   ON_COMMAND(ID_MENUITEM_COMPARE, OnCompare)
   ON_COMMAND(ID_MENUITEM_SYNCHRONIZE, OnSynchronize)
+  ON_COMMAND(ID_MENUITEM_CHANGEMODE, OnChangeMode)
   ON_COMMAND(ID_MENUITEM_PROPERTIES, OnProperties)
 
   // Edit Menu
@@ -451,7 +460,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_IMPORTATTACHMENTS, OnImportAttachments)
 
   // Manage Menu
-  ON_COMMAND(ID_MENUITEM_CHANGECOMBO, OnPasswordChange)
+  ON_COMMAND(ID_MENUITEM_CHANGECOMBO, OnPassphraseChange)
   ON_COMMAND(ID_MENUITEM_BACKUPSAFE, OnBackupSafe)
   ON_COMMAND(ID_MENUITEM_RESTORESAFE, OnRestoreSafe)
   ON_COMMAND(ID_MENUITEM_OPTIONS, OnOptions)
@@ -470,6 +479,8 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
 
   // Others
   ON_COMMAND(ID_MENUITEM_VALIDATE, OnValidate)
+  // Double-click on R-O R/W indicator on StatusBar
+  ON_COMMAND(IDS_READ_ONLY, OnChangeMode)
 
 #if defined(POCKET_PC)
   ON_WM_CREATE()
@@ -541,6 +552,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_MESSAGE(PWS_MSG_COMPARE_RESULT_FUNCTION, OnProcessCompareResultFunction)
   ON_MESSAGE(PWS_MSG_EXPIRED_PASSWORD_EDIT, OnEditExpiredPasswordEntry)
   ON_MESSAGE(PWS_MSG_TOOLBAR_FIND, OnToolBarFindMessage)
+  ON_MESSAGE(PWS_MSG_DRAGAUTOTYPE, OnDragAutoType)
   ON_MESSAGE(PWS_MSG_EXECUTE_FILTERS, OnExecuteFilters)
   ON_MESSAGE(PWS_MSG_EDIT_APPLY, OnApplyEditChanges)
   ON_MESSAGE(WM_QUERYENDSESSION, OnQueryEndSession)
@@ -604,6 +616,7 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_MERGE, true, false, true, false},
   {ID_MENUITEM_COMPARE, true, true, false, false},
   {ID_MENUITEM_SYNCHRONIZE, true, false, false, false},
+  {ID_MENUITEM_CHANGEMODE, true, true, false, false},
   {ID_MENUITEM_PROPERTIES, true, true, true, false},
   {ID_MENUITEM_EXIT, true, true, true, true},
   // Edit menu
@@ -1265,6 +1278,8 @@ void DboxMain::SetDragbarToolTips()
     cs_field.LoadString(IDS_EMAIL);
     cs_ToolTip.Format(IDS_DRAGTOCOPY, cs_field);
     m_pToolTipCtrl->AddTool(GetDlgItem(IDC_STATIC_DRAGEMAIL), cs_ToolTip);
+    cs_ToolTip.Format(IDS_DRAGTOAUTOTYPE, cs_field);
+    m_pToolTipCtrl->AddTool(GetDlgItem(IDC_STATIC_DRAGAUTO), cs_ToolTip);    
   }
 }
 
@@ -2090,7 +2105,7 @@ void DboxMain::OnShowPassword()
 LRESULT DboxMain::OnTrayNotification(WPARAM , LPARAM)
 {
 #if 0
-  return m_TrayIcon.OnTrayNotification(wParam, lParam);
+  return m_pTrayIcon.OnTrayNotification(wParam, lParam);
 #else
   return 0L;
 #endif
@@ -3249,7 +3264,7 @@ void DboxMain::PlaceWindow(CWnd *pWnd, CRect *pRect, UINT uiShowCmd)
   ::DeleteObject(hrgnWork);
 }
 
-HRGN DboxMain::GetWorkAreaRegion()
+HRGN GetWorkAreaRegion()
 {
   HRGN hrgn = CreateRectRgn(0, 0, 0, 0);
 
@@ -3258,6 +3273,23 @@ HRGN DboxMain::GetWorkAreaRegion()
   ::ReleaseDC(NULL, hdc);
 
   return hrgn;
+}
+
+BOOL CALLBACK EnumScreens(HMONITOR hMonitor, HDC , LPRECT , LPARAM lParam)
+{
+  MONITORINFO mi;
+  HRGN hrgn2;
+
+  HRGN *phrgn = (HRGN *)lParam;
+
+  mi.cbSize = sizeof(mi);
+  GetMonitorInfo(hMonitor, &mi);
+
+  hrgn2 = CreateRectRgnIndirect(&mi.rcWork);
+  CombineRgn(*phrgn, *phrgn, hrgn2, RGN_OR);
+  ::DeleteObject(hrgn2);
+
+  return TRUE;
 }
 
 void DboxMain::GetMonitorRect(HWND hwnd, RECT *prc, BOOL fWork)
@@ -3294,24 +3326,6 @@ void DboxMain::ClipRectToMonitor(HWND hwnd, RECT *prc, BOOL fWork)
   prc->top = max(rc.top, min(rc.bottom-h, prc->top));
   prc->right = prc->left + w;
   prc->bottom = prc->top + h;
-}
-
-BOOL CALLBACK DboxMain::EnumScreens(HMONITOR hMonitor, HDC /* hdc */, 
-                                    LPRECT /* prc */, LPARAM lParam)
-{
-  MONITORINFO mi;
-  HRGN hrgn2;
-
-  HRGN *phrgn = (HRGN *)lParam;
-
-  mi.cbSize = sizeof(mi);
-  GetMonitorInfo(hMonitor, &mi);
-
-  hrgn2 = CreateRectRgnIndirect(&mi.rcWork);
-  CombineRgn(*phrgn, *phrgn, hrgn2, RGN_OR);
-  ::DeleteObject(hrgn2);
-
-  return TRUE;
 }
 
 void DboxMain::UpdateSystemMenu()

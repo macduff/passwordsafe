@@ -239,7 +239,7 @@ void CAddEdit_Attachments::OnAddNewAttachment()
   // Disable PropertySheet and all PropertyPages whilst displaying FileDialog
   GetParent()->EnableWindow(FALSE);
   if (M_pDbx()->GetNewAttachmentInfo(atr, true)) {
-    memcpy(atr.entry_uuid, M_entry_uuid(), sizeof(uuid_array_t));
+    atr.entry_uuid = M_entry_uuid();
     atr.flags = ATT_EXTRACTTOREMOVEABLE | ATT_ERASURE_REQUIRED;
     M_vNewATRecords().push_back(atr);
     m_NewAttLC.AddNewAttachment(M_vNewATRecords().size() - 1, atr);
@@ -443,7 +443,7 @@ LRESULT CAddEdit_Attachments::DropFiles(WPARAM wParam, LPARAM)
       CAddDescription dlg(this, pszFile);
       dlg.DoModal();
       atr.description = dlg.GetDescription();
-      memcpy(atr.entry_uuid, M_entry_uuid(), sizeof(uuid_array_t));
+      atr.entry_uuid = M_entry_uuid();
       atr.flags = ATT_EXTRACTTOREMOVEABLE | ATT_ERASURE_REQUIRED;
       M_vNewATRecords().push_back(atr);
       m_NewAttLC.AddNewAttachment(M_vNewATRecords().size() - 1, atr);
