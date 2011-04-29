@@ -1149,6 +1149,7 @@
     <ClInclude Include="ItemData.h" />
     <ClInclude Include="ItemField.h" />
     <ClInclude Include="Match.h" />
+    <ClInclude Include="return_codes.h" />
     <ClInclude Include="XML\MSXML\MAttSAX2Handlers.h" />
     <ClInclude Include="XML\MSXML\MAttValidator.h" />
     <ClInclude Include="XML\MSXML\MAttXMLProcessor.h" />
