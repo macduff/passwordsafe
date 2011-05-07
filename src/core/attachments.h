@@ -11,14 +11,18 @@
 #ifndef __ATTACHMENTS_H
 #define __ATTACHMENTS_H
 
-#include "UUIDGen.h"
 #include "StringX.h"
 #include "sha1.h"
+
+#include "os/UUID.h"
 
 #include <time.h> // for time_t
 #include <vector>
 
 extern void trashMemory(void* buffer, size_t length);
+
+using namespace std;
+using pws_os::CUUID;
 
 /*
 Name                         Value        Type
@@ -75,7 +79,7 @@ struct ATRecord {
   : uncsize(0), cmpsize(0), blksize(0), CRC(0), flags(0), uiflags(0),
     ctime(0), atime(0), mtime(0), dtime(0),
     filename(_T("")), path(_T("")), description(_T("")),
-    entry_uuid(CUUIDGen::NullUUID()), attmt_uuid(CUUIDGen::NullUUID())
+    entry_uuid(CUUID::NullUUID()), attmt_uuid(CUUID::NullUUID())
   {
     memset(odigest, 0, SHA1::HASHLEN);
     memset(cdigest, 0, SHA1::HASHLEN);
@@ -127,7 +131,7 @@ struct ATRecord {
     CRC = 0;
     ctime = atime = mtime = dtime = 0;
     filename = path = description = _T("");
-    entry_uuid = attmt_uuid = CUUIDGen::NullUUID();
+    entry_uuid = attmt_uuid = CUUID::NullUUID();
     memset(odigest, 0, SHA1::HASHLEN);
     memset(cdigest, 0, SHA1::HASHLEN);
   }
@@ -148,8 +152,8 @@ struct ATRecord {
   StringX path;
   StringX description;
 
-  CUUIDGen attmt_uuid;
-  CUUIDGen entry_uuid;
+  CUUID attmt_uuid;
+  CUUID entry_uuid;
 };
 
 // Attachment Extended Record

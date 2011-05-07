@@ -12,7 +12,6 @@
 #include "PWScore.h"
 #include "core.h"
 #include "Util.h"
-#include "UUIDGen.h"
 #include "SysInfo.h"
 #include "UTF8Conv.h"
 #include "Report.h"
@@ -33,6 +32,7 @@
 #include "os/typedefs.h"
 #include "os/dir.h"
 #include "os/file.h"
+#include "os/UUID.h"
 
 #include "zlib/zlib.h"
 
@@ -47,6 +47,7 @@
 #include <errno.h>
 
 using namespace std;
+using pws_os::CUUID;
 
 // hide w_char/char differences where possible:
 #ifdef UNICODE
@@ -67,7 +68,7 @@ typedef
 
 #define GetBlocksize(n) ((min(max(MINBLOCKSIZE, n / 50), MAXBLOCKSIZE) >> 12) << 12)
 
-// uuid_lesser is replace by bool CUUIDgen::operator<(const CUUIDgen &)
+// uuid_lesser is replace by bool CUUID::operator<(const CUUIDgen &)
 
 // Return whether mulitmap pair uuid is less than the other uuid
 // Used in set_difference between 2 multimaps
@@ -82,110 +83,16 @@ bool mp_uuid_lesser(ItemMap_Pair p1, ItemMap_Pair p2)
 }
 
 struct GetATR {
-  GetATR(const CUUIDGen &uuid) : m_attmt_uuid(uuid) {}
+  GetATR(const CUUID &uuid) : m_attmt_uuid(uuid) {}
 
-  bool operator()(pair<CUUIDGen, ATRecord> p)
+  bool operator()(pair<CUUID, ATRecord> p)
   {
     return (p.second.attmt_uuid == m_attmt_uuid);
   }
 
 private:
-  const CUUIDGen &m_attmt_uuid;
+  const CUUID &m_attmt_uuid;
 };
-
-// Internal routines to compress in memory blocks
-
-int PWS_Deflate_Init(z_stream &strm, int level = Z_DEFAULT_COMPRESSION)
-{
-  // Allocate deflate state
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-  strm.total_out = 0;
-  return deflateInit(&strm, level);
-}
-
-int PWS_Deflate_Buffer(z_stream &strm,
-                       const unsigned char *in_buffer, const size_t in_size,
-                       unsigned char *out_buffer, size_t &out_size,
-                       const bool bLast)
-{
-  // Deflate block
-  strm.avail_in = static_cast<unsigned int>(in_size);
-  strm.next_in = (Bytef *)in_buffer;
-  strm.avail_out = static_cast<unsigned int>(out_size);
-  strm.next_out = out_buffer;
-
-  int ret = deflate(&strm, bLast ? Z_FINISH : Z_BLOCK); /* no bad return value */
-  ASSERT(ret != Z_STREAM_ERROR);     /* state not clobbered */
-
-  ASSERT(strm.avail_in == 0);        /* all input will be used */
-
-  if (bLast)
-    ASSERT(ret == Z_STREAM_END);     /* stream will be complete */
-
-  // Return size used in output buffer
-  out_size -= strm.avail_out;
-  return ret;
-}
-
-void PWS_Deflate_Term(z_stream &strm)
-{
-  // Clean up and return
-  deflateEnd(&strm);
-}
-
-// Internal routines to uncompress memory blocks
-
-int PWS_Inflate_Init(z_stream &strm)
-{
-  // Allocate inflate state
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-  strm.avail_in = 0;
-  strm.next_in = Z_NULL;
-  return inflateInit(&strm);
-}
-
-int PWS_Inflate_Buffer(z_stream &strm,
-                       const unsigned char *in_buffer, const size_t in_size,
-                       unsigned char *out_buffer, size_t &out_size,
-                       const bool bLast)
-{
-  // Inflate a block
-  strm.avail_in = static_cast<unsigned int>(in_size);
-  strm.next_in = (Bytef *)in_buffer;
-  strm.avail_out = static_cast<unsigned int>(out_size);
-  strm.next_out = (Bytef *)out_buffer;
-
-  int ret = inflate(&strm, Z_NO_FLUSH);
-
-  ASSERT(ret != Z_STREAM_ERROR);  /* state not clobbered */
-  switch (ret) {
-    case Z_NEED_DICT:
-      ret = Z_DATA_ERROR;         /* and fall through */
-    case Z_DATA_ERROR:
-    case Z_BUF_ERROR:
-    case Z_MEM_ERROR:
-      inflateEnd(&strm);
-      return ret;
-  }
-
-  // Update size of uncompressed data produced
-  out_size -= strm.avail_out;
-
-  if (bLast)
-    ret = (ret == Z_STREAM_END) ? Z_OK : Z_DATA_ERROR;
-
-  return ret;
-}
-
-void PWS_Inflate_Term(z_stream &strm)
-{
-  // Clean up and return
-  inflateEnd(&strm);
-}
 
 int PWScore::ReadAttachmentFile(bool bVerify)
 {
@@ -261,6 +168,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
   // std::multimap key = entry_uuid, value = attachment record
   UUIDATRMMap mm_entry_uuid_atr;
 
+  ATRecord atr;
   ATTProgress st_atpg;
 
   st_atpg.function = ATT_PROGRESS_START;
@@ -272,15 +180,14 @@ int PWScore::ReadAttachmentFile(bool bVerify)
 
   bool go(true), bCancel(false);
   do {
-    ATRecord atr;
     bool bError(false);
 
     // Read pre-data information
     status = in->ReadAttmntRecordPreData(atr);
 
     st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-    st_atpg.atr = atr;
     st_atpg.value = 0;
+    st_atpg.atr = atr;
     AttachmentProgress(st_atpg);
 
     switch (status) {
@@ -328,6 +235,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
           count += atr.blksize;
           st_atpg.function = ATT_PROGRESS_PROCESSFILE;
           st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+          st_atpg.atr = atr;
           // Update progress dialog and check if user cancelled verification
           int rc = AttachmentProgress(st_atpg);
           if ((rc & ATT_PROGRESS_STOPVERIFY) == ATT_PROGRESS_STOPVERIFY) {
@@ -336,6 +244,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
             // Update progress dialog window text
             LoadAString(st_atpg.function_text, IDSC_ATT_READFILE);
             st_atpg.value = -1;  // Get Window text updated but not progress bar
+            st_atpg.atr = atr;
             AttachmentProgress(st_atpg);
             st_atpg.function_text.clear();
           }
@@ -367,6 +276,7 @@ int PWScore::ReadAttachmentFile(bool bVerify)
 
         st_atpg.function = ATT_PROGRESS_PROCESSFILE;
         st_atpg.value = 100;
+        st_atpg.atr = atr;
         AttachmentProgress(st_atpg);
 
         mp_entry_uuid.insert(ItemMMap_Pair(atr.entry_uuid, atr.attmt_uuid));
@@ -410,7 +320,7 @@ void PWScore::AddAttachments(ATRVector &vNewATRecords)
     return;
 
   // Add attachment record using the DB entry UUID as key
-  const CUUIDGen uuid(vNewATRecords[0].entry_uuid);
+  const CUUID uuid(vNewATRecords[0].entry_uuid);
 
   for (size_t i = 0; i < vNewATRecords.size(); i++) {
     m_MM_entry_uuid_atr.insert(make_pair(uuid, vNewATRecords[i]));
@@ -425,7 +335,7 @@ void PWScore::ChangeAttachment(const ATRecord &atr)
   uuidairpair = m_MM_entry_uuid_atr.equal_range(atr.entry_uuid);
 
   // Verify that it is there!
-  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
       (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
     ASSERT(0);
     return;
@@ -443,6 +353,32 @@ void PWScore::ChangeAttachment(const ATRecord &atr)
   m_MM_entry_uuid_atr.insert(make_pair(atr.entry_uuid, atr));
 }
 
+void PWScore::UpdateATRecord(ATRecord &atr)
+{
+  // First delete old one
+  // Find current entry by getting subset for this DB entry
+  std::pair<UAMMiter, UAMMiter> uuidairpair;
+  uuidairpair = m_MM_entry_uuid_atr.equal_range(atr.entry_uuid);
+
+  // Verify that it is there!
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
+      (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
+    ASSERT(0);
+    return;
+  }
+
+  // Now find this specific attachment record
+  UAMMiter iter;
+  for (iter = uuidairpair.first; iter != uuidairpair.second; ++iter) {
+    if (iter->second.attmt_uuid == atr.attmt_uuid)
+      break;
+  }
+
+  // Put back in the changed one
+  if (iter != m_MM_entry_uuid_atr.end())
+    atr = iter->second;
+}
+
 bool PWScore::MarkAttachmentForDeletion(const ATRecord &atr)
 {
   bool bRC(false);
@@ -451,7 +387,7 @@ bool PWScore::MarkAttachmentForDeletion(const ATRecord &atr)
   uuidairpair = m_MM_entry_uuid_atr.equal_range(atr.entry_uuid);
 
   // Verify that it is there!
-  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
       (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
     ASSERT(0);
     return false;
@@ -476,7 +412,7 @@ bool PWScore::UnMarkAttachmentForDeletion(const ATRecord &atr)
   uuidairpair = m_MM_entry_uuid_atr.equal_range(atr.entry_uuid);
 
   // Verify that it is there!
-  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
       (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
     ASSERT(0);
     return false;
@@ -493,14 +429,14 @@ bool PWScore::UnMarkAttachmentForDeletion(const ATRecord &atr)
   return bRC;
 }
 
-void PWScore::MarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid)
+void PWScore::MarkAllAttachmentsForDeletion(const CUUID &entry_uuid)
 {
   // Mark all attachment records for this database entry for deletion
   std::pair<UAMMiter, UAMMiter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(entry_uuid);
 
   // Verify that it is there!
-  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
       (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
     ASSERT(0);
     return;
@@ -512,14 +448,14 @@ void PWScore::MarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid)
   }
 }
 
-void PWScore::UnMarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid)
+void PWScore::UnMarkAllAttachmentsForDeletion(const CUUID &entry_uuid)
 {
   // UnMark all attachment records for this database entry for deletion
   std::pair<UAMMiter, UAMMiter> uuidairpair;
   uuidairpair = m_MM_entry_uuid_atr.equal_range(entry_uuid);
 
   // Verify that it is there!
-  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+  if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
       (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
     ASSERT(0);
     return;
@@ -548,213 +484,302 @@ size_t PWScore::HasAttachments(const uuid_array_t &entry_uuid)
   return num;
 }
 
-int PWScore::GetAttachment(const ATRecord &in_atr, const int ifunction,
-                           unsigned char * &pUncData, size_t &UncLength,
-                           unsigned char &readtype)
+int PWScore::GetAttachment(const stringT &newfile, const ATRecord &in_atr, int &zRC)
 {
-  /*
-     ifunction = OPENFILE, GETPRE, GETDATA, GETPOST, CLOSEFILE
-       OPENFILE  - open attachment file
-       GETPRE    - search for requested attachment
-       GETDATA   - get attachment data
-       GETPOST   - get post data e.g. CRC, odigest and cdigest
-       CLOSEFILE - close attachment file
+  PWSAttfile *in(NULL);
+  PWSAttfile::AttHeaderRecord ahr;
+  ATRecord atr;
+  size_t cmpsize, uncsize(0);
+  SHA1 context;
+  FILE *pFile(NULL);
 
-     During GETDATA processing, pUncData must be NULL and UncLength must be zero.
-     If successful, these will be updated to point to the uncompressed original data
-     from the attachment and the length.
-     If the attachment data is passed back, the caller is responsible for freeing the
-     buffer!
-  */
-
-  static PWSAttfile *in(NULL);
-  static PWSAttfile::AttHeaderRecord ahr;
-  static z_stream strm;
-  static ATRecord atr;
-  static size_t cmpsize;
+  size_t uiCmpLen(0), uiUncLength(0);
+  unsigned char *pUncData(NULL);
+  unsigned char *pCmpData(NULL);
+  unsigned char odigest[SHA1::HASHLEN];
+  unsigned char readtype('\0');
+  unsigned long CRC;
   ATTProgress st_atpg;
   int status;
+  bool bFound(false), bInflateInit(false), bProgess(false);
 
-  if (ifunction == OPENFILE) {
-    stringT attmnt_file;
-    stringT drv, dir, name, ext;
-    StringX sxFilename;
+  // Initialize the zlib return code just in case we terminate the processing
+  // before actually do any inflate
+  zRC = Z_OK;
 
-    pws_os::splitpath(m_currfile.c_str(), drv, dir, name, ext);
-    ext = stringT(ATT_DEFAULT_ATTMT_SUFFIX);
-    attmnt_file = drv + dir + name + ext;
-    sxFilename = attmnt_file.c_str();
+  // Open the file
+  pFile = pws_os::FOpen(newfile.c_str(), _T("wb"));
 
-    PWSAttfile::VERSION version = PWSAttfile::V30;
+  if (pFile == NULL)
+    return PWSRC::CANTCREATEFILE;
 
-    // 'Make' the data file
-    in = PWSAttfile::MakePWSfile(sxFilename, version,
-                                 PWSAttfile::Read, status,
-                                 m_pAsker, m_pReporter);
+  // Get Attachment database name and open it
+  stringT attmnt_file;
+  stringT drv, dir, name, ext;
+  StringX sxFilename;
 
-    if (status != PWSRC::SUCCESS) {
-      delete in;
-      in = NULL;
-      return status;
+  pws_os::splitpath(m_currfile.c_str(), drv, dir, name, ext);
+  ext = stringT(ATT_DEFAULT_ATTMT_SUFFIX);
+  attmnt_file = drv + dir + name + ext;
+  sxFilename = attmnt_file.c_str();
+
+  PWSAttfile::VERSION version = PWSAttfile::V30;
+
+  // 'Make' the data file
+  in = PWSAttfile::MakePWSfile(sxFilename, version,
+                               PWSAttfile::Read, status,
+                               m_pAsker, m_pReporter);
+
+  if (status != PWSRC::SUCCESS)
+    goto exit;
+
+  // Open the data file
+  status = in->Open(GetPassKey());
+  if (status != PWSRC::SUCCESS) {
+    status = PWSRC::CANT_OPEN_FILE;
+    goto exit;
+  }
+
+  st_atpg.function = ATT_PROGRESS_START;
+  LoadAString(st_atpg.function_text, IDSC_ATT_SEARCHFILE);
+  st_atpg.value = 0;
+  AttachmentProgress(st_atpg);
+  bProgess = true;
+
+  st_atpg.function_text.clear();
+  st_atpg.function = ATT_PROGRESS_SEARCHFILE;
+  st_atpg.value = 0;
+  AttachmentProgress(st_atpg);
+
+  // Get the header (not sure why?)
+  ahr = in->GetHeader();
+
+  // Search for our record
+  do {
+    cmpsize = 0;
+    status = in->ReadAttmntRecordPreData(atr);
+    if (status != PWSRC::SUCCESS)
+      goto exit;
+
+    // We need the updated data not yet read in during extract
+    UpdateATRecord(atr);
+
+    // If ours - return so we can be called again for the data
+    if (atr.attmt_uuid == in_atr.attmt_uuid) {
+      cmpsize = 0;
+      bFound = true;
+      break;
     }
-
-    // Open the data file
-    status = in->Open(GetPassKey());
-    if (status != PWSRC::SUCCESS) {
-      delete in;
-      in = NULL;
-      return PWSRC::CANT_OPEN_FILE;
-    }
-
-    st_atpg.function = ATT_PROGRESS_START;
-    LoadAString(st_atpg.function_text, IDSC_ATT_SEARCHFILE);
-    st_atpg.value = 0;
-    AttachmentProgress(st_atpg);
-    st_atpg.function_text.clear();
 
     st_atpg.function = ATT_PROGRESS_SEARCHFILE;
     st_atpg.value = 0;
+    st_atpg.atr = atr;
     AttachmentProgress(st_atpg);
 
-    // Get the header (not sure why?)
-    ahr = in->GetHeader();
-
-    // Set up uncompress environment
-    PWS_Inflate_Init(strm);
-
-    return PWSRC::SUCCESS;
-  }
-
-  if (ifunction == GETPRE) {
-    // Search for our record
-    do {
-      cmpsize = 0;
-      status = in->ReadAttmntRecordPreData(atr);
-      if (status != PWSRC::SUCCESS)
-        return status;
-
-      // If ours - return so we can be called again for the data
-      if (atr.attmt_uuid == in_atr.attmt_uuid) {
-        cmpsize = 0;
-        return PWSRC::SUCCESS;
-      }
-
-      // Not ours - read all 'unwanted' data
-      size_t uiCmpLen;
-      unsigned char *pUnwantedData(NULL);
-      do {
-        status = in->ReadAttmntRecordData(pUnwantedData, uiCmpLen, readtype, true);
-        cmpsize += uiCmpLen;
-
-        st_atpg.function = ATT_PROGRESS_SEARCHFILE;
-        st_atpg.value = (int)((cmpsize * 1.0E02) / atr.cmpsize);
-        int rc = AttachmentProgress(st_atpg);
-        if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
-          return PWSRC::USER_CANCEL;
-        }
-      } while (status == PWSRC::SUCCESS && readtype != PWSAttfileV3::ATTMT_LASTDATA);
-
-      // Read post-data for this attachment
-      status = in->ReadAttmntRecordPostData(atr);
-    } while (status == PWSRC::SUCCESS);
-
-    // If we got here - we didn't find the attachment!
-    return PWSRC::FAILURE;
-  }
-
-  if (ifunction == GETDATA) {
-    // Got our record - now just give them the data
-    if (cmpsize == 0) {
-      st_atpg.function = ATT_PROGRESS_START;
-      LoadAString(st_atpg.function_text, IDSC_ATT_EXTRACTINGFILE);
-      st_atpg.value = 0;
-      AttachmentProgress(st_atpg);
-      st_atpg.function_text.clear();
-    }
-
-    unsigned char *pCmpData(NULL);
+    // Not ours - read all 'unwanted' data
     size_t uiCmpLen;
+    unsigned char *pUnwantedData(NULL);
+    readtype = '\0';
+    do {
+      status = in->ReadAttmntRecordData(pUnwantedData, uiCmpLen, readtype, true);
+      cmpsize += uiCmpLen;
+
+      st_atpg.function = ATT_PROGRESS_SEARCHFILE;
+      st_atpg.value = (atr.cmpsize > 0) ? (int)((cmpsize * 1.0E02) / atr.cmpsize) : 0;
+
+      st_atpg.atr = atr;
+      int rc = AttachmentProgress(st_atpg);
+      if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
+        status = PWSRC::USER_CANCEL;
+        goto exit;
+      }
+    } while (status == PWSRC::SUCCESS && readtype != PWSAttfileV3::ATTMT_LASTDATA);
+
+    // Read post-data for this attachment
+    status = in->ReadAttmntRecordPostData(atr);
+  } while (status == PWSRC::SUCCESS);
+
+  if (!bFound) {
+    // If we got here - we didn't find the attachment!
+    status = PWSRC::CANTFINDATTACHMENT;
+    goto exit;
+  }
+
+  // Got our record - now get the data, inflate it and save it
+  // Set up uncompress environment
+  z_stream strm;
+  strm.zalloc = Z_NULL;
+  strm.zfree = Z_NULL;
+  strm.opaque = Z_NULL;
+  strm.avail_in = 0;
+  strm.next_in = Z_NULL;
+  status = inflateInit(&strm);
+  if (status != Z_OK) {
+    // Can't set up inflate environment
+    status = PWSRC::BADINFLATE;
+    goto exit;
+  }
+
+  // Indicate inflate environment has been set up
+  bInflateInit = true;
+
+  st_atpg.function = ATT_PROGRESS_START;
+  LoadAString(st_atpg.function_text, IDSC_ATT_EXTRACTINGFILE);
+  st_atpg.value = 0;
+  AttachmentProgress(st_atpg);
+  st_atpg.function_text.clear();
+
+  st_atpg.function = ATT_PROGRESS_EXTRACTFILE;
+  st_atpg.value = 0;
+  st_atpg.atr = atr;
+  AttachmentProgress(st_atpg);
+
+  // Allocate re-useable uncompressed buffer
+  uiUncLength = atr.blksize + 1;
+  pUncData = new unsigned char[uiUncLength];
+
+  // Initialise CRC
+  PWSUtil::Get_CRC_Incremental_Init();
+
+  // reset readtype
+  readtype = '\0';
+
+  do {
+    // ReadAttmntRecordData allocates buffer and sets the length
     status = in->ReadAttmntRecordData(pCmpData, uiCmpLen, readtype, false);
+    if (status != PWSRC::SUCCESS)
+      goto exit;
 
-    if (status != PWSRC::SUCCESS) {
-      trashMemory(pCmpData, uiCmpLen);
-      delete [] pCmpData;
-      pCmpData = NULL;
-      return status;
-    }
+    // Set up zlib stream pointing to new buffer
+    strm.avail_in = static_cast<unsigned int>(uiCmpLen);
+    strm.next_in = (Bytef *)pCmpData;
 
+    // Keep track of compressed size
     cmpsize += uiCmpLen;
     st_atpg.function = ATT_PROGRESS_EXTRACTFILE;
-    st_atpg.value = (int)((cmpsize * 1.0E02) / atr.cmpsize);
+    st_atpg.value = (in_atr.cmpsize > 0) ? (int)((cmpsize * 1.0E02) / in_atr.cmpsize) : 0;
+    st_atpg.atr = atr;
     int rc = AttachmentProgress(st_atpg);
     if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
-      return PWSRC::USER_CANCEL;
+      status = PWSRC::USER_CANCEL;
+      goto exit;
     }
 
-    // Save the data pointer and length + 1024 for good measure!
-    pUncData = new unsigned char[atr.blksize + 1024];
-    size_t uiUncLength = atr.blksize + 1024;
-    int zRC;
-    zRC = PWS_Inflate_Buffer(strm, pCmpData, uiCmpLen,
-                             pUncData, uiUncLength,
-                             readtype == PWSAttfileV3::ATTMT_LASTDATA);
+    // Amount inflated as we process the compressed data
+    size_t have;
+    do {
+      strm.avail_out = uiUncLength;
+      strm.next_out = (Bytef *)pUncData;
 
-    if (zRC != Z_OK) {
-      // Error message to the user?
-      trashMemory(pCmpData, uiCmpLen);
-      delete [] pCmpData;
-      pCmpData = NULL;
-      trashMemory(pUncData, uiUncLength);
-      delete [] pUncData;
-      pUncData = NULL;
-      return PWSRC::FAILURE;
-    }
+      // Inflate it
+      zRC = inflate(&strm, Z_NO_FLUSH);
+      ASSERT(zRC != Z_STREAM_ERROR);  /* check state not clobbered */
 
-    // Delete the compressed data buffer
+      switch (zRC) {
+        case Z_NEED_DICT:
+        case Z_DATA_ERROR:
+        case Z_MEM_ERROR:
+          status = PWSRC::BADINFLATE;
+          goto exit;
+      }
+
+      have = uiUncLength - strm.avail_out;
+      if (have > 0) {
+        uncsize += have;
+        if (fwrite(pUncData, 1, have, pFile) != have || ferror(pFile)) {
+          status = PWSRC::BADATTACHMENTWRITE;
+          goto exit;
+        }
+
+        // Now update CRC and SHA1 hash of data retrieved
+        PWSUtil::Get_CRC_Incremental_Update(pUncData, have);
+        context.Update(pUncData, reinterpret_cast<unsigned int &>(have));
+      }
+    } while (strm.avail_out == 0);
+
+    // Delete the compressed data buffer ready for next allocation by ReadAttmntRecordData
     trashMemory(pCmpData, uiCmpLen);
     delete [] pCmpData;
     pCmpData = NULL;
+  } while (readtype != PWSAttfileV3::ATTMT_LASTDATA);
 
-    // Update with actual length
-    UncLength = uiUncLength;
-    return status;
+  // We must have a good status, must have read the last record and
+  // inflate must think we have all the data - otherwise we failed.
+  if (status != PWSRC::SUCCESS ||
+      readtype != PWSAttfile::ATTMT_LASTDATA ||
+      zRC != Z_STREAM_END) {
+    // Error message to user
+    status = PWSRC::BADDATA;
+    goto exit;
   }
 
-  if (ifunction == GETPOST) {
-    // Caller has the data - get the post-data info
-    status = in->ReadAttmntRecordPostData(atr);
+  // Get the post-data info
+  status = in->ReadAttmntRecordPostData(atr);
 
-    st_atpg.function = ATT_PROGRESS_EXTRACTFILE;
-    st_atpg.value = 100;
-    AttachmentProgress(st_atpg);
+  // We're done extracting
+  st_atpg.function = ATT_PROGRESS_EXTRACTFILE;
+  st_atpg.value = 100;
+  AttachmentProgress(st_atpg);
 
-    return status;
+  // Get final CRC & uncompressed digest
+  CRC = PWSUtil::Get_CRC_Incremental_Final();
+  context.Final(odigest);
+
+  // Check we have all the same data
+  if (CRC != atr.CRC ||
+      memcmp(odigest, atr.odigest, SHA1::HASHLEN) != 0) {
+    status = PWSRC::BADCRCDIGEST;
+    goto exit;
   }
 
-  if (ifunction == CLOSEFILE) {
-    ahr.Clear();
-    atr.Clear();
+  // Check we read the same number of bytes (can't see how this can't be true
+  // if the CRC and digest already agree!)
+  if (uncsize != atr.uncsize || cmpsize != atr.cmpsize) {
+    status = PWSRC::BADLENGTH;
+    goto exit;
+  }
 
-    // Close the data file
+exit:
+  // Clear buffer storage
+  if (pCmpData != NULL) {
+    trashMemory(pCmpData, uiCmpLen);
+    delete [] pCmpData;
+    pCmpData = NULL;
+  }
+  if (pUncData != NULL) {
+    trashMemory(pUncData, uiUncLength);
+    delete [] pUncData;
+    pUncData = NULL;
+  }
+
+  // Close the attachment database file
+  if (in != NULL) {
     in->Close();
     delete in;
     in = NULL;
-
-    // Tidy up uncompress environment
-    PWS_Inflate_Term(strm);
-
-    st_atpg.function = ATT_PROGRESS_END;
-    AttachmentProgress(st_atpg);
-    return PWSRC::SUCCESS;
   }
 
-  st_atpg.function = ATT_PROGRESS_END;
-  AttachmentProgress(st_atpg);
-  ASSERT(0);
-  return PWSRC::FAILURE;
+  // Close output file
+  if (pFile != NULL) {
+    fflush(pFile);
+    fclose(pFile);
+    pFile = NULL;
+  }
+
+  // Tidy up uncompress environment
+  if (bInflateInit)
+    inflateEnd(&strm);
+
+  // End the progress dialog
+  if (bProgess) {
+    st_atpg.function = ATT_PROGRESS_END;
+    AttachmentProgress(st_atpg);
+  }
+
+  return status;
 }
 
-size_t PWScore::GetAttachments(const CUUIDGen &entry_uuid,
+size_t PWScore::GetAttachments(const CUUID &entry_uuid,
                                ATRVector &vATRecords)
 {
   vATRecords.clear();
@@ -802,7 +827,7 @@ size_t PWScore::GetAllAttachments(ATRExVector &vATRecordExs)
   return num;
 }
 
-void PWScore::SetAttachments(const CUUIDGen &entry_uuid,
+void PWScore::SetAttachments(const CUUID &entry_uuid,
                              ATRVector &vATRecords)
 {
   // Delete any existing
@@ -899,6 +924,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
   out3->SetHeader(m_atthdr);
 
   ATRVector vATRWritten;
+  ATRecord atr;
   ATTProgress st_atpg;
 
   try { // exception thrown on write error
@@ -929,7 +955,6 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
     time_t dtime;
     time(&dtime);
 
-    ATRecord atr;
     UUIDSet st_attmt_uuid;         // std::set from attachment records on attmt_uuid
     UUIDATRMap mp_attmt_uuid_atr;  // std::map key = attmt_uuid, value = attachment record
 
@@ -947,10 +972,8 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
       }
     }
 
-    atr.Clear();
     st_atpg.function = ATT_PROGRESS_START;
     LoadAString(st_atpg.function_text, IDSC_ATT_COPYFILE);
-    st_atpg.atr = atr;
     st_atpg.value = 0;
     AttachmentProgress(st_atpg);
 
@@ -988,10 +1011,9 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
               // Update this entry with the fields that could have been changed:
               atr.flags = iter->second.flags;
               atr.description = iter->second.description;
-
               st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-              st_atpg.atr = atr;
               st_atpg.value = 0;
+              st_atpg.atr = atr;
               AttachmentProgress(st_atpg);
 
               // Write out pre-data
@@ -1018,6 +1040,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
                 count += atr.blksize;
                 st_atpg.function = ATT_PROGRESS_PROCESSFILE;
                 st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+                st_atpg.atr = atr;
                 int rc = AttachmentProgress(st_atpg);
                 if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
                   bCancel = true;
@@ -1047,6 +1070,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
 
               st_atpg.function = ATT_PROGRESS_PROCESSFILE;
               st_atpg.value = 100;
+              st_atpg.atr = atr;
               AttachmentProgress(st_atpg);
             } else {
               // Should not happen!
@@ -1056,7 +1080,6 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
             // We don't want this one - so we must skip over its data
             st_atpg.function = ATT_PROGRESS_START;
             LoadAString(st_atpg.function_text, IDSC_ATT_SKIPPINGDELFILE);
-            st_atpg.atr = atr;
             st_atpg.value = 0;
             AttachmentProgress(st_atpg);
             do {
@@ -1071,6 +1094,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
               count += atr.blksize;
               st_atpg.function = ATT_PROGRESS_PROCESSFILE;
               st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+              st_atpg.atr = atr;
               int rc = AttachmentProgress(st_atpg);
               if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
                 bCancel = true;
@@ -1128,15 +1152,14 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
       if (atr.cmpsize == 0) {
         if (num_new == 0) {
           st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-          st_atpg.atr = atr;
           st_atpg.value = 0;
+          st_atpg.atr = atr;
           AttachmentProgress(st_atpg);
         }
 
         num_new++;
         // Insert date added in attachment record
         atr.dtime = dtime;
-
         StringX fname = atr.path + atr.filename;
 
         // Verify that the file is still there!
@@ -1164,22 +1187,17 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         else
           atr.blksize = atr.uncsize;
 
-        size_t uiUncLen(atr.blksize);
-        size_t uiCmpLen = compressBound(static_cast<uLong>(uiUncLen));
-        const size_t uiMaxCmpLen = uiCmpLen;
-
+        const size_t uiUncLen(atr.blksize);
         BYTE *pUncData = new BYTE[atr.blksize];
-        BYTE *pCmpData = new BYTE[uiMaxCmpLen];
-
-        const size_t num_left = atr.uncsize % atr.blksize;
-        size_t count(0), numread, totalread;
-        totalread = 0;
+        size_t totalread(0), numread;
 
         // Write out pre-data fields
         out3->WriteAttmntRecordPreData(atr);
 
+        // Initialise progress dialog for this stage
         st_atpg.function = ATT_PROGRESS_PROCESSFILE;
         st_atpg.value = 0;
+        st_atpg.atr = atr;
         AttachmentProgress(st_atpg);
 
         // Get SHA1 hash and CRC of uncompressed data and hash of compressed data
@@ -1187,77 +1205,117 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         // the user can check the displayed CRC against that shown by, say, WinZip
         // to see if the same
         SHA1 ocontext, ccontext;
+        int zRC;
 
         if (!bDoInIncrements) {
-          // Read it
+          // Get maximum compressed buffer size
+          const size_t uiMaxCmpLen = compressBound(static_cast<uLong>(uiUncLen)) + 1;
+          BYTE *pCmpData = new BYTE[uiMaxCmpLen];
+
+          // Read it in one go and compress
           numread = fread(pUncData, 1, atr.uncsize, fh);
+
+          // Make sure we got it all
           ASSERT(numread == atr.uncsize);
           totalread = numread;
 
-          // Calculate complete CRC and odigest
+          // Calculate complete CRC and odigest of original data
           ocontext.Update(pUncData, reinterpret_cast<unsigned int &>(atr.uncsize));
           ocontext.Final(atr.odigest);
           atr.CRC = PWSUtil::Get_CRC(pUncData, atr.uncsize);
 
-          int zRC;
-          unsigned long ulCmpLen(static_cast<uLong>(uiCmpLen));
+          // Now compress it
+          unsigned long ulCmpLen(static_cast<uLong>(uiMaxCmpLen));
           zRC = compress(pCmpData, &ulCmpLen, pUncData, static_cast<uLong>(uiUncLen));
           ASSERT(zRC == Z_OK);
 
+          // Save compressed length
           atr.cmpsize = ulCmpLen;
+
+          // Get digest of compressed data
           ccontext.Update(pCmpData, reinterpret_cast<unsigned int &>(atr.cmpsize));
           ccontext.Final(atr.cdigest);
 
+          // Write out the one and only record
+          ASSERT(ulCmpLen > 0);
           out3->WriteAttmntRecordData(pCmpData, atr.cmpsize,
                                       PWSAttfileV3::ATTMT_LASTDATA);
 
+          // Clean up buffers
           trashMemory(pCmpData, uiMaxCmpLen);
           delete [] pCmpData;
           trashMemory(pUncData, atr.uncsize);
           delete [] pUncData;
         } else {
-          // Read in increments
-          count = 0;
+          // Read in increments and compress as we go
+          // Allocate deflate state
           z_stream strm;
-          int zRC = PWS_Deflate_Init(strm);
+          strm.zalloc = Z_NULL;
+          strm.zfree = Z_NULL;
+          strm.opaque = Z_NULL;
+          strm.total_out = 0;
+          zRC = deflateInit(&strm, Z_DEFAULT_COMPRESSION);
           ASSERT(zRC == Z_OK);
+
+          // Use deflateBound buffer size for output buffer (~ input size + 14%)
+          const size_t uiMaxCmpLen = deflateBound(&strm, static_cast<uLong>(uiUncLen)) + 1;
+          BYTE *pCmpData = new BYTE[uiMaxCmpLen];
+          size_t have;
+          int iflush;
+          totalread = 0;
 
           PWSUtil::Get_CRC_Incremental_Init();
 
           do {
-            // Read it
+            // Read a block
             numread = fread(pUncData, 1, atr.blksize, fh);
+            iflush = feof(fh) ? Z_FINISH : Z_NO_FLUSH;
+
+            // Keep record of data read
             totalread += numread;
 
             // Update CRC & odigest
             ocontext.Update(pUncData, reinterpret_cast<unsigned int &>(numread));
             PWSUtil::Get_CRC_Incremental_Update(pUncData, numread);
 
-            count += atr.blksize;
+            // Compress it
+            strm.avail_in = static_cast<unsigned int>(numread);
+            strm.next_in = (Bytef *)pUncData;
 
-            // Compress it - but first reset size f buffer available
-            uiCmpLen = uiMaxCmpLen;
-            zRC = PWS_Deflate_Buffer(strm, pUncData, numread,
-                                     pCmpData, uiCmpLen,
-                                     (count == atr.uncsize) ? true : false);
+            do {
+              // Deflate block
+              strm.avail_out = static_cast<unsigned int>(uiMaxCmpLen);
+              strm.next_out = pCmpData;
+              zRC = deflate(&strm, iflush);
+              ASSERT(zRC != Z_STREAM_ERROR);     // Check state not clobbered
 
-            // Update CRC & cdigest
-            ccontext.Update(pCmpData, reinterpret_cast<unsigned int &>(uiCmpLen));
+              // Get size of compressed data (may exclude bits not yet returned
+              // if iflush != Z_FINISH)
+              have = uiMaxCmpLen - strm.avail_out;
 
-            // Need to check - it just could be that the file size is an exact
-            // multipe of the block size chosen!
-            out3->WriteAttmntRecordData(pCmpData, uiCmpLen,
-                            (unsigned char)((count == atr.uncsize) ?
-                                        PWSAttfileV3::ATTMT_LASTDATA : PWSAttfileV3::ATTMT_DATA));
-            atr.cmpsize += uiCmpLen;
+              // Update CRC & cdigest
+              if (have > 0)
+                ccontext.Update(pCmpData, reinterpret_cast<unsigned int &>(have));
+
+              // Need to check - it just could be that the file size is an exact
+              // multipe of the block size chosen!
+              if (have > 0 || iflush == Z_FINISH) {
+                out3->WriteAttmntRecordData(pCmpData, have,
+                              (unsigned char)((iflush == Z_FINISH) ?
+                                          PWSAttfileV3::ATTMT_LASTDATA :
+                                          PWSAttfileV3::ATTMT_DATA));
+              }
+              atr.cmpsize += have;
+            } while (strm.avail_out == 0);
 
             // Update progress dialog
-            st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+            st_atpg.value = (int)((totalread * 1.0E02) / atr.uncsize);
+            st_atpg.atr = atr;
             int rc = AttachmentProgress(st_atpg);
             if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
               bCancel = true;
             }
-          } while (!bCancel && count < atr.uncsize - atr.blksize);
+          } while (!bCancel && iflush != Z_FINISH);
 
           if (bCancel) {
             out3->Close();
@@ -1272,30 +1330,12 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
             return PWSRC::USER_CANCEL;
           }
 
-          // Write out the rump
-          if (num_left > 0) {
-            numread = fread(pUncData, 1, num_left, fh);
-            ASSERT(numread == num_left);
-            totalread += numread;
-
-            ocontext.Update(pUncData, reinterpret_cast<unsigned int &>(numread));
-            PWSUtil::Get_CRC_Incremental_Update(pUncData, numread);
-
-            // Compress it - but first reset size of buffer available
-            uiCmpLen = uiMaxCmpLen;
-            zRC = PWS_Deflate_Buffer(strm, pUncData, numread,
-                                     pCmpData, uiCmpLen,
-                                     true);
-            ccontext.Update(pCmpData, reinterpret_cast<unsigned int &>(uiCmpLen));
-            atr.cmpsize += uiCmpLen;
-            out3->WriteAttmntRecordData(pCmpData, uiCmpLen, PWSAttfileV3::ATTMT_LASTDATA);
-          }
-
           // Tidy up compression
           if (zRC == Z_STREAM_END)
             zRC = Z_OK;
 
-          PWS_Deflate_Term(strm);
+          // Clean up deflate environment
+          deflateEnd(&strm);
 
           // Finish off CRC and digest and compressed size
           ocontext.Final(atr.odigest);
@@ -1314,11 +1354,12 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
         // Update progress dialog
         st_atpg.function = ATT_PROGRESS_PROCESSFILE;
         st_atpg.value = 100;
+        st_atpg.atr = atr;
         AttachmentProgress(st_atpg);
 
         fclose(fh);
         if (totalread != atr.uncsize) {
-          pws_os::Trace(_T("Attachment file fread - mismatch of data read. Expected=%d, Read=%d\n"),
+          pws_os::Trace(_T("Attachment file read - mismatch of data read. Expected=%d, Read=%d\n"),
                    atr.uncsize, totalread);
           ASSERT(0);
         }
@@ -1361,7 +1402,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
 
     uuidairpair = m_MM_entry_uuid_atr.equal_range(vATRWritten[i].entry_uuid);
     // Verify that it is there!
-    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
         (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
       ASSERT(0);
       continue;
@@ -1391,8 +1432,8 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
   return status;
 }
 
-int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
-                                  const CUUIDGen &new_entry_uuid,
+int PWScore::DuplicateAttachments(const CUUID &old_entry_uuid,
+                                  const CUUID &new_entry_uuid,
                                   PWSAttfile::VERSION version)
 {
   int status;
@@ -1471,6 +1512,7 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
   out3->SetHeader(m_atthdr);
   dup3->SetHeader(m_atthdr);
 
+  ATRecord atr;
   ATTProgress st_atpg;
 
   ATRVector vATRWritten, vATRDuplicates;
@@ -1520,7 +1562,6 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
     time_t dtime;
     time(&dtime);
 
-    ATRecord atr;
     UUIDSet st_attmt_uuid;         // std::set from records on attmt_uuid
     UUIDATRMap mp_attmt_uuid_atr;  // std::map key = attmnt_uuid, value = attachment record
 
@@ -1567,10 +1608,9 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
               // Update this entry with the fields that could have been changed:
               atr.flags = iter->second.flags;
               atr.description = iter->second.description;
-
               st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-              st_atpg.atr = atr;
               st_atpg.value = 0;
+              st_atpg.atr = atr;
               AttachmentProgress(st_atpg);
 
               unsigned char readtype(0);
@@ -1584,7 +1624,7 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
               if (iter->second.entry_uuid == old_entry_uuid) {
                 bDuplicate = true;
                 uuid_array_t new_attmt_uuid;
-                CUUIDGen attmt_uuid;
+                CUUID attmt_uuid;
                 attmt_uuid.GetUUID(new_attmt_uuid);
                 // Change date added timestamp even though it was added to original entry
                 atr_dup.dtime = dtime;
@@ -1618,6 +1658,7 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
                 count += atr.blksize;
                 st_atpg.function = ATT_PROGRESS_PROCESSFILE;
                 st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+                st_atpg.atr = atr;
                 int rc = AttachmentProgress(st_atpg);
                 if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
                   bCancel = true;
@@ -1661,6 +1702,7 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
 
               st_atpg.function = ATT_PROGRESS_PROCESSFILE;
               st_atpg.value = 100;
+              st_atpg.atr = atr;
               AttachmentProgress(st_atpg);
             }
           }
@@ -1762,8 +1804,8 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
         case PWSRC::SUCCESS:
         {
           st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-          st_atpg.atr = atr;
           st_atpg.value = 0;
+          st_atpg.atr = atr;
           AttachmentProgress(st_atpg);
 
           unsigned char readtype(0);
@@ -1790,6 +1832,7 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
             // Update progress dialog
             count += atr.blksize;
             st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+            st_atpg.atr = atr;
             int rc = AttachmentProgress(st_atpg);
             if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
               // Cancel reading attachment file
@@ -1812,6 +1855,7 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
 
           st_atpg.function = ATT_PROGRESS_PROCESSFILE;
           st_atpg.value = 100;
+          st_atpg.atr = atr;
           AttachmentProgress(st_atpg);
           break;
         }
@@ -1860,7 +1904,7 @@ int PWScore::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
 
     uuidairpair = m_MM_entry_uuid_atr.equal_range(vATRWritten[i].entry_uuid);
     // Verify that it is there!
-    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
         (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
       ASSERT(0);
       continue;
@@ -1955,7 +1999,7 @@ void PWScore::SetupAttachmentHeader()
 
   uuid_array_t attfile_uuid, null_uuid = {0};
   if (memcmp(m_atthdr.attfile_uuid, null_uuid, sizeof(uuid_array_t)) == 0) {
-    CUUIDGen att_uuid;
+    CUUID att_uuid;
     att_uuid.GetUUID(attfile_uuid);
     memcpy(m_atthdr.attfile_uuid, attfile_uuid, sizeof(uuid_array_t));
     memcpy(m_atthdr.DBfile_uuid, m_hdr.m_file_uuid_array, sizeof(uuid_array_t));
@@ -1964,7 +2008,7 @@ void PWScore::SetupAttachmentHeader()
 
 // functor to check if the current attachment matches the one we want to export
 struct MatchAUUID {
-  MatchAUUID(const CUUIDGen &attmt_uuid) : m_attmt_uuid(attmt_uuid)
+  MatchAUUID(const CUUID &attmt_uuid) : m_attmt_uuid(attmt_uuid)
   {
   }
 
@@ -1975,7 +2019,7 @@ struct MatchAUUID {
 
 private:
   MatchAUUID& operator=(const MatchAUUID&); // Do not implement
-  CUUIDGen m_attmt_uuid;
+  CUUID m_attmt_uuid;
 };
 
 int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
@@ -2003,6 +2047,8 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
     return PWSRC::CANT_OPEN_FILE;
 
   bool bCancel(false);
+
+  ATRecord atr;
   ATTProgress st_atpg;
   int status;
 
@@ -2098,8 +2144,8 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
     ofs << "\"" << endl;
   }
 
-  CUUIDGen db_uuid(m_hdr.m_file_uuid_array, true); // true to print canoncally
-  CUUIDGen att_uuid(m_atthdr.attfile_uuid, true); // true to print canoncally
+  CUUID db_uuid(m_hdr.m_file_uuid_array, true); // true to print canoncally
+  CUUID att_uuid(m_atthdr.attfile_uuid, true); // true to print canoncally
 
   ofs << "Database_uuid=\"" << db_uuid << "\"" << endl;
   ofs << "Attachment_file_uuid=\"" << att_uuid << "\"" << endl;
@@ -2121,7 +2167,6 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
 
   do {
     ATRecordEx atrex;
-    ATRecord atr;
     status = in->ReadAttmntRecordPreData(atr);
     if (status == PWSRC::END_OF_FILE)
       break;
@@ -2224,8 +2269,8 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
     AttachmentProgress(st_atpg);
 
     st_atpg.function = bMatches ? ATT_PROGRESS_EXPORTFILE : ATT_PROGRESS_SEARCHFILE;
-    st_atpg.atr = atr;
     st_atpg.value = 0;
+    st_atpg.atr = atr;
     AttachmentProgress(st_atpg);
 
     // Read all data
@@ -2264,9 +2309,9 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
         pCmpData = NULL;
       }
 
-      st_atpg.atr = atrex.atr;
       st_atpg.function = bMatches ? ATT_PROGRESS_EXPORTFILE : ATT_PROGRESS_SEARCHFILE;
       st_atpg.value = (int)((cmpsize * 1.0E02) / atrex.atr.cmpsize);
+      st_atpg.atr = atrex.atr;
       int rc = AttachmentProgress(st_atpg);
       if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
         bCancel = true;
@@ -2299,6 +2344,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
 
     st_atpg.function = bMatches ? ATT_PROGRESS_EXPORTFILE : ATT_PROGRESS_SEARCHFILE;
     st_atpg.value = 100;
+    st_atpg.atr = atr;
     AttachmentProgress(st_atpg);
 
   } while (status == PWSRC::SUCCESS);
@@ -2475,6 +2521,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
   // Set them - will be written during Open below
   out3->SetHeader(m_atthdr);
 
+  ATRecord atr;
   ATTProgress st_atpg;
 
   st_atpg.function = ATT_PROGRESS_START;
@@ -2517,7 +2564,6 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
     time_t dtime;
     time(&dtime);
 
-    ATRecord atr;
     UUIDSet st_attmt_uuid;         // std::set from records on attmt_uuid
     UUIDATRMap mp_attmt_uuid_atr;  // std::map key = attmnt_uuid, value = attachment record
 
@@ -2539,8 +2585,8 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
       status = in->ReadAttmntRecordPreData(atr);
 
       st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-      st_atpg.atr = atr;
       st_atpg.value = 0;
+      st_atpg.atr = atr;
       AttachmentProgress(st_atpg);
 
       switch (status) {
@@ -2597,6 +2643,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
                 count += atr.blksize;
                 st_atpg.function = ATT_PROGRESS_PROCESSFILE;
                 st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+                st_atpg.atr = atr;
                 int rc = AttachmentProgress(st_atpg);
                 if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
                   bCancel = true;
@@ -2626,6 +2673,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
 
               st_atpg.function = ATT_PROGRESS_PROCESSFILE;
               st_atpg.value = 100;
+              st_atpg.atr = atr;
               AttachmentProgress(st_atpg);
             }
           }
@@ -2699,7 +2747,6 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
     // Process all imported attachments and append to output file
     go = true;
     bCancel = false;
-    ATRecord atr;
     while (go && imp != NULL) {
       atr.Clear();
       status = imp3->ReadAttmntRecordPreData(atr);
@@ -2726,8 +2773,8 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
           int status_r, status_w;
 
           st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-          st_atpg.atr = atr;
           st_atpg.value = 0;
+          st_atpg.atr = atr;
           AttachmentProgress(st_atpg);
 
           // Write out pre-data
@@ -2750,6 +2797,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
             // Update progress dialog
             count += atr.blksize;
             st_atpg.value = (int)((count * 1.0E02) / atr.uncsize);
+            st_atpg.atr = atr;
             int rc = AttachmentProgress(st_atpg);
             if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
               // Cancel reading attachment file
@@ -2822,7 +2870,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
 
     uuidairpair = m_MM_entry_uuid_atr.equal_range(vATRWritten[i].entry_uuid);
     // Verify that it is there!
-    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) && 
+    if ((uuidairpair.first  == m_MM_entry_uuid_atr.end()) &&
         (uuidairpair.second == m_MM_entry_uuid_atr.end())) {
       ASSERT(0);
       continue;
@@ -2855,7 +2903,7 @@ struct get_att_uuid {
   :  m_vatt_uuid(vatt_uuid)
   {}
 
-  void operator()(std::pair<const CUUIDGen, ATRecord> const& p) const {
+  void operator()(std::pair<const CUUID, ATRecord> const& p) const {
     m_vatt_uuid.push_back(p.second.attmt_uuid);
   }
 

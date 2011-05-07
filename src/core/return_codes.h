@@ -59,6 +59,8 @@ namespace PWSRC {
     BADDATA,                                  // 0x0106 =  262
     BADATTACHMENTWRITE,                       // 0x0107 =  263
     BADCRCDIGEST,                             // 0x0108 =  264
+    BADLENGTH,                                // 0x0109 =  265
+    BADINFLATE,                               // 0x010A =  266
 
     UNIMPLEMENTED = 0x0FFF,                   // 0x0FFF = 4095
   };

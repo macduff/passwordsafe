@@ -20,6 +20,7 @@
 #endif
 
 #include "zlib.h"
+#include "../../os/zdebug.h"
 
 #ifdef STDC
 #  if !(defined(_WIN32_WCE) && defined(_MSC_VER))
@@ -247,11 +248,11 @@ extern const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
    extern int ZLIB_INTERNAL z_verbose;
    extern void ZLIB_INTERNAL z_error OF((char *m));
 #  define Assert(cond,msg) {if(!(cond)) z_error(msg);}
-#  define Trace(x) {if (z_verbose>=0) fprintf x ;}
-#  define Tracev(x) {if (z_verbose>0) fprintf x ;}
-#  define Tracevv(x) {if (z_verbose>1) fprintf x ;}
-#  define Tracec(c,x) {if (z_verbose>0 && (c)) fprintf x ;}
-#  define Tracecv(c,x) {if (z_verbose>1 && (c)) fprintf x ;}
+#  define Trace(x) {if (z_verbose>=0) zTrace x ;}
+#  define Tracev(x) {if (z_verbose>0) zTrace x ;}
+#  define Tracevv(x) {if (z_verbose>1) zTrace x ;}
+#  define Tracec(c,x) {if (z_verbose>0 && (c)) zTrace x ;}
+#  define Tracecv(c,x) {if (z_verbose>1 && (c)) zTrace x ;}
 #else
 #  define Assert(cond,msg)
 #  define Trace(x)

@@ -153,7 +153,7 @@ void XAttSAX2Handlers::endElement(const XMLCh* const /* uri */,
 
   // The rest is only processed in Import mode (not Validation mode)
   const int icurrent_element = m_bAttachmentBeingProcessed ? edata.element_entry_code : edata.element_code;
-  bool bRC = XMLAttHandlers::ProcessEndElement(icurrent_element);
+  XMLAttHandlers::ProcessEndElement(icurrent_element);
 }
 
 void XAttSAX2Handlers::FormatError(const SAXParseException& e, const int type)

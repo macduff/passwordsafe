@@ -46,9 +46,11 @@ static void xormem(unsigned char* mem1, const unsigned char* mem2, int length)
 #ifdef _WIN32
 #pragma optimize("",off)
 #endif
-void trashMemory(void* buffer, size_t length)
+void trashMemory(void *buffer, size_t length)
 {
-  ASSERT(buffer != NULL);
+  if (buffer == NULL)
+    return;
+
   // {kjp} no point in looping around doing nothing is there?
   if (length > 0) {
     std::memset(buffer, 0x55, length);
@@ -462,12 +464,48 @@ void PWSUtil::GetTimeStamp(stringT &sTimeStamp)
   ptimebuffer = new timeb;
   ftime(ptimebuffer);
 #endif
-  StringX cmys_now = ConvertToDateTimeString(ptimebuffer->time, TMC_EXPORT_IMPORT);
+  StringX cmys_now = PWSUtil::ConvertToDateTimeString(ptimebuffer->time, TMC_EXPORT_IMPORT);
 
   ostringstreamT *p_os;
   p_os = new ostringstreamT;
   *p_os << cmys_now << TCHAR('.') << setw(3) << setfill(TCHAR('0'))
      << static_cast<unsigned int>(ptimebuffer->millitm);
+
+  sTimeStamp = p_os->str();
+  delete ptimebuffer;
+  delete p_os;
+}
+
+void PWSUtil::GetTimeStampA(std::string &sTimeStamp)
+{
+  // non-Unicode version required for zlib debug
+  // Now re-entrant
+#ifdef _WIN32
+  struct _timeb *ptimebuffer;
+  ptimebuffer = new _timeb;
+#if (_MSC_VER >= 1400)
+  _ftime_s(ptimebuffer);
+#else
+  _ftime(ptimebuffer);
+#endif
+#else
+  struct timeb *ptimebuffer;
+  ptimebuffer = new timeb;
+  ftime(ptimebuffer);
+#endif
+  StringX sxmys_now = PWSUtil::ConvertToDateTimeString(ptimebuffer->time, TMC_EXPORT_IMPORT);
+#ifdef UNICODE
+  std::wstring temp = sxmys_now.c_str();
+#else
+  std::string temp = sxmys_now.c_str();
+#endif
+  std::string cmys_now;
+  cmys_now.assign(temp.begin(), temp.end());
+
+  ostringstream *p_os;
+  p_os = new ostringstream;
+  *p_os << cmys_now << char('.') << setw(3) << setfill(char('0'))
+                  << static_cast<unsigned int>(ptimebuffer->millitm);
 
   sTimeStamp = p_os->str();
   delete ptimebuffer;
@@ -763,9 +801,9 @@ unsigned int PWSUtil::Get_CRC_Incremental_Final()
 */
 int GetStringBufSize(const TCHAR *fmt, va_list args)
 {
-  TCHAR *buffer=NULL;
+  TCHAR *buffer = NULL;
 
-  int len=0;
+  int len = 0;
 
 #ifdef _WIN32
   len = _vsctprintf(fmt, args) + 1;
@@ -789,9 +827,41 @@ int GetStringBufSize(const TCHAR *fmt, va_list args)
   }
   va_end(ar);
 #endif
-  if (buffer)
-    delete[] buffer;
-  ASSERT(len>0);
+  delete[] buffer;
+  ASSERT(len > 0);
+  return len;
+}
+
+int GetStringBufSizeA(const char *fmt, va_list args)
+{
+  char *buffer = NULL;
+
+  int len = 0;
+
+#ifdef _WIN32
+  len = _vscprintf(fmt, args) + 1;
+#else
+  va_list ar;
+  va_copy(ar, args);
+  // Linux doesn't do this correctly :-(
+  int guess = 16;
+  while (1) {
+    len = guess;
+    buffer = new char[len];
+    len = _vsprintf_s(buffer, len, fmt, ar);
+    va_end(ar);//after using args we should reset list
+    va_copy(ar, args);
+    if (len++ > 0)
+      break;
+    else { // too small, resize & try again
+      delete[] buffer;
+      guess *= 2;
+    }
+  }
+  va_end(ar);
+#endif
+  delete[] buffer;
+  ASSERT(len > 0);
   return len;
 }
 

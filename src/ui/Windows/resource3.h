@@ -716,3 +716,6 @@
 #define IDS_ADDSHORTCUT                 5908
 #define IDS_ADDTARGET                   5909
 #define IDS_NOREADACCESS                5910
+#define IDS_BADATTDATA                  5911
+#define IDS_BADATTLENGTH                5912
+#define IDS_BADINFLATE                  5913

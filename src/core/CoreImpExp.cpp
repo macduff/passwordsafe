@@ -15,7 +15,6 @@
 #include "core.h"
 #include "PWSprefs.h"
 #include "Util.h"
-#include "UUIDGen.h"
 #include "SysInfo.h"
 #include "UTF8Conv.h"
 #include "Report.h"
@@ -49,6 +48,7 @@
 const TCHAR *EXPORTHEADER  = _T("Group/Title\tUsername\tPassword\tURL\tAutoType\tCreated Time\tPassword Modified Time\tLast Access Time\tPassword Expiry Date\tPassword Expiry Interval\tRecord Modified Time\tPassword Policy\tHistory\tRun Command\tDCA\te-mail\tProtected\tSymbols\tNotes");
 
 using namespace std;
+using pws_os::CUUID;
 
 // hide w_char/char differences where possible:
 #ifdef UNICODE
@@ -68,7 +68,7 @@ struct ExportTester {
   {}
 
   // operator for ItemList
-  bool operator()(pair<CUUIDGen, CItemData> p)
+  bool operator()(pair<CUUID, CItemData> p)
   {return operator()(p.second);}
 
   // operator for OrderedItemList
@@ -217,7 +217,7 @@ struct TextRecordWriter {
   {}
 
   // operator for ItemList
-  void operator()(pair<CUUIDGen, CItemData> p)
+  void operator()(pair<CUUID, CItemData> p)
   {operator()(p.second);}
 
   // operator for OrderedItemList
@@ -343,7 +343,7 @@ struct XMLRecordWriter {
   {}
 
   // operator for ItemList
-  void operator()(pair<CUUIDGen, CItemData> p)
+  void operator()(pair<CUUID, CItemData> p)
   {operator()(p.second);}
 
   // operator for OrderedItemList
@@ -414,8 +414,8 @@ int PWScore::WriteXMLFile(const StringX &filename,
 
   // Although the MFC UI prevents the user selecting export of an
   // empty database, other UIs might not, so:
-  if ((il != NULL && il->size() == 0) ||
-      (il == NULL && m_pwlist.size() == 0))
+  if ((il != NULL && il->empty()) ||
+      (il == NULL && m_pwlist.empty()))
     return PWSRC::NO_ENTRIES_EXPORTED;
 
 #ifdef UNICODE
@@ -494,7 +494,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
     ofs << "\"" << endl;
   }
 
-  CUUIDGen huuid(m_hdr.m_file_uuid_array, true); // true to print canoncally
+  CUUID huuid(m_hdr.m_file_uuid_array, true); // true to print canoncally
 
   ofs << "Database_uuid=\"" << huuid << "\"" << endl;
   ofs << "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" << endl;
@@ -587,64 +587,11 @@ int PWScore::WriteXMLFile(const StringX &filename,
       if (subgroup_function < 0) {
         iCase = IDSC_CASE_SENSITIVE;
       }
+
       LoadAString(cs_case, iCase);
-
-      int iFunction(IDSC_UNKNOWNFUNCTION);
-      switch (subgroup_function) {
-        case  PWSMatch::MR_EQUALS:
-        case -PWSMatch::MR_EQUALS:
-          iFunction = IDSC_EQUALS;
-          break;
-        case  PWSMatch::MR_NOTEQUAL:
-        case -PWSMatch::MR_NOTEQUAL:
-          iFunction = IDSC_DOESNOTEQUAL;
-          break;
-        case  PWSMatch::MR_BEGINS:
-        case -PWSMatch::MR_BEGINS:
-          iFunction = IDSC_BEGINSWITH;
-          break;
-        case  PWSMatch::MR_NOTBEGIN:
-        case -PWSMatch::MR_NOTBEGIN:
-          iFunction = IDSC_DOESNOTBEGINSWITH;
-          break;
-        case  PWSMatch::MR_ENDS:
-        case -PWSMatch::MR_ENDS:
-          iFunction = IDSC_ENDSWITH;
-          break;
-        case  PWSMatch::MR_NOTEND:
-        case -PWSMatch::MR_NOTEND:
-          iFunction = IDSC_DOESNOTENDWITH;
-          break;
-        case  PWSMatch::MR_CONTAINS:
-        case -PWSMatch::MR_CONTAINS:
-          iFunction = IDSC_CONTAINS;
-          break;
-        case  PWSMatch::MR_NOTCONTAIN:
-        case -PWSMatch::MR_NOTCONTAIN:
-          iFunction = IDSC_DOESNOTCONTAIN;
-          break;
-        case  PWSMatch::MR_CNTNANY:
-        case -PWSMatch::MR_CNTNANY:
-          iFunction = IDSC_CONTAINSANY;
-          break;
-        case  PWSMatch::MR_NOTCNTNANY:
-        case -PWSMatch::MR_NOTCNTNANY:
-          iFunction = IDSC_DOESNOTCONTAINANY;
-          break;
-        case  PWSMatch::MR_CNTNALL:
-        case -PWSMatch::MR_CNTNALL:
-          iFunction = IDSC_CONTAINSALL;
-          break;
-        case  PWSMatch::MR_NOTCNTNALL:
-        case -PWSMatch::MR_NOTCNTNALL:
-          iFunction = IDSC_DOESNOTCONTAINALL;
-          break;
-        default:
-          ASSERT(0);
-      }
-      LoadAString(cs_function, iFunction);
-
+      LoadAString(cs_function, PWSMatch::GetRule(PWSMatch::MatchRule(subgroup_function)));
       LoadAString(cs_temp, IDSC_XMLEXP_SUBSETACTIVE);
+
       if (!bStartComment) {
         bStartComment = true;
         ofs << " <!-- " << endl;

@@ -11,9 +11,9 @@
 #ifndef __MATTXMLPROCESSOR_H
 #define __MATTXMLPROCESSOR_H
 
-#include "../../UUIDGen.h"
 #include "../../Command.h"
 
+#include "os/UUID.h"
 #include "os/typedefs.h"
 
 #include <vector>

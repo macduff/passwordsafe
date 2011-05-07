@@ -24,10 +24,9 @@
 #include "ViewReport.h"
 #include "ExpPWListDlg.h"
 
-#include "VirtualKeyboard\VKeyBoardDlg.h"
+#include "VirtualKeyboard/VKeyBoardDlg.h"
 
 #include "core/pwsprefs.h"
-#include "core/UUIDGen.h"
 #include "core/core.h"
 #include "core/PWHistory.h"
 #include "core/StringXStream.h"
@@ -52,6 +51,7 @@
 #include <sys/stat.h>
 
 using namespace std;
+using pws_os::CUUID;
 
 extern const wchar_t *GROUP_SEP2;
 
@@ -99,7 +99,7 @@ void DboxMain::DatabaseModified(bool bChanged)
 }
 
 void DboxMain::UpdateGUI(UpdateGUICommand::GUI_Action ga, 
-                         const CUUIDGen &entry_uuid, CItemData::FieldType ft,
+                         const CUUID &entry_uuid, CItemData::FieldType ft,
                          bool bUpdateGUI)
 {
   // Callback from PWScore if GUI needs updating
@@ -2156,8 +2156,8 @@ void DboxMain::OnChangeVKFont()
                              CF_LIMITSIZE | CF_NOSCRIPTSEL,
                              NULL, NULL, VKFONT);
 
-  fontdlg.m_cf.nSizeMin = 12;
-  fontdlg.m_cf.nSizeMax = 12;
+  fontdlg.m_cf.nSizeMin = 10;
+  fontdlg.m_cf.nSizeMax = 14;
 
   fontdlg.m_sampletext = cs_VKSampleText.c_str();
 
@@ -2963,6 +2963,34 @@ void DboxMain::OnViewReports()
   return;
 }
 
+static UINT SetupViewReports(const int nID)
+{
+  switch (nID) {
+  case ID_MENUITEM_REPORT_COMPARE:
+    return IDS_RPTCOMPARE;
+  case ID_MENUITEM_REPORT_FIND:
+    return IDS_RPTFIND;
+  case ID_MENUITEM_REPORT_IMPORTTEXT:
+    return IDS_RPTIMPORTTEXT;
+  case ID_MENUITEM_REPORT_IMPORTXML:
+    return IDS_RPTIMPORTXML;
+  case ID_MENUITEM_REPORT_MERGE:
+    return IDS_RPTMERGE;
+  case ID_MENUITEM_REPORT_SYNCHRONIZE:
+    return IDS_RPTSYNCH;
+  case ID_MENUITEM_REPORT_EXPORTTEXT:
+    return IDS_RPTEXPORTTEXT;
+  case ID_MENUITEM_REPORT_EXPORTXML:
+    return IDS_RPTEXPORTXML;
+  case ID_MENUITEM_REPORT_VALIDATE:
+    return IDS_RPTVALIDATE;
+  default:
+    pws_os::Trace(L"ID=%d\n", nID);
+    ASSERT(0);
+    return 0;
+  }
+}
+
 void DboxMain::OnViewReports(UINT nID)
 {
   CString cs_filename, cs_path, csAction;
@@ -2971,39 +2999,7 @@ void DboxMain::OnViewReports(UINT nID)
   if (!GetDriveAndDirectory(m_core.GetCurFile(), cs_drive, cs_directory))
     return;
 
-  UINT uistring(0);
-  switch (nID) {
-    case ID_MENUITEM_REPORT_COMPARE:
-      uistring = IDS_RPTCOMPARE;
-      break;
-    case ID_MENUITEM_REPORT_FIND:
-      uistring = IDS_RPTFIND;
-      break;
-    case ID_MENUITEM_REPORT_IMPORTTEXT:
-      uistring = IDS_RPTIMPORTTEXT;
-      break;
-    case ID_MENUITEM_REPORT_IMPORTXML:
-      uistring = IDS_RPTIMPORTXML;
-      break;
-    case ID_MENUITEM_REPORT_MERGE:
-      uistring = IDS_RPTMERGE;
-      break;
-    case ID_MENUITEM_REPORT_SYNCHRONIZE:
-      uistring = IDS_RPTSYNCH;
-      break;
-    case ID_MENUITEM_REPORT_EXPORTTEXT:
-      uistring = IDS_RPTEXPORTTEXT;
-      break;
-    case ID_MENUITEM_REPORT_EXPORTXML:
-      uistring = IDS_RPTEXPORTXML;
-      break;
-    case ID_MENUITEM_REPORT_VALIDATE:
-      uistring = IDS_RPTVALIDATE;
-      break;
-    default:
-      ASSERT(0);
-  }
-  csAction.LoadString(uistring);
+  csAction.LoadString(SetupViewReports(nID));
   cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
 
   ViewReport(cs_filename);
@@ -3081,41 +3077,8 @@ int DboxMain::OnUpdateViewReports(const int nID)
   if (!GetDriveAndDirectory(cs_Database, cs_drive, cs_directory))
     return FALSE;
 
-  UINT uistring(0);
-  switch (nID) {
-    case ID_MENUITEM_REPORT_COMPARE:
-      uistring = IDS_RPTCOMPARE;
-      break;
-    case ID_MENUITEM_REPORT_FIND:
-      uistring = IDS_RPTFIND;
-      break;
-    case ID_MENUITEM_REPORT_IMPORTTEXT:
-      uistring = IDS_RPTIMPORTTEXT;
-      break;
-    case ID_MENUITEM_REPORT_IMPORTXML:
-      uistring = IDS_RPTIMPORTXML;
-      break;
-    case ID_MENUITEM_REPORT_EXPORTTEXT:
-      uistring = IDS_RPTEXPORTTEXT;
-      break;
-    case ID_MENUITEM_REPORT_EXPORTXML:
-      uistring = IDS_RPTEXPORTXML;
-      break;
-    case ID_MENUITEM_REPORT_MERGE:
-      uistring = IDS_RPTMERGE;
-      break;
-    case ID_MENUITEM_REPORT_SYNCHRONIZE:
-      uistring = IDS_RPTSYNCH;
-      break;
-    case ID_MENUITEM_REPORT_VALIDATE:
-      uistring = IDS_RPTVALIDATE;
-      break;
-    default:
-      pws_os::Trace(L"ID=%d\n", nID);
-      ASSERT(0);
-  }
 
-  csAction.LoadString(uistring);
+  csAction.LoadString(SetupViewReports(nID));
   cs_filename.Format(IDSC_REPORTFILENAME, cs_drive, cs_directory, csAction);
 
   struct _stat statbuf;
@@ -3995,8 +3958,8 @@ void DboxMain::SaveGUIStatusEx(const int iView)
 
   // Note: User can have different entries selected/visible in Tree & List Views
   if ((iView & iListOnly) == iListOnly) {
-    m_LUUIDSelectedAtMinimize = CUUIDGen::NullUUID();
-    m_LUUIDVisibleAtMinimize = CUUIDGen::NullUUID();
+    m_LUUIDSelectedAtMinimize = CUUID::NullUUID();
+    m_LUUIDVisibleAtMinimize = CUUID::NullUUID();
 
     // List view
     // Get selected entry in CListCtrl
@@ -4024,8 +3987,8 @@ void DboxMain::SaveGUIStatusEx(const int iView)
     // Save expand/collapse status of groups
     m_vGroupDisplayState = GetGroupDisplayState();
 
-    m_LUUIDSelectedAtMinimize = CUUIDGen::NullUUID();
-    m_LUUIDVisibleAtMinimize = CUUIDGen::NullUUID();
+    m_LUUIDSelectedAtMinimize = CUUID::NullUUID();
+    m_LUUIDVisibleAtMinimize = CUUID::NullUUID();
 
     m_sxSelectedGroup.clear();
     m_sxVisibleGroup.clear();
@@ -4097,7 +4060,7 @@ void DboxMain::RestoreGUIStatusEx()
   CItemData *pci(NULL);
 
   // Process Tree - Selected
-  if (m_TUUIDSelectedAtMinimize != CUUIDGen::NullUUID()) {
+  if (m_TUUIDSelectedAtMinimize != CUUID::NullUUID()) {
     // Entry selected
     ItemListIter iter = Find(m_TUUIDSelectedAtMinimize);
     if (iter != End()) {
@@ -4130,7 +4093,7 @@ void DboxMain::RestoreGUIStatusEx()
   }
 
   // Process Tree - Visible
-  if (m_TUUIDVisibleAtMinimize != CUUIDGen::NullUUID()) {
+  if (m_TUUIDVisibleAtMinimize != CUUID::NullUUID()) {
     // Entry topmost visible
     ItemListIter iter = Find(m_TUUIDVisibleAtMinimize);
     if (iter != End()) {
@@ -4161,7 +4124,7 @@ void DboxMain::RestoreGUIStatusEx()
   }
 
   // Process List - selected
-  if (m_LUUIDSelectedAtMinimize != CUUIDGen::NullUUID()) {
+  if (m_LUUIDSelectedAtMinimize != CUUID::NullUUID()) {
     ItemListIter iter = Find(m_LUUIDSelectedAtMinimize);
     if (iter != End()) {
       DisplayInfo *pdi = ((DisplayInfo *)(iter->second.GetDisplayInfo()));
@@ -4179,7 +4142,7 @@ void DboxMain::RestoreGUIStatusEx()
   }
 
   // Process List - visible
-  if (m_LUUIDVisibleAtMinimize != CUUIDGen::NullUUID()) {
+  if (m_LUUIDVisibleAtMinimize != CUUID::NullUUID()) {
     ItemListIter iter = Find(m_LUUIDVisibleAtMinimize);
     if (iter != End()) {
       DisplayInfo *pdi = ((DisplayInfo *)(iter->second.GetDisplayInfo()));

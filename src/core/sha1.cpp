@@ -111,6 +111,9 @@ SHA1::SHA1()
 /* Run your data through this. */
 void SHA1::Update(const unsigned char* data, unsigned int len)
 {
+  if (len == 0)
+    return;
+
   unsigned int i, j;
 
   j = (count[0] >> 3) & 63;

@@ -31,6 +31,7 @@
 #include <algorithm>
 
 using namespace std;
+using pws_os::CUUID;
 
 bool CItemData::IsSessionKeySet = false;
 unsigned char CItemData::SessionKey[64];
@@ -189,7 +190,7 @@ StringX CItemData::GetFieldValue(const FieldType &ft) const
     {
       uuid_array_t uuid_array = {0};
       GetUUID(uuid_array);
-      str = CUUIDGen(uuid_array, true);
+      str = CUUID(uuid_array, true);
       break;
     }
     case GROUP:      /* 02 */
@@ -464,7 +465,7 @@ void CItemData::GetUUID(uuid_array_t &uuid_array) const
   GetField(m_UUID, static_cast<unsigned char *>(uuid_array), length);
 }
 
-const CUUIDGen CItemData::GetUUID() const
+const CUUID CItemData::GetUUID() const
 {
   // Ideally we'd like to return a uuid_array_t, but C++ doesn't
   // allow array return values.
@@ -474,7 +475,7 @@ const CUUIDGen CItemData::GetUUID() const
 
   uuid_array_t ua;
   GetUUID(ua);
-  return CUUIDGen(ua);
+  return CUUID(ua);
 }
 
 
@@ -876,7 +877,7 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
 
   uuid_array_t uuid_array;
   GetUUID(uuid_array);
-  const CUUIDGen uuid(uuid_array);
+  const CUUID uuid(uuid_array);
   oss << "\t\t<uuid><![CDATA[" << uuid << "]]></uuid>" << endl;
 
   time_t t;
@@ -1092,7 +1093,7 @@ void CItemData::SetField(CItemField &field,
 
 void CItemData::CreateUUID()
 {
-  CUUIDGen uuid;
+  CUUID uuid;
   uuid_array_t uuid_array;
   uuid.GetUUID(uuid_array);
   SetUUID(uuid_array);

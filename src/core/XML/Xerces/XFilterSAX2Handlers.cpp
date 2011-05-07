@@ -34,13 +34,14 @@
 #include "XFilterSAX2Handlers.h"
 
 #include "../../Util.h"
-#include "../../UUIDGen.h"
 #include "../../core.h"
 #include "../../PWSFilters.h"
 #include "../../VerifyFormat.h"
 #include "../../Match.h"
+
 #include "../../../os/pws_tchar.h"
-#include "./XMLChConverter.h"
+#include "../../../os/UUID.h"
+#include "XMLChConverter.h"
 
 #include <map>
 #include <algorithm>
@@ -543,7 +544,7 @@ void XFilterSAX2Handlers::endElement(const XMLCh* const /* uri */,
 
   else if (XMLString::equals(qname, _A2X("rule"))) {
     ToUpper(m_strElemContent);
-    cur_filterentry->rule = PWSMatch::GetRule(m_strElemContent);
+    cur_filterentry->rule = PWSMatch::GetRule(m_strElemContent.c_str());
   }
 
   else if (XMLString::equals(qname, _A2X("logic"))) {

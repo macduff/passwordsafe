@@ -135,10 +135,10 @@ bool DboxMain::GetNewAttachmentInfo(ATRecord &atr, const bool bGetFileName)
           atr.blksize = 0;
           atr.CRC = 0;
           uuid_array_t new_attmt_uuid;
-          CUUIDGen attmt_uuid;
+          CUUID attmt_uuid;
           attmt_uuid.GetUUID(new_attmt_uuid);
           atr.attmt_uuid = new_attmt_uuid;
-          atr.entry_uuid = CUUIDGen::NullUUID();
+          atr.entry_uuid = CUUID::NullUUID();
           memset(atr.odigest, 0, SHA1::HASHLEN);
           memset(atr.cdigest, 0, SHA1::HASHLEN);
           return true;
@@ -597,21 +597,38 @@ exit:
       uiTitle = IDS_WILLNOTEXTRACT;
       uiMSG = IDS_CANTGETATTACHMENT;
       break;
-    case PWSRC::BADCRCDIGEST:
-      uiTitle = IDS_CRCHASHERROR;
-      uiMSG = IDS_CONTINUEEXTRACT;
+    case PWSRC::BADDATA:
+      uiTitle = IDS_WILLNOTEXTRACT;
+      uiMSG = IDS_BADATTDATA;
       break;
     case PWSRC::BADATTACHMENTWRITE:
       uiTitle = IDS_EXTRACTATT;
       uiMSG = IDS_BADATTACHMENTWRITE;
       break;
+    case PWSRC::BADCRCDIGEST:
+      uiTitle = IDS_CRCHASHERROR;
+      uiMSG = IDS_CONTINUEEXTRACT;
+      break;
+    case PWSRC::BADLENGTH:
+      uiTitle = IDS_WILLNOTEXTRACT;
+      uiMSG = IDS_BADATTLENGTH;
+      break;
+    case PWSRC::BADINFLATE:
+      uiTitle = IDS_WILLNOTEXTRACT;
+      uiMSG = IDS_BADINFLATE;
+      break;
     default:
+      uiTitle = IDS_WILLNOTEXTRACT;
+      uiMSG = IDSC_ATT_UNKNOWNERROR;
       break;
   }
 
   if (uiTitle != 0) {
     cs_title.LoadString(uiTitle);
-    cs_msg.LoadString(uiMSG);
+    if (uiMSG == IDSC_ATT_UNKNOWNERROR)
+      cs_msg.Format(IDSC_ATT_UNKNOWNERROR, ga_status);
+    else
+      cs_msg.LoadString(uiMSG);
     gmb.MessageBox(cs_msg, cs_title, flags);
   }
 }
@@ -619,138 +636,59 @@ exit:
 int DboxMain::XGetAttachment(const stringT &newfile, const ATRecord &atr)
 {
   // Thread version!
-  unsigned char *pUncData(NULL);
   HANDLE hFile(INVALID_HANDLE_VALUE);
-  unsigned char odigest[SHA1::HASHLEN];
-  unsigned long CRC;
-  int status;
-  unsigned char readtype;
-  size_t unclength;
-  size_t uncsize(0);
-  SHA1 context;
-  BOOL brc;
-
-  // Open the file
-  hFile = CreateFile(newfile.c_str(), GENERIC_WRITE,
-                         0, 0, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
-  if (hFile == INVALID_HANDLE_VALUE) {
-    return PWSRC::CANTCREATEFILE;
-  }
+  int status, zRC;
 
   // Long job
   BeginWaitCursor();
 
-  PWSUtil::Get_CRC_Incremental_Init();
+  // Get attachment
+  status = m_core.GetAttachment(newfile, atr, zRC);
 
-  // Open Attachment database
-  status = m_core.GetAttachment(atr, OPENFILE, pUncData, unclength, readtype);
+  if (status == PWSRC::SUCCESS) {
+    // To set times - need to use CreateFile
+    hFile = CreateFile(newfile.c_str(), GENERIC_WRITE,
+                       0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-  if (status != PWSRC::SUCCESS) {
-    // Error message to user
-    status = PWSRC::CANTFINDATTACHMENT;
-    goto exit;
-  }
-
-  // GETPRE - tells GetAttachment to search for our record and come back
-  // when it has it or can't find it
-  status = m_core.GetAttachment(atr, GETPRE, pUncData, unclength, readtype);
-
-  if (status != PWSRC::SUCCESS) {
-    // Error message to user - exit will do the CLOSEFILE
-    goto exit;
-  }
-
-  // We now have it - go get all the data
-  do {
-    status = m_core.GetAttachment(atr, GETDATA, pUncData, unclength, readtype);
-    if (status == PWSRC::USER_CANCEL) {
-      // Error message to user - exit will do the CLOSEFILE
+    if (hFile == INVALID_HANDLE_VALUE)
       goto exit;
-    }
 
-    uncsize += unclength;
-
-    // Now update CRC and SHA1 hash of data retrieved
-    PWSUtil::Get_CRC_Incremental_Update(pUncData, unclength);
-    context.Update(pUncData, reinterpret_cast<unsigned int &>(unclength));
-
-    // Write out the data
-    DWORD numwritten(0);
-    brc = WriteFile(hFile, pUncData, (DWORD)unclength, &numwritten, NULL);
-    ASSERT(numwritten == unclength);
-
-    if (pUncData != NULL) {
-      trashMemory(pUncData, unclength);
-      delete [] pUncData;
-      pUncData = NULL;
-    }
-
-    if (brc == 0 || (unsigned int)numwritten != unclength) {
-      status = PWSRC::BADATTACHMENTWRITE;
-      goto exit;
-    }
-  } while (status == PWSRC:: SUCCESS && readtype != PWSAttfile::ATTMT_LASTDATA);
-
-  if (status != PWSRC::SUCCESS || readtype != PWSAttfile::ATTMT_LASTDATA) {
-    // Error message to user
-    status = PWSRC::BADDATA;
-    goto exit;
-  }
-
-  // Get the final data to check CRC and digest
-  status = m_core.GetAttachment(atr, GETPOST, pUncData, unclength, readtype);
-  if (status == PWSRC::USER_CANCEL) {
-    // Error message to user - exit will do the CLOSEFILE
-    goto exit;
-  }
-
-  CRC = PWSUtil::Get_CRC_Incremental_Final();
-  context.Final(odigest);
-
-  if (CRC != atr.CRC ||
-      memcmp(odigest, atr.odigest, SHA1::HASHLEN) != 0) {
-    // Need  our own CGeneralMsgBox as may use one defined above at end and
-    // it can only be used once.
-    // CRC and/or SHA1 Hash mis-match, ask user whether to continue anyway
-    status = PWSRC::BADCRCDIGEST;
-  }
-
-  ASSERT(uncsize == atr.uncsize);
-
-  // Set times back to original
-  FILETIME ct, at, mt;
-  ULONGLONG ulltime;  // Note that ULONGLONG is an unsigned 64-bit integer value
+    // Set times back to original
+    FILETIME ct, at, mt;
+    ULONGLONG ulltime;  // Note that ULONGLONG is an unsigned 64-bit integer value
   
-  // FILETIME is a 64-bit unsigned integer representing
-  // the number of 100-nanosecond intervals since January 1, 1601
-  // UNIX timestamp is number of seconds since January 1, 1970
-  // 116444736000000000 = 10000000 * [60 * 60 * 24 * 365 * 369 + 89 leap days (89 * 86400)]
+    // FILETIME is a 64-bit unsigned integer representing
+    // the number of 100-nanosecond intervals since January 1, 1601
+    // UNIX timestamp is number of seconds since January 1, 1970
+    // Note extra 89 leap days!
+    // 116444736000000000 = 10000000 * [60 * 60 * 24 * 365 * 369 + (89 * 86400)]
 
-  ulltime = UInt32x32To64(atr.ctime, 10000000) + 116444736000000000ull;
-  ct.dwLowDateTime = (DWORD)ulltime;
-  ct.dwHighDateTime = (DWORD)(ulltime >> 32);
+    ulltime = UInt32x32To64(atr.ctime, 10000000) + 116444736000000000ull;
+    ct.dwLowDateTime = (DWORD)ulltime;
+    ct.dwHighDateTime = (DWORD)(ulltime >> 32);
 
-  ulltime = UInt32x32To64(atr.atime, 10000000) + 116444736000000000ull;
-  at.dwLowDateTime = (DWORD)ulltime;
-  at.dwHighDateTime = (DWORD)(ulltime >> 32);
+    ulltime = UInt32x32To64(atr.atime, 10000000) + 116444736000000000ull;
+    at.dwLowDateTime = (DWORD)ulltime;
+    at.dwHighDateTime = (DWORD)(ulltime >> 32);
 
-  ulltime = UInt32x32To64(atr.mtime, 10000000) + 116444736000000000ull;
-  mt.dwLowDateTime = (DWORD)ulltime;
-  mt.dwHighDateTime = (DWORD)(ulltime >> 32);
+    ulltime = UInt32x32To64(atr.mtime, 10000000) + 116444736000000000ull;
+    mt.dwLowDateTime = (DWORD)ulltime;
+    mt.dwHighDateTime = (DWORD)(ulltime >> 32);
 
-  //write the new creation, accessed, and last written time
-  SetFileTime(hFile, &ct, &at, &mt);
+    // Write the new creation, accessed, and last written time
+    SetFileTime(hFile, &ct, &at, &mt);
+    CloseHandle(hFile);
+
+    // Reset handle
+    hFile = INVALID_HANDLE_VALUE;
+  }
 
 exit:
   EndWaitCursor();
-  if (hFile != INVALID_HANDLE_VALUE)
-    CloseHandle(hFile);
 
-  // Close attachment database
-  m_core.GetAttachment(atr, CLOSEFILE, pUncData, unclength, readtype);
-  if (status != PWSRC::SUCCESS && hFile != INVALID_HANDLE_VALUE) {
-    // Delete the file
+  // Check all went OK?
+  if (status != PWSRC::SUCCESS) {
+    // No - Delete the file
     pws_os::DeleteAFile(newfile);
   }
   return status;
@@ -843,8 +781,8 @@ int DboxMain::WriteAttachmentFile(const bool bCleanup,
   return status;
 }
 
-int DboxMain::DuplicateAttachments(const CUUIDGen &old_entry_uuid,
-                                   const CUUIDGen &new_entry_uuid,
+int DboxMain::DuplicateAttachments(const CUUID &old_entry_uuid,
+                                   const CUUID &new_entry_uuid,
                                    PWSAttfile::VERSION version)
 {
   if (m_bNoChangeToAttachments)
@@ -1026,20 +964,29 @@ int DboxMain::DoAttachmentThread(ATThreadParms * &pthdpms)
 #endif
     CString cs_msg, cs_title;
     cs_title.LoadString(IDSC_ATT_ERRORS);
+    UINT uimsg(0);
     switch (pthdpms->status) {
       case PWSRC::HEADERS_INVALID:
-        cs_msg.LoadString(IDSC_ATT_HDRMISMATCH);
+        uimsg = IDSC_ATT_HDRMISMATCH;
         break;
       case PWSRC::USER_CANCEL:
-        cs_msg.LoadString(IDS_CANCELATTACHMENT);
+        uimsg = IDS_CANCELATTACHMENT;
         break;
       default:
-        cs_msg.Format(IDSC_ATT_UNKNOWNERROR, pthdpms->status);
+        // File extraction has its own messages
+        if (pthdpms->function != GET)
+          uimsg = IDSC_ATT_UNKNOWNERROR;
     }
 
     // Tell user
-    CGeneralMsgBox gmb;
-    gmb.AfxMessageBox(cs_msg, cs_title, MB_OK | MB_ICONEXCLAMATION);
+    if (uimsg > 0) {
+      CGeneralMsgBox gmb;
+      if (uimsg == IDSC_ATT_UNKNOWNERROR)
+        cs_msg.Format(IDSC_ATT_UNKNOWNERROR, pthdpms->status);
+      else
+        cs_msg.LoadString(uimsg);
+      gmb.AfxMessageBox(cs_msg, cs_title, MB_OK | MB_ICONEXCLAMATION);
+    }
   }
 
   return status;

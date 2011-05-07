@@ -9,8 +9,6 @@
 #include "PWSFilters.h"
 #include "PWHistory.h"
 #include "PWSprefs.h"
-#include "Match.h"
-#include "UUIDGen.h"
 #include "core.h"
 #include "PWScore.h"
 #include "StringX.h"
@@ -39,6 +37,7 @@
 #include <map>
 
 using namespace std;
+using pws_os::CUUID;
 
 typedef std::vector<stringT>::const_iterator vciter;
 typedef std::vector<stringT>::iterator viter;
@@ -569,7 +568,7 @@ std::string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
       oss << "\"" << endl;
     }
 
-    CUUIDGen huuid(hdr.m_file_uuid_array, true); // true to print canonically
+    CUUID huuid(hdr.m_file_uuid_array, true); // true to print canonically
 
     oss << "Database_uuid=\"" << huuid << "\"" << endl;
   }

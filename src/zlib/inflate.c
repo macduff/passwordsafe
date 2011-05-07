@@ -85,6 +85,8 @@
 #include "inflate.h"
 #include "inffast.h"
 
+#include "../os/zdebug.h"
+
 #ifdef MAKEFIXED
 #  ifndef BUILDFIXED
 #    define BUILDFIXED
@@ -122,7 +124,7 @@ int ZEXPORT inflateReset(z_streamp strm)
     state->lencode = state->distcode = state->next = state->codes;
     state->sane = 1;
     state->back = -1;
-    Tracev((stderr, "inflate: reset\n"));
+    Tracev(("inflate: reset\n"));
     return Z_OK;
 }
 
@@ -181,7 +183,7 @@ int ZEXPORT inflateInit2_(z_streamp strm, int windowBits, const char *version,
     state = (struct inflate_state FAR *)
             ZALLOC(strm, 1, sizeof(struct inflate_state));
     if (state == Z_NULL) return Z_MEM_ERROR;
-    Tracev((stderr, "inflate: allocated\n"));
+    Tracev(("inflate: allocated\n"));
     strm->state = (struct internal_state FAR *)state;
     state->window = Z_NULL;
     ret = inflateReset2(strm, windowBits);
@@ -645,7 +647,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 break;
             }
             state->dmax = 1U << len;
-            Tracev((stderr, "inflate:   zlib header ok\n"));
+            Tracev(("inflate:   zlib header ok\n"));
             strm->adler = state->check = adler32(0L, Z_NULL, 0);
             state->mode = hold & 0x200 ? DICTID : TYPE;
             INITBITS();
@@ -803,13 +805,13 @@ int ZEXPORT inflate(z_streamp strm, int flush)
             DROPBITS(1);
             switch (BITS(2)) {
             case 0:                             /* stored block */
-                Tracev((stderr, "inflate:     stored block%s\n",
+                Tracev(("inflate:     stored block%s\n",
                         state->last ? " (last)" : ""));
                 state->mode = STORED;
                 break;
             case 1:                             /* fixed block */
                 fixedtables(state);
-                Tracev((stderr, "inflate:     fixed codes block%s\n",
+                Tracev(("inflate:     fixed codes block%s\n",
                         state->last ? " (last)" : ""));
                 state->mode = LEN_;             /* decode codes */
                 if (flush == Z_TREES) {
@@ -818,7 +820,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 }
                 break;
             case 2:                             /* dynamic block */
-                Tracev((stderr, "inflate:     dynamic codes block%s\n",
+                Tracev(("inflate:     dynamic codes block%s\n",
                         state->last ? " (last)" : ""));
                 state->mode = TABLE;
                 break;
@@ -837,7 +839,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 break;
             }
             state->length = (unsigned)hold & 0xffff;
-            Tracev((stderr, "inflate:       stored length %u\n",
+            Tracev(("inflate:       stored length %u\n",
                     state->length));
             INITBITS();
             state->mode = COPY_;
@@ -858,7 +860,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 state->length -= copy;
                 break;
             }
-            Tracev((stderr, "inflate:       stored end\n"));
+            Tracev(("inflate:       stored end\n"));
             state->mode = TYPE;
             break;
         case TABLE:
@@ -876,7 +878,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 break;
             }
 #endif
-            Tracev((stderr, "inflate:       table sizes ok\n"));
+            Tracev(("inflate:       table sizes ok\n"));
             state->have = 0;
             state->mode = LENLENS;
         case LENLENS:
@@ -897,7 +899,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 state->mode = BAD;
                 break;
             }
-            Tracev((stderr, "inflate:       code lengths ok\n"));
+            Tracev(("inflate:       code lengths ok\n"));
             state->have = 0;
             state->mode = CODELENS;
         case CODELENS:
@@ -981,7 +983,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 state->mode = BAD;
                 break;
             }
-            Tracev((stderr, "inflate:       codes ok\n"));
+            Tracev(("inflate:       codes ok\n"));
             state->mode = LEN_;
             if (flush == Z_TREES) goto inf_leave;
         case LEN_:
@@ -1016,14 +1018,14 @@ int ZEXPORT inflate(z_streamp strm, int flush)
             state->back += here.bits;
             state->length = (unsigned)here.val;
             if ((int)(here.op) == 0) {
-                Tracevv((stderr, here.val >= 0x20 && here.val < 0x7f ?
+                Tracevv((here.val >= 0x20 && here.val < 0x7f ?
                         "inflate:         literal '%c'\n" :
                         "inflate:         literal 0x%02x\n", here.val));
                 state->mode = LIT;
                 break;
             }
             if (here.op & 32) {
-                Tracevv((stderr, "inflate:         end of block\n"));
+                Tracevv(("inflate:         end of block\n"));
                 state->back = -1;
                 state->mode = TYPE;
                 break;
@@ -1042,7 +1044,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 DROPBITS(state->extra);
                 state->back += state->extra;
             }
-            Tracevv((stderr, "inflate:         length %u\n", state->length));
+            Tracevv(("inflate:         length %u\n", state->length));
             state->was = state->length;
             state->mode = DIST;
         case DIST:
@@ -1086,7 +1088,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                 break;
             }
 #endif
-            Tracevv((stderr, "inflate:         distance %u\n", state->offset));
+            Tracevv(("inflate:         distance %u\n", state->offset));
             state->mode = MATCH;
         case MATCH:
             if (left == 0) goto inf_leave;
@@ -1100,7 +1102,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                         break;
                     }
 #ifdef INFLATE_ALLOW_INVALID_DISTANCE_TOOFAR_ARRR
-                    Trace((stderr, "inflate.c too far\n"));
+                    Trace(("inflate.c too far\n"));
                     copy -= state->whave;
                     if (copy > state->length) copy = state->length;
                     if (copy > left) copy = left;
@@ -1159,7 +1161,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                     break;
                 }
                 INITBITS();
-                Tracev((stderr, "inflate:   check matches trailer\n"));
+                Tracev(("inflate:   check matches trailer\n"));
             }
 #ifdef GUNZIP
             state->mode = LENGTH;
@@ -1172,7 +1174,7 @@ int ZEXPORT inflate(z_streamp strm, int flush)
                     break;
                 }
                 INITBITS();
-                Tracev((stderr, "inflate:   length matches trailer\n"));
+                Tracev(("inflate:   length matches trailer\n"));
             }
 #endif
             state->mode = DONE;
@@ -1227,7 +1229,7 @@ int ZEXPORT inflateEnd(z_streamp strm)
     if (state->window != Z_NULL) ZFREE(strm, state->window);
     ZFREE(strm, strm->state);
     strm->state = Z_NULL;
-    Tracev((stderr, "inflate: end\n"));
+    Tracev(("inflate: end\n"));
     return Z_OK;
 }
 
@@ -1267,7 +1269,7 @@ int ZEXPORT inflateSetDictionary(z_streamp strm, const Bytef *dictionary,
         state->whave = dictLength;
     }
     state->havedict = 1;
-    Tracev((stderr, "inflate:   dictionary set\n"));
+    Tracev(("inflate:   dictionary set\n"));
     return Z_OK;
 }
 

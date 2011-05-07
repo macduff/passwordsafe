@@ -7,7 +7,7 @@
 */
 
 #include "PWSAttfileV3.h"
-#include "UUIDGen.h"
+#include "os/UUID.h"
 #include "PWSrand.h"
 #include "Util.h"
 #include "SysInfo.h"
@@ -422,7 +422,8 @@ int PWSAttfileV3::ReadAttmntRecordData(unsigned char * &pCmpData, size_t &uiCmpL
       case ATTMT_LASTDATA:
         if (utf8Len == 0) {
           pCmpData = NULL;
-          status = PWSRC::BAD_ATTACHMENT; break;
+          status = PWSRC::BAD_ATTACHMENT;
+          break;
         }
         uiCmpLen = utf8Len;
         if (bSkip) {

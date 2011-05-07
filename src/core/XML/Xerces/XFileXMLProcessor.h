@@ -33,8 +33,9 @@
 #include "XFileSAX2Handlers.h"
 
 #include "../../UnknownField.h"
-#include "../../UUIDGen.h"
+
 #include "os/typedefs.h"
+#include "os/UUID.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -50,8 +51,6 @@
 #else
 #include <iostream.h>
 #endif
-
-typedef std::vector<CUUIDGen> UUIDVector;
 
 class PWScore;
 

@@ -32,10 +32,10 @@
 // PWS includes
 #include "XAttSAX2Handlers.h"
 
-#include "../../UUIDGen.h"
 #include "../../Command.h"
 
 #include "os/typedefs.h"
+#include "os/UUID.h"
 
 #include <stdlib.h>
 #include <string.h>

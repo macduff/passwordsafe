@@ -36,6 +36,8 @@
 
 #include "deflate.h"
 
+#include "../os/zdebug.h"
+
 #ifdef DEBUG
 #  include <ctype.h>
 #endif
@@ -170,7 +172,7 @@ local void gen_trees_header OF((void));
 
 #else /* DEBUG */
 #  define send_code(s, c, tree) \
-     { if (z_verbose>2) fprintf(stderr,"\ncd %3d ",(c)); \
+     { if (z_verbose>2) zTrace("cd %3d ",(c)); \
        send_bits(s, tree[c].Code, tree[c].Len); }
 #endif
 
@@ -193,7 +195,7 @@ local void send_bits      OF((deflate_state *s, int value, int length));
 local void send_bits(deflate_state *s, int value,  int length)
 {
     // value = value to send; length = number of bits
-    Tracevv((stderr," l %2d v %4x ", length, value));
+    Tracevv((" l %2d v %4x ", length, value));
     Assert(length > 0 && length <= 15, "invalid length");
     s->bits_sent += (ulg)length;
 
@@ -526,7 +528,7 @@ local void gen_bitlen(deflate_state *s, tree_desc *desc /* the tree descriptor *
     }
     if (overflow == 0) return;
 
-    Trace((stderr,"\nbit length overflow\n"));
+    Trace(("bit length overflow\n"));
     /* This happens for example on obj2 and pic of the Calgary corpus */
 
     /* Find the first bit length which could increase: */
@@ -553,7 +555,7 @@ local void gen_bitlen(deflate_state *s, tree_desc *desc /* the tree descriptor *
             m = s->heap[--h];
             if (m > max_code) continue;
             if ((unsigned) tree[m].Len != (unsigned) bits) {
-                Trace((stderr,"code %d bits %d->%d\n", m, tree[m].Len, bits));
+                Trace(("code %d bits %d->%d\n", m, tree[m].Len, bits));
                 s->opt_len += ((long)bits - (long)tree[m].Len)
                               *(long)tree[m].Freq;
                 tree[m].Len = (ush)bits;
@@ -592,7 +594,7 @@ local void gen_codes (
      */
     Assert (code + bl_count[MAX_BITS]-1 == (1<<MAX_BITS)-1,
             "inconsistent bit counts");
-    Tracev((stderr,"\ngen_codes: max_code %d ", max_code));
+    Tracev(("gen_codes: max_code %d ", max_code));
 
     for (n = 0;  n <= max_code; n++) {
         int len = tree[n].Len;
@@ -600,7 +602,7 @@ local void gen_codes (
         /* Now reverse the bits */
         tree[n].Code = bi_reverse(next_code[len]++, len);
 
-        Tracecv(tree != static_ltree, (stderr,"\nn %3d %c l %2d c %4x (%x) ",
+        Tracecv(tree != static_ltree, ("n %3d %c l %2d c %4x (%x) ",
              n, (isgraph(n) ? n : ' '), len, tree[n].Code, next_code[len]-1));
     }
 }
@@ -675,7 +677,7 @@ local void build_tree(deflate_state *s, tree_desc *desc)
         tree[n].Dad = tree[m].Dad = (ush)node;
 #ifdef DUMP_BL_TREE
         if (tree == s->bl_tree) {
-            fprintf(stderr,"\nnode %d(%d), sons %d(%d) %d(%d)",
+            zTrace("node %d(%d), sons %d(%d) %d(%d)",
                     node, tree[node].Freq, n, tree[n].Freq, m, tree[m].Freq);
         }
 #endif
@@ -819,7 +821,7 @@ local int build_bl_tree(deflate_state *s)
     }
     /* Update opt_len to include the bit length tree and counts */
     s->opt_len += 3*(max_blindex+1) + 5+5+4;
-    Tracev((stderr, "\ndyn trees: dyn %ld, stat %ld",
+    Tracev(("dyn trees: dyn %ld, stat %ld",
             s->opt_len, s->static_len));
 
     return max_blindex;
@@ -838,21 +840,21 @@ local void send_all_trees(deflate_state *s, int lcodes, int dcodes, int blcodes)
     Assert (lcodes >= 257 && dcodes >= 1 && blcodes >= 4, "not enough codes");
     Assert (lcodes <= L_CODES && dcodes <= D_CODES && blcodes <= BL_CODES,
             "too many codes");
-    Tracev((stderr, "\nbl counts: "));
+    Tracev(("bl counts: "));
     send_bits(s, lcodes-257, 5); /* not +255 as stated in appnote.txt */
     send_bits(s, dcodes-1,   5);
     send_bits(s, blcodes-4,  4); /* not -3 as stated in appnote.txt */
     for (rank = 0; rank < blcodes; rank++) {
-        Tracev((stderr, "\nbl code %2d ", bl_order[rank]));
+        Tracev(("bl code %2d ", bl_order[rank]));
         send_bits(s, s->bl_tree[bl_order[rank]].Len, 3);
     }
-    Tracev((stderr, "\nbl tree: sent %ld", s->bits_sent));
+    Tracev(("bl tree: sent %ld", s->bits_sent));
 
     send_tree(s, (ct_data *)s->dyn_ltree, lcodes-1); /* literal tree */
-    Tracev((stderr, "\nlit tree: sent %ld", s->bits_sent));
+    Tracev(("lit tree: sent %ld", s->bits_sent));
 
     send_tree(s, (ct_data *)s->dyn_dtree, dcodes-1); /* distance tree */
-    Tracev((stderr, "\ndist tree: sent %ld", s->bits_sent));
+    Tracev(("dist tree: sent %ld", s->bits_sent));
 }
 
 /* ===========================================================================
@@ -929,11 +931,11 @@ void ZLIB_INTERNAL _tr_flush_block(
 
         /* Construct the literal and distance trees */
         build_tree(s, (tree_desc *)(&(s->l_desc)));
-        Tracev((stderr, "\nlit data: dyn %ld, stat %ld", s->opt_len,
+        Tracev(("lit data: dyn %ld, stat %ld", s->opt_len,
                 s->static_len));
 
         build_tree(s, (tree_desc *)(&(s->d_desc)));
-        Tracev((stderr, "\ndist data: dyn %ld, stat %ld", s->opt_len,
+        Tracev(("dist data: dyn %ld, stat %ld", s->opt_len,
                 s->static_len));
         /* At this point, opt_len and static_len are the total bit lengths of
          * the compressed block data, excluding the tree representations.
@@ -948,7 +950,7 @@ void ZLIB_INTERNAL _tr_flush_block(
         opt_lenb = (s->opt_len+3+7)>>3;
         static_lenb = (s->static_len+3+7)>>3;
 
-        Tracev((stderr, "\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u ",
+        Tracev(("opt %lu(%lu) stat %lu(%lu) stored %lu lit %u ",
                 opt_lenb, s->opt_len, static_lenb, s->static_len, stored_len,
                 s->last_lit));
 
@@ -1004,7 +1006,7 @@ void ZLIB_INTERNAL _tr_flush_block(
         s->compressed_len += 7;  /* align on byte boundary */
 #endif
     }
-    Tracev((stderr,"\ncomprlen %lu(%lu) ", s->compressed_len>>3,
+    Tracev(("comprlen %lu(%lu) ", s->compressed_len>>3,
            s->compressed_len-7*last));
 }
 
@@ -1046,7 +1048,7 @@ int ZLIB_INTERNAL _tr_tally (
                 (5L+extra_dbits[dcode]);
         }
         out_length >>= 3;
-        Tracev((stderr,"\nlast_lit %u, in %ld, out ~%ld(%ld%%) ",
+        Tracev(("last_lit %u, in %ld, out ~%ld(%ld%%) ",
                s->last_lit, in_length, out_length,
                100L - out_length*100L/in_length));
         if (s->matches < s->last_lit/2 && out_length < in_length/2) return 1;
@@ -1078,7 +1080,7 @@ local void compress_block(
         lc = s->l_buf[lx++];
         if (dist == 0) {
             send_code(s, lc, ltree); /* send a literal byte */
-            Tracecv(isgraph(lc), (stderr," '%c' ", lc));
+            Tracecv(isgraph(lc), (" '%c' ", lc));
         } else {
             /* Here, lc is the match length - MIN_MATCH */
             code = _length_code[lc];

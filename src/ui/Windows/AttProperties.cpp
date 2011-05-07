@@ -70,7 +70,7 @@ BOOL CAttProperties::OnInitDialog()
   }
 
   // Set CRC & Digest to Courier New (non-proportional font)
-  CFont *m_pcfont = new CFont;
+  m_pcfont = new CFont;
   m_pcfont->CreatePointFont(100, L"Courier New");
   ((CStatic *)GetDlgItem(IDC_ATTACHMENTCRC))->SetFont(m_pcfont);
   ((CStatic *)GetDlgItem(IDC_ATTACHMENTDIGEST))->SetFont(m_pcfont);

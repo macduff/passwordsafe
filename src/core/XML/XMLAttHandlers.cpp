@@ -15,7 +15,6 @@
 
 // PWS includes
 #include "../Util.h"
-#include "../UUIDGen.h"
 #include "../PWScore.h"
 #include "../VerifyFormat.h"
 #include "../Command.h"
@@ -25,6 +24,7 @@
 #include <errno.h>
 
 using namespace std;
+using pws_os::CUUID;
 
 void ConvertFromHex(const StringX sx_in, const size_t &out_len, unsigned char *pout_buffer)
 {
@@ -50,7 +50,7 @@ void ConvertFromHex(const StringX sx_in, const size_t &out_len, unsigned char *p
   }
 }
 
-void ConvertFromHex(const StringX sx_in, const size_t &out_len, CUUIDGen &uuid)
+void ConvertFromHex(const StringX sx_in, const size_t &out_len, CUUID &uuid)
 {
   ASSERT(out_len == sizeof(uuid_array_t));
 
@@ -300,8 +300,8 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
         m_pimport3->WriteAttmntRecordPreData(cur_entry->atr);
 
         st_atpg.function = ATT_PROGRESS_PROCESSFILE;
-        st_atpg.atr = cur_entry->atr;
         st_atpg.value = 0;
+        st_atpg.atr = cur_entry->atr;
         m_pXMLcore->AttachmentProgress(st_atpg);
         m_bfirst = false;
       }
@@ -324,6 +324,7 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 
       st_atpg.function = ATT_PROGRESS_PROCESSFILE;
       st_atpg.value = (int)((cur_entry->datalength * 1.0E02) / cur_entry->atr.uncsize);
+      st_atpg.atr = cur_entry->atr;
       int rc = m_pXMLcore->AttachmentProgress(st_atpg);
       if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
         bRC = false;
@@ -343,6 +344,7 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 
         st_atpg.function = ATT_PROGRESS_PROCESSFILE;
         st_atpg.value = 0;
+        st_atpg.atr = cur_entry->atr;
         m_pXMLcore->AttachmentProgress(st_atpg);
         m_bfirst = false;
       }
@@ -371,6 +373,7 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
 
       st_atpg.function = ATT_PROGRESS_PROCESSFILE;
       st_atpg.value = 100;
+      st_atpg.atr = cur_entry->atr;
       int rc = m_pXMLcore->AttachmentProgress(st_atpg);
       if ((rc & ATT_PROGRESS_CANCEL) == ATT_PROGRESS_CANCEL) {
         bRC = false;
@@ -415,7 +418,7 @@ void XMLAttHandlers::ValidateImportData(att_entry * &cur_entry)
   if (std::find(m_vatt_uuid.begin(), m_vatt_uuid.end(), cur_entry->atr.attmt_uuid) !=
                 m_vatt_uuid.end()) {
     // Attachment uuid not unique - get a new one
-    CUUIDGen auuid;
+    CUUID auuid;
     cur_entry->atr.attmt_uuid = auuid;
   }
 

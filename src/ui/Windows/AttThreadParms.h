@@ -14,10 +14,11 @@
 enum {INVALID = -1, READ, WRITE, DUPLICATE, COMPLETE_XML_IMPORT,
                        XML_EXPORT, GET};
 
-#include "core/UUIDGen.h"  // for uuid_array_t
 #include "core/StringX.h"
 #include "core/attachments.h"
 #include "core/PWSAttfile.h"
+
+#include "os/UUID.h"  // for uuid_array_t
 
 class DboxMain;
 class CAttProgressDlg;
@@ -86,8 +87,8 @@ struct ATThreadParms {
   bool bCleanup;
 
   // Duplicate Attachments
-  CUUIDGen old_entry_uuid;
-  CUUIDGen new_entry_uuid;
+  pws_os::CUUID old_entry_uuid;
+  pws_os::CUUID new_entry_uuid;
 
   // Complete XML Import
   stringT impfilename;

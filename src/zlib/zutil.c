@@ -7,6 +7,8 @@
 
 #include "zutil.h"
 
+#include "../os/zdebug.h"
+
 #ifndef NO_DUMMY_DECL
 struct internal_state      {int dummy;}; /* for buggy compilers */
 #endif
@@ -120,7 +122,7 @@ int ZLIB_INTERNAL z_verbose = verbose;
 
 void ZLIB_INTERNAL z_error(char *m)
 {
-    fprintf(stderr, "%s\n", m);
+    zTrace("%s\n", m);
     exit(1);
 }
 #endif

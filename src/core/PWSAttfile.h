@@ -17,13 +17,14 @@
 #include <vector>
 
 #include "attachments.h"
-#include "UUIDGen.h"
 #include "UnknownField.h"
 #include "StringX.h"
 #include "Proxy.h"
 #include "sha256.h"
 
 #include "coredefs.h"
+
+#include "os/UUID.h"
 
 #define MIN_HASH_ITERATIONS 2048
 
@@ -32,15 +33,15 @@
 #define ATT_DEFAULT_ATTDUP_SUFFIX _T(".idupatt3")
 #define ATT_DEFAULT_ATTIMP_SUFFIX _T(".iimpatt3")
 
-typedef std::map<CUUIDGen, ATRecord> UUIDATRMap;
+typedef std::map<pws_os::CUUID, ATRecord> UUIDATRMap;
 typedef UUIDATRMap::const_iterator UAMciter;
 typedef UUIDATRMap::iterator UAMiter;
 
-typedef std::multimap<CUUIDGen, ATRecord> UUIDATRMMap;
+typedef std::multimap<pws_os::CUUID, ATRecord> UUIDATRMMap;
 typedef UUIDATRMMap::const_iterator UAMMciter;
 typedef UUIDATRMMap::iterator UAMMiter;
 
-typedef std::vector<CUUIDGen> UUIDAVector;
+typedef std::vector<pws_os::CUUID> UUIDAVector;
 typedef UUIDVector::iterator UViter;
 
 class Fish;

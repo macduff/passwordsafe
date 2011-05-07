@@ -36,8 +36,8 @@ class CommandInterface
   virtual void SetUniqueGTUValidated(bool bState) = 0;
   virtual bool GetUniqueGTUValidated() const = 0;
 
-  virtual ItemListIter Find(const CUUIDGen &entry_uuid) = 0;
-  virtual ItemListConstIter Find(const CUUIDGen &entry_uuid) const = 0;
+  virtual ItemListIter Find(const pws_os::CUUID &entry_uuid) = 0;
+  virtual ItemListConstIter Find(const pws_os::CUUID &entry_uuid) const = 0;
   virtual ItemListIter GetEntryIter() = 0;
   virtual ItemListConstIter GetEntryIter() const = 0;
   virtual ItemListIter GetEntryEndIter() = 0;
@@ -49,13 +49,13 @@ class CommandInterface
   virtual void DoReplaceEntry(const CItemData &old_ci, const CItemData &new_ci) = 0;
 
   // General routines for aliases and shortcuts
-  virtual void DoAddDependentEntry(const CUUIDGen &base_uuid,
-                                   const CUUIDGen &entry_uuid,
+  virtual void DoAddDependentEntry(const pws_os::CUUID &base_uuid,
+                                   const pws_os::CUUID &entry_uuid,
                                    const CItemData::EntryType type) = 0;
-  virtual void DoRemoveDependentEntry(const CUUIDGen &base_uuid,
-                                      const CUUIDGen &entry_uuid, 
+  virtual void DoRemoveDependentEntry(const pws_os::CUUID &base_uuid,
+                                      const pws_os::CUUID &entry_uuid, 
                                       const CItemData::EntryType type) = 0;
-  virtual void DoRemoveAllDependentEntries(const CUUIDGen &base_uuid, 
+  virtual void DoRemoveAllDependentEntries(const pws_os::CUUID &base_uuid, 
                                            const CItemData::EntryType type) = 0;
   virtual int DoAddDependentEntries(UUIDVector &dependentslist, CReport *rpt, 
                                     const CItemData::EntryType type, 
@@ -64,8 +64,8 @@ class CommandInterface
                                     SaveTypePWMap *pmapSaveTypePW = NULL) = 0;
   virtual void UndoAddDependentEntries(ItemList *pmapDeletedItems,
                                        SaveTypePWMap *pmapSaveTypePW) = 0;
-  virtual void DoMoveDependentEntries(const CUUIDGen &from_baseuuid, 
-                                      const CUUIDGen &to_baseuuid, 
+  virtual void DoMoveDependentEntries(const pws_os::CUUID &from_baseuuid, 
+                                      const pws_os::CUUID &to_baseuuid, 
                                       const CItemData::EntryType type) = 0;
 
   virtual int DoUpdatePasswordHistory(int iAction, int new_default_max,
@@ -87,13 +87,13 @@ class CommandInterface
   virtual void SetShortcuts2BaseMap(const ItemMap &) = 0;
 
   virtual void NotifyGUINeedsUpdating(UpdateGUICommand::GUI_Action,
-                                      const CUUIDGen &,
+                                      const pws_os::CUUID &,
                                       CItemData::FieldType ft = CItemData::START,
                                       bool bUpdateGUI = true) = 0;
 
   virtual void AddExpiryEntry(const CItemData &ci) = 0;
   virtual void UpdateExpiryEntry(const CItemData &ci) = 0;
-  virtual void UpdateExpiryEntry(const CUUIDGen &uuid, const CItemData::FieldType ft,
+  virtual void UpdateExpiryEntry(const pws_os::CUUID &uuid, const CItemData::FieldType ft,
                                  const StringX &value) = 0;
   virtual void RemoveExpiryEntry(const CItemData &ci) = 0;
 
@@ -106,10 +106,10 @@ class CommandInterface
 
   virtual bool MarkAttachmentForDeletion(const ATRecord &atr) = 0;
   virtual bool UnMarkAttachmentForDeletion(const ATRecord &atr) = 0;
-  virtual void MarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid) = 0;
-  virtual void UnMarkAllAttachmentsForDeletion(const CUUIDGen &entry_uuid) = 0;
+  virtual void MarkAllAttachmentsForDeletion(const CUUID &entry_uuid) = 0;
+  virtual void UnMarkAllAttachmentsForDeletion(const CUUID &entry_uuid) = 0;
 
-  virtual size_t GetAttachments(const CUUIDGen &entry_uuid, ATRVector &vATRecords) = 0;
+  virtual size_t GetAttachments(const CUUID &entry_uuid, ATRVector &vATRecords) = 0;
   virtual int WriteAttachmentFile(const bool bCleanup = false,
                                   PWSAttfile::VERSION version = PWSAttfile::VCURRENT) = 0;
 

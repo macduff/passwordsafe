@@ -139,6 +139,7 @@ namespace PWSUtil {
   stringT GetNewFileName(const stringT &oldfilename, const stringT &newExtn);
   extern const TCHAR *UNKNOWN_ASC_TIME_STR, *UNKNOWN_XML_TIME_STR;
   void GetTimeStamp(stringT &sTimeStamp);
+  void GetTimeStampA(std::string &sTimeStamp);
   StringX NormalizeTTT(const StringX &in);
   void WriteXMLField(std::ostream &os, const char *fname,
                      const StringX &value, CUTF8Conv &utf8conv,
@@ -182,6 +183,7 @@ class dereference {
 };
 
 extern int GetStringBufSize(const TCHAR *fmt, va_list args);
+extern int GetStringBufSizeA(const char *fmt, va_list args);
 #endif /* __UTIL_H */
 //-----------------------------------------------------------------------------
 // Local variables:
