@@ -60,6 +60,7 @@
 #include <algorithm>
 #include "./PwsSync.h"
 #include "./SystemTrayMenuId.h"
+#include "./CompareDlg.h"
 
 // main toolbar images
 #include "./PwsToolbarButtons.h"
@@ -185,6 +186,7 @@ BEGIN_EVENT_TABLE( PasswordSafeFrame, wxFrame )
 
   EVT_MENU(ID_MERGE,            PasswordSafeFrame::OnMergeAnotherSafe )
   EVT_MENU(ID_SYNCHRONIZE,      PasswordSafeFrame::OnSynchronize )
+  EVT_MENU(ID_COMPARE,          PasswordSafeFrame::OnCompare )
 
   EVT_MENU( ID_MENU_CLEAR_MRU, PasswordSafeFrame::OnClearRecentHistory )
   EVT_UPDATE_UI( ID_MENU_CLEAR_MRU, PasswordSafeFrame::OnUpdateClearRecentDBHistory )
@@ -481,8 +483,7 @@ void PasswordSafeFrame::CreateMainToolbar()
 
   RefreshToolbarButtons();
   
-  if (!toolbar->Realize())
-    wxMessageBox(wxT("Could not create main toolbar"));
+  wxCHECK_RET(toolbar->Realize(), wxT("Could not create main toolbar"));
   
   const bool bShow = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowToolbar);
   if (!bShow) {
@@ -591,9 +592,9 @@ void PasswordSafeFrame::SetTitle(const wxString& title)
   wxFrame::SetTitle(newtitle);
 }
 
-int PasswordSafeFrame::Load(const wxString &passwd)
+int PasswordSafeFrame::Load(const StringX &passwd)
 {
-  int status = m_core.ReadCurFile(tostringx(passwd));
+  int status = m_core.ReadCurFile(passwd);
   if (status == PWScore::SUCCESS) {
     SetTitle(m_core.GetCurFile().c_str());
     m_sysTray->SetTrayStatus(SystemTray::TRAY_UNLOCKED);
@@ -814,19 +815,19 @@ int PasswordSafeFrame::Save(SaveType st /* = ST_INVALID*/)
           switch (st) {
             case ST_NORMALEXIT:
               if (wxMessageBox(_("Unable to create intermediate backup.  Save database elsewhere or with another name?\n\nClick 'No' to exit without saving."), 
-                               _("Write Error"), wxYES_NO | wxICON_EXCLAMATION) == wxID_NO)
+                               _("Write Error"), wxYES_NO | wxICON_EXCLAMATION, this) == wxID_NO)
                 return PWScore::SUCCESS;
               else
                 return SaveAs();
             case ST_INVALID:
               // No particular end of PWS exit i.e. user clicked Save or
               // saving a changed database before opening another
-              wxMessageBox(_("Unable to create intermediate backup."), _("Write Error"), wxOK|wxICON_ERROR);
+              wxMessageBox(_("Unable to create intermediate backup."), _("Write Error"), wxOK|wxICON_ERROR, this);
               return PWScore::USER_CANCEL;
             default:
               break;
           }
-          wxMessageBox(_("Unable to create intermediate backup."), _("Write Error"), wxOK|wxICON_ERROR);
+          wxMessageBox(_("Unable to create intermediate backup."), _("Write Error"), wxOK|wxICON_ERROR, this);
           return SaveAs();
         } // BackupCurFile failed
       } // BackupBeforeEverySave
@@ -838,7 +839,7 @@ int PasswordSafeFrame::Save(SaveType st /* = ST_INVALID*/)
 
       wxString msg( wxString::Format(_("The original database, \"%s\", is in pre-3.0 format. It will be unchanged.\nYour changes will be written as \"%s\" in the new format, which is unusable by old versions of PasswordSafe. To save your changes in the old format, use the \"File->Export To-> Old (1.x or 2) format\" command."),
                                      m_core.GetCurFile().c_str(), NewName.c_str()));
-      if (wxMessageBox(msg, _("File version warning"), wxOK|wxCANCEL|wxICON_INFORMATION) == wxID_CANCEL)
+      if (wxMessageBox(msg, _("File version warning"), wxOK|wxCANCEL|wxICON_INFORMATION, this) == wxID_CANCEL)
         return PWScore::USER_CANCEL;
 
       m_core.SetCurFile(NewName.c_str());
@@ -1030,7 +1031,7 @@ int PasswordSafeFrame::Open(const wxString &fname)
   //Check that this file isn't already open
   if (wxFileName(fname).SameAs(towxstring(m_core.GetCurFile()))) {
     //It is the same damn file
-    wxMessageBox(wxT("That file is already open."), wxT("Open database"), wxOK|wxICON_EXCLAMATION);
+    wxMessageBox(wxT("That file is already open."), wxT("Open database"), wxOK|wxICON_EXCLAMATION, this);
     return PWScore::ALREADY_OPEN;
   }
 
@@ -1042,7 +1043,7 @@ int PasswordSafeFrame::Open(const wxString &fname)
   CSafeCombinationPrompt pwdprompt(this, m_core, fname);
   if (pwdprompt.ShowModal() == wxID_OK) {
     m_core.SetCurFile(tostringx(fname));
-    wxString password = pwdprompt.GetPassword();
+    StringX password = pwdprompt.GetPassword();
     int retval = Load(password);
     if (retval == PWScore::SUCCESS) {
       Show();
@@ -1206,7 +1207,7 @@ int PasswordSafeFrame::SaveAs()
       m_core.GetReadFileVersion() != PWSfile::UNKNOWN_VERSION) {
     if (wxMessageBox( wxString::Format(_("The original database, '%s', is in pre-3.0 format. The data will now be written in the new format, which is unusable by old versions of PasswordSafe. To save the data in the old format, use the 'File->Export To-> Old (1.x or 2) format' command."),
                                         m_core.GetCurFile().c_str()), _("File version warning"), 
-                                        wxOK | wxCANCEL | wxICON_EXCLAMATION) == wxCANCEL) {
+                                        wxOK | wxCANCEL | wxICON_EXCLAMATION, this) == wxCANCEL) {
       return PWScore::USER_CANCEL;
     }
   }
@@ -1239,13 +1240,12 @@ int PasswordSafeFrame::SaveAs()
   // Note: We have to lock the new file before releasing the old (on success)
   if (!m_core.LockFile2(newfile.c_str(), locker)) {
     wxMessageBox(wxString::Format(_("%s\n\nFile is currently locked by %s"), newfile.c_str(), locker.c_str()),
-                    _("File lock error"), wxOK | wxICON_ERROR);
+                    _("File lock error"), wxOK | wxICON_ERROR, this);
     return PWScore::CANT_OPEN_FILE;
   }
 
   // Save file UUID, clear it to generate new one, restore if necessary
-  uuid_array_t file_uuid_array;
-  m_core.GetFileUUID(file_uuid_array);
+  pws_os::CUUID file_uuid = m_core.GetFileUUID();
   m_core.ClearFileUUID();
 
   UUIDList RUElist;
@@ -1257,7 +1257,7 @@ int PasswordSafeFrame::SaveAs()
   m_core.ClearChangedNodes();
 
   if (rc != PWScore::SUCCESS) {
-    m_core.SetFileUUID(file_uuid_array);
+    m_core.SetFileUUID(file_uuid);
     m_core.UnlockFile2(newfile.c_str());
     DisplayFileWriteError(rc, newfile);
     return PWScore::CANT_OPEN_FILE;
@@ -1588,7 +1588,7 @@ void PasswordSafeFrame::DispatchDblClickAction(CItemData &item)
     wxString action;
     action.Printf(_("Unknown code: %d"),
                   PWSprefs::GetInstance()->GetPref(PWSprefs::DoubleClickAction));
-    wxMessageBox(action);
+    wxMessageBox(action, _("Error"), wxOK|wxICON_ERROR, this);
     break;
   }
   }
@@ -1835,10 +1835,10 @@ void PasswordSafeFrame::DatabaseModified(bool modified)
     wxCommandEvent evt(wxEVT_DB_PREFS_CHANGE, wxID_ANY);
     evt.ResumePropagation(wxEVENT_PROPAGATE_MAX); //let it propagate through the entire window tree
     if (m_tree) {
-      m_tree->AddPendingEvent(evt); 
+      m_tree->GetEventHandler()->AddPendingEvent(evt); 
       evt.StopPropagation(); //or else it will come to the frame twice
     }
-    if (m_grid) m_grid->AddPendingEvent(evt);
+    if (m_grid) m_grid->GetEventHandler()->AddPendingEvent(evt);
   }
   else if (m_core.IsChanged()) {  //"else if" => both DB and it's prefs can't change at the same time
     if (m_search) m_search->Invalidate();
@@ -1965,10 +1965,10 @@ void PasswordSafeFrame::UpdateGUI(UpdateGUICommand::GUI_Action ga,
       wxCommandEvent evt(wxEVT_GUI_DB_PREFS_CHANGE, wxID_ANY);
       evt.ResumePropagation(wxEVENT_PROPAGATE_MAX); //let it propagate through the entire window tree
       if (m_tree) {
-        m_tree->AddPendingEvent(evt); 
+        m_tree->GetEventHandler()->AddPendingEvent(evt); 
         evt.StopPropagation(); //or else it will come to the frame twice
       }
-      if (m_grid) m_grid->AddPendingEvent(evt);
+      if (m_grid) m_grid->GetEventHandler()->AddPendingEvent(evt);
       break;
     }
     default:
@@ -2204,7 +2204,7 @@ bool PasswordSafeFrame::SaveAndClearDatabase()
   return false;
 }
 
-bool PasswordSafeFrame::ReloadDatabase(const wxString& password)
+bool PasswordSafeFrame::ReloadDatabase(const StringX& password)
 {
   return Load(password) == PWScore::SUCCESS;
 }
@@ -2214,14 +2214,14 @@ void PasswordSafeFrame::CleanupAfterReloadFailure(bool tellUser)
   //TODO: must clear db prefs, UI states, RUE items etc here
   if (tellUser) {
     wxMessageBox(wxString(wxT("Could not re-load database: ")) << towxstring(m_core.GetCurFile()), 
-                     wxT("Error re-loading last database"), wxOK|wxICON_ERROR);
+                     wxT("Error re-loading last database"), wxOK|wxICON_ERROR, this);
   }
   m_sysTray->SetTrayStatus(SystemTray::TRAY_CLOSED);
 }
 
 void PasswordSafeFrame::UnlockSafe(bool restoreUI)
 {
-  wxString password;
+  StringX password;
   if (m_sysTray->IsLocked()) {
     if (VerifySafeCombination(password)) {
       if (ReloadDatabase(password)) {
@@ -2256,7 +2256,7 @@ void PasswordSafeFrame::UnlockSafe(bool restoreUI)
   }
 }
 
-bool PasswordSafeFrame::VerifySafeCombination(wxString& password)
+bool PasswordSafeFrame::VerifySafeCombination(StringX& password)
 {
   CSafeCombinationPrompt scp(NULL, m_core, towxstring(m_core.GetCurFile()));
   if (scp.ShowModal() == wxID_OK) {
@@ -2282,7 +2282,7 @@ void PasswordSafeFrame::OnIconize(wxIconizeEvent& evt)
 #else
   if (!evt.Iconized() && m_sysTray->IsLocked()){
 #endif
-    wxString password;
+    StringX password;
     if (VerifySafeCombination(password)) {
       if (ReloadDatabase(password)) {
         Show();
@@ -2352,7 +2352,7 @@ void PasswordSafeFrame::OnOpenRecentDB(wxCommandEvent& evt)
       //fall through
     default:
       wxMessageBox(wxString(wxT("There was an error loading the database: ")) << dbfile, 
-                     wxT("Could not load database"), wxOK|wxICON_ERROR);
+                     wxT("Could not load database"), wxOK|wxICON_ERROR, this);
       db.RemoveFileFromHistory(index);
       break;
   }
@@ -2366,7 +2366,7 @@ void PasswordSafeFrame::OnImportText(wxCommandEvent& evt)
   UNREFERENCED_PARAMETER(evt);
   if (m_core.IsReadOnly()) {// disable in read-only mode
     wxMessageBox(wxT("The current database was opened in read-only mode.  You cannot import into it."),
-                  wxT("Import text"), wxOK | wxICON_EXCLAMATION);
+                  wxT("Import text"), wxOK | wxICON_EXCLAMATION, this);
     return;
   }
 
@@ -2377,7 +2377,7 @@ void PasswordSafeFrame::OnImportText(wxCommandEvent& evt)
     wxMessageBox(wxString() << wxT("The database:\n\n") << m_core.GetCurFile() << wxT("\n\n")
                             << wxT("has duplicate entries with the same group/title/user combination.")
                             << wxT("  Please fix by validating database."),
-                            wxT("Import Text failed"), wxOK | wxICON_ERROR );
+                            wxT("Import Text failed"), wxOK | wxICON_ERROR, this);
     return;
   }
 
@@ -2474,7 +2474,7 @@ void PasswordSafeFrame::OnImportText(wxCommandEvent& evt)
 
   const int iconType = (rc == PWScore::SUCCESS ? wxICON_INFORMATION : wxICON_EXCLAMATION);
   cs_temp << wxT("\n\nDo you want to see a detailed report?");
-  if (wxMessageBox(cs_temp, cs_title, wxYES_NO | iconType) == wxYES) {
+  if (wxMessageBox(cs_temp, cs_title, wxYES_NO | iconType, this) == wxYES) {
     ViewReport(rpt);
   }
 }
@@ -2500,13 +2500,13 @@ void PasswordSafeFrame::OnImportKeePass(wxCommandEvent& evt)
     case PWScore::CANT_OPEN_FILE:
     {
       wxMessageBox( wxString::Format(_("%s\n\nCould not open file for reading!"), KPsFileName.c_str()),
-                    _("File open error"), wxOK | wxICON_ERROR );
+                    _("File open error"), wxOK | wxICON_ERROR, this);
       break;
     }
     case PWScore::INVALID_FORMAT:
     {
       wxMessageBox( wxString::Format(_("%s\n\nInvalid format"), KPsFileName.c_str()),
-                    _("File Read Error"), wxOK | wxICON_ERROR );
+                    _("File Read Error"), wxOK | wxICON_ERROR, this);
       break;
     }
     case PWScore::SUCCESS:
@@ -2529,7 +2529,7 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
   if (!m_core.GetUniqueGTUValidated() && !m_core.InitialiseGTU(setGTU)) {
     // Database is not unique to start with - tell user to validate it first
     wxMessageBox(wxString::Format( _("The database:\n\n%s\n\nhas duplicate entries with the same group/title/user combination. Please fix by validating database."),
-                                    m_core.GetCurFile().c_str()), _("Import XML failed"), wxOK | wxICON_ERROR);
+                                    m_core.GetCurFile().c_str()), _("Import XML failed"), wxOK | wxICON_ERROR, this);
     return;
   }
 
@@ -2540,7 +2540,7 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
   if (!XSDFilename.FileExists()) {
     wxString filepath(XSDFilename.GetFullPath());
     wxMessageBox(wxString::Format(_("Can't find XML Schema Definition file (%s) in your PasswordSafe Application Directory.\r\nPlease copy it from your installation file, or re-install PasswordSafe."), filepath.c_str()), 
-                          wxString(_("Missing XSD File - ")) + wxSTRINGIZE_T(USE_XML_LIBRARY) + _(" Build"), wxOK | wxICON_ERROR);
+                          wxString(_("Missing XSD File - ")) + wxSTRINGIZE_T(USE_XML_LIBRARY) + _(" Build"), wxOK | wxICON_ERROR, this);
     return;
   }
 #endif
@@ -2553,7 +2553,6 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
   std::wstring strXMLErrors, strSkippedList, strPWHErrorList, strRenameList;
   wxString XMLFilename = dlg.filepath;
   int numValidated, numImported, numSkipped, numRenamed, numPWHErrors;
-  bool bBadUnknownFileFields, bBadUnknownRecordFields;
   bool bImportPSWDsOnly = dlg.importPasswordsOnly;
 
   wxBeginBusyCursor();  // This may take a while!
@@ -2570,7 +2569,6 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
                             tostdstring(XSDFilename.GetFullPath()), bImportPSWDsOnly,
                             strXMLErrors, strSkippedList, strPWHErrorList, strRenameList,
                             numValidated, numImported, numSkipped, numPWHErrors, numRenamed,
-                            bBadUnknownFileFields, bBadUnknownRecordFields,
                             rpt, pcmd);
   wxEndBusyCursor();  // Restore normal cursor
 
@@ -2598,21 +2596,9 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
         Execute(pcmd);
 
       if (!strXMLErrors.empty() ||
-          bBadUnknownFileFields || bBadUnknownRecordFields ||
           numRenamed > 0 || numPWHErrors > 0) {
         if (!strXMLErrors.empty())
           csErrors = strXMLErrors + wxT("\n");
-
-        if (bBadUnknownFileFields) {
-          cs_temp.Printf(_("At least one unknown %s field is now in use.  Any found have been ignored."), 
-                    _("header"));
-          csErrors += cs_temp + wxT("\n");
-        }
-        if (bBadUnknownRecordFields) {
-          cs_temp.Printf( _("At least one unknown %s field is now in use.  Any found have been ignored."),
-                            _("record"));
-          csErrors += cs_temp + wxT("\n");
-        }
 
         if (!csErrors.empty()) {
           rpt.WriteLine(csErrors.c_str());
@@ -2668,7 +2654,7 @@ void PasswordSafeFrame::OnImportXML(wxCommandEvent& evt)
   const int iconType = (rc != PWScore::SUCCESS || !strXMLErrors.empty()) ? wxICON_EXCLAMATION : wxICON_INFORMATION;
 
   cs_temp << _("\n\nDo you wish to see a detailed report?");
-  if ( wxMessageBox(cs_temp, cs_title, wxYES_NO | iconType) == wxYES) {
+  if ( wxMessageBox(cs_temp, cs_title, wxYES_NO | iconType, this) == wxYES) {
     ViewReport(rpt);
   }
 }
@@ -2817,7 +2803,7 @@ void PasswordSafeFrame::DoExportText()
   //to use core.GetcurFile() later 
   if (sx_temp.empty()) {
     //  Database has not been saved - prompt user to do so first!
-    wxMessageBox(_T("You must save this database before it can be exported."), title, wxOK|wxICON_EXCLAMATION);
+    wxMessageBox(_T("You must save this database before it can be exported."), title, wxOK|wxICON_EXCLAMATION, this);
     return;
   }
 
@@ -2828,8 +2814,8 @@ void PasswordSafeFrame::DoExportText()
   StringX newfile;
   StringX pw(et.passKey);
   if (m_core.CheckPasskey(sx_temp, pw) == PWScore::SUCCESS) {
-    const CItemData::FieldBits bsExport = et.selCriteria.m_bsFields;
-    const std::wstring subgroup_name = tostdstring(et.selCriteria.m_subgroupText);
+    const CItemData::FieldBits bsExport = et.selCriteria.GetSelectedFields();
+    const std::wstring subgroup_name = tostdstring(et.selCriteria.SubgroupSearchText());
     const int subgroup_object = et.selCriteria.SubgroupObject();
     const int subgroup_function = et.selCriteria.SubgroupFunctionWithCase();
     wchar_t delimiter = et.delimiter.IsEmpty()? wxT('\xbb') : et.delimiter[0];
@@ -2875,7 +2861,7 @@ void PasswordSafeFrame::DoExportText()
       case PWScore::NO_ENTRIES_EXPORTED:
       {
         wxMessageBox(_("No entries satisfied your selection criteria and so none were exported!"),
-                      ExportType::GetFailureMsgTitle(), wxOK | wxICON_WARNING);
+                      ExportType::GetFailureMsgTitle(), wxOK | wxICON_WARNING, this);
         break;
       }
       
@@ -2887,7 +2873,7 @@ void PasswordSafeFrame::DoExportText()
     orderedItemList.clear(); // cleanup soonest
 
   } else {
-    wxMessageBox(_("Passkey incorrect"), title);
+    wxMessageBox(_("Passkey incorrect"), title, wxOK|wxICON_ERROR, this);
     pws_os::sleep_ms(3000); // against automatic attacks
   }
 }
@@ -2900,449 +2886,45 @@ void PasswordSafeFrame::OnMergeAnotherSafe(wxCommandEvent& evt)
   UNREFERENCED_PARAMETER(evt);
   MergeDlg dlg(this, &m_core);
   if (dlg.ShowModal() == wxID_OK) {
-    //this code comes from DboxMain::DoOtherDBProcessing()
     PWScore othercore;
-    // Not really needed but...
-    othercore.ClearData();
-
-    // Reading a new file changes the preferences!
-    const StringX sxSavePrefString(PWSprefs::GetInstance()->Store());
-    const bool bDBPrefsChanged = PWSprefs::GetInstance()->IsDBprefsChanged();
-
-    StringX dbpath(tostringx(dlg.GetOtherSafePath()));
-    int rc = othercore.ReadFile(dbpath, tostringx(dlg.GetOtherSafeCombination()));
-
-    // Reset database preferences - first to defaults then add saved changes!
-    PWSprefs::GetInstance()->Load(sxSavePrefString);
-    PWSprefs::GetInstance()->SetDBprefsChanged(bDBPrefsChanged);
-
-    switch (rc) {
-      case PWScore::SUCCESS:
-        Merge(dbpath, &othercore, dlg.GetSelectionCriteria());
-        break;
-      case PWScore::CANT_OPEN_FILE:
-        wxMessageBox(dlg.GetOtherSafePath() << _("\n\nCould not open file for reading!"),
-                      _("File Read Error"), wxOK | wxICON_ERROR );
-        break;
-      case PWScore::BAD_DIGEST:
-        if (wxMessageBox(dlg.GetOtherSafePath() << _("\n\nFile corrupt or truncated!\nData may have been lost or modified.\nContinue anyway?"), 
-              _("File Read Error"), wxYES_NO | wxICON_QUESTION) == wxYES)
-          rc = PWScore::SUCCESS;
-        break;
-#ifdef DEMO
-      case PWScore::LIMIT_REACHED:
-        wxMessageBox(wxString::Format(_("This version of PasswordSafe does not support more than %d entries in a database.\nTo get an unlimited version for the U3 platform, please visit http://software.u3.com\nNote: Saving this database will result in the removal of unread entries!"), MAXDEMO),
-                          _("Trial Version Limitation"), wxOK | wxICON_WARNING);
-        break;
-#endif
-      default:
-        wxMessageBox( dlg.GetOtherSafePath() << _("\n\nUnknown error"), _("File Read Error"), wxOK | wxICON_ERROR);
-        break;
+    if (ReadCore(othercore,
+                 dlg.GetOtherSafePath(),
+                 dlg.GetOtherSafeCombination(),
+                 true,
+                 this) == PWScore::SUCCESS) {
+        Merge(tostringx(dlg.GetOtherSafePath()), &othercore, dlg.GetSelectionCriteria());
     }
-    
-    othercore.ClearData();
-    othercore.SetCurFile(L"");
   }
 }
 
-// Merge flags indicating differing fields if group, title and user are identical
-#define MRG_PASSWORD   0x8000
-#define MRG_NOTES      0x4000
-#define MRG_URL        0x2000
-#define MRG_AUTOTYPE   0x1000
-#define MRG_HISTORY    0x0800
-#define MRG_POLICY     0x0400
-#define MRG_XTIME      0x0200
-#define MRG_XTIME_INT  0x0100
-#define MRG_EXECUTE    0x0080
-#define MRG_DCA        0x0040
-#define MRG_EMAIL      0x0020
-#define MRG_UNUSED     0x001f
-
 void PasswordSafeFrame::Merge(const StringX &sx_Filename2, PWScore *pothercore, const SelectionCriteria& selection)
 {
-  // XXX Move to core
-  const StringX &sx_Filename1 = m_core.GetCurFile();
-
-  // Initialize set
-  GTUSet setGTU;
-
-  // First check other database
-  if (!pothercore->GetUniqueGTUValidated() && !pothercore->InitialiseGTU(setGTU)) {
-    // Database is not unique to start with - tell user to validate it first
-    wxMessageBox(wxString::Format(_("The database:\n\n%s\n\nhas duplicate entries with the same group/title/user combination. Please fix by validating database."), pothercore->GetCurFile().c_str()),
-                                    _("Synchronization failed"), wxOK | wxICON_EXCLAMATION);
-    return;
-  }
-
-  // Next check us - we need the setGTU later
-  if (!m_core.GetUniqueGTUValidated() && !m_core.InitialiseGTU(setGTU)) {
-    // Database is not unique to start with - tell user to validate it first
-    wxMessageBox(wxString::Format(_("The database:\n\n%s\n\nhas duplicate entries with the same group/title/user combination. Please fix by validating database."), m_core.GetCurFile().c_str()),
-                                    _("Synchronization failed"), wxOK | wxICON_EXCLAMATION);
-    return;
-  }
-
   /* Put up hourglass...this might take a while */
   ::wxBeginBusyCursor();
 
   /* Create report as we go */
   CReport rpt;
-  rpt.StartReport(_("Merge"), sx_Filename1.c_str());
+
+  rpt.StartReport(_("Merge"), m_core.GetCurFile().c_str());
   rpt.WriteLine(tostdstring(wxString(_("Merging database: ")) << towxstring(sx_Filename2) << wxT("\r\n")));
   
-  std::vector<StringX> vs_added;
-  std::vector<StringX> vs_AliasesAdded;
-  std::vector<StringX> vs_ShortcutsAdded;
-
-  /*
-  Purpose:
-  Merge entries from otherCore to m_core
-
-  Algorithm:
-  Foreach entry in otherCore
-    Find in m_core based on group/title/username
-    if match found
-      if all other fields match
-        no merge
-      else
-        add to m_core with new title suffixed with -merged-YYYYMMDD-HHMMSS
-    else
-      add to m_core directly
-  */
-  int numAdded = 0;
-  int numConflicts = 0;
-  int numAliasesAdded = 0;
-  int numShortcutsAdded = 0;
-  uuid_array_t base_uuid, new_base_uuid;
-  bool bTitleRenamed(false);
-
-  MultiCommands *pmulticmds = MultiCommands::Create(&m_core);
-  Command *pcmd1 = UpdateGUICommand::Create(&m_core, UpdateGUICommand::WN_UNDO,
-                                            UpdateGUICommand::GUI_UNDO_MERGESYNC);
-  pmulticmds->Add(pcmd1);
-
-  ItemListConstIter otherPos;
-  for (otherPos = pothercore->GetEntryIter();
-       otherPos != pothercore->GetEntryEndIter();
-       otherPos++) {
-    CItemData otherItem = pothercore->GetEntry(otherPos);
-    CItemData::EntryType et = otherItem.GetEntryType();
-
-    // Handle Aliases and Shortcuts when processing their base entries
-    if (otherItem.IsDependent())
-      continue;
-
-    if (!selection.MatchesSubgroupText(otherItem))
-      continue;
-
-    const StringX otherGroup = otherItem.GetGroup();
-    const StringX otherTitle = otherItem.GetTitle();
-    const StringX otherUser = otherItem.GetUser();
-
-    wxString timeStr;
-    ItemListConstIter foundPos = m_core.Find(otherGroup, otherTitle, otherUser);
-
-    otherItem.GetUUID(base_uuid);
-    memcpy(new_base_uuid, base_uuid, sizeof(new_base_uuid));
-    bTitleRenamed = false;
-    if (foundPos != m_core.GetEntryEndIter()) {
-      /* found a match, see if other fields also match */
-      CItemData curItem = m_core.GetEntry(foundPos);
-
-      wxString csDiffs, cs_temp;
-      int diff_flags = 0;
-      int cxtint, oxtint;
-      time_t cxt, oxt;
-      if (otherItem.GetPassword() != curItem.GetPassword()) {
-        diff_flags |= MRG_PASSWORD;
-        cs_temp = _("Password");
-        csDiffs += cs_temp + _(", ");
-      }
-      if (otherItem.GetNotes() != curItem.GetNotes()) {
-        diff_flags |= MRG_NOTES;
-        cs_temp = _("Notes");
-        csDiffs += cs_temp + _(", ");
-      }
-      if (otherItem.GetURL() != curItem.GetURL()) {
-        diff_flags |= MRG_URL;
-        cs_temp = _("URL");
-        csDiffs += cs_temp + _(", ");
-      }
-      if (otherItem.GetAutoType() != curItem.GetAutoType()) {
-        diff_flags |= MRG_AUTOTYPE;
-        cs_temp = _("Autotype");
-        csDiffs += cs_temp + _(", ");
-      }
-      if (otherItem.GetPWHistory() != curItem.GetPWHistory()) {
-        diff_flags |= MRG_HISTORY;
-        cs_temp = _("Password History");
-        csDiffs += cs_temp + _(", ");
-      }
-      if (otherItem.GetPWPolicy() != curItem.GetPWPolicy()) {
-        diff_flags |= MRG_POLICY;
-        cs_temp = _("Password Policy");
-        csDiffs += cs_temp + _(", ");
-      }
-      otherItem.GetXTime(oxt);
-      curItem.GetXTime(cxt);
-      if (oxt != cxt) {
-        diff_flags |= MRG_XTIME;
-        cs_temp = _("Password Expiry Date");
-        csDiffs += cs_temp + _(", ");
-      }
-      otherItem.GetXTimeInt(oxtint);
-      curItem.GetXTimeInt(cxtint);
-      if (oxtint != cxtint) {
-        diff_flags |= MRG_XTIME_INT;
-        cs_temp = _("Password Expiry Interval");
-        csDiffs += cs_temp + _(", ");
-      }
-      if (otherItem.GetRunCommand() != curItem.GetRunCommand()) {
-        diff_flags |= MRG_EXECUTE;
-        cs_temp = _("Run Command");
-        csDiffs += cs_temp + _(", ");
-      }
-      // Must use integer values not compare strings
-      short other_hDCA, cur_hDCA; 
-      otherItem.GetDCA(other_hDCA);
-      curItem.GetDCA(cur_hDCA);
-      if (other_hDCA != cur_hDCA) {
-        diff_flags |= MRG_DCA;
-        cs_temp = _("IDS_DCA");
-        csDiffs += cs_temp + _(", ");
-      }
-      if (otherItem.GetEmail() != curItem.GetEmail()) {
-        diff_flags |= MRG_EMAIL;
-        cs_temp = _("email");
-        csDiffs += cs_temp + _(", ");
-      }
-      if (diff_flags != 0) {
-        /* have a match on group/title/user, but not on other fields
-        add an entry suffixed with -merged-YYYYMMDD-HHMMSS */
-        StringX newTitle = otherTitle;
-        wxDateTime now = wxDateTime::Now().MakeUTC();
-        newTitle += _("-merged-");
-        timeStr = now.Format(wxT("%Y%m%d-%H%M%S"), wxDateTime::UTC);
-        newTitle += timeStr;
-
-        /* note it as an issue for the user */
-        wxString warnMsg = wxString::Format( _("Conflicting entries for \xab%s\xbb \xab%s\xbb \xab%s\xbb.\r\n  Added merged entry as \xab%s\xbb \xab%s\xbb \xab%s\xbb.\r\n    Differing field(s): %s"), 
-                       otherGroup.c_str(), otherTitle.c_str(), otherUser.c_str(),
-                       otherGroup.c_str(), newTitle.c_str(), otherUser.c_str(),
-                       csDiffs.c_str());
-
-        /* log it */
-        rpt.WriteLine(tostdstring(warnMsg));
-
-        /* Check no conflict of unique uuid */
-        if (m_core.Find(base_uuid) != m_core.GetEntryEndIter()) {
-          otherItem.CreateUUID();
-          otherItem.GetUUID(new_base_uuid);
-        }
-
-        /* do it */
-        bTitleRenamed = true;
-        otherItem.SetTitle(newTitle);
-        otherItem.SetStatus(CItemData::ES_ADDED);
-        Command *pcmd = AddEntryCommand::Create(&m_core, otherItem);
-        pcmd->SetNoGUINotify();
-        pmulticmds->Add(pcmd);
-
-        numConflicts++;
-      }
-    } else {
-      /* didn't find any match...add it directly */
-      /* Check no conflict of unique uuid */
-      if (m_core.Find(base_uuid) != m_core.GetEntryEndIter()) {
-        otherItem.CreateUUID();
-        otherItem.GetUUID(new_base_uuid);
-      }
-
-      otherItem.SetStatus(CItemData::ES_ADDED);
-      Command *pcmd = AddEntryCommand::Create(&m_core, otherItem);
-      pcmd->SetNoGUINotify();
-      pmulticmds->Add(pcmd);
-
-      StringX sx_added = StringX(L"\xab") + 
-                           otherGroup + StringX(L"\xbb \xab") + 
-                           otherTitle + StringX(L"\xbb \xab") +
-                           otherUser  + StringX(L"\xbb");
-      vs_added.push_back(sx_added);
-      numAdded++;
-    }
-    if (et == CItemData::ET_ALIASBASE)
-      numAliasesAdded += MergeDependents(pothercore, pmulticmds,
-                      base_uuid, new_base_uuid,
-                      bTitleRenamed, timeStr, CItemData::ET_ALIAS, vs_AliasesAdded);
-    if (et == CItemData::ET_SHORTCUTBASE)
-      numShortcutsAdded += MergeDependents(pothercore, pmulticmds,
-                      base_uuid, new_base_uuid, 
-                      bTitleRenamed, timeStr, CItemData::ET_SHORTCUT, vs_ShortcutsAdded); 
-  } // iteration over other core's entries
-
-  ;
-  if (numAdded > 0) {
-    std::sort(vs_added.begin(), vs_added.end(), MergeSyncGTUCompare);
-    wxString resultStr = wxString::Format(_("\r\nThe following new %s %s merged into this database:"), 
-                              numAdded == 1 ? _("entry") : _("entries"), numAdded == 1 ? _("was") : _("were"));
-    rpt.WriteLine(tostdstring(resultStr));
-    for (size_t i = 0; i < vs_added.size(); i++) {
-      rpt.WriteLine(tostdstring(wxString() << _("\t") << vs_added[i]));
-    }
-  }
-  if (numAliasesAdded > 0) {
-    std::sort(vs_AliasesAdded.begin(), vs_AliasesAdded.end(), MergeSyncGTUCompare);
-    wxString resultStr = wxString::Format(_("\r\nThe following new %s %s merged into this database:"),
-          numAliasesAdded == 1 ? _("alias") : _("aliases"), numAdded == 1 ? _("was") : _("were"));
-    rpt.WriteLine(tostdstring(resultStr));
-    for (size_t i = 0; i < vs_AliasesAdded.size(); i++) {
-      rpt.WriteLine(tostdstring(wxString() << _("\t") << vs_AliasesAdded[i]));
-    }
-  }
-  if (numShortcutsAdded > 0) {
-    std::sort(vs_ShortcutsAdded.begin(), vs_ShortcutsAdded.end(), MergeSyncGTUCompare);
-    wxString resultStr = wxString::Format(_("\r\nThe following new %s %s merged into this database:"),
-          numAliasesAdded == 1 ? _("shortcut") : _("shortcuts"), numAdded == 1 ? _("was") : _("were"));
-    rpt.WriteLine(tostdstring(resultStr));
-    for (size_t i = 0; i < vs_ShortcutsAdded.size(); i++) {
-      rpt.WriteLine(tostdstring(wxString() << _("\t") << vs_ShortcutsAdded[i]));
-    }
-  }
-
-  Command *pcmd2 = UpdateGUICommand::Create(&m_core, UpdateGUICommand::WN_REDO,
-                                            UpdateGUICommand::GUI_REDO_MERGESYNC);
-  pmulticmds->Add(pcmd2);
-  Execute(pmulticmds);
+  stringT result = m_core.Merge(pothercore, 
+                                selection.HasSubgroupRestriction(),
+                                tostdstring(selection.SubgroupSearchText()),
+                                selection.SubgroupObject(),
+                                selection.SubgroupFunction(),
+                                &rpt);
   
   ::wxEndBusyCursor();
 
-  /* tell the user we're done & provide short merge report */
-  int totalAdded = numAdded + numConflicts + numAliasesAdded + numShortcutsAdded;
-  wxString resultStr = wxString::Format(_("\r\nMerge completed: %d %s added\r\n(%d %s, %d %s, %d %s)"),
-                   totalAdded,        totalAdded == 1 ?         _("entry")    : _("entries"), 
-                   numConflicts,      numConflicts == 1 ?       _("conflict") : _("conflicts"),
-                   numAliasesAdded,   numAliasesAdded == 1 ?    _("alias")    : _("aliases"),
-                   numShortcutsAdded, numShortcutsAdded == 1 ?  _("shortcut") : _("shortcuts"));
-  rpt.WriteLine(tostdstring(resultStr));
   rpt.EndReport();
 
-  
-  if (wxMessageBox(resultStr + _("\n\nDo you want to see a detailed report?"), 
-                      _("Merge"), wxYES_NO | wxICON_QUESTION) == wxYES)
+  if (!result.empty() && wxMessageBox(towxstring(result) + _("\r\n\r\nDo you wish to see a detailed report?"),
+                                        _("Merge Complete"), wxYES_NO|wxICON_QUESTION, this) == wxYES) {
     ViewReport(rpt);
-
-  RefreshViews();
-
-  //autosave, if anything changed
-  if (totalAdded > 0 || numConflicts > 0 || numAliasesAdded > 0 || numShortcutsAdded > 0)
-    SetChanged(Data);
-}
-
-int PasswordSafeFrame::MergeDependents(PWScore *pothercore, MultiCommands *pmulticmds,
-                              uuid_array_t &base_uuid, uuid_array_t &new_base_uuid, 
-                              const bool bTitleRenamed, wxString &timeStr, 
-                              const CItemData::EntryType et,
-                              std::vector<StringX> &vs_added)
-{
-  UUIDVector dependentslist;
-  UUIDVectorIter paiter;
-  ItemListIter iter;
-  uuid_array_t entry_uuid, new_entry_uuid;
-  ItemListConstIter foundPos;
-  CItemData ci_temp;
-  int numadded(0);
-
-  // Get all the dependents
-  pothercore->GetAllDependentEntries(base_uuid, dependentslist, et);
-  for (paiter = dependentslist.begin();
-       paiter != dependentslist.end(); paiter++) {
-    paiter->GetUUID(entry_uuid);
-    iter = pothercore->Find(entry_uuid);
-
-    if (iter == pothercore->GetEntryEndIter())
-      continue;
-
-    CItemData *pci = &iter->second;
-    ci_temp = (*pci);
-
-    memcpy(new_entry_uuid, entry_uuid, sizeof(new_entry_uuid));
-    if (m_core.Find(entry_uuid) != m_core.GetEntryEndIter()) {
-      ci_temp.CreateUUID();
-      ci_temp.GetUUID(new_entry_uuid);
-    }
-
-    // If the base title was renamed - we should automatically rename any dependent.
-    // If we didn't, we still need to check uniqueness!
-    StringX newTitle = ci_temp.GetTitle();
-    if (bTitleRenamed) {
-      newTitle += L"-merged-";
-      newTitle += timeStr;
-      ci_temp.SetTitle(newTitle);
-    }
-    // Check this is unique - if not - don't add this one! - its only an alias/shortcut!
-    // We can't keep trying for uniqueness after adding a timestamp!
-    foundPos = m_core.Find(ci_temp.GetGroup(), newTitle, ci_temp.GetUser());
-    if (foundPos != m_core.GetEntryEndIter()) 
-      continue;
-
-    Command *pcmd1 = AddEntryCommand::Create(&m_core, ci_temp, new_base_uuid);
-    pcmd1->SetNoGUINotify();
-    pmulticmds->Add(pcmd1);
-
-    if (et == CItemData::ET_ALIAS) {
-      ci_temp.SetPassword(L"[Alias]");
-      ci_temp.SetAlias();
-    } else if (et == CItemData::ET_SHORTCUT) {
-      ci_temp.SetPassword(L"[Shortcut]");
-      ci_temp.SetShortcut();
-    } else
-      ASSERT(0);
-
-    StringX sx_added = StringX(L"\xab") + 
-                         ci_temp.GetGroup() + StringX(L"\xbb \xab") + 
-                         ci_temp.GetTitle() + StringX(L"\xbb \xab") +
-                         ci_temp.GetUser()  + StringX(L"\xbb");
-    vs_added.push_back(sx_added);
-    numadded++;
   }
-  return numadded;
 }
 
-// Return whether first '«g» «t» «u»' is greater than the second '«g» «t» «u»'
-// used in std::sort below.
-// Need this as '»' is not in the correct lexical order for blank fields in entry
-bool MergeSyncGTUCompare(const StringX &elem1, const StringX &elem2)
-{
-  StringX g1, t1, u1, g2, t2, u2, tmp1, tmp2;
-
-  StringX::size_type i1 = elem1.find(L'\xbb');
-  g1 = (i1 == StringX::npos) ? elem1 : elem1.substr(0, i1 - 1);
-  StringX::size_type i2 = elem2.find(L'\xbb');
-  g2 = (i2 == StringX::npos) ? elem2 : elem2.substr(0, i2 - 1);
-  pws_os::Trace(L"Groups='%s' & '%s\n", g1.c_str(), g2.c_str());
-  if (g1 != g2)
-    return g1.compare(g2) < 0;
-
-  tmp1 = elem1.substr(g1.length() + 3);
-  tmp2 = elem2.substr(g2.length() + 3);
-  i1 = tmp1.find(L'\xbb');
-  t1 = (i1 == StringX::npos) ? tmp1 : tmp1.substr(0, i1 - 1);
-  i2 = tmp2.find(L'\xbb');
-  t2 = (i2 == StringX::npos) ? tmp2 : tmp2.substr(0, i2 - 1);
-  pws_os::Trace(L"Title='%s' & '%s\n", t1.c_str(), t2.c_str());
-  if (t1 != t2)
-    return t1.compare(t2) < 0;
-
-  tmp1 = tmp1.substr(t1.length() + 3);
-  tmp2 = tmp2.substr(t2.length() + 3);
-  i1 = tmp1.find(L'\xbb');
-  u1 = (i1 == StringX::npos) ? tmp1 : tmp1.substr(0, i1 - 1);
-  i2 = tmp2.find(L'\xbb');
-  u2 = (i2 == StringX::npos) ? tmp2 : tmp2.substr(0, i2 - 1);
-  pws_os::Trace(L"User='%s' & '%s\n", u1.c_str(), u2.c_str());
-  return u1.compare(u2) < 0;
-}
 
 void PasswordSafeFrame::OnSynchronize(wxCommandEvent& /*evt*/)
 {
@@ -3364,6 +2946,12 @@ void PasswordSafeFrame::OnSynchronize(wxCommandEvent& /*evt*/)
   
   if (wiz.ShowReport())
     ViewReport(*wiz.GetReport());
+}
+
+void PasswordSafeFrame::OnCompare(wxCommandEvent& /*evt*/)
+{
+  CompareDlg dlg(this, &m_core);
+  dlg.ShowModal();
 }
 
 //------------ Validation
@@ -3498,7 +3086,7 @@ void PasswordSafeFrame::OnRestoreSafe(wxCommandEvent& /*evt*/)
 
   CSafeCombinationPrompt pwdprompt(this, m_core, wxbf);
   if (pwdprompt.ShowModal() == wxID_OK) {
-    const wxString passkey = pwdprompt.GetPassword();
+    const StringX passkey = pwdprompt.GetPassword();
     // unlock the file we're leaving
     if (!m_core.GetCurFile().empty()) {
       m_core.UnlockFile(m_core.GetCurFile().c_str());
@@ -3507,7 +3095,7 @@ void PasswordSafeFrame::OnRestoreSafe(wxCommandEvent& /*evt*/)
     // clear the data before restoring
     ClearData();
 
-    if (m_core.ReadFile(tostringx(wxbf), tostringx(passkey), MAXTEXTCHARS) == PWScore::CANT_OPEN_FILE) {
+    if (m_core.ReadFile(tostringx(wxbf), passkey, MAXTEXTCHARS) == PWScore::CANT_OPEN_FILE) {
       wxMessageBox(wxbf << _("\n\nCould not open file for reading!"), 
                       _("File Read Error"), wxOK | wxICON_ERROR, this);
       return /*PWScore::CANT_OPEN_FILE*/;

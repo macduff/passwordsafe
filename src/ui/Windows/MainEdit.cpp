@@ -105,7 +105,7 @@ void DboxMain::OnAdd()
         bSetDefaultUser = true;
 
         // Initialise a copy of the DB preferences
-        prefs->SetUpCopyDBprefs();
+        prefs->SetupCopyPrefs();
 
         // Update Copy with new values
         prefs->SetPref(PWSprefs::UseDefaultUser, true, true);
@@ -174,9 +174,7 @@ void DboxMain::OnAdd()
     SetChanged(Data);
 
     ChangeOkUpdate();
-    uuid_array_t uuid;
-    ci.GetUUID(uuid);
-    m_RUEList.AddRUEntry(uuid);
+    m_RUEList.AddRUEntry(ci.GetUUID());
 
     // May need to update menu/toolbar if database was previously empty
     if (bWasEmpty)
@@ -216,7 +214,7 @@ void DboxMain::OnCreateShortcut()
       INT_PTR rc2 = defDlg.DoModal();
       if (rc2 == IDOK) {
         // Initialise a copy of the DB preferences
-        prefs->SetUpCopyDBprefs();
+        prefs->SetupCopyPrefs();
         // Update Copy with new values
         prefs->SetPref(PWSprefs::UseDefaultUser, true, true);
         prefs->SetPref(PWSprefs::DefaultUsername, dlg_createshortcut.m_username, true);
@@ -243,14 +241,10 @@ void DboxMain::CreateShortcutEntry(CItemData *pci, const StringX &cs_group,
                                    const StringX &cs_title, const StringX &cs_user,
                                    StringX &sxNewDBPrefsString)
 {
-  uuid_array_t base_uuid, shortcut_uuid;
-
   ASSERT(pci != NULL);
-  pci->GetUUID(base_uuid);
 
   CItemData ci_temp;
   ci_temp.CreateUUID();
-  ci_temp.GetUUID(shortcut_uuid);
   ci_temp.SetGroup(cs_group);
   ci_temp.SetTitle(cs_title);
   ci_temp.SetUser(cs_user);
@@ -274,7 +268,7 @@ void DboxMain::CreateShortcutEntry(CItemData *pci, const StringX &cs_group,
     pmulticmds->Add(pcmd2);
   }
 
-  Command *pcmd = AddEntryCommand::Create(&m_core, ci_temp, base_uuid);
+  Command *pcmd = AddEntryCommand::Create(&m_core, ci_temp, pci->GetUUID());
   pmulticmds->Add(pcmd);
 
   if (!sxNewDBPrefsString.empty()) {
@@ -286,14 +280,14 @@ void DboxMain::CreateShortcutEntry(CItemData *pci, const StringX &cs_group,
   Execute(pmulticmds);
 
   // Update base item's graphic
-  ItemListIter iter = m_core.Find(base_uuid);
+  ItemListIter iter = m_core.Find(pci->GetUUID());
   if (iter != End())
     UpdateEntryImages(iter->second);
 
   m_ctlItemList.SetFocus();
   SetChanged(Data);
   ChangeOkUpdate();
-  m_RUEList.AddRUEntry(shortcut_uuid);
+  m_RUEList.AddRUEntry(ci_temp.GetUUID());
 }
 
 //Add a group (tree view only)
@@ -472,9 +466,6 @@ void DboxMain::OnDuplicateGroup()
             continue;
           }
  
-          // Save current UUID
-          uuid_array_t old_uuid;
-          pci->GetUUID(old_uuid);
           // Set up copy
           CItemData ci2(*pci);
           ci2.SetDisplayInfo(NULL);
@@ -756,9 +747,7 @@ void DboxMain::OnDelete()
     if (pci->IsProtected())
       return;
 
-    uuid_array_t entry_uuid;
-    pci->GetUUID(entry_uuid);
-    num_atts = m_core.HasAttachments(entry_uuid);
+    num_atts = m_core.HasAttachments(pci->GetUUID());
 
     sxGroup = pci->GetGroup();
     sxTitle = pci->GetTitle();
@@ -1186,9 +1175,6 @@ bool DboxMain::EditShortcut(CItemData *pci, PWScore *pcore)
   CItemData ci_original(*pci);
   pci = NULL; // Set to NULL - should use ci_original
 
-  uuid_array_t entry_uuid;
-  ci_original.GetUUID(entry_uuid); // for later use
-
   const CItemData *pbci = GetBaseEntry(&ci_original);
 
   CEditShortcutDlg dlg_editshortcut(&ci_edit, this, pbci->GetGroup(),
@@ -1211,7 +1197,7 @@ bool DboxMain::EditShortcut(CItemData *pci, PWScore *pcore)
   if (rc == IDOK && dlg_editshortcut.IsEntryModified()) {
     // Out with the old, in with the new
     // User cannot change a shortcut entry to anything else!
-    ItemListIter listpos = Find(entry_uuid);
+    ItemListIter listpos = Find(ci_original.GetUUID());
     ASSERT(listpos != pcore->GetEntryEndIter());
     CItemData oldElem = GetEntryAt(listpos);
     ci_edit.SetXTime((time_t)0);
@@ -1222,7 +1208,8 @@ bool DboxMain::EditShortcut(CItemData *pci, PWScore *pcore)
     SetChanged(Data);
 
     // DisplayInfo's copied and changed, get up-to-date version
-    DisplayInfo *pdi = static_cast<DisplayInfo *>(pcore->GetEntry(pcore->Find(entry_uuid)).GetDisplayInfo());
+    DisplayInfo *pdi = static_cast<DisplayInfo *>
+         (pcore->GetEntry(pcore->Find(ci_original.GetUUID())).GetDisplayInfo());
     rc = SelectEntry(pdi->list_index);
 
     if (rc == 0) {
@@ -1312,8 +1299,7 @@ void DboxMain::OnDuplicateEntry()
 
     pdi->list_index = -1; // so that InsertItemIntoGUITreeList will set new values
 
-    ci2.GetUUID(new_entry_uuid);
-    ItemListIter iter = m_core.Find(new_entry_uuid);
+    ItemListIter iter = m_core.Find(ci2.GetUUID());
     ASSERT(iter != m_core.GetEntryEndIter());
 
     InsertItemIntoGUITreeList(m_core.GetEntry(iter));
@@ -1325,7 +1311,7 @@ void DboxMain::OnDuplicateEntry()
       SelectEntry(m_ctlItemList.GetItemCount() - 1);
     }
     ChangeOkUpdate();
-    m_RUEList.AddRUEntry(new_entry_uuid);
+    m_RUEList.AddRUEntry(ci2.GetUUID());
   }
 }
 
@@ -1344,14 +1330,11 @@ void DboxMain::OnDisplayPswdSubset()
     ASSERT(pci != NULL);
   }
 
-  uuid_array_t entry_uuid;
-  pci_original->GetUUID(entry_uuid);
-
   CPasswordSubsetDlg DisplaySubsetDlg(this, pci->GetPassword());
 
   if (DisplaySubsetDlg.DoModal() != IDCANCEL) {
     // Just in case PasswordSafe was locked and pci_original is invalid
-    ItemListIter iter = Find(entry_uuid);
+    ItemListIter iter = Find(pci_original->GetUUID());
     pci_original = &iter->second;
     UpdateAccessTime(pci_original);
   }
@@ -1759,7 +1742,6 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
   StringX sxgroup, sxtitle, sxuser;
   POSITION pos;
   wchar_t *dot;
-  uuid_array_t entry_uuid;
   bool bAddToViews;
 
   // Initialize set
@@ -1790,11 +1772,9 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
     StringX sxnewtitle(ci_temp.GetTitle());
     m_core.MakeEntryUnique(setGTU, sxgroup, sxnewtitle, sxuser, IDS_DRAGNUMBER);
 
-    ci_temp.GetUUID(entry_uuid);
-    if (m_core.Find(entry_uuid) != End()) {
+    if (m_core.Find(ci_temp.GetUUID()) != End()) {
       // Already in use - get a new one!
       ci_temp.CreateUUID();
-      ci_temp.GetUUID(entry_uuid);
     }
 
     ci_temp.SetGroup(sxgroup);
@@ -1843,7 +1823,7 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
           continue;
         }
         Command *pcmd = AddDependentEntryCommand::Create(&m_core, pl.base_uuid,
-                                                         entry_uuid,
+                                                         ci_temp.GetUUID(),
                                                          CItemData::ET_ALIAS);
         pmulticmds->Add(pcmd);
         ci_temp.SetPassword(L"[Alias]");
@@ -1861,7 +1841,7 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
         }
         Command *pcmd = AddDependentEntryCommand::Create(&m_core,
                                                          pl.base_uuid,
-                                                         entry_uuid,
+                                                         ci_temp.GetUUID(),
                                                          CItemData::ET_SHORTCUT);
         pmulticmds->Add(pcmd);
         ci_temp.SetPassword(L"[Shortcut]");
@@ -1879,10 +1859,10 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
       // "no unique exists" or "multiple exist".
       // Let the code that processes the possible aliases after all have been added sort this out.
       if (pl.InputType == CItemData::ET_ALIAS) {
-        Possible_Aliases.push_back(entry_uuid);
+        Possible_Aliases.push_back(ci_temp.GetUUID());
       } else
       if (pl.InputType == CItemData::ET_SHORTCUT) {
-        Possible_Shortcuts.push_back(entry_uuid);
+        Possible_Shortcuts.push_back(ci_temp.GetUUID());
         bAddToViews = false;
       }
     }
@@ -1917,8 +1897,7 @@ void DboxMain::AddEntries(CDDObList &in_oblist, const StringX &DropGroup)
   ItemListIter iter;
   for (paiter = Possible_Shortcuts.begin();
        paiter != Possible_Shortcuts.end(); paiter++) {
-    paiter->GetUUID(entry_uuid);
-    iter = m_core.Find(entry_uuid);
+    iter = m_core.Find(*paiter);
     if (iter != End()) {
       // Still in pwlist - NOW add to Tree and List views
       InsertItemIntoGUITreeList(m_core.GetEntry(iter));

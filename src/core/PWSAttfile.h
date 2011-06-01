@@ -72,8 +72,8 @@ public:
     void Clear() {
       nITER = 0;
       nCurrentMajorVersion = nCurrentMinorVersion = 0;
-      memset(attfile_uuid, 0 , sizeof(uuid_array_t));
-      memset(DBfile_uuid, 0 , sizeof(uuid_array_t));
+      attfile_uuid = pws_os::CUUID::NullUUID();
+      DBfile_uuid= pws_os::CUUID::NullUUID();
       whenlastsaved = (time_t)0;
       whatlastsaved.clear();
       lastsavedby.clear();
@@ -83,8 +83,8 @@ public:
     int nITER; // Formally not part of the header.
 
     unsigned short nCurrentMajorVersion, nCurrentMinorVersion;
-    uuid_array_t attfile_uuid;
-    uuid_array_t DBfile_uuid;
+    pws_os::CUUID attfile_uuid;
+    pws_os::CUUID DBfile_uuid;
 
     time_t whenlastsaved;   // When last saved
     StringX whatlastsaved;  // and by what application

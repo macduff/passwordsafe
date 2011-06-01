@@ -32,9 +32,12 @@ namespace PWSRC {
     UNKNOWN_VERSION,                          // 0x0024 =   36
     INVALID_FORMAT,                           // 0x0025 =   37
     END_OF_FILE,                              // 0x0026 =   38
-    ALREADY_OPEN,                             // 0x0027 =   39
-    WRONG_PASSWORD,                           // 0x0028 =   40
-    BAD_DIGEST,                               // 0x0029 =   41
+    TRUNCATED_FILE,                           // 0x0027 =   39 (missing EOF marker)
+    READ_FAIL,                                // 0x0028 =   40
+    WRITE_FAIL,                               // 0x0029 =   41
+    ALREADY_OPEN,                             // 0x002A =   42
+    WRONG_PASSWORD,                           // 0x002B =   43
+    BAD_DIGEST,                               // 0x002C =   44
 
     // XML import/export
     XML_FAILED_VALIDATION = 0x0040,           // 0x0040 =   64

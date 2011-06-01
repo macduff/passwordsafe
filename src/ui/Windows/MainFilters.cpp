@@ -50,6 +50,20 @@ using namespace std;
 static char THIS_FILE[] = __FILE__;
 #endif
 
+void DboxMain::OnCancelFilter()
+{
+  // Deal with the 2 internal filters before user defined ones
+  if (m_bExpireDisplayed) {
+    OnShowExpireList();
+  } else
+  if (m_bUnsavedDisplayed) {
+    OnShowUnsavedEntries();
+  } else
+  if (m_bFilterActive) {
+    ApplyFilter();
+  }
+}
+
 void DboxMain::OnApplyFilter()
 {
   ApplyFilter();
@@ -772,7 +786,6 @@ void DboxMain::ImportFilters()
   const std::wstring XSDfn(L"pwsafe_filter.xsd");
   std::wstring XSDFilename = PWSdirs::GetXMLDir() + XSDfn;
 
-#if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
   if (!pws_os::FileExists(XSDFilename)) {
     CGeneralMsgBox gmb;
     cs_temp.Format(IDSC_MISSINGXSD, XSDfn.c_str());
@@ -780,7 +793,6 @@ void DboxMain::ImportFilters()
     gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONSTOP);
     return;
   }
-#endif
 
   std::wstring dir;
   if (m_core.GetCurFile().empty())

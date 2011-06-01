@@ -16,10 +16,7 @@
 // PWS includes
 #include "../StringX.h"
 
-#if   USE_XML_LIBRARY == EXPAT
-// Expat includes
-#include <expat.h>
-#elif USE_XML_LIBRARY == MSXML
+#if USE_XML_LIBRARY == MSXML
 // MSXML includes
 // None
 #elif USE_XML_LIBRARY == XERCES
@@ -51,10 +48,10 @@ enum XLA_PASSWORDSAFE {
   XLA_CRC,
   XLA_ODIGEST,
   XLA_CDIGEST,
-  XLA_CTIME,
-  XLA_ATIME,
-  XLA_MTIME,
-  XLA_DTIME,
+  XLA_CTIMEX,
+  XLA_ATIMEX,
+  XLA_MTIMEX,
+  XLA_DTIMEX,
   XLA_FLAGS,
   XLA_DATA80,
   XLA_DATA81,
@@ -63,10 +60,6 @@ enum XLA_PASSWORDSAFE {
   XLA_FLAG_EXTRACTTOREMOVEABLE,
   XLA_FLAG_ERASEPROGAMEXISTS,
   XLA_FLAG_ERASEONDATABASECLOSE,
-
-  // datetime fields
-  XLA_DATE,
-  XLA_TIME,
 
   // Last element
   XLA_LAST_ELEMENT
@@ -89,9 +82,7 @@ public:
   XMLAttValidation();
   ~XMLAttValidation();
 
-#if   USE_XML_LIBRARY == EXPAT
-  bool GetElementInfo(const XML_Char *name, st_file_element_data &edata);
-#elif USE_XML_LIBRARY == MSXML
+#if USE_XML_LIBRARY == MSXML
   bool GetElementInfo(const wchar_t *name, st_file_element_data &edata);
 #elif USE_XML_LIBRARY == XERCES
   bool GetElementInfo(const XMLCh *name, st_file_element_data &edata);

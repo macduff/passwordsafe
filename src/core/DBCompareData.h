@@ -23,29 +23,27 @@ enum {BOTH = -1 , CURRENT = 0, COMPARE = 1};
 // If entries made equal by copying, indatabase set to -1.
 struct st_CompareData {
   st_CompareData()
-    : bsDiffs(0), group(L""), title(L""), user(L""),
+    : uuid0(pws_os::CUUID::NullUUID()), uuid1(pws_os::CUUID::NullUUID()),
+    bsDiffs(0), group(L""), title(L""), user(L""),
     id(0), indatabase(0), listindex(0),
     unknflds0(false), unknflds1(false), bIsProtected0(false)
   {
-    memset(uuid0, 0, sizeof(uuid0));
-    memset(uuid1, 0, sizeof(uuid1));
   }
 
   st_CompareData(const st_CompareData &that)
-    : bsDiffs(that.bsDiffs), group(that.group), title(that.title), user(that.user),
+    : uuid0(that.uuid0), uuid1(that.uuid1), bsDiffs(that.bsDiffs),
+    group(that.group), title(that.title), user(that.user),
     id(that.id), indatabase(that.indatabase), listindex(that.listindex),
     unknflds0(that.unknflds0), unknflds1(that.unknflds1),
     bIsProtected0(that.bIsProtected0)
   {
-    memcpy(uuid0, that.uuid0, sizeof(uuid0));
-    memcpy(uuid1, that.uuid1, sizeof(uuid1));
   }
 
   st_CompareData &operator=(const st_CompareData &that)
   {
     if (this != &that) {
-      memcpy(uuid0, that.uuid0, sizeof(uuid0));
-      memcpy(uuid1, that.uuid1, sizeof(uuid1));
+      uuid0 = that.uuid0;
+      uuid1 = that.uuid1;
       bsDiffs = that.bsDiffs;
       group = that.group;
       title = that.title;
@@ -59,9 +57,11 @@ struct st_CompareData {
     }
     return *this;
   }
-
-  uuid_array_t uuid0;  // original DB
-  uuid_array_t uuid1;  // comparison DB
+    
+  operator int() {return id;}
+    
+  pws_os::CUUID uuid0;  // original DB
+  pws_os::CUUID uuid1;  // comparison DB
   CItemData::FieldBits bsDiffs;  // list of items compared
   StringX group;
   StringX title;
@@ -72,15 +72,6 @@ struct st_CompareData {
   bool unknflds0;    // original DB
   bool unknflds1;    // comparison DB
   bool bIsProtected0;
-};
-
-struct equal_id {
-  equal_id(int const& id) : m_id(id) {}
-
-  bool operator()(st_CompareData const& rdata) const
-  { return (rdata.id == m_id); }
-
-  int m_id;
 };
 
 // Vector of entries passed from DboxMain::Compare to CompareResultsDlg

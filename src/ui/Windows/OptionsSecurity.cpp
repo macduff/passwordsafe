@@ -38,13 +38,21 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // COptionsSecurity property page
 
-IMPLEMENT_DYNCREATE(COptionsSecurity, COptions_PropertyPage)
+IMPLEMENT_DYNAMIC(COptionsSecurity, COptions_PropertyPage)
 
-COptionsSecurity::COptionsSecurity()
-  : COptions_PropertyPage(COptionsSecurity::IDD)
+COptionsSecurity::COptionsSecurity(CWnd *pParent, st_Opt_master_data *pOPTMD)
+  : COptions_PropertyPage(pParent, COptionsSecurity::IDD, pOPTMD)
 {
-  //{{AFX_DATA_INIT(COptionsSecurity)
-  //}}AFX_DATA_INIT
+  m_ClearClipboardOnMinimize = M_ClearClipboardOnMinimize();
+  m_ClearClipboardOnExit = M_ClearClipboardOnExit();
+  m_LockOnMinimize = M_LockOnMinimize();
+  m_ConfirmCopy = M_ConfirmCopy();
+  m_LockOnWindowLock = M_LockOnWindowLock();
+  m_LockOnIdleTimeout = M_LockOnIdleTimeout();
+  m_CopyPswdBrowseURL = M_CopyPswdBrowseURL();
+  m_IdleTimeOut = M_IdleTimeOut();
+  m_EraseProgram = M_EraseProgram();
+  m_ErasePgmCmdLineParms = M_ErasePgmCmdLineParms();
 }
 
 COptionsSecurity::~COptionsSecurity()
@@ -56,15 +64,16 @@ void COptionsSecurity::DoDataExchange(CDataExchange* pDX)
   COptions_PropertyPage::DoDataExchange(pDX);
 
   //{{AFX_DATA_MAP(COptionsSecurity)
-  DDX_Check(pDX, IDC_CLEARBOARDONEXIT, m_clearclipboardonexit);
-  DDX_Check(pDX, IDC_CLEARBOARDONMINIMIZE, m_clearclipboardonminimize);
-  DDX_Check(pDX, IDC_LOCKONMINIMIZE, m_LockOnMinimize);
-  DDX_Check(pDX, IDC_CONFIRMCOPY, m_confirmcopy);
-  DDX_Check(pDX, IDC_LOCKONSCREEN, m_LockOnWindowLock);
   DDX_Check(pDX, IDC_LOCK_TIMER, m_LockOnIdleTimeout);
   DDX_Text(pDX, IDC_IDLE_TIMEOUT, m_IdleTimeOut);
-  DDX_Text(pDX, IDC_ERASERLOCATION, m_csEraserLocation);
-  DDX_Text(pDX, IDC_ERASERCMDLINE, m_csEraseCmdLineParms);
+  DDX_Check(pDX, IDC_COPYPSWDURL, m_CopyPswdBrowseURL);
+  DDX_Check(pDX, IDC_CLEARBOARDONEXIT, m_ClearClipboardOnExit);
+  DDX_Check(pDX, IDC_CLEARBOARDONMINIMIZE, m_ClearClipboardOnMinimize);
+  DDX_Check(pDX, IDC_LOCKONMINIMIZE, m_LockOnMinimize);
+  DDX_Check(pDX, IDC_CONFIRMCOPY, m_ConfirmCopy);
+  DDX_Check(pDX, IDC_LOCKONSCREEN, m_LockOnWindowLock);
+  DDX_Text(pDX, IDC_ERASERLOCATION, m_EraseProgram);
+  DDX_Text(pDX, IDC_ERASERCMDLINE, m_ErasePgmCmdLineParms);
   //}}AFX_DATA_MAP
 }
 
@@ -80,30 +89,6 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // COptionsSecurity message handlers
 
-BOOL COptionsSecurity::PreTranslateMessage(MSG* pMsg)
-{
-  if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_F1) {
-    PostMessage(WM_COMMAND, MAKELONG(ID_HELP, BN_CLICKED), NULL);
-    return TRUE;
-  }
-
-  return COptions_PropertyPage::PreTranslateMessage(pMsg);
-}
-
-void COptionsSecurity::OnLockOnIdleTimeout() 
-{
-  BOOL enable = (((CButton*)GetDlgItem(IDC_LOCK_TIMER))->GetCheck() == 1) ? TRUE : FALSE;
-  GetDlgItem(IDC_IDLESPIN)->EnableWindow(enable);
-  GetDlgItem(IDC_IDLE_TIMEOUT)->EnableWindow(enable);
-}
-
-void COptionsSecurity::OnHelp()
-{
-  CString cs_HelpTopic;
-  cs_HelpTopic = app.GetHelpFileName() + L"::/html/security_tab.html";
-  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
-}
-
 BOOL COptionsSecurity::OnInitDialog() 
 {
   COptions_PropertyPage::OnInitDialog();
@@ -116,15 +101,8 @@ BOOL COptionsSecurity::OnInitDialog()
   pspin->SetBase(10);
   pspin->SetPos(m_IdleTimeOut);
 
-  m_saveclearclipboardonminimize = m_clearclipboardonminimize;
-  m_saveclearclipboardonexit = m_clearclipboardonexit;
-  m_saveLockOnMinimize = m_LockOnMinimize;
-  m_saveconfirmcopy = m_confirmcopy;
-  m_saveLockOnWindowLock = m_LockOnWindowLock;
-  m_saveLockOnIdleTimeout = m_LockOnIdleTimeout;
-  m_saveIdleTimeOut = m_IdleTimeOut;
-  m_csSaveEraserLocation = m_csEraserLocation;
-  m_csSaveEraseCmdLineParms = m_csEraseCmdLineParms;
+  // m_csSaveEraseProgram = m_csEraseProgram;
+  // m_csSaveErasePgmCmdLineParms = m_csErasePgmCmdLineParms;
 
   return TRUE;  // return TRUE unless you set the focus to a control
   // EXCEPTION: OCX Property Pages should return FALSE
@@ -137,23 +115,24 @@ LRESULT COptionsSecurity::OnQuerySiblings(WPARAM wParam, LPARAM lParam)
   // Misc has asked for ClearClipboardOnMinimize value
   switch (wParam) {
     case PPOPT_GET_CCOM:
-      {
-      BOOL * pCCOM = (BOOL *)lParam;
+    {
+      BOOL *pCCOM = (BOOL *)lParam;
       ASSERT(pCCOM != NULL);
-      *pCCOM = (BOOL)m_clearclipboardonminimize;
-      }
+      *pCCOM = (BOOL)m_ClearClipboardOnMinimize;
       return 1L;
+    }
     case PP_DATA_CHANGED:
-      if (m_saveclearclipboardonminimize != m_clearclipboardonminimize ||
-          m_saveclearclipboardonexit     != m_clearclipboardonexit     ||
-          m_saveLockOnMinimize           != m_LockOnMinimize           ||
-          m_saveconfirmcopy              != m_confirmcopy              ||
-          m_saveLockOnWindowLock         != m_LockOnWindowLock         ||
-          m_saveLockOnIdleTimeout        != m_LockOnIdleTimeout        ||
-          (m_LockOnIdleTimeout           == TRUE &&
-           m_saveIdleTimeOut             != m_IdleTimeOut)             ||
-          m_csSaveEraserLocation         != m_csEraserLocation         ||
-          m_csSaveEraseCmdLineParms      != m_csEraseCmdLineParms)
+      if (M_ClearClipboardOnMinimize() != m_ClearClipboardOnMinimize ||
+          M_ClearClipboardOnExit()     != m_ClearClipboardOnExit     ||
+          M_LockOnMinimize()           != m_LockOnMinimize           ||
+          M_ConfirmCopy()              != m_ConfirmCopy              ||
+          M_LockOnWindowLock()         != m_LockOnWindowLock         ||
+          M_LockOnIdleTimeout()        != m_LockOnIdleTimeout        ||
+          M_CopyPswdBrowseURL()        != m_CopyPswdBrowseURL        ||
+          (m_LockOnIdleTimeout         == TRUE &&
+           M_IdleTimeOut()             != m_IdleTimeOut)             ||
+          M_EraseProgram()             != m_EraseProgram             ||
+          M_ErasePgmCmdLineParms()     != m_ErasePgmCmdLineParms)
         return 1L;
       break;
     case PP_UPDATE_VARIABLES:
@@ -165,19 +144,6 @@ LRESULT COptionsSecurity::OnQuerySiblings(WPARAM wParam, LPARAM lParam)
       break;
   }
   return 0L;
-}
-
-BOOL COptionsSecurity::OnKillActive()
-{
-  CGeneralMsgBox gmb;
-  // Check that options, as set, are valid.
-  if ((m_IdleTimeOut < 1) || (m_IdleTimeOut > 120)) {
-    gmb.AfxMessageBox(IDS_INVALIDTIMEOUT);
-    ((CEdit*)GetDlgItem(IDC_IDLE_TIMEOUT))->SetFocus();
-    return FALSE;
-  }
-
-  return COptions_PropertyPage::OnKillActive();
 }
 
 BOOL COptionsSecurity::OnApply() 
@@ -193,7 +159,7 @@ BOOL COptionsSecurity::OnApply()
         PWSprefs::GetInstance()->GetPref(PWSprefs::DoubleClickAction);
   }
 
-  if (m_clearclipboardonminimize &&
+  if (m_ClearClipboardOnMinimize &&
       iDoubleClickAction == PWSprefs::DoubleClickCopyPasswordMinimize) {
     gmb.AfxMessageBox(IDS_MINIMIZECONFLICT);
 
@@ -206,13 +172,24 @@ BOOL COptionsSecurity::OnApply()
     return FALSE;
   }
 
+  M_ClearClipboardOnMinimize() = m_ClearClipboardOnMinimize;
+  M_ClearClipboardOnExit() = m_ClearClipboardOnExit;
+  M_LockOnMinimize() = m_LockOnMinimize;
+  M_ConfirmCopy() = m_ConfirmCopy;
+  M_LockOnWindowLock() = m_LockOnWindowLock;
+  M_LockOnIdleTimeout() = m_LockOnIdleTimeout;
+  M_CopyPswdBrowseURL() = m_CopyPswdBrowseURL;
+  M_IdleTimeOut() = m_IdleTimeOut;
+  M_EraseProgram() = m_EraseProgram;
+  M_ErasePgmCmdLineParms() = m_ErasePgmCmdLineParms;
+
   return COptions_PropertyPage::OnApply();
 }
 
 void COptionsSecurity::OnBrowseForLocation()
 {
   CString cs_initiallocation, cs_title;
-  std::wstring path = m_csEraserLocation;
+  std::wstring path = m_EraseProgram;
   INT_PTR rc;
  
   if (path.empty())
@@ -236,7 +213,44 @@ void COptionsSecurity::OnBrowseForLocation()
 
   rc = fd.DoModal();
   if (rc == IDOK) {
-    m_csEraserLocation = fd.GetPathName();
+    m_EraseProgram = fd.GetPathName();
     GetDlgItem(IDC_ERASERLOCATION)->SetWindowText(fd.GetPathName());
   }
+}
+
+BOOL COptionsSecurity::PreTranslateMessage(MSG* pMsg)
+{
+  if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_F1) {
+    PostMessage(WM_COMMAND, MAKELONG(ID_HELP, BN_CLICKED), NULL);
+    return TRUE;
+  }
+
+  return COptions_PropertyPage::PreTranslateMessage(pMsg);
+}
+
+BOOL COptionsSecurity::OnKillActive()
+{
+  CGeneralMsgBox gmb;
+  // Check that options, as set, are valid.
+  if ((m_IdleTimeOut < 1) || (m_IdleTimeOut > 120)) {
+    gmb.AfxMessageBox(IDS_INVALIDTIMEOUT);
+    ((CEdit*)GetDlgItem(IDC_IDLE_TIMEOUT))->SetFocus();
+    return FALSE;
+  }
+
+  return COptions_PropertyPage::OnKillActive();
+}
+
+void COptionsSecurity::OnHelp()
+{
+  CString cs_HelpTopic;
+  cs_HelpTopic = app.GetHelpFileName() + L"::/html/security_tab.html";
+  HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
+}
+
+void COptionsSecurity::OnLockOnIdleTimeout() 
+{
+  BOOL enable = (((CButton*)GetDlgItem(IDC_LOCK_TIMER))->GetCheck() == 1) ? TRUE : FALSE;
+  GetDlgItem(IDC_IDLESPIN)->EnableWindow(enable);
+  GetDlgItem(IDC_IDLE_TIMEOUT)->EnableWindow(enable);
 }

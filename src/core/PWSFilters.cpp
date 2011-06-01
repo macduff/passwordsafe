@@ -191,7 +191,13 @@ static string GetFilterXML(const st_filters &filters, bool bWithFormatting)
     szendl = "\0";
   }
 
-  utf8conv.ToUTF8(filters.fname.c_str(), utf8, utf8Len);
+  // Filter name is an element attribute and so must be a quoted string.
+  // Convert any embedded quotes to &quot;
+  stringT fname = filters.fname;
+  const stringT from = _T("\""), to = _T("&quot;");
+  Replace(fname, from, to);
+
+  utf8conv.ToUTF8(fname.c_str(), utf8, utf8Len);
   oss << sztab1 << "<filter filtername=\"" << reinterpret_cast<const char *>(utf8) 
       << "\">" << szendl;
 
@@ -454,7 +460,7 @@ static string GetFilterXML(const st_filters &filters, bool bWithFormatting)
 }
 
 struct XMLFilterWriterToString {
-  XMLFilterWriterToString(ostream &os, bool bWithFormatting) :
+  XMLFilterWriterToString(coStringXStream &os, bool bWithFormatting) :
   m_os(os), m_bWithFormatting(bWithFormatting)
   {}
   // operator
@@ -465,7 +471,7 @@ struct XMLFilterWriterToString {
   }
 private:
   XMLFilterWriterToString& operator=(const XMLFilterWriterToString&); // Do not implement
-  ostream &m_os;
+  coStringXStream &m_os;
   bool m_bWithFormatting;
 };
 
@@ -473,33 +479,33 @@ int PWSFilters::WriteFilterXMLFile(const StringX &filename,
                                    const PWSfile::HeaderRecord hdr,
                                    const StringX &currentfile)
 {
-#ifdef UNICODE
-  CUTF8Conv conv;
-  size_t fnamelen;
-  const unsigned char *fname = NULL;
-  conv.ToUTF8(filename, fname, fnamelen); 
-#else
-  const char *fname = filename.c_str();
-#endif
-  ofstream of(reinterpret_cast<const char *>(fname));
-  if (!of)
+  FILE *xmlfile = pws_os::FOpen(filename.c_str(), _T("wt"));
+  if (xmlfile == NULL)
     return PWSRC::CANT_OPEN_FILE;
-  else
-    return WriteFilterXMLFile(of, hdr, currentfile, true);
+
+  coStringXStream oss;
+  int irc = WriteFilterXMLFile(oss, hdr, currentfile, true);
+
+  // Write it out to the file, clear string stream, close file
+  fwrite(oss.str().c_str(), 1, oss.str().length(), xmlfile);
+  oss.str("");
+  fclose(xmlfile);
+
+  return irc;
 }
 
-int PWSFilters::WriteFilterXMLFile(ostream &os,
+int PWSFilters::WriteFilterXMLFile(coStringXStream &oss,
                                    const PWSfile::HeaderRecord hdr,
                                    const StringX &currentfile,
                                    const bool bWithFormatting)
 {
   string str_hdr = GetFilterXMLHeader(currentfile, hdr);
-  os << str_hdr;
+  oss << str_hdr;
 
-  XMLFilterWriterToString put_filterxml(os, bWithFormatting);
+  XMLFilterWriterToString put_filterxml(oss, bWithFormatting);
   for_each(this->begin(), this->end(), put_filterxml);
 
-  os << "</filters>";
+  oss << "</filters>";
 
   return PWSRC::SUCCESS;
 }
@@ -568,7 +574,7 @@ std::string PWSFilters::GetFilterXMLHeader(const StringX &currentfile,
       oss << "\"" << endl;
     }
 
-    CUUID huuid(hdr.m_file_uuid_array, true); // true to print canonically
+    CUUID huuid(*hdr.m_file_uuid.GetARep(), true); // true to print canonically
 
     oss << "Database_uuid=\"" << huuid << "\"" << endl;
   }

@@ -206,11 +206,13 @@ BOOL DboxMain::OpenOnInit()
 
   bool go_ahead = false;
   /*
-   * If BAD_DIGEST or LIMIT_REACHED,
+   * If file's corrupted, read error or LIMIT_REACHED (demo),
    * the we prompt the user, and continue or not per user's input.
    * A bit too subtle for switch/case on rc2...
    */
-  if (rc2 == PWSRC::BAD_DIGEST) {
+  if (rc2 == PWSRC::BAD_DIGEST ||
+      rc2 == PWSRC::TRUNCATED_FILE ||
+      rc2 == PWSRC::READ_FAIL) {
     CGeneralMsgBox gmb;
     CString cs_msg;
     cs_msg.Format(IDS_FILECORRUPT, m_core.GetCurFile().c_str());
@@ -221,7 +223,7 @@ BOOL DboxMain::OpenOnInit()
       goto exit;
     }
     go_ahead = true;
-  } // BAD_DIGEST
+  } // read error
 #ifdef DEMO
   if (rc2 == PWSRC::LIMIT_REACHED) {
     CGeneralMsgBox gmb;
@@ -344,6 +346,7 @@ int DboxMain::New()
   m_DDAutotype.SetStaticState(false);
 
   UpdateMenuAndToolBar(true);
+  UpdateStatusBar();
 
   // Set timer for user-defined idle lockout, if selected (DB preference)
   KillTimer(TIMER_LOCKDBONIDLETIMEOUT);
@@ -407,9 +410,8 @@ int DboxMain::NewFile(StringX &newfilename)
       return PWSRC::USER_CANCEL;
   }
 
-  CPasskeySetup dbox_pksetup(this);
-  //app.m_pMainWnd = &dbox_pksetup;
-  rc = dbox_pksetup.DoModal();
+  CPasskeySetup pksetup(this);
+  rc = pksetup.DoModal();
 
   if (rc == IDCANCEL)
     return PWSRC::USER_CANCEL;  //User cancelled password entry
@@ -418,7 +420,7 @@ int DboxMain::NewFile(StringX &newfilename)
   m_core.ReInit(true);
 
   ClearData();
-  PWSprefs::GetInstance()->SetDatabasePrefsToDefaults();
+
   const StringX &oldfilename = m_core.GetCurFile();
   // The only way we're the locker is if it's locked & we're !readonly
   if (!oldfilename.empty() &&
@@ -433,7 +435,7 @@ int DboxMain::NewFile(StringX &newfilename)
   m_core.LockFile(newfilename.c_str(), locker);
 
   m_core.SetReadOnly(false); // new file can't be read-only...
-  m_core.NewFile(dbox_pksetup.m_passkey);
+  m_core.NewFile(pksetup.GetPassKey());
   m_bDBNeedsReading = false;
   
   // Tidy up filters
@@ -1286,8 +1288,7 @@ int DboxMain::SaveAs()
   }
 
   // Save file UUID, clear it to generate new one, restore if necessary
-  uuid_array_t file_uuid_array;
-  m_core.GetFileUUID(file_uuid_array);
+  pws_os::CUUID file_uuid = m_core.GetFileUUID();
   m_core.ClearFileUUID();
 
   UUIDList RUElist;
@@ -1299,7 +1300,7 @@ int DboxMain::SaveAs()
   m_core.ClearChangedNodes();
 
   if (rc != PWSRC::SUCCESS) {
-    m_core.SetFileUUID(file_uuid_array);
+    m_core.SetFileUUID(file_uuid); // restore uuid after failed save-as
     m_core.UnlockFile2(newfile.c_str());
     DisplayFileWriteError(rc, newfile);
     return PWSRC::CANT_OPEN_FILE;
@@ -1423,9 +1424,7 @@ void DboxMain::OnExportText()
   sx_temp = m_core.GetCurFile();
   if (sx_temp.empty()) {
     //  Database has not been saved - prompt user to do so first!
-    cs_temp.LoadString(IDS_SAVEBEFOREEXPORT);
-    cs_text.Format(IDS_SAVEBEFOREPROCESS, L"", cs_temp);
-    gmb.AfxMessageBox(cs_text);
+    gmb.AfxMessageBox(IDS_SAVEBEFOREPROCESS);
     return;
   }
 
@@ -1514,9 +1513,7 @@ void DboxMain::OnExportXML()
   sx_temp = m_core.GetCurFile();
   if (sx_temp.empty()) {
     //  Database has not been saved - prompt user to do so first!
-    cs_temp.LoadString(IDS_SAVEBEFOREEXPORT);
-    cs_text.Format(IDS_SAVEBEFOREPROCESS, L"", cs_temp);
-    gmb.AfxMessageBox(cs_text);
+    gmb.AfxMessageBox(IDS_SAVEBEFOREPROCESS);
     return;
   }
 
@@ -1578,7 +1575,7 @@ int DboxMain::DoExportXML(const StringX &sx_Filename, const bool bAll,
 
   ReportAdvancedOptions(prpt, bAdvanced, bAll ? WZAdvanced::EXPORT_XML : WZAdvanced::EXPORT_ENTRYXML);
 
-  // do the export
+  // Do the export
   int rc = m_core.WriteXMLFile(sx_Filename, bsFields, subgroup_name,
                                subgroup_object, subgroup_function,
                                delimiter, numExported, &orderedItemList,
@@ -1660,7 +1657,7 @@ void DboxMain::OnImportText()
     bool bWasEmpty = m_core.GetNumEntries() == 0;
     std::wstring strError;
     StringX TxtFileName = fd.GetPathName();
-    int numImported(0), numSkipped(0), numPWHErrors(0), numRenamed(0);
+    int numImported(0), numSkipped(0), numPWHErrors(0), numRenamed(0), numWarnings(0);
     wchar_t delimiter = dlg.m_defimpdelim[0];
     bool bImportPSWDsOnly = dlg.m_bImportPSWDsOnly == TRUE;
 
@@ -1702,8 +1699,15 @@ void DboxMain::OnImportText()
         // deliberate fallthru
       default:
       {
-        if (pcmd != NULL)
+        if (pcmd != NULL) {
           Execute(pcmd);
+          const size_t n = ((MultiCommands *)pcmd)->GetSize();
+          for (size_t i = 0; i < n; i++) {
+            int iw;
+            if (((MultiCommands *)pcmd)->GetRC(i, iw))
+              numWarnings += iw;
+          }
+        }
 
         rpt.WriteLine();
         CString cs_type;
@@ -1736,6 +1740,11 @@ void DboxMain::OnImportText()
           cs_temp += cs_tmp;
         }
 
+        if (numWarnings != 0) {
+          CString cs_tmp(MAKEINTRESOURCE(IDS_WITHWARNINGS));
+          cs_temp += cs_tmp;
+        }
+
         cs_title.LoadString(rc == PWSRC::SUCCESS ? IDS_COMPLETE : IDS_OKWITHERRORS);
 
         ChangeOkUpdate();
@@ -1761,7 +1770,7 @@ void DboxMain::OnImportText()
   }
 }
 
-void DboxMain::OnImportKeePass()
+void DboxMain::OnImportKeePassV1CSV()
 {
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
@@ -1778,10 +1787,10 @@ void DboxMain::OnImportKeePass()
   }
 
   CPWFileDialog fd(TRUE,
-                   L"txt",
+                   L"csv",
                    NULL,
                    OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
-                   CString(MAKEINTRESOURCE(IDS_FDF_T_C_ALL)),
+                   CString(MAKEINTRESOURCE(IDS_FDF_CSV_ALL)),
                    this);
 
   fd.m_ofn.lpstrTitle = cs_text;
@@ -1803,13 +1812,27 @@ void DboxMain::OnImportKeePass()
     bool bWasEmpty = m_core.GetNumEntries() == 0;
     Command *pcmd = NULL;
     StringX KPsFileName = fd.GetPathName();
-    rc = m_core.ImportKeePassTextFile(KPsFileName, pcmd);
+    int numImported, numSkipped, numRenamed;
+
+    // Create report as we go
+    CReport rpt;
+    std::wstring str_text;
+    LoadAString(str_text, IDS_RPTIMPORTKPV1CSV);
+    rpt.StartReport(str_text.c_str(), m_core.GetCurFile().c_str());
+    LoadAString(str_text, IDS_TEXT);
+    cs_temp.Format(IDS_IMPORTFILE, str_text.c_str(), KPsFileName.c_str());
+    rpt.WriteLine((LPCWSTR)cs_temp);
+    rpt.WriteLine();
+
+    rc = m_core.ImportKeePassV1CSVFile(KPsFileName, numImported, numSkipped, numRenamed,
+                                       rpt, pcmd);
     switch (rc) {
       case PWSRC::CANT_OPEN_FILE:
       {
         cs_temp.Format(IDS_CANTOPENREADING, KPsFileName.c_str());
         cs_title.LoadString(IDS_FILEOPENERROR);
         gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
+        delete [] pcmd;
         break;
       }
       case PWSRC::INVALID_FORMAT:
@@ -1817,6 +1840,7 @@ void DboxMain::OnImportKeePass()
         cs_temp.Format(IDS_INVALIDFORMAT, KPsFileName.c_str());
         cs_title.LoadString(IDS_FILEREADERROR);
         gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
+        delete [] pcmd;
         break;
       }
       case PWSRC::SUCCESS:
@@ -1828,8 +1852,135 @@ void DboxMain::OnImportKeePass()
         // May need to update menu/toolbar if original database was empty
         if (bWasEmpty)
           UpdateMenuAndToolBar(m_bOpen);
+
+        rpt.WriteLine();
+        CString cs_type;
+        cs_type.LoadString(numImported == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
+        cs_temp.Format(IDS_RECORDSIMPORTED, numImported, cs_type);
+        rpt.WriteLine((LPCWSTR)cs_temp);
+
+        cs_title.LoadString(rc == PWSRC::SUCCESS ? IDS_COMPLETE : IDS_OKWITHERRORS);
         break;
     } // switch
+    rpt.EndReport();
+
+    gmb.SetTitle(cs_title);
+    gmb.SetMsg(cs_temp);
+    gmb.SetStandardIcon(rc == PWSRC::SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
+    gmb.AddButton(IDS_OK, IDS_OK, TRUE, TRUE);
+    gmb.AddButton(IDS_VIEWREPORT, IDS_VIEWREPORT);
+    INT_PTR rc = gmb.DoModal();
+    if (rc == IDS_VIEWREPORT)
+      ViewReport(rpt);
+  }
+}
+
+void DboxMain::OnImportKeePassV1TXT()
+{
+  if (m_core.IsReadOnly()) // disable in read-only mode
+    return;
+
+  CString cs_text, cs_title, cs_temp;
+  cs_text.LoadString(IDS_PICKKEEPASSFILE);
+  std::wstring dir;
+  if (m_core.GetCurFile().empty())
+    dir = PWSdirs::GetSafeDir();
+  else {
+    std::wstring cdrive, cdir, dontCare;
+    pws_os::splitpath(m_core.GetCurFile().c_str(), cdrive, cdir, dontCare, dontCare);
+    dir = cdrive + cdir;
+  }
+
+  CPWFileDialog fd(TRUE,
+                   L"txt",
+                   NULL,
+                   OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_LONGNAMES,
+                   CString(MAKEINTRESOURCE(IDS_FDF_TXT_ALL)),
+                   this);
+
+  fd.m_ofn.lpstrTitle = cs_text;
+
+  if (!dir.empty())
+    fd.m_ofn.lpstrInitialDir = dir.c_str();
+
+  INT_PTR rc = fd.DoModal();
+
+  if (m_inExit) {
+    // If U3ExitNow called while in CPWFileDialog,
+    // PostQuitMessage makes us return here instead
+    // of exiting the app. Try resignalling 
+    PostQuitMessage(0);
+    return;
+  }
+
+  if (rc == IDOK) {
+    CGeneralMsgBox gmb;
+    bool bWasEmpty = m_core.GetNumEntries() == 0;
+    Command *pcmd = NULL;
+    StringX KPsFileName = fd.GetPathName();
+    int numImported, numSkipped, numRenamed;
+
+    // Create report as we go
+    CReport rpt;
+    std::wstring str_text;
+    LoadAString(str_text, IDS_RPTIMPORTKPV1TXT);
+    rpt.StartReport(str_text.c_str(), m_core.GetCurFile().c_str());
+    LoadAString(str_text, IDS_TEXT);
+    cs_temp.Format(IDS_IMPORTFILE, str_text.c_str(), KPsFileName.c_str());
+    rpt.WriteLine((LPCWSTR)cs_temp);
+    rpt.WriteLine();
+
+    rc = m_core.ImportKeePassV1TXTFile(KPsFileName, numImported, numSkipped, numRenamed,
+                                       rpt, pcmd);
+    switch (rc) {
+      case PWSRC::CANT_OPEN_FILE:
+      {
+        cs_temp.Format(IDS_CANTOPENREADING, KPsFileName.c_str());
+        cs_title.LoadString(IDS_FILEOPENERROR);
+        gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
+        delete [] pcmd;
+        break;
+      }
+      case PWSRC::INVALID_FORMAT:
+      {
+        cs_temp.Format(IDS_INVALIDFORMAT, KPsFileName.c_str());
+        cs_title.LoadString(IDS_FILEREADERROR);
+        gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
+        delete [] pcmd;
+        break;
+      }
+      case PWSRC::SUCCESS:
+      default: // deliberate fallthru
+        if (pcmd != NULL)
+          Execute(pcmd);
+
+        RefreshViews();
+        ChangeOkUpdate();
+        // May need to update menu/toolbar if original database was empty
+        if (bWasEmpty)
+          UpdateMenuAndToolBar(m_bOpen);
+
+        rpt.WriteLine();
+        CString cs_type;
+        cs_type.LoadString(numImported == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
+        cs_temp.Format(IDS_RECORDSIMPORTED, numImported, cs_type);
+        rpt.WriteLine((LPCWSTR)cs_temp);
+
+        cs_title.LoadString(rc == PWSRC::SUCCESS ? IDS_COMPLETE : IDS_OKWITHERRORS);
+
+        break;
+    } // switch
+    // Finish Report
+    rpt.EndReport();
+
+    gmb.SetTitle(cs_title);
+    gmb.SetMsg(cs_temp);
+    gmb.SetStandardIcon(rc == PWSRC::SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
+    gmb.AddButton(IDS_OK, IDS_OK, TRUE, TRUE);
+    gmb.AddButton(IDS_VIEWREPORT, IDS_VIEWREPORT);
+    INT_PTR rc = gmb.DoModal();
+    if (rc == IDS_VIEWREPORT)
+      ViewReport(rpt);
   }
 }
 
@@ -1855,7 +2006,6 @@ void DboxMain::OnImportXML()
   const std::wstring XSDfn(L"pwsafe.xsd");
   std::wstring XSDFilename = PWSdirs::GetXMLDir() + XSDfn;
 
-#if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
   if (!pws_os::FileExists(XSDFilename)) {
     CGeneralMsgBox gmb;
     cs_temp.Format(IDSC_MISSINGXSD, XSDfn.c_str());
@@ -1863,7 +2013,6 @@ void DboxMain::OnImportXML()
     gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONSTOP);
     return;
   }
-#endif
 
   CImportXMLDlg dlg;
   INT_PTR status = dlg.DoModal();
@@ -1908,7 +2057,6 @@ void DboxMain::OnImportXML()
     std::wstring strXMLErrors, strSkippedList, strPWHErrorList, strRenameList;
     CString XMLFilename = fd.GetPathName();
     int numValidated, numImported, numSkipped, numRenamed, numPWHErrors;
-    bool bBadUnknownFileFields, bBadUnknownRecordFields;
     bool bImportPSWDsOnly = dlg.m_bImportPSWDsOnly == TRUE;
 
     CWaitCursor waitCursor;  // This may take a while!
@@ -1929,7 +2077,6 @@ void DboxMain::OnImportXML()
                                    XSDFilename.c_str(), bImportPSWDsOnly,
                                    strXMLErrors, strSkippedList, strPWHErrorList, strRenameList,
                                    numValidated, numImported, numSkipped, numPWHErrors, numRenamed,
-                                   bBadUnknownFileFields, bBadUnknownRecordFields,
                                    rpt, pcmd);
     waitCursor.Restore();  // Restore normal cursor
 
@@ -1952,22 +2099,9 @@ void DboxMain::OnImportXML()
           Execute(pcmd);
 
         if (!strXMLErrors.empty() ||
-            bBadUnknownFileFields || bBadUnknownRecordFields ||
             numRenamed > 0 || numPWHErrors > 0) {
           if (!strXMLErrors.empty())
             csErrors = strXMLErrors + L"\n";
-
-          if (bBadUnknownFileFields) {
-            CString cs_type(MAKEINTRESOURCE(IDS_HEADER));
-            cs_temp.Format(IDS_XMLUNKNFLDIGNORED, cs_type);
-            csErrors += cs_temp + L"\n";
-          }
-
-          if (bBadUnknownRecordFields) {
-            CString cs_type(MAKEINTRESOURCE(IDS_RECORD));
-            cs_temp.Format(IDS_XMLUNKNFLDIGNORED, cs_type);
-            csErrors += cs_temp + L"\n";
-          }
 
           if (!csErrors.empty()) {
             rpt.WriteLine(csErrors.c_str());
@@ -2062,7 +2196,7 @@ void DboxMain::OnChangeMode()
 	   // But ask just in case	 
        CGeneralMsgBox gmb;	 
        CString cs_msg(MAKEINTRESOURCE(IDS_BACKOUT_CHANGES)), cs_title(MAKEINTRESOURCE(IDS_CHANGEMODE));	 
-       rc = gmb.MessageBox(cs_msg, cs_title, MB_YESNO | MB_ICONQUESTION);	 
+       INT_PTR rc = gmb.MessageBox(cs_msg, cs_title, MB_YESNO | MB_ICONQUESTION);	 
  	 
        if (rc == IDNO)	 
          return;
@@ -2073,7 +2207,7 @@ void DboxMain::OnChangeMode()
       }
     }
  
-    // Reset changed flag to stop being asked again (only if rc == PWScore::USER_DECLINED_SAVE)
+    // Reset changed flag to stop being asked again (only if rc == PWSRC::USER_DECLINED_SAVE)
     SetChanged(Clear);
 
     // Clear the Commands
@@ -2132,6 +2266,7 @@ void DboxMain::OnChangeMode()
       // could not release the lock!
       uiMsg = IDS_CM_FAIL_REASON2;
     }
+
     if (bInUse) {
       // Big message
       gmb.SetTitle(cs_title);
@@ -2544,16 +2679,16 @@ LRESULT DboxMain::OnProcessCompareResultFunction(WPARAM wParam, LPARAM lFunction
   PWScore *pcore;
   st_CompareInfo *st_info;
   LRESULT lres(FALSE);
-  uuid_array_t entryUUID;
+  CUUID entryUUID;
 
   st_info = (st_CompareInfo *)wParam;
 
   if (st_info->clicked_column == CCompareResultsDlg::CURRENT) {
     pcore = st_info->pcore0;
-    memcpy(entryUUID, st_info->uuid0, sizeof(entryUUID));
+    entryUUID = st_info->uuid0;
   } else {
     pcore = st_info->pcore1;
-    memcpy(entryUUID, st_info->uuid1, sizeof(entryUUID));
+    entryUUID = st_info->uuid1;
   }
 
   switch ((int)lFunction) {
@@ -3128,11 +3263,11 @@ void DboxMain::ReportAdvancedOptions(CReport *pRpt, const bool bAdvanced, const 
     int ifields[] = {CItemData::PASSWORD, CItemData::NOTES, CItemData::URL,
                      CItemData::AUTOTYPE, CItemData::PWHIST, CItemData::POLICY,
                      CItemData::RUNCMD, CItemData::DCA, CItemData::EMAIL,
-                     CItemData::SYMBOLS};
+                     CItemData::PROTECTED, CItemData::SYMBOLS};
     UINT uimsgids[] = {IDS_COMPPASSWORD, IDS_COMPNOTES, IDS_COMPURL,
                        IDS_COMPAUTOTYPE, IDS_COMPPWHISTORY, IDS_COMPPWPOLICY,
                        IDS_COMPRUNCOMMAND, IDS_COMPDCA, IDS_COMPEMAIL,
-                       IDS_COMPSYMBOLS};
+                       IDS_COMPPROTECTED, IDS_COMPSYMBOLS};
     ASSERT(_countof(ifields) == _countof(uimsgids));
 
     // Time fields

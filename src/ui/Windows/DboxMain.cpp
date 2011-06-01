@@ -388,7 +388,8 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_EXPORT2PLAINTEXT, OnExportText)
   ON_COMMAND(ID_MENUITEM_EXPORT2XML, OnExportXML)
   ON_COMMAND(ID_MENUITEM_IMPORT_PLAINTEXT, OnImportText)
-  ON_COMMAND(ID_MENUITEM_IMPORT_KEEPASS, OnImportKeePass)
+  ON_COMMAND(ID_MENUITEM_IMPORT_KEEPASSV1CSV, OnImportKeePassV1CSV)
+  ON_COMMAND(ID_MENUITEM_IMPORT_KEEPASSV1TXT, OnImportKeePassV1TXT)
   ON_COMMAND(ID_MENUITEM_IMPORT_XML, OnImportXML)
   ON_COMMAND(ID_MENUITEM_MERGE, OnMerge)
   ON_COMMAND(ID_MENUITEM_COMPARE, OnCompare)
@@ -445,9 +446,10 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_CHANGETREEFONT, OnChangeTreeFont)
   ON_COMMAND(ID_MENUITEM_CHANGEPSWDFONT, OnChangePswdFont)
   ON_COMMAND(ID_MENUITEM_VKEYBOARDFONT, OnChangeVKFont)
-  ON_COMMAND_RANGE(ID_MENUITEM_REPORT_COMPARE, ID_MENUITEM_REPORT_VALIDATE, OnViewReports)
-  ON_COMMAND_RANGE(ID_MENUITEM_REPORT_SYNCHRONIZE, ID_MENUITEM_REPORT_SYNCHRONIZE, OnViewReports)
-  ON_COMMAND_RANGE(ID_MENUITEM_REPORT_EXPORTTEXT, ID_MENUITEM_REPORT_EXPORTXML, OnViewReports)
+  ON_COMMAND_RANGE(ID_MENUITEM_REPORT_COMPARE, ID_MENUITEM_REPORT_VALIDATE, OnViewReportsByID)
+  ON_COMMAND_RANGE(ID_MENUITEM_REPORT_SYNCHRONIZE, ID_MENUITEM_REPORT_SYNCHRONIZE, OnViewReportsByID)
+  ON_COMMAND_RANGE(ID_MENUITEM_REPORT_EXPORTTEXT, ID_MENUITEM_REPORT_EXPORTXML, OnViewReportsByID)
+  ON_COMMAND_RANGE(ID_MENUITEM_REPORT_IMPORTKP1TXT, ID_MENUITEM_REPORT_IMPORTKP1CSV, OnViewReportsByID)
   ON_COMMAND(ID_MENUITEM_APPLYFILTER, OnApplyFilter)
   ON_COMMAND(ID_MENUITEM_EDITFILTER, OnSetFilter)
   ON_COMMAND(ID_MENUITEM_MANAGEFILTERS, OnManageFilters)
@@ -481,6 +483,8 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_VALIDATE, OnValidate)
   // Double-click on R-O R/W indicator on StatusBar
   ON_COMMAND(IDS_READ_ONLY, OnChangeMode)
+  // Double-click on filter indicator on StatusBar
+  ON_COMMAND(IDS_FILTER1, OnCancelFilter)
 
 #if defined(POCKET_PC)
   ON_WM_CREATE()
@@ -612,7 +616,8 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_EXPORT2XML, true, true, false, false},
   {ID_MENUITEM_IMPORT_XML, true, false, true, false},
   {ID_MENUITEM_IMPORT_PLAINTEXT, true, false, true, false},
-  {ID_MENUITEM_IMPORT_KEEPASS, true, false, true, false},
+  {ID_MENUITEM_IMPORT_KEEPASSV1CSV, true, false, true, false},
+  {ID_MENUITEM_IMPORT_KEEPASSV1TXT, true, false, true, false},
   {ID_MENUITEM_MERGE, true, false, true, false},
   {ID_MENUITEM_COMPARE, true, true, false, false},
   {ID_MENUITEM_SYNCHRONIZE, true, false, false, false},
@@ -676,6 +681,8 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_REPORT_COMPARE, true, true, true, true},
   {ID_MENUITEM_REPORT_FIND, true, true, true, true},
   {ID_MENUITEM_REPORT_IMPORTTEXT, true, true, true, true},
+  {ID_MENUITEM_REPORT_IMPORTKP1CSV, true, true, true, true},
+  {ID_MENUITEM_REPORT_IMPORTKP1TXT, true, true, true, true},
   {ID_MENUITEM_REPORT_IMPORTXML, true, true, true, true},
   {ID_MENUITEM_REPORT_EXPORTTEXT, true, true, true, true},
   {ID_MENUITEM_REPORT_EXPORTXML, true, true, true, true},
@@ -1009,7 +1016,6 @@ void DboxMain::InitPasswordSafe()
     std::wstring strErrors;
     std::wstring XSDFilename = PWSdirs::GetXMLDir() + L"pwsafe_filter.xsd";
 
-#if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
     if (!pws_os::FileExists(XSDFilename)) {
       CGeneralMsgBox gmb;
       CString cs_title, cs_msg, cs_temp;
@@ -1019,7 +1025,6 @@ void DboxMain::InitPasswordSafe()
       gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONSTOP);
       return;
     }
-#endif
 
     MFCAsker q;
     int rc;
@@ -1171,7 +1176,7 @@ BOOL DboxMain::OnInitDialog()
           return FALSE;
         }
         m_core.SetCurFile(fname.c_str());
-        m_core.NewFile(dbox_pksetup.m_passkey);
+        m_core.NewFile(dbox_pksetup.GetPassKey());
         m_core.SetReadOnly(false); 
         rc = m_core.WriteCurFile();
         if (rc == PWSRC::CANT_OPEN_FILE) {
@@ -1517,8 +1522,13 @@ void DboxMain::DoBrowse(const bool bDoAutotype, const bool bSendEmail)
       StringX sxautotype = PWSAuxParse::GetAutoTypeString(*pci, m_core,
                                                           vactionverboffsets);
       LaunchBrowser(cs_command, sxautotype, vactionverboffsets, bDoAutotype);
-      SetClipboardData(sx_pswd);
-      UpdateLastClipboardAction(CItemData::PASSWORD);
+
+      if (PWSprefs::GetInstance()->GetPref(PWSprefs::CopyPasswordWhenBrowseToURL)) {
+        SetClipboardData(sx_pswd);
+        UpdateLastClipboardAction(CItemData::PASSWORD);
+      } else
+        UpdateLastClipboardAction(CItemData::URL);
+
       UpdateAccessTime(pci_original);
     }
   }
@@ -1635,6 +1645,16 @@ void DboxMain::OnU3ShopWebsite()
 #endif
 }
 
+int DboxMain::CheckPasskey(const StringX &filename, const StringX &passkey,
+                           PWScore *pcore)
+{
+  // To ensure values in current core are not overwritten when checking the passkey
+  if (pcore == NULL)
+    return m_core.CheckPasskey(filename, passkey);
+  else
+    return pcore->CheckPasskey(filename, passkey);
+}
+
 static CPasskeyEntry *dbox_pkentry = NULL;
 
 int DboxMain::GetAndCheckPassword(const StringX &filename,
@@ -1669,7 +1689,8 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
     // original thread will continue processing
   }
 
-  if (pcore == 0) pcore = &m_core;
+  if (pcore == 0)
+    pcore = &m_core;
 
   if (!filename.empty()) {
     bool exists = pws_os::FileExists(filename.c_str(), bFileIsReadOnly);
@@ -1720,29 +1741,32 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
     pcore->SetCurFile(curFile);
     std::wstring locker(L""); // null init is important here
     passkey = LPCWSTR(dbox_pkentry->GetPasskey());
+
     // This dialog's setting of read-only overrides file dialog
     bool bIsReadOnly = dbox_pkentry->IsReadOnly();
     pcore->SetReadOnly(bIsReadOnly);
+
     // Set read-only mode if user explicitly requested it OR
     // we could not create a lock file.
     switch (index) {
-    case GCP_FIRST: // if first, then m_IsReadOnly is set in Open
-      pcore->SetReadOnly(bIsReadOnly || !pcore->LockFile(curFile.c_str(), locker));
-      break;
-    case GCP_NORMAL:
-      if (!bIsReadOnly) // !first, lock if !bIsReadOnly
-        pcore->SetReadOnly(!pcore->LockFile(curFile.c_str(), locker));
-      else
-        pcore->SetReadOnly(bIsReadOnly);
-      break;
-    case GCP_RESTORE:
-    case GCP_WITHEXIT:
-    default:
-      // user can't change R-O status
-      break;
+      case GCP_FIRST: // if first, then m_IsReadOnly is set in Open
+        pcore->SetReadOnly(bIsReadOnly || !pcore->LockFile(curFile.c_str(), locker));
+        break;
+      case GCP_NORMAL:
+        if (!bIsReadOnly) // !first, lock if !bIsReadOnly
+          pcore->SetReadOnly(!pcore->LockFile(curFile.c_str(), locker));
+        else
+          pcore->SetReadOnly(bIsReadOnly);
+        break;
+      case GCP_RESTORE:
+      case GCP_WITHEXIT:
+      default:
+        // user can't change R-O status
+        break;
     }
 
     UpdateToolBarROStatus(bIsReadOnly);
+
     // locker won't be null IFF tried to lock and failed, in which case
     // it shows the current file locker
     if (!locker.empty()) {
@@ -1777,22 +1801,22 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
 #endif
       INT_PTR user_choice = gmb.DoModal();
       switch (user_choice) {
-      case IDS_READONLY:
-        pcore->SetReadOnly(true);
-        UpdateToolBarROStatus(true);
-        retval = PWSRC::SUCCESS;
-        break;
-      case IDS_READWRITE:
-        pcore->SetReadOnly(false); // Caveat Emptor!
-        UpdateToolBarROStatus(false);
-        retval = PWSRC::SUCCESS;
-        break;
-      case IDS_EXIT:
-        retval = PWSRC::USER_CANCEL;
-        break;
-      default:
-        ASSERT(false);
-        retval = PWSRC::USER_CANCEL;
+        case IDS_READONLY:
+          pcore->SetReadOnly(true);
+          UpdateToolBarROStatus(true);
+          retval = PWSRC::SUCCESS;
+          break;
+        case IDS_READWRITE:
+          pcore->SetReadOnly(false); // Caveat Emptor!
+          UpdateToolBarROStatus(false);
+          retval = PWSRC::SUCCESS;
+          break;
+        case IDS_EXIT:
+          retval = PWSRC::USER_CANCEL;
+          break;
+        default:
+          ASSERT(false);
+          retval = PWSRC::USER_CANCEL;
       }
     } else { // locker.IsEmpty() means no lock needed or lock was successful
       if (dbox_pkentry->GetStatus() == TAR_NEW) {
@@ -1817,19 +1841,19 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
   } else {/*if (rc==IDCANCEL) */ //Determine reason for cancel
     int cancelreturn = dbox_pkentry->GetStatus();
     switch (cancelreturn) {
-    case TAR_OPEN:
-      ASSERT(0); // now handled entirely in CPasskeyEntry
-    case TAR_CANCEL:
-    case TAR_NEW:
-      retval = PWSRC::USER_CANCEL;
-      break;
-    case TAR_EXIT:
-      retval = PWSRC::USER_EXIT;
-      break;
-    default:
-      DBGMSG("Default to WRONG_PASSWORD\n");
-      retval = PWSRC::WRONG_PASSWORD;  //Just a normal cancel
-      break;
+      case TAR_OPEN:
+        ASSERT(0); // now handled entirely in CPasskeyEntry
+      case TAR_CANCEL:
+      case TAR_NEW:
+        retval = PWSRC::USER_CANCEL;
+        break;
+      case TAR_EXIT:
+        retval = PWSRC::USER_EXIT;
+        break;
+      default:
+        DBGMSG("Default to WRONG_PASSWORD\n");
+        retval = PWSRC::WRONG_PASSWORD;  //Just a normal cancel
+        break;
     }
   }
   delete dbox_pkentry;
@@ -2510,9 +2534,7 @@ void DboxMain::UpdateAccessTime(CItemData *pci)
   ASSERT(pci != NULL);
 
   // First add to RUE List
-  uuid_array_t RUEuuid;
-  pci->GetUUID(RUEuuid);
-  m_RUEList.AddRUEntry(RUEuuid);
+  m_RUEList.AddRUEntry(pci->GetUUID());
 
   bool bMaintainDateTimeStamps = PWSprefs::GetInstance()->
               GetPref(PWSprefs::MaintainDateTimeStamps);
@@ -3135,6 +3157,8 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
     case ID_MENUITEM_REPORT_FIND:
     case ID_MENUITEM_REPORT_IMPORTTEXT:
     case ID_MENUITEM_REPORT_IMPORTXML:
+    case ID_MENUITEM_REPORT_IMPORTKP1CSV:
+    case ID_MENUITEM_REPORT_IMPORTKP1TXT:
     case ID_MENUITEM_REPORT_EXPORTTEXT:
     case ID_MENUITEM_REPORT_EXPORTXML:
     case ID_MENUITEM_REPORT_MERGE:
@@ -3180,18 +3204,18 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
                            ID_TOOLBUTTON_FINDCASE_S : ID_TOOLBUTTON_FINDCASE_I, 
                            m_FindToolBar.IsFindCaseSet());
       return -1;
-    case ID_FILTERMENU:
-      if (m_bUnsavedDisplayed)
-        iEnable = FALSE;
-      break;
     case ID_MENUITEM_SHOWHIDE_UNSAVED:
+      // Filter sub-menu mutally exclusive with use of inernal filters for
+      // display of unsaved entries or expired entries
       if (!m_core.IsChanged() || 
-          (m_core.IsChanged() && m_bFilterActive && !m_bUnsavedDisplayed && !m_bExpireDisplayed))
+          (m_bFilterActive && !m_bUnsavedDisplayed))
         iEnable = FALSE;
       break;
     case ID_MENUITEM_SHOW_ALL_EXPIRY:
+      // Filter sub-menu mutally exclusive with use of inernal filters for
+      // display of unsaved entries or expired entries
       if (m_core.GetExpirySize() == 0 ||
-          (m_core.GetExpirySize() == 0 && m_bFilterActive && !m_bUnsavedDisplayed && !m_bExpireDisplayed))
+          (m_bFilterActive && !m_bExpireDisplayed))
         iEnable = FALSE;
       break;
     case ID_MENUITEM_VIEWATTACHMENTS:
@@ -3228,7 +3252,8 @@ int DboxMain::OnUpdateMenuToolbar(const UINT nID)
         case ID_MENUITEM_ADDGROUP:
         case ID_MENUITEM_DUPLICATEGROUP:
         case ID_MENUITEM_DUPLICATEENTRY:
-        case ID_MENUITEM_IMPORT_KEEPASS:
+        case ID_MENUITEM_IMPORT_KEEPASSV1TXT:
+        case ID_MENUITEM_IMPORT_KEEPASSV1CSV:
         case ID_MENUITEM_IMPORT_PLAINTEXT:
         case ID_MENUITEM_IMPORT_XML:
         case ID_MENUITEM_MERGE:

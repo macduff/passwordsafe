@@ -56,23 +56,21 @@ PWSAttfile::~PWSAttfile()
 
 PWSAttfile::AttHeaderRecord::AttHeaderRecord()
   : nCurrentMajorVersion(0), nCurrentMinorVersion(0),
-  nITER(0),
+  nITER(0), attfile_uuid(CUUID::NullUUID()), 
+  DBfile_uuid(CUUID::NullUUID()),
   whenlastsaved(0), whatlastsaved(_T("")),
   lastsavedby(_T("")), lastsavedon(_T(""))
 {
-  memset(attfile_uuid, 0, sizeof(uuid_array_t));
-  memset(DBfile_uuid, 0, sizeof(uuid_array_t));
 }
 
 PWSAttfile::AttHeaderRecord::AttHeaderRecord(const PWSAttfile::AttHeaderRecord &ahr)
   : nCurrentMajorVersion(ahr.nCurrentMajorVersion),
   nCurrentMinorVersion(ahr.nCurrentMinorVersion),
-  nITER(ahr.nITER),
+  nITER(ahr.nITER), attfile_uuid(ahr.attfile_uuid),
+  DBfile_uuid(ahr.DBfile_uuid),
   whenlastsaved(ahr.whenlastsaved), whatlastsaved(ahr.whatlastsaved),
   lastsavedby(ahr.lastsavedby), lastsavedon(ahr.lastsavedon)
 {
-  memcpy(attfile_uuid, ahr.attfile_uuid, sizeof(uuid_array_t));
-  memcpy(DBfile_uuid, ahr.DBfile_uuid, sizeof(uuid_array_t));
 }
 
 PWSAttfile::AttHeaderRecord &PWSAttfile::AttHeaderRecord::operator=(const PWSAttfile::AttHeaderRecord &ahr)
@@ -85,8 +83,8 @@ PWSAttfile::AttHeaderRecord &PWSAttfile::AttHeaderRecord::operator=(const PWSAtt
     whatlastsaved = ahr.whatlastsaved;
     lastsavedby = ahr.lastsavedby;
     lastsavedon = ahr.lastsavedon;
-    memcpy(attfile_uuid, ahr.attfile_uuid, sizeof(uuid_array_t));
-    memcpy(DBfile_uuid, ahr.DBfile_uuid, sizeof(uuid_array_t));
+    attfile_uuid = ahr.attfile_uuid;
+    DBfile_uuid = ahr.DBfile_uuid;
   }
   return *this;
 }

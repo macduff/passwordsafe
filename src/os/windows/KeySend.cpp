@@ -76,6 +76,7 @@ void CKeySendImpl::NewSendChar(TCHAR c)
 
   bool tabWait = false; // if sending tab\newline, wait a bit after send
   //                       for the dust to settle. Thanks to Larry...
+  
   switch (c) {
     case L'\t':
     case L'\r':
@@ -98,7 +99,7 @@ void CKeySendImpl::NewSendChar(TCHAR c)
   if (status != 2)
     pws_os::Trace(L"CKeySend::SendChar: SendInput failed status=%d\n", status);
   // wait at least 200 mS if we just sent a tab, regardless of m_delay
-  int delay = ( m_delay < 200 && tabWait) ? 200 : m_delay;
+  int delay = (m_delay < 200 && tabWait) ? 200 : m_delay;
   ::Sleep(delay);
 }
 

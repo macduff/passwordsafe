@@ -100,7 +100,7 @@ int PWSAttfileV3::Close()
     }
     return  PWSAttfile::Close();
   } else { // Read
-    // We're here *after* TERMINAL_BLOCK has been read
+    // We're here *after* ATT_TERMINAL_BLOCK has been read
     // and detected (by _readcbc) - just read hmac & verify
     unsigned char d[HMAC_SHA256::HASHLEN];
     fread(d, sizeof(d), 1, m_fd);
@@ -115,6 +115,48 @@ int PWSAttfileV3::Close()
 
 const char V3ATT_TAG[4] = {'P','A','T','3'}; // ASCII chars, not wchar
 
+int PWSAttfileV3::SanityCheck(FILE *stream)
+{
+  int retval = PWSRC::SUCCESS;
+  ASSERT(stream != NULL);
+
+  // Is file too small?
+  const long min_file_length = 232; // pre + post, no hdr or records
+  if (pws_os::fileLength(stream) < min_file_length)
+    return PWSRC::TRUNCATED_FILE;
+
+  long pos = ftell(stream); // restore when we're done
+  // Does file have a valid header?
+  char tag[sizeof(V3ATT_TAG)];
+  size_t nread = fread(tag, sizeof(tag), 1, stream);
+  if (nread != 1) {
+    retval = PWSRC::READ_FAIL;
+    goto err;
+  }
+  if (memcmp(tag, V3ATT_TAG, sizeof(tag)) != 0) {
+    retval = PWSRC::NOT_PWS3_FILE;
+    goto err;
+  }
+
+  // Does file have a valid EOF block?
+  unsigned char eof_block[sizeof(ATT_TERMINAL_BLOCK)];
+  if (fseek(stream, -int(sizeof(ATT_TERMINAL_BLOCK) + HMAC_SHA256::HASHLEN), SEEK_END) != 0) {
+    retval = PWSRC::READ_FAIL; // actually, seek error, but that's too nuanced
+    goto err;
+  }
+  nread = fread(eof_block, sizeof(eof_block), 1, stream);
+  if (nread != 1) {
+    retval = PWSRC::READ_FAIL;
+    goto err;
+  }
+  if (memcmp(eof_block, ATT_TERMINAL_BLOCK, sizeof(ATT_TERMINAL_BLOCK)) != 0)
+    retval = PWSRC::TRUNCATED_FILE;
+
+err:
+  fseek(stream, pos, SEEK_SET);
+  return retval;
+}
+
 int PWSAttfileV3::CheckPasskey(const StringX &filename, const StringX &passkey,
                                FILE *a_fd, unsigned char *aPtag, int *nITER)
 {
@@ -128,13 +170,11 @@ int PWSAttfileV3::CheckPasskey(const StringX &filename, const StringX &passkey,
   if (fd == NULL)
     return PWSRC::CANT_OPEN_FILE;
 
-  char tag[sizeof(V3ATT_TAG)];
-  fread(tag, 1, sizeof(tag), fd);
-  if (memcmp(tag, V3ATT_TAG, sizeof(tag)) != 0) {
-    retval = PWSRC::NOT_PWS3_FILE;
+  retval = SanityCheck(fd);
+  if (retval != PWSRC::SUCCESS)
     goto err;
-  }
 
+  fseek(fd, sizeof(V3ATT_TAG), SEEK_SET); // skip over tag
   unsigned char salt[SaltLengthV3];
   fread(salt, 1, sizeof(salt), fd);
 
@@ -199,11 +239,8 @@ int PWSAttfileV3::WriteAttmntRecordPreData(const ATRecord &atr)
   // so that it is read in before the actual attachment data is read  *
   // just in case we wish to skip reading it depending on its value   *
   // ******************************************************************
-  uuid_array_t uuid_array;
-  atr.attmt_uuid.GetUUID(uuid_array);
-  WriteCBC(ATTMT_UUID, uuid_array, sizeof(uuid_array_t));
-  atr.entry_uuid.GetUUID(uuid_array);
-  WriteCBC(ATTMT_ENTRY_UUID, uuid_array, sizeof(uuid_array_t));
+  WriteCBC(ATTMT_UUID, *atr.attmt_uuid.GetARep(), sizeof(uuid_array_t));
+  WriteCBC(ATTMT_ENTRY_UUID, *atr.entry_uuid.GetARep(), sizeof(uuid_array_t));
 
   WriteCBC(ATTMT_FLAGS, &atr.flags, sizeof(atr.flags));
 
@@ -280,7 +317,7 @@ int PWSAttfileV3::ReadAttmntRecordPreData(ATRecord &atr)
   uint32 uint;
   time_t t;
   bool go(true);
-  uuid_array_t uuid_array;
+  uuid_array_t ua;
 
   do {
     unsigned char *utf8 = NULL;
@@ -291,18 +328,18 @@ int PWSAttfileV3::ReadAttmntRecordPreData(ATRecord &atr)
       numread += fieldLen;
       switch (type) {
         case ATTMT_UUID:
-          if (utf8Len != sizeof(uuid_array_t)) {
+          if (utf8Len != sizeof(ua)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
-          memcpy(uuid_array, utf8, sizeof(uuid_array_t));
-          atr.attmt_uuid = uuid_array;
+          memcpy(ua, utf8, sizeof(ua));
+          atr.attmt_uuid = pws_os::CUUID(ua);
           break;
         case ATTMT_ENTRY_UUID:
-          if (utf8Len != sizeof(uuid_array_t)) {
+          if (utf8Len != sizeof(ua)) {
             go = false; status = PWSRC::BAD_ATTACHMENT; break;
           }
-          memcpy(uuid_array, utf8, sizeof(uuid_array_t));
-          atr.entry_uuid = uuid_array;
+          memcpy(ua, utf8, sizeof(ua));
+          atr.entry_uuid = pws_os::CUUID(ua);
           break;
         case ATTMT_FLAGS:
           if (utf8Len != 1) {
@@ -705,11 +742,11 @@ int PWSAttfileV3::WriteHeader()
   if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
 
   // Write UUIDs
-  numWritten = WriteCBC(ATTHDR_FILEUUID, m_atthdr.attfile_uuid,
+  numWritten = WriteCBC(ATTHDR_FILEUUID, *m_atthdr.attfile_uuid.GetARep(),
                         sizeof(uuid_array_t));
   if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
 
-  numWritten = WriteCBC(ATTHDR_DBUUID, m_atthdr.DBfile_uuid,
+  numWritten = WriteCBC(ATTHDR_DBUUID, *m_atthdr.DBfile_uuid.GetARep(),
                         sizeof(uuid_array_t));
   if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
 
@@ -782,6 +819,7 @@ int PWSAttfileV3::ReadHeader()
   bool utf8status;
   unsigned char *utf8 = NULL;
   size_t utf8Len = 0;
+  uuid_array_t ua;
 
   do {
     numRead = ReadCBC(fieldType, utf8, utf8Len);
@@ -817,7 +855,8 @@ int PWSAttfileV3::ReadHeader()
           Close();
           return PWSRC::FAILURE;
         }
-        memcpy(m_atthdr.attfile_uuid, utf8, sizeof(uuid_array_t));
+        memcpy(ua, utf8, sizeof(ua));
+        m_atthdr.attfile_uuid = pws_os::CUUID(ua);
         break;
 
       case ATTHDR_DBUUID: /* DBase UUID */
@@ -826,7 +865,8 @@ int PWSAttfileV3::ReadHeader()
           Close();
           return PWSRC::FAILURE;
         }
-        memcpy(m_atthdr.DBfile_uuid, utf8, sizeof(uuid_array_t));
+        memcpy(ua, utf8, sizeof(ua));
+        m_atthdr.DBfile_uuid = pws_os::CUUID(ua);
         break;
 
       case ATTHDR_LASTUPDATETIME: /* When last saved */

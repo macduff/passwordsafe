@@ -30,6 +30,7 @@
 #include "resource3.h"
 
 #include <iomanip>
+#include <shlobj.h>
 
 static wchar_t PSSWDCHAR = L'*';
 
@@ -37,7 +38,7 @@ IMPLEMENT_DYNAMIC(CWZSelectDB, CWZPropertyPage)
 
 CWZSelectDB::CWZSelectDB(CWnd *pParent, UINT nIDCaption, const int nType)
  : CWZPropertyPage(IDD, nIDCaption, nType), m_tries(0), m_state(0), m_pVKeyBoardDlg(NULL),
- m_bAdvanced(BST_UNCHECKED)
+ m_bAdvanced(BST_UNCHECKED), m_bFileExistsUserAsked(false)
 {
   // Save pointer to my PropertySheet
   m_pWZPSH = (CWZPropertySheet *)pParent;
@@ -338,14 +339,61 @@ LRESULT CWZSelectDB::OnWizardNext()
   CGeneralMsgBox gmb;
 
   const UINT nID = m_pWZPSH->GetID();
-  if ((nID == ID_MENUITEM_SYNCHRONIZE ||
-       nID == ID_MENUITEM_COMPARE ||
-       nID == ID_MENUITEM_MERGE) &&
-      !pws_os::FileExists(m_filespec.GetString())) {
-    // Database must exits for these
-    gmb.AfxMessageBox(IDS_FILEPATHNOTFOUND);
-    m_pctlDB->SetFocus();
-    return -1;
+  bool bFileExists = pws_os::FileExists(m_filespec.GetString());
+  bool bExportXML(true);
+
+  switch (nID) {
+    case ID_MENUITEM_COMPARE:
+    case ID_MENUITEM_MERGE:
+    case ID_MENUITEM_SYNCHRONIZE:
+      if (!bFileExists) {
+        // Database must exit for these if other database does not exist
+        gmb.AfxMessageBox(IDS_FILEPATHNOTFOUND);
+        m_pctlDB->SetFocus();
+        return -1;
+      }
+      break;
+    case ID_MENUITEM_EXPORT2PLAINTEXT:
+    case ID_MENUITEM_EXPORTENT2PLAINTEXT:
+      bExportXML = false; // Fall through on purpose
+    case ID_MENUITEM_EXPORT2XML:
+    case ID_MENUITEM_EXPORTENT2XML:
+      if (bFileExists) {
+        // Check if OK to overwrite existing file - if not already asked by user clicking
+        // file browser button
+        if (!m_bFileExistsUserAsked) {
+          CString cs_msg, cs_title(MAKEINTRESOURCE(bExportXML ? IDS_WZEXPORTXML : IDS_WZEXPORTTEXT));
+          cs_msg.Format(IDS_REPLACEEXPORTFILE, m_filespec);
+          INT_PTR rc = gmb.AfxMessageBox(cs_msg, cs_title,
+                         MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2);
+          if (rc == IDNO) {
+            m_pctlDB->SetFocus();
+            return -1;
+          }
+        }
+      } else {
+        // File does not exist - but need to check if the path exists as
+        // pws_os::FOpen(...) cannot create any missing directories
+        std::wstring dir, cdrive, cdir, cfile, cextn;
+        pws_os::splitpath(m_filespec.GetString(), cdrive, cdir, cfile, cextn);
+        dir = cdrive + cdir;
+        int rc = ::SHCreateDirectoryEx(NULL, dir.c_str(), NULL);
+        switch (rc) {
+          case ERROR_SUCCESS:          // Path created
+          case ERROR_FILE_EXISTS:      // Directory already there
+          case ERROR_ALREADY_EXISTS:   // Directory already there
+            break;
+          default:
+            // Could not create path!
+            gmb.AfxMessageBox(IDS_CANNOTCREATEDIR);
+            return -1;
+        }
+      }
+      break;
+    default:
+      // No idea why here!
+      ASSERT(0);
+      return -1;
   }
 
   if (m_passkey.IsEmpty()) {
@@ -354,7 +402,7 @@ LRESULT CWZSelectDB::OnWizardNext()
     return -1;
   }
 
-  //Check that this file isn't already open
+  // Check that this file isn't already open
   const StringX sx_Filename1(m_pWZPSH->WZPSHGetCurFile());
   const StringX sx_Filename2 = m_filespec.GetString();
   const StringX sx_passkey = StringX(m_passkey);
@@ -381,10 +429,14 @@ LRESULT CWZSelectDB::OnWizardNext()
 
 bool CWZSelectDB::ProcessPhrase(const StringX &filename, const StringX &passkey)
 {
-  if (m_pWZPSH->WZPSHCheckPasskey(filename, passkey) == PWSRC::SUCCESS) {
+  PWScore *pothercore = new PWScore;
+  if (m_pWZPSH->WZPSHCheckPasskey(filename, passkey, pothercore) == PWSRC::SUCCESS) {
     m_tries = 0;
+    delete [] pothercore;
     return true;
   }
+
+  delete [] pothercore;
 
   if (m_tries >= 2) {
     CTryAgainDlg errorDlg(this);
@@ -415,6 +467,7 @@ void CWZSelectDB::OnOpenFileBrowser()
   UINT uimsgid(IDS_CHOOSEDATABASE);
 
   const UINT nID = m_pWZPSH->GetID();
+  BOOL bTYPE_OPEN(FALSE); // TRUE = Open, FALSE = Save
 
   switch (nID) {
     case ID_MENUITEM_SYNCHRONIZE:
@@ -424,8 +477,10 @@ void CWZSelectDB::OnOpenFileBrowser()
       cs_filter.LoadString(IDS_FDF_DB_BU_ALL);
       dwflags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY |
                             OFN_LONGNAMES | OFN_READONLY;
+      bTYPE_OPEN = TRUE;
       break;
     case ID_MENUITEM_EXPORT2PLAINTEXT:
+    case ID_MENUITEM_EXPORTENT2PLAINTEXT:
       cs_suffix = L"txt";
       cs_filter.LoadString(IDS_FDF_T_C_ALL);
       dwflags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY |
@@ -433,6 +488,7 @@ void CWZSelectDB::OnOpenFileBrowser()
       uimsgid = IDS_NAMETEXTFILE;
       break;
     case ID_MENUITEM_EXPORT2XML:
+    case ID_MENUITEM_EXPORTENT2XML:
       cs_suffix = L"xml";
       cs_filter.LoadString(IDS_FDF_X_ALL);
       dwflags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY |
@@ -446,7 +502,7 @@ void CWZSelectDB::OnOpenFileBrowser()
   CString cs_text(MAKEINTRESOURCE(uimsgid));
 
   std::wstring ExportFileName = PWSUtil::GetNewFileName(m_pWZPSH->WZPSHGetCurFile().c_str(), L"txt");
-  CPWFileDialog fd(TRUE, cs_suffix, uimsgid != IDS_CHOOSEDATABASE ? ExportFileName.c_str() : NULL, 
+  CPWFileDialog fd(bTYPE_OPEN, cs_suffix, uimsgid != IDS_CHOOSEDATABASE ? ExportFileName.c_str() : NULL, 
                    dwflags, cs_filter, this);
 
   fd.m_ofn.lpstrTitle = cs_text;
@@ -485,6 +541,10 @@ void CWZSelectDB::OnOpenFileBrowser()
     if (m_pctlPasskey->IsWindowEnabled() == TRUE) {
       m_pctlPasskey->SetFocus();
     }
+    // If the file exists and we are doing a save, CFileDialog
+    // would have prompted the user
+    if (bTYPE_OPEN == FALSE && pws_os::FileExists(m_filespec.GetString()))
+      m_bFileExistsUserAsked = true;
   } // rc == IDOK
 }
 

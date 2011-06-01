@@ -110,7 +110,7 @@ void DboxMain::UpdateGUI(UpdateGUICommand::GUI_Action ga,
   // the GUI should not be updated until after the Add.
   CItemData *pci(NULL);
 
-  ItemListIter pos = Find(*entry_uuid.GetUUID());
+  ItemListIter pos = Find(entry_uuid);
   if (pos != End()) {
     pci = &pos->second;
   }
@@ -483,7 +483,7 @@ void DboxMain::setupBars()
     // Set up the rest - all but one empty as pane now re-sized according to contents
     statustext[CPWStatusBar::SB_MODIFIED] = IDS_BLANK;
     statustext[CPWStatusBar::SB_NUM_ENT] = IDS_BLANK;
-    statustext[CPWStatusBar::SB_FILTER] = IDS_BLANK;
+    statustext[CPWStatusBar::SB_FILTER] = IDS_FILTER1;
     statustext[CPWStatusBar::SB_READONLY] = IDS_READ_ONLY;
 
     // And show
@@ -922,10 +922,18 @@ void DboxMain::RefreshViews(const int iView)
 
   if (m_core.GetNumEntries() == 0) {
     if (iView & iListOnly) {
+      if (m_ctlItemList.GetItemCount() > 0) {
+        m_ctlItemList.SetRedraw(FALSE);
+        m_ctlItemList.DeleteAllItems();
+      }
       m_ctlItemList.SetRedraw(TRUE); 
       m_ctlItemList.Invalidate();
     }
     if (iView & iTreeOnly) {
+      if (m_ctlItemTree.GetCount () > 0) {
+        m_ctlItemTree.SetRedraw(FALSE);
+        m_ctlItemTree.DeleteAllItems();
+      }
       m_ctlItemTree.SetRedraw(TRUE);
       m_ctlItemTree.Invalidate();
     }
@@ -1528,6 +1536,9 @@ int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex,
 CItemData *DboxMain::getSelectedItem()
 {
   CItemData *pci = NULL;
+  if (m_core.GetNumEntries() == 0)
+    return pci;
+
   if (m_ctlItemList.IsWindowVisible()) { // list view
     POSITION p = m_ctlItemList.GetFirstSelectedItemPosition();
     if (p) {
@@ -1823,7 +1834,7 @@ void DboxMain::SetToolbar(const int menuItem, bool bInit)
       m_DDNotes.Init(IDB_DRAGNOTES_NEW, IDB_DRAGNOTESX_NEW);
       m_DDURL.Init(IDB_DRAGURL_NEW, IDB_DRAGURLX_NEW);
       m_DDemail.Init(IDB_DRAGEMAIL_NEW, IDB_DRAGEMAILX_NEW);
-      m_DDAutotype.ReInit(IDB_AUTOTYPE_NEW, IDB_DRAGAUTOX_NEW);
+      m_DDAutotype.Init(IDB_AUTOTYPE_NEW, IDB_DRAGAUTOX_NEW);
     } else if (menuItem == ID_MENUITEM_OLD_TOOLBAR) {
       m_DDGroup.Init(IDB_DRAGGROUP_CLASSIC, IDB_DRAGGROUPX_CLASSIC);
       m_DDTitle.Init(IDB_DRAGTITLE_CLASSIC, IDB_DRAGTITLEX_CLASSIC);
@@ -1867,8 +1878,7 @@ void DboxMain::SetToolbar(const int menuItem, bool bInit)
     }
     m_DDGroup.Invalidate(); m_DDTitle.Invalidate(); m_DDUser.Invalidate();
     m_DDPassword.Invalidate(); m_DDNotes.Invalidate(); m_DDURL.Invalidate();
-    m_DDemail.Invalidate();
-    m_DDAutotype.Invalidate();
+    m_DDemail.Invalidate(); m_DDAutotype.Invalidate();
   }
   m_menuManager.SetImageList(&m_MainToolBar);
 
@@ -2917,6 +2927,7 @@ void DboxMain::OnViewReports()
 
   int Reports[] = {
     IDS_RPTCOMPARE, IDS_RPTFIND, IDS_RPTIMPORTTEXT, IDS_RPTIMPORTXML,
+    IDS_RPTIMPORTKPV1CSV, IDS_RPTIMPORTKPV1TXT,
     IDS_RPTEXPORTTEXT, IDS_RPTEXPORTXML,
     IDS_RPTMERGE, IDS_RPTSYNCH, IDS_RPTVALIDATE,
   };
@@ -2946,6 +2957,8 @@ void DboxMain::OnViewReports()
     case IDS_RPTFIND:
     case IDS_RPTIMPORTTEXT:
     case IDS_RPTIMPORTXML:
+    case IDS_RPTIMPORTKPV1CSV:
+    case IDS_RPTIMPORTKPV1TXT:
     case IDS_RPTEXPORTTEXT:
     case IDS_RPTEXPORTXML:
     case IDS_RPTMERGE:
@@ -2974,6 +2987,10 @@ static UINT SetupViewReports(const int nID)
     return IDS_RPTIMPORTTEXT;
   case ID_MENUITEM_REPORT_IMPORTXML:
     return IDS_RPTIMPORTXML;
+  case ID_MENUITEM_REPORT_IMPORTKP1CSV:
+    return IDS_RPTIMPORTKPV1CSV;
+  case ID_MENUITEM_REPORT_IMPORTKP1TXT:
+    return IDS_RPTIMPORTKPV1TXT;
   case ID_MENUITEM_REPORT_MERGE:
     return IDS_RPTMERGE;
   case ID_MENUITEM_REPORT_SYNCHRONIZE:
@@ -2991,7 +3008,7 @@ static UINT SetupViewReports(const int nID)
   }
 }
 
-void DboxMain::OnViewReports(UINT nID)
+void DboxMain::OnViewReportsByID(UINT nID)
 {
   CString cs_filename, cs_path, csAction;
   CString cs_drive, cs_directory;
@@ -3334,6 +3351,8 @@ void DboxMain::OnToolBarFindReport()
       buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPURL));
     if (bsFFields.test(CItemData::EMAIL))
       buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPEMAIL));
+    if (bsFFields.test(CItemData::PROTECTED))
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPPROTECTED));
     if (bsFFields.test(CItemData::SYMBOLS))
       buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPSYMBOLS));
     if (bsFFields.test(CItemData::RUNCMD))
@@ -3443,9 +3462,7 @@ int DboxMain::GetEntryImage(const CItemData &ci) const
   }
 
 check_for_attachments:
-  uuid_array_t entry_uuid;
-  ci.GetUUID(entry_uuid);
-  if (entrytype != CItemData::ET_SHORTCUT && m_core.HasAttachments(entry_uuid) > 0) {
+  if (entrytype != CItemData::ET_SHORTCUT && m_core.HasAttachments(ci.GetUUID()) > 0) {
     nImage = -nImage;
   }
   return nImage;
@@ -3837,9 +3854,7 @@ void DboxMain::UpdateToolBarDoUndo()
 
 void DboxMain::AddToGUI(CItemData &ci)
 {
-  uuid_array_t uuid;
-  ci.GetUUID(uuid);
-  int newpos = InsertItemIntoGUITreeList(m_core.GetEntry(m_core.Find(uuid)));
+  int newpos = InsertItemIntoGUITreeList(m_core.GetEntry(m_core.Find(ci.GetUUID())));
 
   if (newpos >= 0) {
     SelectEntry(newpos);
@@ -3854,9 +3869,7 @@ void DboxMain::RemoveFromGUI(CItemData &ci, bool bUpdateGUI)
   // RemoveFromGUI should always occur BEFORE the entry is deleted!
   // Note: Also called if a filter is active and an entry is changed and no longer
   // satisfies the filter criteria.
-  uuid_array_t entry_uuid;
-  ci.GetUUID(entry_uuid);
-  ItemListIter iter = m_core.Find(entry_uuid);
+  ItemListIter iter = m_core.Find(ci.GetUUID());
   if (iter == End()) {
     ASSERT(0);
     return;

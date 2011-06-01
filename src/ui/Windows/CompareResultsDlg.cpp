@@ -139,6 +139,7 @@ BOOL CCompareResultsDlg::OnInitDialog()
                  {CItemData::RUNCMD, IDS_RUNCOMMAND, RUNCMD},
                  {CItemData::DCA, IDS_DCA, DCA},
                  {CItemData::EMAIL, IDS_EMAIL, EMAIL},
+                 {CItemData::PROTECTED, IDS_PROTECTED, PROTECTED},
                  {CItemData::SYMBOLS, IDS_SYMBOLS, SYMBOLS},
   };
 
@@ -339,6 +340,8 @@ void CCompareResultsDlg::AddCompareEntries(const bool bAddIdentical)
         m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::DCA) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::EMAIL))
         m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::EMAIL) ? L"X" : L"-");
+      if (m_bsFields.test(CItemData::PROTECTED))
+        m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::PROTECTED) ? L"X" : L"-");
       if (m_bsFields.test(CItemData::SYMBOLS))
         m_LCResults.SetItemText(iItem, icol++, st_data.bsDiffs.test(CItemData::SYMBOLS) ? L"X" : L"-");
 
@@ -423,8 +426,8 @@ bool CCompareResultsDlg::ProcessFunction(const int ifunction, st_CompareData *ps
   if (m_column == indatabase || indatabase == BOTH) {
     pst_info->pcore0 = m_pcore0;
     pst_info->pcore1 = m_pcore1;
-    memcpy(pst_info->uuid0, pst_data->uuid0, sizeof(pst_info->uuid0));
-    memcpy(pst_info->uuid1, pst_data->uuid1, sizeof(pst_info->uuid1));
+    pst_info->uuid0 = pst_data->uuid0;
+    pst_info->uuid1 = pst_data->uuid1;
     pst_info->clicked_column = m_column;
 
     LRESULT lres = ::SendMessage(AfxGetApp()->m_pMainWnd->GetSafeHwnd(),
@@ -437,7 +440,7 @@ bool CCompareResultsDlg::ProcessFunction(const int ifunction, st_CompareData *ps
       switch (ifunction) {
         case CCompareResultsDlg::COPY_TO_ORIGINALDB:
           // UUID of copied entry returned - now update data
-          memcpy(pst_data->uuid0, pst_info->uuid0, sizeof(pst_info->uuid0));
+          pst_data->uuid0 = pst_info->uuid0;
 
           pos = m_pcore1->Find(pst_info->uuid1);
           ASSERT(pos != m_pcore1->GetEntryEndIter());
@@ -451,7 +454,7 @@ bool CCompareResultsDlg::ProcessFunction(const int ifunction, st_CompareData *ps
           break;
         case CCompareResultsDlg::COPY_TO_COMPARISONDB:
           // UUID of copied entry returned - now update data
-          memcpy(pst_data->uuid1, pst_info->uuid1, sizeof(pst_info->uuid1));
+          pst_data->uuid1 = pst_info->uuid1;
 
           pos = m_pcore0->Find(pst_info->uuid0);
           ASSERT(pos != m_pcore0->GetEntryEndIter());
@@ -494,25 +497,25 @@ st_CompareData * CCompareResultsDlg::GetCompareData(const LONG_PTR dwItemData, C
   switch (iList) {
     case IDENTICAL:
       cd_iter = std::find_if(self->m_Identical.begin(), self->m_Identical.end(),
-        equal_id(id));
+                             std::bind2nd(std::equal_to<int>(), id));
       if (cd_iter != self->m_Identical.end())
         retval = &*cd_iter;
       break;
     case BOTH:
       cd_iter = std::find_if(self->m_Conflicts.begin(), self->m_Conflicts.end(),
-        equal_id(id));
+                             std::bind2nd(std::equal_to<int>(), id));
       if (cd_iter != self->m_Conflicts.end())
         retval = &*cd_iter;
       break;
     case CURRENT:
       cd_iter = std::find_if(self->m_OnlyInCurrent.begin(), self->m_OnlyInCurrent.end(),
-        equal_id(id));
+                             std::bind2nd(std::equal_to<int>(), id));
       if (cd_iter != self->m_OnlyInCurrent.end())
         retval = &*cd_iter;
       break;
     case COMPARE:
       cd_iter = std::find_if(self->m_OnlyInComp.begin(), self->m_OnlyInComp.end(),
-        equal_id(id));
+                             std::bind2nd(std::equal_to<int>(), id));
       if (cd_iter != self->m_OnlyInComp.end())
         retval = &*cd_iter;
       break;
@@ -645,19 +648,22 @@ bool CCompareResultsDlg::CopyLeftOrRight(const bool bCopyLeft)
   switch (indatabase) {
     case BOTH:
       m_numConflicts--;
-      cd_iter = std::find_if(m_Conflicts.begin(), m_Conflicts.end(), equal_id(id));
+      cd_iter = std::find_if(m_Conflicts.begin(), m_Conflicts.end(),
+                             std::bind2nd(std::equal_to<int>(), id));
       if (cd_iter != m_Conflicts.end())
         m_Conflicts.erase(cd_iter);
       break;
     case CURRENT:
       m_numOnlyInCurrent--;
-      cd_iter = std::find_if(m_OnlyInCurrent.begin(), m_OnlyInCurrent.end(), equal_id(id));
+      cd_iter = std::find_if(m_OnlyInCurrent.begin(), m_OnlyInCurrent.end(),
+                             std::bind2nd(std::equal_to<int>(), id));
       if (cd_iter != m_OnlyInCurrent.end())
         m_OnlyInCurrent.erase(cd_iter);
       break;
     case COMPARE:
       m_numOnlyInComp--;
-      cd_iter = std::find_if(m_OnlyInComp.begin(), m_OnlyInComp.end(), equal_id(id));
+      cd_iter = std::find_if(m_OnlyInComp.begin(), m_OnlyInComp.end(),
+                             std::bind2nd(std::equal_to<int>(), id));
       if (cd_iter != m_OnlyInComp.end())
         m_OnlyInComp.erase(cd_iter);
       break;
@@ -898,6 +904,7 @@ void CCompareResultsDlg::WriteReportData()
     const CString csx_runcmd(MAKEINTRESOURCE(IDS_COMPRUNCOMMAND));
     const CString csx_dca(MAKEINTRESOURCE(IDS_COMPDCA));
     const CString csx_email(MAKEINTRESOURCE(IDS_COMPEMAIL));
+    const CString csx_protected(MAKEINTRESOURCE(IDS_COMPPROTECTED));
     const CString csx_symbols(MAKEINTRESOURCE(IDS_COMPSYMBOLS));
 
     for (cd_iter = m_Conflicts.begin(); cd_iter != m_Conflicts.end();
@@ -918,6 +925,7 @@ void CCompareResultsDlg::WriteReportData()
       if (st_data.bsDiffs.test(CItemData::RUNCMD)) buffer += csx_runcmd;
       if (st_data.bsDiffs.test(CItemData::DCA)) buffer += csx_dca;
       if (st_data.bsDiffs.test(CItemData::EMAIL)) buffer += csx_email;
+      if (st_data.bsDiffs.test(CItemData::PROTECTED)) buffer += csx_protected;
       if (st_data.bsDiffs.test(CItemData::SYMBOLS)) buffer += csx_symbols;
 
       // Time fields

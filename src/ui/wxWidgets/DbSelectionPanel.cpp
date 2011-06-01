@@ -64,7 +64,7 @@ DbSelectionPanel::DbSelectionPanel(wxWindow* parent,
   panelSizer->AddSpacer(RowSeparation);
   
   m_sc = new CSafeCombinationCtrl(this);
-  m_sc->textCtrl->SetValidator(wxTextValidator(wxFILTER_NONE, &m_combination));
+  m_sc->SetValidatorTarget(&m_combination);
   panelSizer->Add(m_sc, borderFlags.Expand());
   
   SetSizerAndFit(panelSizer);
@@ -79,8 +79,7 @@ DbSelectionPanel::~DbSelectionPanel()
 
 void DbSelectionPanel::SelectCombinationText()
 {
-  m_sc->textCtrl->SetFocus();
-  m_sc->textCtrl->SetSelection(-1,-1);
+  m_sc->SelectCombinationText();
 }
 
 bool DbSelectionPanel::DoValidation()
@@ -99,19 +98,13 @@ bool DbSelectionPanel::DoValidation()
     //Did he enter the same file that's currently open?
     if (wxfn.SameAs(wxFileName(towxstring(m_core->GetCurFile())))) {
       // It is the same damn file
-      wxMessageBox(_("That file is already open."), _("Synchronize error"), wxOK | wxICON_WARNING, this);
+      wxMessageBox(_("That file is already open."), _("Error"), wxOK | wxICON_WARNING, this);
       return false;
     }
     
-    wxString combination = m_sc->textCtrl->GetValue();
-    //Did he enter a combination?
-    if (combination.empty()) {
-      wxMessageBox(_("The combination cannot be blank."), _("Error"), wxOK | wxICON_EXCLAMATION, this);
-      return false;
-    }
-    
+    StringX combination = m_sc->GetCombination();
     //Does the combination match?
-    if (m_core->CheckPasskey(tostringx(wxfn.GetFullPath()), tostringx(combination)) != PWScore::SUCCESS) {
+    if (m_core->CheckPasskey(tostringx(wxfn.GetFullPath()), combination) != PWScore::SUCCESS) {
       wxString errmess(_("Incorrect passkey, not a PasswordSafe database, or a corrupt database. (Backup database has same name as original, ending with '~')"));
       wxMessageBox(errmess, _("Error"), wxOK | wxICON_ERROR, this);
       SelectCombinationText();

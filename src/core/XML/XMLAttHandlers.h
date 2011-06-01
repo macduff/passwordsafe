@@ -91,9 +91,7 @@ class CReport;
 class XMLAttHandlers
 {
   // to allow access to protected members
-#if   USE_XML_LIBRARY == EXPAT
-  friend class EAttXMLProcessor;
-#elif USE_XML_LIBRARY == MSXML
+#if USE_XML_LIBRARY == MSXML
   friend class MAttXMLProcessor;
 #elif USE_XML_LIBRARY == XERCES
   friend class XAttXMLProcessor;
@@ -147,7 +145,7 @@ private:
   PWSAttfileV3 *m_pimport3;
   CReport *m_prpt;
 
-  int m_whichtime, m_ipwh;
+  int m_ipwh;
   int m_fieldlen;
   bool m_bIgnoreThisAttachment;
   unsigned char * m_pfield;

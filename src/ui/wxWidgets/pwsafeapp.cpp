@@ -53,9 +53,6 @@ using namespace std;
 #include <wx/snglinst.h>
 
 ////@begin XPM images
-#ifndef __WXOSX_COCOA__
-#include "./graphics/pwsafe8.xpm"
-#endif
 #include "./graphics/pwsafe16.xpm"
 #include "./graphics/pwsafe32.xpm"
 #include "./graphics/pwsafe48.xpm"
@@ -312,9 +309,6 @@ bool PwsafeApp::OnInit()
     _("Error initializing help"), wxOK | wxICON_ERROR);
   m_controller->SetParentWindow(NULL); // try to de-modalize. Partially (?) successful
 
-#ifndef __WXOSX_COCOA__
-  m_appIcons.AddIcon(pwsafe8);
-#endif
   m_appIcons.AddIcon(pwsafe16);
   m_appIcons.AddIcon(pwsafe32);
   m_appIcons.AddIcon(pwsafe48);
@@ -384,6 +378,7 @@ void PwsafeApp::OnActivityTimer(wxTimerEvent& /* timerEvent */)
 
 void PwsafeApp::OnDBGUIPrefsChange(wxEvent& evt)
 {
+  UNREFERENCED_PARAMETER(evt);
   if (m_activityTimer->IsRunning()) {
     m_activityTimer->Stop();
     m_activityTimer->Start(PWSprefs::GetInstance()->GetPref(PWSprefs::IdleTimeout)*60*1000, true);

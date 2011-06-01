@@ -98,7 +98,7 @@ class CommandInterface
   virtual void RemoveExpiryEntry(const CItemData &ci) = 0;
 
   // Attachment members
-  virtual size_t HasAttachments(const uuid_array_t &entry_uuid) = 0;
+  virtual size_t HasAttachments(const CUUID &entry_uuid) = 0;
 
   virtual void AddAttachments(ATRVector &vNewATRecords) = 0;
 

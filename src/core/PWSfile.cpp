@@ -90,26 +90,25 @@ PWSfile::~PWSfile()
 
 PWSfile::HeaderRecord::HeaderRecord()
   : m_nCurrentMajorVersion(0), m_nCurrentMinorVersion(0),
-  m_nITER(0), m_prefString(_T("")), m_whenlastsaved(0),
-  m_lastsavedby(_T("")), m_lastsavedon(_T("")),
-  m_whatlastsaved(_T("")),
-  m_dbname(_T("")), m_dbdesc(_T(""))
+    m_file_uuid(pws_os::CUUID::NullUUID()),
+    m_nITER(0), m_prefString(_T("")), m_whenlastsaved(0),
+    m_lastsavedby(_T("")), m_lastsavedon(_T("")),
+    m_whatlastsaved(_T("")),
+    m_dbname(_T("")), m_dbdesc(_T(""))
 {
-  memset(m_file_uuid_array, 0, sizeof(uuid_array_t));
   m_RUEList.clear();
 }
 
 PWSfile::HeaderRecord::HeaderRecord(const PWSfile::HeaderRecord &h) 
   : m_nCurrentMajorVersion(h.m_nCurrentMajorVersion),
-  m_nCurrentMinorVersion(h.m_nCurrentMinorVersion),
-  m_nITER(h.m_nITER), m_displaystatus(h.m_displaystatus),
-  m_prefString(h.m_prefString), m_whenlastsaved(h.m_whenlastsaved),
-  m_lastsavedby(h.m_lastsavedby), m_lastsavedon(h.m_lastsavedon),
-  m_whatlastsaved(h.m_whatlastsaved),
-  m_dbname(h.m_dbname), m_dbdesc(h.m_dbdesc), m_RUEList(h.m_RUEList)
+    m_nCurrentMinorVersion(h.m_nCurrentMinorVersion),
+    m_file_uuid(h.m_file_uuid),
+    m_nITER(h.m_nITER), m_displaystatus(h.m_displaystatus),
+    m_prefString(h.m_prefString), m_whenlastsaved(h.m_whenlastsaved),
+    m_lastsavedby(h.m_lastsavedby), m_lastsavedon(h.m_lastsavedon),
+    m_whatlastsaved(h.m_whatlastsaved),
+    m_dbname(h.m_dbname), m_dbdesc(h.m_dbdesc), m_RUEList(h.m_RUEList)
 {
-  memcpy(m_file_uuid_array, h.m_file_uuid_array,
-         sizeof(uuid_array_t));
 }
 
 PWSfile::HeaderRecord &PWSfile::HeaderRecord::operator=(const PWSfile::HeaderRecord &h)
@@ -117,6 +116,7 @@ PWSfile::HeaderRecord &PWSfile::HeaderRecord::operator=(const PWSfile::HeaderRec
   if (this != &h) {
     m_nCurrentMajorVersion = h.m_nCurrentMajorVersion;
     m_nCurrentMinorVersion = h.m_nCurrentMinorVersion;
+    m_file_uuid = h.m_file_uuid;
     m_nITER = h.m_nITER;
     m_displaystatus = h.m_displaystatus;
     m_prefString = h.m_prefString;
@@ -126,8 +126,6 @@ PWSfile::HeaderRecord &PWSfile::HeaderRecord::operator=(const PWSfile::HeaderRec
     m_whatlastsaved = h.m_whatlastsaved;
     m_dbname = h.m_dbname;
     m_dbdesc = h.m_dbdesc;
-    memcpy(m_file_uuid_array, h.m_file_uuid_array,
-           sizeof(uuid_array_t));
     m_RUEList = h.m_RUEList;
   }
   return *this;
@@ -234,9 +232,7 @@ void PWSfile::SetUnknownHeaderFields(UnknownFieldList &UHFL)
 // this is for the undocumented 'command line file encryption'
 static const stringT CIPHERTEXT_SUFFIX(_S(".PSF"));
 
-
-static stringT
-ErrorMessages()
+static stringT ErrorMessages()
 {
   stringT cs_text;
 
@@ -462,21 +458,20 @@ PWSFileSig::PWSFileSig(const stringT &fname)
   const long THRESHOLD = 2048; // if file's longer than this, hash only head & tail
 
   m_length = 0;
-  m_iErrorCode = 0;
-  m_bError = true;
+  m_iErrorCode = PWSRC::SUCCESS;
   memset(m_digest, 0, sizeof(m_digest));
   FILE *fp = pws_os::FOpen(fname, _T("rb"));
   if (fp != NULL) {
     SHA256 hash;
     unsigned char buf[THRESHOLD];
     m_length = pws_os::fileLength(fp);
-    // Minimum size for an empty V3 DB is 360 bytes - so less than 256 is invalid!
-    if (m_length > 255) {
+    // Minimum size for an empty V3 DB is 232 bytes - pre + post, no hdr or records!
+    // Probably smaller for V1 & V2 DBs
+    if (m_length > 232) {
       if (m_length <= THRESHOLD) {
         if (fread(buf, m_length, 1, fp) == 1) {
           hash.Update(buf, m_length);
           hash.Final(m_digest);
-          m_bError = false;
         }
       } else { // m_length > THRESHOLD
         if (fread(buf, THRESHOLD / 2, 1, fp) == 1 &&
@@ -484,12 +479,11 @@ PWSFileSig::PWSFileSig(const stringT &fname)
             fread(buf + THRESHOLD / 2, THRESHOLD / 2, 1, fp) == 1) {
           hash.Update(buf, THRESHOLD);
           hash.Final(m_digest);
-          m_bError = false;
         }
       }
     } else {
       // File too small
-      m_iErrorCode = PWSRC::END_OF_FILE;
+      m_iErrorCode = PWSRC::TRUNCATED_FILE;
     }
 
     fclose(fp);
@@ -502,7 +496,6 @@ PWSFileSig::PWSFileSig(const PWSFileSig &pfs)
 {
   m_length = pfs.m_length;
   m_iErrorCode = pfs.m_iErrorCode;
-  m_bError = pfs.m_bError;
   memcpy(m_digest, pfs.m_digest, sizeof(m_digest));
 }
 
@@ -511,7 +504,6 @@ PWSFileSig &PWSFileSig::operator=(const PWSFileSig &that)
   if (this != &that) {
     m_length = that.m_length;
     m_iErrorCode = that.m_iErrorCode;
-    m_bError = that.m_bError;
     memcpy(m_digest, that.m_digest, sizeof(m_digest));
   }
   return *this;

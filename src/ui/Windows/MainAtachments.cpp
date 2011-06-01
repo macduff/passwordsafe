@@ -134,10 +134,8 @@ bool DboxMain::GetNewAttachmentInfo(ATRecord &atr, const bool bGetFileName)
           atr.cmpsize = 0;
           atr.blksize = 0;
           atr.CRC = 0;
-          uuid_array_t new_attmt_uuid;
           CUUID attmt_uuid;
-          attmt_uuid.GetUUID(new_attmt_uuid);
-          atr.attmt_uuid = new_attmt_uuid;
+          atr.attmt_uuid = attmt_uuid;
           atr.entry_uuid = CUUID::NullUUID();
           memset(atr.odigest, 0, SHA1::HASHLEN);
           memset(atr.cdigest, 0, SHA1::HASHLEN);
@@ -343,8 +341,6 @@ void DboxMain::OnImportAttachments()
   const std::wstring XSDfn(L"pwsafe_att.xsd");
   std::wstring XSDFilename = PWSdirs::GetXMLDir() + XSDfn;
 
-#if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
-  // Expat is a non-validating parser - no use for Schema!
   if (!pws_os::FileExists(XSDFilename)) {
     CGeneralMsgBox gmb;
     cs_temp.Format(IDSC_MISSINGXSD, XSDfn.c_str());
@@ -352,7 +348,6 @@ void DboxMain::OnImportAttachments()
     gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONSTOP);
     return;
   }
-#endif
 
   std::wstring dir;
   if (m_core.GetCurFile().empty())
@@ -699,9 +694,7 @@ bool DboxMain::AnyAttachments(HTREEITEM hItem)
   CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
   if (pci != NULL) {
     // Leaf
-    uuid_array_t entry_uuid;
-    pci->GetUUID(entry_uuid);
-    return (m_core.HasAttachments(entry_uuid) > 0);
+    return (m_core.HasAttachments(pci->GetUUID()) > 0);
   }
 
   // Must be a group - Walk the Tree from here to determine if any entries have attachments
@@ -709,9 +702,7 @@ bool DboxMain::AnyAttachments(HTREEITEM hItem)
     if (!m_ctlItemTree.ItemHasChildren(hItem)) {
       CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
       if (pci != NULL) {  // NULL if there's an empty group [bug #1633516]
-        uuid_array_t entry_uuid;
-        pci->GetUUID(entry_uuid);
-        if (m_core.HasAttachments(entry_uuid) > 0)
+        if (m_core.HasAttachments(pci->GetUUID()) > 0)
           return true;
       }
     }

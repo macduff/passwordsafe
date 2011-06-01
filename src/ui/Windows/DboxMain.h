@@ -207,6 +207,7 @@ enum {GCP_READONLY = 1,
       GCP_HIDEREADONLY = 4};
 
 class ExpiredList;
+
 //-----------------------------------------------------------------------------
 class DboxMain : public CDialog, public UIInterFace
 {
@@ -273,8 +274,7 @@ public:
   BOOL SelectFindEntry(const int i, BOOL MakeVisible = FALSE);
   void SelectFirstEntry();
 
-  int CheckPasskey(const StringX &filename, const StringX &passkey)
-  {return m_core.CheckPasskey(filename, passkey);}
+  int CheckPasskey(const StringX &filename, const StringX &passkey, PWScore *pcore = NULL);
   enum ChangeType {Clear, Data, TimeStamp, DBPrefs, ClearDBPrefs};
   void SetChanged(ChangeType changed);
   void ChangeOkUpdate();
@@ -457,6 +457,11 @@ public:
   void CPRInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
   {OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);}
 
+  const MapMenuShortcuts &GetMapMenuShortcuts() {return m_MapMenuShortcuts;}
+  const MapKeyNameID &GetMapKeyNameID() {return m_MapKeyNameID;}
+  const std::vector<UINT> &GetExcludedMenuItems() {return m_ExcludedMenuItems;}
+  const std::vector<st_MenuShortcut> &GetReservedShortcuts() {return m_ReservedShortcuts;}
+
   // Attachments
   bool GetNewAttachmentInfo(ATRecord &atr, const bool bGetFileName);
   // Invoke thread to get attachment
@@ -467,7 +472,7 @@ public:
   bool AnyAttachments(HTREEITEM hItem);
   bool AllowAttachments()
   {return !m_bNoChangeToAttachments;}
-
+  
   // ClassWizard generated virtual function overrides
   //{{AFX_VIRTUAL(DboxMain)
 protected:
@@ -725,9 +730,10 @@ protected:
   afx_msg void OnChangeTreeFont();
   afx_msg void OnChangePswdFont();
   afx_msg void OnChangeVKFont();
-  afx_msg void OnViewReports(UINT nID);  // From View->Reports menu
+  afx_msg void OnViewReportsByID(UINT nID);  // From View->Reports menu
   afx_msg void OnViewReports();
   afx_msg void OnManageFilters(); // From Toolbar button
+  afx_msg void OnCancelFilter();
   afx_msg void OnApplyFilter();
   afx_msg void OnSetFilter();
   afx_msg void OnRefreshWindow();
@@ -765,7 +771,8 @@ protected:
   afx_msg void OnExportEntryText();
   afx_msg void OnExportEntryXML();
   afx_msg void OnImportText();
-  afx_msg void OnImportKeePass();
+  afx_msg void OnImportKeePassV1CSV();
+  afx_msg void OnImportKeePassV1TXT();
   afx_msg void OnImportXML();
   afx_msg void OnExtractAttachment();
   afx_msg LRESULT OnExtractAttachment(WPARAM wParam, LPARAM lParam);

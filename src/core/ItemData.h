@@ -199,7 +199,7 @@ public:
   void UpdatePassword(const StringX &password); // use when password changed!
   void SetNotes(const StringX &notes, TCHAR delimiter = 0);
   void SetUUID(const uuid_array_t &uuid); // V20
-  void SetUUID(const pws_os::CUUID &uuid) {SetUUID(*uuid.GetUUID());}
+  void SetUUID(const pws_os::CUUID &uuid) {SetUUID(*uuid.GetARep());}
   void SetGroup(const StringX &group); // V20
   void SetURL(const StringX &url); // V30
   void SetAutoType(const StringX &autotype); // V30
@@ -239,7 +239,7 @@ public:
   void Clear();
   // check record for mandatory fields, silently fix if missing
   int ValidateUUID(const unsigned short &nMajor, const unsigned short &nMinor,
-    uuid_array_t &uuid_array);
+                   uuid_array_t &uuid_array);
   bool ValidatePWHistory(); // return true if OK, false if there's a problem
   bool IsExpired() const;
   bool WillExpire(const int numdays) const;

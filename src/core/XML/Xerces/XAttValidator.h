@@ -8,8 +8,6 @@
 
 /*
 * This routine doesn't do anything as Xerces is a validating XML Parser.
-* However, it is present to mimic Expat's version and contains similar data
-* to streamline import processing.
 *
 * Note: Xerces uses wchar_t even in non-Unicode mode.
 */
@@ -17,7 +15,7 @@
 #ifndef __XATTVALIDATOR_H
 #define __XATTVALIDATOR_H
 
-// XML Attachment Import constants - used by Expat, Xerces and MSXML
+// XML Attachment Import constants - used by Xerces and MSXML
 #include "../XMLAttValidation.h"
 
 // PWS includes

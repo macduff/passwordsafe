@@ -36,12 +36,15 @@ class CUUID
 public:
   CUUID(); // UUID generated at creation time
   CUUID(const CUUID &uuid);
-  CUUID(const uuid_array_t &uuid_array, bool canonic = false); // for storing an existing UUID
+  CUUID(const uuid_array_t &ua, bool canonic = false); // for storing an existing UUID
   CUUID(const StringX &s); // s is a hex string as returned by cast to StringX
   static const CUUID &NullUUID(); // singleton all-zero
   ~CUUID();
-  void GetUUID(uuid_array_t &uuid_array) const;
-  const uuid_array_t *GetUUID() const; // internally allocated, deleted in d'tor
+
+  // Following get Array Representation of the uuid:
+  void GetARep(uuid_array_t &ua) const;
+  const uuid_array_t *GetARep() const; // internally allocated, deleted in d'tor
+  
   CUUID &operator=(const CUUID &that);
   operator StringX() const; // GetHexStr, e.g., "204012e6600f4e01a5eb515267cb0d50"
   bool operator==(const CUUID &that) const;
@@ -56,10 +59,10 @@ private:
   mutable uuid_array_t *m_ua; // for GetUUID();
   mutable bool m_canonic;
 };
+
 std::ostream &operator<<(std::ostream &os, const CUUID &uuid);
 std::wostream &operator<<(std::wostream &os, const CUUID &uuid);
 } // end of pws_os namespace
-
 
 typedef std::vector<pws_os::CUUID> UUIDVector;
 typedef UUIDVector::iterator UUIDVectorIter;

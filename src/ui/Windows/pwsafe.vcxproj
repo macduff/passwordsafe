@@ -1277,7 +1277,6 @@
     <ClInclude Include="PasskeyChangeDlg.h" />
     <ClInclude Include="PasskeyEntry.h" />
     <ClInclude Include="PasskeySetup.h" />
-    <ClInclude Include="PasswordDb.h" />
     <ClInclude Include="PasswordSafe.h" />
     <ClInclude Include="PasswordSubsetDlg.h" />
     <ClInclude Include="Properties.h" />
@@ -1348,15 +1347,19 @@
     <None Include="graphics\attabase.bmp" />
     <None Include="graphics\attabase_exp.bmp" />
     <None Include="graphics\attabase_warn.bmp" />
+    <None Include="graphics\attalias.bmp" />
     <None Include="graphics\attnormal.bmp" />
     <None Include="graphics\attnormal_exp.bmp" />
     <None Include="graphics\attnormal_warn.bmp" />
     <None Include="graphics\attsbase.bmp" />
     <None Include="graphics\attsbase_exp.bmp" />
     <None Include="graphics\attsbase_warn.bmp" />
+    <None Include="graphics\dragbar\classic\AutotypeX.bmp" />
+    <None Include="graphics\dragbar\new\AutotypeX.bmp" />
     <None Include="graphics\findtoolbar\classic\findadvancedon.bmp" />
     <None Include="graphics\findtoolbar\new\findadvancedon.bmp" />
     <None Include="graphics\toolbar\classic\addgroup.bmp" />
+    <None Include="graphics\toolbar\classic\attachment.bmp" />
     <None Include="graphics\toolbar\classic\duplicategroup.bmp" />
     <None Include="graphics\toolbar\new\about.bmp" />
     <None Include="graphics\toolbar\classic\about.bmp" />
@@ -1372,6 +1375,8 @@
     <None Include="graphics\toolbar\classic\applyfilter.bmp" />
     <None Include="graphics\toolbar\new\applyfilter_disabled.bmp" />
     <None Include="graphics\toolbar\classic\autotype.bmp" />
+    <None Include="graphics\toolbar\new\attachment.bmp" />
+    <None Include="graphics\toolbar\new\attachment_disabled.bmp" />
     <None Include="graphics\toolbar\new\autotype.bmp" />
     <None Include="graphics\toolbar\new\autotype_disabled.bmp" />
     <None Include="graphics\toolbar\classic\backup.bmp" />

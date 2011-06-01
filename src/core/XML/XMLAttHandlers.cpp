@@ -109,13 +109,6 @@ bool XMLAttHandlers::ProcessStartElement(const int icurrent_element)
       cur_entry = new att_entry;
       // Clear all fields
       cur_entry->atr.Clear();
-      m_whichtime = -1;
-      break;
-    case XLA_CTIME:
-    case XLA_ATIME:
-    case XLA_MTIME:
-    case XLA_DTIME:
-      m_whichtime = icurrent_element;
       break;
     default:
       break;
@@ -221,21 +214,17 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
       ConvertFromHex(m_strElemContent, sizeof(cur_entry->atr.cdigest),
                      cur_entry->atr.cdigest);
       break;
-    case XLA_CTIME:
-      Replace(cur_entry->sx_ctime, _T('-'), _T('/'));
-      m_whichtime = -1;
+    case XLA_CTIMEX:
+      cur_entry->sx_ctime = m_strElemContent;
       break;
-    case XLA_ATIME:
-      Replace(cur_entry->sx_atime, _T('-'), _T('/'));
-      m_whichtime = -1;
+    case XLA_ATIMEX:
+      cur_entry->sx_atime = m_strElemContent;
       break;
-    case XLA_MTIME:
-      Replace(cur_entry->sx_mtime, _T('-'), _T('/'));
-      m_whichtime = -1;
+    case XLA_MTIMEX:
+      cur_entry->sx_mtime = m_strElemContent;
       break;
-    case XLA_DTIME:
-      Replace(cur_entry->sx_dtime, _T('-'), _T('/'));
-      m_whichtime = -1;
+    case XLA_DTIMEX:
+      cur_entry->sx_dtime = m_strElemContent;
       break;
     case XLA_FLAG_EXTRACTTOREMOVEABLE:
       if (m_strElemContent == _T("1"))
@@ -254,42 +243,6 @@ bool XMLAttHandlers::ProcessEndElement(const int icurrent_element)
         cur_entry->atr.flags |= ATT_ERASEONDBCLOSE;
       else
         cur_entry->atr.flags &= ~ATT_ERASEONDBCLOSE;
-      break;
-    case XLA_DATE:
-      switch (m_whichtime) {
-        case XLA_CTIME:
-          cur_entry->sx_ctime = m_strElemContent;
-          break;
-        case XLA_ATIME:
-          cur_entry->sx_atime = m_strElemContent;
-          break;
-        case XLA_MTIME:
-          cur_entry->sx_mtime = m_strElemContent;
-          break;
-        case XLA_DTIME:
-          cur_entry->sx_dtime = m_strElemContent;
-          break;
-        default:
-          ASSERT(0);
-      }
-      break;
-    case XLA_TIME:
-      switch (m_whichtime) {
-        case XLA_CTIME:
-          cur_entry->sx_ctime += _T(" ") + m_strElemContent;
-          break;
-        case XLA_ATIME:
-          cur_entry->sx_atime += _T(" ") + m_strElemContent;
-          break;
-        case XLA_MTIME:
-          cur_entry->sx_mtime += _T(" ") + m_strElemContent;
-          break;
-        case XLA_DTIME:
-          cur_entry->sx_dtime += _T(" ") + m_strElemContent;
-          break;
-        default:
-          ASSERT(0);
-      }
       break;
     case XLA_DATA80:
     {
@@ -423,11 +376,11 @@ void XMLAttHandlers::ValidateImportData(att_entry * &cur_entry)
   }
 
   // Ensure dates are correct
-  if (!VerifyImportDateTimeString(cur_entry->sx_ctime.c_str(), cur_entry->atr.ctime))
+  if (!VerifyXMLDateTimeString(cur_entry->sx_ctime.c_str(), cur_entry->atr.ctime))
     cur_entry->atr.ctime = (time_t)0;
-  if (!VerifyImportDateTimeString(cur_entry->sx_atime.c_str(), cur_entry->atr.atime))
+  if (!VerifyXMLDateTimeString(cur_entry->sx_atime.c_str(), cur_entry->atr.atime))
     cur_entry->atr.atime = (time_t)0;
-  if (!VerifyImportDateTimeString(cur_entry->sx_mtime.c_str(), cur_entry->atr.mtime))
+  if (!VerifyXMLDateTimeString(cur_entry->sx_mtime.c_str(), cur_entry->atr.mtime))
     cur_entry->atr.mtime = (time_t)0;
 
   // We really don't care about added time from XML

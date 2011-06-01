@@ -42,13 +42,6 @@
   </xs:restriction>
 </xs:simpleType>
 
-<xs:complexType name="datetimestampType">
-  <xs:sequence>
-    <xs:element name="date" type="xs:date" minOccurs="1" maxOccurs="1"/>
-    <xs:element name="time" type="xs:time" minOccurs="1" maxOccurs="1"/>
-  </xs:sequence>
-</xs:complexType>
-
 <xs:simpleType name="fileuuidType">
   <xs:restriction base="xs:string">
     <xs:pattern value="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA­F]{12}" />
@@ -79,10 +72,10 @@
               <xs:element name="crc" type="crcType" minOccurs="1" maxOccurs="1" />
               <xs:element name="odigest" type="digestType" minOccurs="1" maxOccurs="1" />
               <xs:element name="cdigest" type="digestType" minOccurs="1" maxOccurs="1" />
-              <xs:element name="ctime" type="datetimestampType" minOccurs="1" maxOccurs="1" />
-              <xs:element name="atime" type="datetimestampType" minOccurs="1" maxOccurs="1" />
-              <xs:element name="mtime" type="datetimestampType" minOccurs="1" maxOccurs="1" />
-              <xs:element name="dtime" type="datetimestampType" minOccurs="1" maxOccurs="1" />
+              <xs:element name="ctimex" type="xs:dateTime" minOccurs="1" maxOccurs="1" />
+              <xs:element name="atimex" type="xs:dateTime" minOccurs="1" maxOccurs="1" />
+              <xs:element name="mtimex" type="xs:dateTime" minOccurs="1" maxOccurs="1" />
+              <xs:element name="dtimex" type="xs:dateTime" minOccurs="1" maxOccurs="1" />
               <xs:element name="flags" minOccurs="0" maxOccurs="1">
                 <xs:complexType>
                   <xs:all>

@@ -53,7 +53,7 @@ public:
     HeaderRecord &operator=(const HeaderRecord &hdr);
 
     unsigned short m_nCurrentMajorVersion, m_nCurrentMinorVersion;
-    uuid_array_t m_file_uuid_array;
+    pws_os::CUUID m_file_uuid;
     int m_nITER; // Formally not part of the header.
     std::vector<bool> m_displaystatus; // tree expansion  state vector
     StringX m_prefString; // prefererences stored in the file
@@ -135,7 +135,7 @@ public:
   PWSFileSig(const PWSFileSig &pfs);
   PWSFileSig &operator=(const PWSFileSig &that);
 
-  bool IsValid() {return !m_bError;}
+  bool IsValid() {return m_iErrorCode == 0 /*PWSRC::SUCCESS*/;}
   int GetErrorCode() {return m_iErrorCode;}
 
   bool operator==(const PWSFileSig &other);
@@ -145,6 +145,5 @@ private:
   long m_length; // -1 if file doesn't exist or zero length
   unsigned char m_digest[SHA256::HASHLEN];
   int m_iErrorCode;
-  bool m_bError;
 };
 #endif /* __PWSFILE_H */

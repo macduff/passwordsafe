@@ -8,8 +8,6 @@
 
 /*
 * This routine doesn't do anything as MS XML is a validating XML Parser.
-* However, it is present to mimic Expat's version and contains similar data
-* to streamline import processing.
 *
 * Non-unicode builds will need convert any results from parsing the XML
 * document from UTF-16 to ASCII.  This is done in the XFileSAX2Handlers routines:
@@ -20,7 +18,7 @@
 #ifndef __MATTVALIDATOR_H
 #define __MATTVALIDATOR_H
 
-// XML Attachment Import constants - used by Expat, Xerces and MSXML
+// XML Attachment Import constants - used by Xerces and MSXML
 #include "../XMLAttValidation.h"
 
 class MAttValidator : public XMLAttValidation

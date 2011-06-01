@@ -23,6 +23,13 @@ current database's default Autotype string (if set via Manage->Options).
 [2964804] The user can specify the list of symbols valid for a database and can
 override this for any particular entry. Note: the inbuilt special symbols
 for EasyVision and Pronounceable passwords can not be overriden in either case.
+[] Allow user to control the copying password to clipboard when performing
+"Browse to URL" via an option in Options->Security. This is a database option
+i.e. you can have different setting for different databases.
+[] Support importing of CSV files exported from KeePass V1. Note that KeePass V2's
+export in the V1 format is does not conform to their own format as specified by their
+V1 product and can not be imported. Please review our Help file for the settings in
+KeePass required during their export.
 
 Changes to Existing Features in 3.25.1
 ======================================
@@ -32,12 +39,31 @@ the Set and Clear buttons after changing values.
 [] The default password generation policy is now for 12 character
 passwords that include symbol characters (previous default was 8, no
 symbols).
+[] Unknown database header fields and unknown entry fields are no longer exported
+when a database is exported to XML as there is no mechanism to re-check them during
+import. Exporting to XML and then importing to a new database can be used to remove
+these unknown fields.
+[] Date time fields, when exported to XML, now are in the W3C dateTime standard format
+instead of PasswordSafe's.  This release can import XML files with date time fields in
+either of these forms. The next release will only be able to process the W3C standard.
+[] Fully support importing of TXT files exported from KeePass V1 including the Group Tree
+structure, URL and date time fields. Please review our Help file for the settings in
+KeePass required during their 
+export.
 
 Bugs fixed in 3.25.1
 ====================
+[3303018] Filters with quotes in their name are now correctly exported, imported
+and displayed in the Manage Filters dialog.
+[3301904] Export XML, export Text and the export of filters functions now process
+file names and paths containing non-Latin characters.  In addition, when the specified
+path does not exist because directories are not there, they are created in order to
+save the exported file.
 [3234204] PasswordSafe no longer ends if the command flag is set to "-s <databasename>".
 [] Controls in Edit are now disabled if entry is protected, even though the user could
 not have saved any changes.
+[] Compare databases now correctly compares the 'Protect' and password policy 'symbols'
+fields of entries.
 
 New Features for 3.25
 =====================

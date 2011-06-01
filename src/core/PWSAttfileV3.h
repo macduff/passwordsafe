@@ -67,6 +67,7 @@ private:
   int WriteHeader();
   int ReadHeader();
 
+  static int SanityCheck(FILE *stream); // Check for TAG and EOF marker
   static void StretchKey(const unsigned char *salt, unsigned long saltLen,
                          const StringX &passkey, unsigned int N, unsigned char *Ptag);
 

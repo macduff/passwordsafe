@@ -24,8 +24,8 @@ class DboxMain;
 struct st_CompareInfo {
   PWScore *pcore0;     // original DB
   PWScore *pcore1;     // comparison DB
-  uuid_array_t uuid0;  // original DB
-  uuid_array_t uuid1;  // comparison DB
+  pws_os::CUUID uuid0; // original DB
+  pws_os::CUUID uuid1; // comparison DB
   int  clicked_column;
 };
 
@@ -57,7 +57,7 @@ public:
   enum {IDENTICAL = -2, BOTH = -1 , CURRENT = 0, COMPARE = 1, 
     GROUP, TITLE, USER, PASSWORD, NOTES, URL, AUTOTYPE, PWHIST, 
     CTIME, ATIME, XTIME, XTIME_INT, PMTIME, RMTIME, POLICY, RUNCMD,
-    DCA, EMAIL, SYMBOLS,
+    DCA, EMAIL, PROTECTED, SYMBOLS,
     LAST};
 
   // Dialog Data

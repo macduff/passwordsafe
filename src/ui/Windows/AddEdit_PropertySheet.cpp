@@ -18,6 +18,8 @@
 #include "core/PWSprefs.h"
 #include "core/return_codes.h"
 
+using pws_os::CUUID;
+
 IMPLEMENT_DYNAMIC(CAddEdit_PropertySheet, CPWPropertySheet)
 
 CAddEdit_PropertySheet::CAddEdit_PropertySheet(UINT nID, CWnd* pParent,
@@ -140,7 +142,7 @@ CAddEdit_PropertySheet::~CAddEdit_PropertySheet()
 
 BOOL CAddEdit_PropertySheet::OnInitDialog()
 {
-  CPropertySheet::OnInitDialog();
+  CPWPropertySheet::OnInitDialog();
 
   // Change the Window title for Edit/View
   switch (m_AEMD.uicaller) {

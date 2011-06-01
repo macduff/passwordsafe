@@ -49,18 +49,16 @@ const XMLAttValidation::st_file_elements XMLAttValidation::m_file_elements[XLA_E
   {_T("crc"), {0, XLA_CRC}},
   {_T("odigest"), {0, XLA_ODIGEST}},
   {_T("cdigest"), {0, XLA_CDIGEST}},
-  {_T("ctime"), {0, XLA_CTIME}},
-  {_T("atime"), {0, XLA_ATIME}},
-  {_T("mtime"), {0, XLA_MTIME}},
-  {_T("dtime"), {0, XLA_DTIME}},
+  {_T("ctimex"), {0, XLA_CTIMEX}},
+  {_T("atimex"), {0, XLA_ATIMEX}},
+  {_T("mtimex"), {0, XLA_MTIMEX}},
+  {_T("dtimex"), {0, XLA_DTIMEX}},
   {_T("flags"), {0, XLA_FLAGS}},
   {_T("data80"), {0, XLA_DATA80}},
   {_T("data81"), {0, XLA_DATA81}},
   {_T("extracttoremoveable"), {0, XLA_FLAG_EXTRACTTOREMOVEABLE}},
   {_T("eraseprogamexists"), {0, XLA_FLAG_ERASEPROGAMEXISTS}},
-  {_T("eraseondatabaseclose"), {0, XLA_FLAG_ERASEONDATABASECLOSE}},
-  {_T("date"), {0, XLA_DATE}},
-  {_T("time"), {0, XLA_TIME}}
+  {_T("eraseondatabaseclose"), {0, XLA_FLAG_ERASEONDATABASECLOSE}}
 };
 
 XMLAttValidation::XMLAttValidation()
@@ -76,9 +74,7 @@ XMLAttValidation::~XMLAttValidation()
   m_element_map.clear();
 }
 
-#if   USE_XML_LIBRARY == EXPAT
-bool XMLAttValidation::GetElementInfo(const XML_Char *name, st_file_element_data &edata)
-#elif USE_XML_LIBRARY == MSXML
+#if USE_XML_LIBRARY == MSXML
 bool XMLAttValidation::GetElementInfo(const wchar_t *name, st_file_element_data &edata)
 #elif USE_XML_LIBRARY == XERCES
 bool XMLAttValidation::GetElementInfo(const XMLCh *name, st_file_element_data &edata)
@@ -95,9 +91,7 @@ bool XMLAttValidation::GetElementInfo(const XMLCh *name, st_file_element_data &e
   const stringT strValue(name);
 #endif
 #else   // NON-UNICODE
-#if   USE_XML_LIBRARY == EXPAT
-  const stringT strValue(name);
-#elif USE_XML_LIBRARY == MSXML
+#if USE_XML_LIBRARY == MSXML
 #if (_MSC_VER >= 1400)
   size_t numchars = wcslen(name);
   char* szData = new char[numchars + 2];
@@ -112,7 +106,7 @@ bool XMLAttValidation::GetElementInfo(const XMLCh *name, st_file_element_data &e
   char *szData = XMLString::transcode(name);
   const stringT strValue(szData);
   XMLString::release(&szData);
-#endif  // EXPAT, MSXML or XERCES
+#endif  // MSXML or XERCES
 #endif  // NON-UNICODE
 
   if (strValue.length() == 0)

@@ -114,6 +114,48 @@ int PWSfileV3::Close()
 
 const char V3TAG[4] = {'P','W','S','3'}; // ASCII chars, not wchar
 
+int PWSfileV3::SanityCheck(FILE *stream)
+{
+  int retval = PWSRC::SUCCESS;
+  ASSERT(stream != NULL);
+
+  // Is file too small?
+  const long min_file_length = 232; // pre + post, no hdr or records
+  if (pws_os::fileLength(stream) < min_file_length)
+    return PWSRC::TRUNCATED_FILE;
+
+  long pos = ftell(stream); // restore when we're done
+  // Does file have a valid header?
+  char tag[sizeof(V3TAG)];
+  size_t nread = fread(tag, sizeof(tag), 1, stream);
+  if (nread != 1) {
+    retval = PWSRC::READ_FAIL;
+    goto err;
+  }
+  if (memcmp(tag, V3TAG, sizeof(tag)) != 0) {
+    retval = PWSRC::NOT_PWS3_FILE;
+    goto err;
+  }
+
+  // Does file have a valid EOF block?
+  unsigned char eof_block[sizeof(TERMINAL_BLOCK)];
+  if (fseek(stream, -int(sizeof(TERMINAL_BLOCK) + HMAC_SHA256::HASHLEN), SEEK_END) != 0) {
+    retval = PWSRC::READ_FAIL; // actually, seek error, but that's too nuanced
+    goto err;
+  }
+  nread = fread(eof_block, sizeof(eof_block), 1, stream);
+  if (nread != 1) {
+    retval = PWSRC::READ_FAIL;
+    goto err;
+  }
+  if (memcmp(eof_block, TERMINAL_BLOCK, sizeof(TERMINAL_BLOCK)) != 0)
+    retval = PWSRC::TRUNCATED_FILE;
+
+err:
+  fseek(stream, pos, SEEK_SET);
+  return retval;
+}
+
 int PWSfileV3::CheckPasskey(const StringX &filename,
                             const StringX &passkey, FILE *a_fd,
                             unsigned char *aPtag, int *nITER)
@@ -128,13 +170,11 @@ int PWSfileV3::CheckPasskey(const StringX &filename,
   if (fd == NULL)
     return PWSRC::CANT_OPEN_FILE;
 
-  char tag[sizeof(V3TAG)];
-  fread(tag, 1, sizeof(tag), fd);
-  if (memcmp(tag, V3TAG, sizeof(tag)) != 0) {
-    retval = PWSRC::NOT_PWS3_FILE;
+  retval = SanityCheck(fd);
+  if (retval != PWSRC::SUCCESS)
     goto err;
-  }
 
+  fseek(fd, sizeof(V3TAG), SEEK_SET); // skip over tag
   unsigned char salt[SaltLengthV3];
   fread(salt, 1, sizeof(salt), fd);
 
@@ -477,16 +517,13 @@ int PWSfileV3::WriteHeader()
   if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
 
   // Write UUID
-  uuid_array_t file_uuid_array;
-  memset(file_uuid_array, 0, sizeof(uuid_array_t));
-  // If not there or zeroed, create new
-  if (memcmp(m_hdr.m_file_uuid_array,
-             file_uuid_array, sizeof(uuid_array_t)) == 0) {
+  if (m_hdr.m_file_uuid == pws_os::CUUID::NullUUID()) {
+    // If not there or zeroed, create new
     CUUID uuid;
-    uuid.GetUUID(m_hdr.m_file_uuid_array);
+    m_hdr.m_file_uuid = uuid;
   }
 
-  numWritten = WriteCBC(HDR_UUID, m_hdr.m_file_uuid_array,
+  numWritten = WriteCBC(HDR_UUID, *m_hdr.m_file_uuid.GetARep(),
                         sizeof(uuid_array_t));
   if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
 
@@ -540,7 +577,7 @@ int PWSfileV3::WriteHeader()
     if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
   }
   if (!m_MapFilters.empty()) {
-    ostringstream oss;
+    coStringXStream oss;  // XML is always char not wchar_t
     m_MapFilters.WriteFilterXMLFile(oss, m_hdr, _T(""));
     numWritten = WriteCBC(HDR_FILTERS,
                           reinterpret_cast<const unsigned char *>(oss.str().c_str()),
@@ -549,7 +586,7 @@ int PWSfileV3::WriteHeader()
   }
 
   if (!m_hdr.m_RUEList.empty()) {
-    ostringstream oss;
+    coStringXStream oss;
     size_t num = m_hdr.m_RUEList.size();
     if (num > 255)
       num = 255;  // Do not exceed 2 hex character length field
@@ -557,8 +594,9 @@ int PWSfileV3::WriteHeader()
     UUIDListIter iter = m_hdr.m_RUEList.begin();
     // Only save up to max as defined by FormatV3.
     for (size_t n = 0; n < num; n++) {
+      const uuid_array_t *rep = iter->GetARep();
       for (size_t i = 0; i < sizeof(uuid_array_t); i++) {
-        oss << setw(2) << setfill('0') << hex << int(iter->GetUUID()[i]);
+        oss << setw(2) << setfill('0') << hex <<  static_cast<unsigned int>((*rep)[i]);
       }
       iter++;
     }
@@ -665,8 +703,9 @@ int PWSfileV3::ReadHeader()
           Close();
           return PWSRC::FAILURE;
         }
-        memcpy(m_hdr.m_file_uuid_array, utf8,
-               sizeof(uuid_array_t));
+        uuid_array_t ua;
+        memcpy(ua, utf8, sizeof(ua));
+        m_hdr.m_file_uuid = pws_os::CUUID(ua);
         break;
 
       case HDR_NDPREFS: /* Non-default user preferences */
@@ -773,7 +812,6 @@ int PWSfileV3::ReadHeader()
         if (utf8Len > 0) {
           stringT strErrors;
           stringT XSDFilename = PWSdirs::GetXMLDir() + _T("pwsafe_filter.xsd");
-#if USE_XML_LIBRARY == MSXML || USE_XML_LIBRARY == XERCES
           if (!pws_os::FileExists(XSDFilename)) {
             // No filter schema => user won't be able to access stored filters
             // Inform her of the fact (probably an installation problem).
@@ -791,7 +829,6 @@ int PWSfileV3::ReadHeader()
              m_UHFL.push_back(unkhfe);
             break;
           }
-#endif
           int rc = m_MapFilters.ImportFilterXMLFile(FPOOL_DATABASE, text.c_str(), _T(""),
                                                     XSDFilename.c_str(),
                                                     strErrors, m_pAsker);
@@ -802,6 +839,7 @@ int PWSfileV3::ReadHeader()
             LoadAString(message, IDSC_CANTPROCESSDBFILTERS);
             if (m_pReporter != NULL)
               (*m_pReporter)(message);
+
             UnknownFieldEntry unkhfe(fieldType, utf8Len, utf8);
             m_UHFL.push_back(unkhfe);
           }
@@ -812,40 +850,34 @@ int PWSfileV3::ReadHeader()
       case HDR_RUE:
       {
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
-        if (!utf8status)
-          break;
+        // All data is character representation of hex - i.e. 0-9a-f
+        // No need to convert from char.
+        std::string temp = (char *)utf8;
 
+        // Get number of entries
         int num(0);
-        StringX tlen = text.substr(0, 2);
-        iStringXStream is(tlen);
+        std::istringstream is(temp.substr(0, 2));
         is >> hex >> num;
 
-        if (text.length() != num * sizeof(uuid_array_t) * 2 + 2)
+        // verify we have enough data
+        if (utf8Len != num * sizeof(uuid_array_t) * 2 + 2)
           break;
 
-        LPCTSTR lpsz_string = text.c_str();
-        lpsz_string += 2;
-        unsigned char *pfield;
-        // sscanf always outputs to an "int" using %x even though
-        // target is only 1.  Read into larger buffer to prevent data being
-        // overwritten and then copy to where we want it!
-        pfield = new unsigned char[sizeof(uuid_array_t) + sizeof(int32)];
+        // Get the entries and save them
+        size_t j = 2;
         for (int n = 0; n < num; n++) {
-          uuid_array_t uuid;
-          for (size_t i = 0; i < sizeof(uuid_array_t); i++) {
-#if (_MSC_VER >= 1400)
-            _stscanf_s(lpsz_string, _T("%02x"), &pfield[i]);
-#else
-            _stscanf(lpsz_string, _T("%02x"), &pfield[i]);
-#endif
-            lpsz_string += 2;
+          unsigned int x(0);
+          uuid_array_t ua;
+          for (size_t i = 0; i < sizeof(uuid_array_t); i++, j += 2) {
+            stringstream ss;
+            ss.str(temp.substr(j, 2));
+            ss >> hex >> x;
+            ua[i] = static_cast<unsigned char>(x);
           }
-          // Now copy only the first 16 characters where we need them
-          memcpy(uuid, pfield, sizeof(uuid_array_t));
-          m_hdr.m_RUEList.push_back(uuid);
+          const CUUID uuid(ua);
+          if (uuid != CUUID::NullUUID())
+            m_hdr.m_RUEList.push_back(uuid);
         }
-        delete [] pfield;
         break;
       }
 

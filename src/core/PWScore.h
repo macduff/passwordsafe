@@ -78,9 +78,9 @@ public:
   static bool IsReporterSet() {return m_pReporter != NULL;}
 
   // Get/Set File UUIDs
-  void ClearFileUUID();
-  void SetFileUUID(uuid_array_t &file_uuid_array);
-  void GetFileUUID(uuid_array_t &file_uuid_array) const;
+  void ClearFileUUID() { m_hdr.m_file_uuid = pws_os::CUUID::NullUUID(); }
+  void SetFileUUID(const pws_os::CUUID &fu) { m_hdr.m_file_uuid = fu; }
+  const pws_os::CUUID &GetFileUUID() const { return m_hdr.m_file_uuid; }
 
   // Get/Set Unknown Fields info
   bool HasHeaderUnknownFields() const
@@ -119,7 +119,7 @@ public:
   // Attachment public members
   bool DBHasAttachments()
   {return m_MM_entry_uuid_atr.size() > 0;}
-  size_t HasAttachments(const uuid_array_t &entry_uuid);
+  size_t HasAttachments(const CUUID &entry_uuid);
   int GetAttachment(const stringT &newfile, const ATRecord &atr, int &zRC);
   size_t GetAttachments(const CUUID &entry_uuid, ATRVector &vATRecords);
   size_t GetAllAttachments(ATRExVector &vATRecordsEx);
@@ -216,15 +216,18 @@ public:
                     stringT &strPWHErrorList, stringT &strRenameList, 
                     int &numValidated, int &numImported, int &numSkipped,
                     int &numPWHErrors, int &numRenamed, 
-                    bool &bBadUnknownFileFields,
-                    bool &bBadUnknownRecordFields,
                     CReport &rpt, Command *&pcommand);
   int ImportXMLAttachmentFile(const stringT &strXMLFileName,
                     const stringT &strXSDFileName,
                     stringT &strXMLErrors, stringT &strSkippedList,
                     int &numValidated, int &numImported, int &numSkipped,
                     CReport &rpt, Command *&pcommand);
-  int ImportKeePassTextFile(const StringX &filename, Command *&pcommand);
+  int ImportKeePassV1TXTFile(const StringX &filename,
+                             int &numImported, int &numSkipped, int &numRenamed,
+                             CReport &rpt, Command *&pcommand);
+  int ImportKeePassV1CSVFile(const StringX &filename,
+                             int &numImported, int &numSkipped, int &numRenamed,
+                             CReport &rpt, Command *&pcommand);
 
   // Locking files open in R/W mode
   bool LockFile(const stringT &filename, stringT &locker);
@@ -287,10 +290,6 @@ public:
   // Find in m_pwlist by group, title and user name, exact match
   ItemListIter Find(const StringX &a_group,
                     const StringX &a_title, const StringX &a_user);
-  ItemListIter Find(const uuid_array_t &entry_uuid)
-  {return m_pwlist.find(entry_uuid);}
-  ItemListConstIter Find(const uuid_array_t &entry_uuid) const
-  {return m_pwlist.find(entry_uuid);}
   ItemListIter Find(const pws_os::CUUID &entry_uuid)
   {return m_pwlist.find(entry_uuid);}
   ItemListConstIter Find(const pws_os::CUUID &entry_uuid) const

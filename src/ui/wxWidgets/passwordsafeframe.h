@@ -334,6 +334,7 @@ public:
 
   void OnMergeAnotherSafe(wxCommandEvent& evt);
   void OnSynchronize(wxCommandEvent& evt);
+  void OnCompare(wxCommandEvent& evt);
   
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_TOOLBAR_CLASSIC and ID_TOOLBAR_NEW
   void OnChangeToolbarType(wxCommandEvent& /*evt*/);
@@ -362,7 +363,7 @@ public:
     virtual void SetFocus();
     
     // PasswordSafe specifics:
-    int Load(const wxString &passwd);
+    int Load(const StringX &passwd);
     
     // Hilites the item.  Used for search
     void SelectItem(const pws_os::CUUID& uuid);
@@ -391,7 +392,7 @@ public:
     void UnlockUI(bool restoreFrame);
     
     /// Returns true if the user enters the correct safe combination and presses OK
-    bool VerifySafeCombination(wxString& password);
+    bool VerifySafeCombination(StringX& password);
 
     void GetAllMenuItemStrings(std::vector<RUEntryData>& vec) const { m_RUEList.GetAllMenuItemStrings(vec); };
     void DeleteRUEntry(size_t index) { m_RUEList.DeleteRUEntry(index); }
@@ -428,7 +429,7 @@ public:
   void ShowGrid(bool show = true);
   void ShowTree(bool show = true);
   void ClearData();
-  bool ReloadDatabase(const wxString& password);
+  bool ReloadDatabase(const StringX& password);
   bool SaveAndClearDatabase();
   void CleanupAfterReloadFailure(bool tellUser);
   Command *Delete(CItemData *pci);
