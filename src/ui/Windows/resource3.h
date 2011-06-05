@@ -671,6 +671,7 @@
 #define IDS_WITHWARNINGS                5867
 #define IDS_RPTIMPORTKPV1TXT            5868
 #define IDS_RPTIMPORTKPV1CSV            5869
+#define IDS_IMPORTFAILED                5870
 
 #define IDS_ATT_TOOLTIP0                7000
 #define IDS_ATT_TOOLTIP1                7001

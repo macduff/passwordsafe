@@ -1271,7 +1271,7 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
 
 int PWScore::ImportKeePassV1TXTFile(const StringX &filename,
                                     int &numImported, int &numSkipped, int &numRenamed,
-                                    CReport &rpt, Command *&pcommand)
+                                    UINT &uiReasonCode, CReport &rpt, Command *&pcommand)
 {
 
   /*
@@ -1295,6 +1295,7 @@ int PWScore::ImportKeePassV1TXTFile(const StringX &filename,
   CUTF8Conv conv;
   pcommand = NULL;
   numImported  = numSkipped = numRenamed = 0;
+  uiReasonCode = 0;
 
   // We need to use FOpen as the file name/file path may contain non-Latin
   // characters even though we need the file to contain ASCII and UTF-8 characters
@@ -1326,8 +1327,10 @@ int PWScore::ImportKeePassV1TXTFile(const StringX &filename,
   // Close the file
   fclose(fs);
 
-  if (bError)
+  if (bError) {
+    uiReasonCode = IDSC_READ_ERROR;
     return PWSRC::FAILURE;
+  }
 
   string linebuf;
   time_t ctime, atime, mtime, xtime;
@@ -1384,6 +1387,9 @@ int PWScore::ImportKeePassV1TXTFile(const StringX &filename,
 
     // this line should always be a title contained in []'s
     if (*(linebuf.begin()) != '[' || *(linebuf.end() - 1) != ']') {
+      LoadAString(cs_error, IDSC_IMPORTMISSINGTITLE);
+      rpt.WriteLine(cs_error);
+      uiReasonCode = IDSC_IMPORTABORTED;
       return PWSRC::INVALID_FORMAT;
     }
 
@@ -1395,9 +1401,13 @@ int PWScore::ImportKeePassV1TXTFile(const StringX &filename,
     for (;;) {
       streamoff currentpos = iss.tellg();
       getline(iss, linebuf, '\n');
+
+      if (iss.eof())
+        break;
+
       // Check if blank line
       if (linebuf.empty())
-        break;
+        continue;
 
       // Check if new entry
       if (*(linebuf.begin()) == '[' && *(linebuf.end() - 1) == ']') {
@@ -1554,6 +1564,8 @@ int PWScore::ImportKeePassV1TXTFile(const StringX &filename,
       else
       if (linebuf.substr(0, 24) == "Attachment Description: " ||
           linebuf.substr(0, 12) == "Attachment: " ||
+          linebuf.substr(0, 11) == "Auto-Type: " ||
+          linebuf.substr(0, 18) == "Auto-Type-Window: " ||
           linebuf.substr(0, 6)  == "Icon: ") {
         continue;
       }
@@ -1651,7 +1663,7 @@ void ProcessKeePassCSVLine(const string &linebuf, std::vector<StringX> &tokens)
   bool bInField = false;
   CUTF8Conv conv;
 
-  StringX item;
+  string item;
   StringX sxdata;
   
   for(size_t i = 0; i < linebuf.length(); i++ ) {
@@ -1688,7 +1700,8 @@ void ProcessKeePassCSVLine(const string &linebuf, std::vector<StringX> &tokens)
     else
     if (ch == '\"') {
       if (bInField) {
-        tokens.push_back(item); item.clear();
+        conv.FromUTF8((unsigned char *)item.c_str(), item.length(), sxdata);
+        tokens.push_back(sxdata); item.clear(); sxdata.clear();
         bInField = false;
       }
       else bInField = true;
@@ -1703,13 +1716,13 @@ void ProcessKeePassCSVLine(const string &linebuf, std::vector<StringX> &tokens)
 
 int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
                                     int &numImported, int &numSkipped, int &numRenamed,
-                                    CReport &rpt, Command *&pcommand)
+                                    UINT &uiReasonCode, CReport &rpt, Command *&pcommand)
 {
   stringT strError;
-  stringT cs_error;
   CUTF8Conv conv;
   pcommand = NULL;
   numImported  = numSkipped = numRenamed = 0;
+  uiReasonCode = 0;
 
   // We need to use FOpen as the file name/file path may contain non-Latin
   // characters even though we need the file to contain ASCII and UTF-8 characters
@@ -1741,8 +1754,10 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
   // Close the file
   fclose(fs);
 
-  if (bError)
+  if (bError) {
+    uiReasonCode = IDSC_READ_ERROR;
     return PWSRC::FAILURE;
+  }
 
   // The following's a stream of chars.  We need to process the header row 
   // as straight ASCII, and we need to handle rest as utf-8
@@ -1781,8 +1796,12 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
 
   string s_header, linebuf;
 
-  if (!getline(iss, s_header, '\n'))
-    return PWSRC::FAILURE;
+  if (!getline(iss, s_header, '\n')) {
+    LoadAString(strError, IDSC_IMPORTNOCOLS);
+    rpt.WriteLine(strError);
+    uiReasonCode = IDSC_IMPORTABORTED;
+    return PWSRC::INVALID_FORMAT;
+  }
 
   // the first line of the Keepass text file contains BOM characters
   if (s_header.length() > 3) {
@@ -1814,25 +1833,27 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
   if (num_found == 0) {
     LoadAString(strError, IDSC_IMPORTNOCOLS);
     rpt.WriteLine(strError);
-    return PWSRC::FAILURE;
+    uiReasonCode = IDSC_IMPORTABORTED;
+    return PWSRC::INVALID_FORMAT;
   }
 
   // These are "must haves"!
   if (i_Offset[PASSWORD] == -1 || i_Offset[TITLE] == -1) {
     LoadAString(strError, IDSC_IMPORTMISSINGCOLS);
     rpt.WriteLine(strError);
-    return PWSRC::FAILURE;
+    uiReasonCode = IDSC_IMPORTABORTED;
+    return PWSRC::INVALID_FORMAT;
   }
 
   if (num_found < vs_Header.size()) {
-    Format(cs_error, IDSC_IMPORTHDR, num_found);
-    rpt.WriteLine(cs_error);
-    LoadAString(cs_error, IDSC_IMPORTKNOWNHDRS);
-    rpt.WriteLine(cs_error);
+    Format(strError, IDSC_IMPORTHDR, num_found);
+    rpt.WriteLine(strError);
+    LoadAString(strError, IDSC_IMPORTKNOWNHDRS);
+    rpt.WriteLine(strError);
     for (int i = 0; i < NUMFIELDS; i++) {
       if (i_Offset[i] >= 0) {
-        Format(cs_error, _T(" %s,"), vs_Header[i].c_str());
-        rpt.WriteLine(cs_error, false);
+        Format(strError, _T(" %s,"), vs_Header[i].c_str());
+        rpt.WriteLine(strError, false);
       }
     }
     rpt.WriteLine();
@@ -1877,8 +1898,8 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
 
     // skip blank lines
     if (linebuf.empty()) {
-      Format(cs_error, IDSC_IMPORTEMPTYLINESKIPPED, numlines);
-      rpt.WriteLine(cs_error);
+      Format(strError, IDSC_IMPORTEMPTYLINESKIPPED, numlines);
+      rpt.WriteLine(strError);
       numSkipped++;
       continue;
     }
@@ -1887,30 +1908,36 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
     ProcessKeePassCSVLine(linebuf, tokens);
     numlines++;
 
-    // Sanity check
-    if (tokens.size() < num_found) {
-      Format(cs_error, IDSC_IMPORTLINESKIPPED, numlines, tokens.size(), num_found);
-      rpt.WriteLine(cs_error);
-      numSkipped++;
-      continue;
+    // Sanity check - if ot enough fields, user may not have done as instructed
+    //   Please note, you MUST check the box "Encode/replace newline characters by '\n'" 
+    //   during the export from Keepass V1 or the import may fail or give unexpected results.
+    // Also, the last character must have been a double quote as all items are quoted strings
+    if (tokens.size() < num_found || linebuf[linebuf.length() -1] != '"') {
+      Format(strError, IDSC_IMPORTLINESKIPPED, numlines, tokens.size(), num_found);
+      rpt.WriteLine(strError);
+      rpt.WriteLine();
+      LoadAString(strError, IDSC_IMPORTBADFORMAT);
+      rpt.WriteLine(strError.c_str());
+      uiReasonCode = IDSC_IMPORTABORTED;
+      return PWSRC::INVALID_FORMAT;
     }
 
     if (static_cast<size_t>(i_Offset[PASSWORD]) >= tokens.size() ||
         tokens[i_Offset[PASSWORD]].empty()) {
-      Format(cs_error, IDSC_IMPORTNOPASSWORD, numlines);
-      rpt.WriteLine(cs_error);
+      Format(strError, IDSC_IMPORTNOPASSWORD, numlines);
+      rpt.WriteLine(strError);
       numSkipped++;
       continue;
     }
     if (static_cast<size_t>(i_Offset[TITLE]) >= tokens.size() ||
         tokens[i_Offset[TITLE]].empty()) {
-      Format(cs_error, IDSC_IMPORTNOTITLE, numlines);
-      rpt.WriteLine(cs_error);
+      Format(strError, IDSC_IMPORTNOTITLE, numlines);
+      rpt.WriteLine(strError);
       numSkipped++;
       continue;
     }
     
-    if (!tokens[i_Offset[GROUP]].empty()) {
+    if (i_Offset[GROUP] >= 0 && !tokens[i_Offset[GROUP]].empty()) {
       sx_group = tokens[i_Offset[GROUP]];
       // Replace any '.' by a '/'
       size_t pos = 0;
@@ -1925,7 +1952,7 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
       }
     }
 
-    if (!tokens[i_Offset[TITLE]].empty()) {
+    if (i_Offset[TITLE] >= 0 && !tokens[i_Offset[TITLE]].empty()) {
       sx_title = tokens[i_Offset[TITLE]];
       // Replace any '.' by a '/'
       size_t pos = 0;
@@ -1935,11 +1962,11 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
       }
     }
 
-    if (!tokens[i_Offset[USER]].empty()) {
+    if (i_Offset[USER] >= 0 && !tokens[i_Offset[USER]].empty()) {
       sx_user = tokens[i_Offset[USER]];
     }
 
-    if (!tokens[i_Offset[PARENTGROUPS]].empty()) {
+    if (i_Offset[PARENTGROUPS] >= 0 && !tokens[i_Offset[PARENTGROUPS]].empty()) {
       // set the parent groups sx_parent_groups
       // Groups are in order separated by '\'
       // Groups with a '/' are unchanged
@@ -1968,7 +1995,7 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
       }
     }
 
-    if (!tokens[i_Offset[UUID]].empty()) {
+    if (i_Offset[UUID] >= 0 && !tokens[i_Offset[UUID]].empty()) {
       sx_uuid = tokens[i_Offset[UUID]];
       if (sx_uuid.length() == sizeof(uuid_array_t) * 2) {
         unsigned int x(0);
@@ -1982,7 +2009,7 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
         sx_uuid.clear();
     }
 
-    if (!tokens[i_Offset[CTIME]].empty()) {
+    if (i_Offset[CTIME] >= 0 && !tokens[i_Offset[CTIME]].empty()) {
       StringX sx_ctime = tokens[i_Offset[CTIME]];
       if (sx_ctime.length() != 19)
         continue;
@@ -1996,7 +2023,7 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
       VerifyXMLDateTimeString(temp, ctime);
     }
 
-    if (!tokens[i_Offset[ATIME]].empty()) {
+    if (i_Offset[ATIME] >= 0 && !tokens[i_Offset[ATIME]].empty()) {
       StringX sx_atime = tokens[i_Offset[ATIME]];
       if (sx_atime.length() != 19)
         continue;
@@ -2010,7 +2037,7 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
       VerifyXMLDateTimeString(temp, atime);
     }
 
-    if (!tokens[i_Offset[PMTIME]].empty()) {
+    if (i_Offset[PMTIME] >= 0 && !tokens[i_Offset[PMTIME]].empty()) {
       StringX sx_mtime = tokens[i_Offset[PMTIME]];
       if (sx_mtime.length() != 19)
         continue;
@@ -2024,7 +2051,7 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
       VerifyXMLDateTimeString(temp, mtime);
     }
 
-    if (!tokens[i_Offset[XTIME]].empty()) {
+    if (i_Offset[XTIME] >= 0 && !tokens[i_Offset[XTIME]].empty()) {
       StringX sx_xtime = tokens[i_Offset[XTIME]];
       if (sx_xtime.length() != 19)
         continue;
@@ -2038,7 +2065,7 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
       VerifyXMLDateTimeString(temp, xtime);
     }
 
-    if (!tokens[i_Offset[NOTES]].empty()) {
+    if (i_Offset[NOTES] >= 0 && !tokens[i_Offset[NOTES]].empty()) {
       sx_notes = tokens[i_Offset[NOTES]];
       size_t pos = 0;
       while((pos = sx_notes.find(txtCRLF, pos)) != StringX::npos) {
@@ -2098,15 +2125,15 @@ int PWScore::ImportKeePassV1CSVFile(const StringX &filename,
     bool conflict = !MakeEntryUnique(setGTU, sx_group, sxnewtitle, sx_user, IDSC_IMPORTNUMBER);
     if (conflict) {
       ci_temp.SetTitle(sxnewtitle);
-      stringT cs_header;
+      stringT str_header;
       if (sx_group.empty())
-        Format(cs_header, IDSC_IMPORTCONFLICTS2, numlines);
+        Format(str_header, IDSC_IMPORTCONFLICTS2, numlines);
       else
-        Format(cs_header, IDSC_IMPORTCONFLICTS1, numlines, sx_group.c_str());
+        Format(str_header, IDSC_IMPORTCONFLICTS1, numlines, sx_group.c_str());
 
-      Format(cs_error, IDSC_IMPORTCONFLICTS0, cs_header.c_str(),
+      Format(strError, IDSC_IMPORTCONFLICTS0, str_header.c_str(),
                sx_title.c_str(), sx_user.c_str(), sxnewtitle.c_str());
-      rpt.WriteLine(cs_error);
+      rpt.WriteLine(strError);
       sx_title = sxnewtitle;
       numRenamed++;
     }

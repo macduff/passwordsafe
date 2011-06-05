@@ -245,10 +245,19 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
       }
       break;
     case XLE_CTIMEX:
+      cur_entry->ctime = m_strElemContent;
+      break;
     case XLE_ATIMEX:
+      cur_entry->atime = m_strElemContent;
+      break;
     case XLE_XTIMEX:
+      cur_entry->xtime = m_strElemContent;
+      break;
     case XLE_PMTIMEX:
+      cur_entry->pmtime = m_strElemContent;
+      break;
     case XLE_RMTIMEX:
+      cur_entry->rmtime = m_strElemContent;
       break;
     case XLE_CTIME:
       Replace(cur_entry->ctime, _T('-'), _T('/'));
@@ -324,6 +333,9 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
         cur_pwhistory_entry->changed = _T("1970-01-01 00:00:00");
       }
       m_whichtime = -1;
+      break;
+    case XLE_CHANGEDX:
+      cur_pwhistory_entry->changed = m_strElemContent;
       break;
     case XLE_OLDPASSWORD:
       ASSERT(cur_pwhistory_entry != NULL);

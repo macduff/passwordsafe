@@ -1775,8 +1775,9 @@ void DboxMain::OnImportKeePassV1CSV()
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
 
-  CString cs_text, cs_title, cs_temp;
-  cs_text.LoadString(IDS_PICKKEEPASSFILE);
+  UINT uiReasonCode(0);
+  CString cs_title, cs_msg;
+  cs_title.LoadString(IDS_PICKKEEPASSFILE);
   std::wstring dir;
   if (m_core.GetCurFile().empty())
     dir = PWSdirs::GetSafeDir();
@@ -1793,7 +1794,7 @@ void DboxMain::OnImportKeePassV1CSV()
                    CString(MAKEINTRESOURCE(IDS_FDF_CSV_ALL)),
                    this);
 
-  fd.m_ofn.lpstrTitle = cs_text;
+  fd.m_ofn.lpstrTitle = cs_title;
 
   if (!dir.empty())
     fd.m_ofn.lpstrInitialDir = dir.c_str();
@@ -1807,6 +1808,7 @@ void DboxMain::OnImportKeePassV1CSV()
     PostQuitMessage(0);
     return;
   }
+
   if (rc == IDOK) {
     CGeneralMsgBox gmb;
     bool bWasEmpty = m_core.GetNumEntries() == 0;
@@ -1820,26 +1822,28 @@ void DboxMain::OnImportKeePassV1CSV()
     LoadAString(str_text, IDS_RPTIMPORTKPV1CSV);
     rpt.StartReport(str_text.c_str(), m_core.GetCurFile().c_str());
     LoadAString(str_text, IDS_TEXT);
-    cs_temp.Format(IDS_IMPORTFILE, str_text.c_str(), KPsFileName.c_str());
-    rpt.WriteLine((LPCWSTR)cs_temp);
+    cs_msg.Format(IDS_IMPORTFILE, str_text.c_str(), KPsFileName.c_str());
+    rpt.WriteLine((LPCWSTR)cs_msg);
     rpt.WriteLine();
 
     rc = m_core.ImportKeePassV1CSVFile(KPsFileName, numImported, numSkipped, numRenamed,
-                                       rpt, pcmd);
+                                       uiReasonCode, rpt, pcmd);
     switch (rc) {
       case PWSRC::CANT_OPEN_FILE:
       {
-        cs_temp.Format(IDS_CANTOPENREADING, KPsFileName.c_str());
+        cs_msg.Format(IDS_CANTOPENREADING, KPsFileName.c_str());
         cs_title.LoadString(IDS_FILEOPENERROR);
-        gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
         delete [] pcmd;
         break;
       }
       case PWSRC::INVALID_FORMAT:
+      case PWSRC::FAILURE:
       {
-        cs_temp.Format(IDS_INVALIDFORMAT, KPsFileName.c_str());
-        cs_title.LoadString(IDS_FILEREADERROR);
-        gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
+        if (uiReasonCode > 0)
+          cs_msg.LoadString(uiReasonCode);
+        else
+          cs_msg.Format(IDS_INVALIDFORMAT, KPsFileName.c_str());
+        cs_title.LoadString(IDS_IMPORTFAILED);
         delete [] pcmd;
         break;
       }
@@ -1856,8 +1860,8 @@ void DboxMain::OnImportKeePassV1CSV()
         rpt.WriteLine();
         CString cs_type;
         cs_type.LoadString(numImported == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
-        cs_temp.Format(IDS_RECORDSIMPORTED, numImported, cs_type);
-        rpt.WriteLine((LPCWSTR)cs_temp);
+        cs_msg.Format(IDS_RECORDSIMPORTED, numImported, cs_type);
+        rpt.WriteLine((LPCWSTR)cs_msg);
 
         cs_title.LoadString(rc == PWSRC::SUCCESS ? IDS_COMPLETE : IDS_OKWITHERRORS);
         break;
@@ -1865,7 +1869,7 @@ void DboxMain::OnImportKeePassV1CSV()
     rpt.EndReport();
 
     gmb.SetTitle(cs_title);
-    gmb.SetMsg(cs_temp);
+    gmb.SetMsg(cs_msg);
     gmb.SetStandardIcon(rc == PWSRC::SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
     gmb.AddButton(IDS_OK, IDS_OK, TRUE, TRUE);
     gmb.AddButton(IDS_VIEWREPORT, IDS_VIEWREPORT);
@@ -1880,8 +1884,9 @@ void DboxMain::OnImportKeePassV1TXT()
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
 
-  CString cs_text, cs_title, cs_temp;
-  cs_text.LoadString(IDS_PICKKEEPASSFILE);
+  UINT uiReasonCode(0);
+  CString cs_title, cs_msg;
+  cs_title.LoadString(IDS_PICKKEEPASSFILE);
   std::wstring dir;
   if (m_core.GetCurFile().empty())
     dir = PWSdirs::GetSafeDir();
@@ -1898,7 +1903,7 @@ void DboxMain::OnImportKeePassV1TXT()
                    CString(MAKEINTRESOURCE(IDS_FDF_TXT_ALL)),
                    this);
 
-  fd.m_ofn.lpstrTitle = cs_text;
+  fd.m_ofn.lpstrTitle = cs_title;
 
   if (!dir.empty())
     fd.m_ofn.lpstrInitialDir = dir.c_str();
@@ -1926,26 +1931,27 @@ void DboxMain::OnImportKeePassV1TXT()
     LoadAString(str_text, IDS_RPTIMPORTKPV1TXT);
     rpt.StartReport(str_text.c_str(), m_core.GetCurFile().c_str());
     LoadAString(str_text, IDS_TEXT);
-    cs_temp.Format(IDS_IMPORTFILE, str_text.c_str(), KPsFileName.c_str());
-    rpt.WriteLine((LPCWSTR)cs_temp);
+    cs_msg.Format(IDS_IMPORTFILE, str_text.c_str(), KPsFileName.c_str());
+    rpt.WriteLine((LPCWSTR)cs_msg);
     rpt.WriteLine();
 
     rc = m_core.ImportKeePassV1TXTFile(KPsFileName, numImported, numSkipped, numRenamed,
-                                       rpt, pcmd);
+                                       uiReasonCode, rpt, pcmd);
     switch (rc) {
       case PWSRC::CANT_OPEN_FILE:
       {
-        cs_temp.Format(IDS_CANTOPENREADING, KPsFileName.c_str());
+        cs_msg.Format(IDS_CANTOPENREADING, KPsFileName.c_str());
         cs_title.LoadString(IDS_FILEOPENERROR);
-        gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
         delete [] pcmd;
         break;
       }
       case PWSRC::INVALID_FORMAT:
       {
-        cs_temp.Format(IDS_INVALIDFORMAT, KPsFileName.c_str());
-        cs_title.LoadString(IDS_FILEREADERROR);
-        gmb.MessageBox(cs_temp, cs_title, MB_OK | MB_ICONWARNING);
+        if (uiReasonCode > 0)
+          cs_msg.LoadString(uiReasonCode);
+        else
+          cs_msg.Format(IDS_INVALIDFORMAT, KPsFileName.c_str());
+        cs_title.LoadString(IDS_IMPORTFAILED);
         delete [] pcmd;
         break;
       }
@@ -1963,8 +1969,8 @@ void DboxMain::OnImportKeePassV1TXT()
         rpt.WriteLine();
         CString cs_type;
         cs_type.LoadString(numImported == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
-        cs_temp.Format(IDS_RECORDSIMPORTED, numImported, cs_type);
-        rpt.WriteLine((LPCWSTR)cs_temp);
+        cs_msg.Format(IDS_RECORDSIMPORTED, numImported, cs_type);
+        rpt.WriteLine((LPCWSTR)cs_msg);
 
         cs_title.LoadString(rc == PWSRC::SUCCESS ? IDS_COMPLETE : IDS_OKWITHERRORS);
 
@@ -1974,7 +1980,7 @@ void DboxMain::OnImportKeePassV1TXT()
     rpt.EndReport();
 
     gmb.SetTitle(cs_title);
-    gmb.SetMsg(cs_temp);
+    gmb.SetMsg(cs_msg);
     gmb.SetStandardIcon(rc == PWSRC::SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
     gmb.AddButton(IDS_OK, IDS_OK, TRUE, TRUE);
     gmb.AddButton(IDS_VIEWREPORT, IDS_VIEWREPORT);
@@ -2207,7 +2213,7 @@ void DboxMain::OnChangeMode()
       }
     }
  
-    // Reset changed flag to stop being asked again (only if rc == PWSRC::USER_DECLINED_SAVE)
+    // Reset changed flag to stop being asked again (only if rc == PWScore::USER_DECLINED_SAVE)
     SetChanged(Clear);
 
     // Clear the Commands
