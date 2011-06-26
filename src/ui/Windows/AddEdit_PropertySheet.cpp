@@ -234,6 +234,10 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
   const int iCID = LOWORD(wParam);
 
   if (iCID == IDOK || iCID == ID_APPLY_NOW) {
+    // Don't care what user has done if entry is protected or DB R-O.
+    if (m_AEMD.ucprotected != 0 || m_AEMD.uicaller == IDS_VIEWENTRY)
+      CPWPropertySheet::EndDialog(IDOK);
+
     // First send a message to all loaded pages using base class function.
     // We want them all to update their variables in the Master Data area.
     // And call OnApply() rather than the default OnOK processing
@@ -242,12 +246,7 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
     // the user would not have changed their values if not displayed. Duh!
     if (SendMessage(PSM_QUERYSIBLINGS,
                 (WPARAM)CPWPropertyPage::PP_UPDATE_VARIABLES, 0L) != 0) {
-      if (iCID == IDOK) {
-        // Just end it
-        CPWPropertySheet::EndDialog(IDOK);
-      } else {
-        return TRUE;
-      }
+      return TRUE;
     }
 
     time_t t;

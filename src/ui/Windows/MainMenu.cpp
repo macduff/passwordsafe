@@ -652,6 +652,9 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
                                    ID_MENUITEM_OLD_TOOLBAR,
                                    m_toolbarMode, MF_BYCOMMAND);
 
+    // Disable View Reports menu if no database open as we need the full path
+    // of the database to get to its reports!
+    pPopupMenu->EnableMenuItem(ID_REPORTSMENU, MF_BYCOMMAND | (m_bOpen ? MF_ENABLED : MF_GRAYED));
     goto exit;
   }  // View menu
 

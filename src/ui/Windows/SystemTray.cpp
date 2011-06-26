@@ -62,10 +62,13 @@
 #include "stdafx.h"
 #include "SystemTray.h"
 #include "ThisMfcApp.h"
+#include "DboxMain.h"
 #include "PWDialog.h" // for access to CPWDialogTracker
+
 #include "resource.h"
 #include "resource2.h"  // Menu, Toolbar & Accelerator resources
 #include "resource3.h"  // String resources
+
 #include "core/StringX.h"
 #include "core/ItemData.h"
 
@@ -390,7 +393,8 @@ void CSystemTray::OnTimer(UINT_PTR )
 }
 
 // Helper function to set up recent entry submenu based on entry's attributes
-static BOOL SetupRecentEntryMenu(CMenu *&pMenu, const int i, const CItemData *pci)
+static BOOL SetupRecentEntryMenu(CMenu *&pMenu, const int i, const CItemData *pci,
+                                 const DboxMain *pDbx)
 {
   BOOL brc;
   CString cs_text, cs_select;
@@ -417,6 +421,14 @@ static BOOL SetupRecentEntryMenu(CMenu *&pMenu, const int i, const CItemData *pc
                           cs_text);
   if (brc == 0) goto exit;
   ipos++;
+
+  if (pci->IsShortcut() && pDbx != NULL) {
+    // Shortcut has no data of itself - for all other menu items
+    // use base entry's fields
+    const CItemData *pBase = pDbx->GetBaseEntry(pci);
+    if (pBase != NULL)
+      pci = pBase;
+  }
 
   if (!pci->IsUserEmpty()) {
     cs_text.LoadString(IDS_TRAYCOPYUSERNAME);
@@ -609,10 +621,13 @@ LRESULT CSystemTray::OnTrayNotification(WPARAM wParam, LPARAM lParam)
 
       // No point in doing Recent Entries if database is locked
       if (num_recent_entries != 0 && app_state == ThisMfcApp::UNLOCKED) {
+        DboxMain *pDbx = dynamic_cast<DboxMain *>(m_pParent);
+        ASSERT(pDbx != NULL); // fail safely in release build later
         // Build extra popup menus (1 per entry in list)
         typedef CMenu* CMenuPtr;
         ppNewRecentEntryMenu = new CMenuPtr[num_recent_entries];
         m_RUEList.GetAllMenuItemStrings(m_menulist);
+        const bool bGUIEmpty = pDbx == NULL || pDbx->IsGUIEmpty();
 
         for (size_t i = 0; i < num_recent_entries; i++) {
           ppNewRecentEntryMenu[i] = NULL;  // Ensure empty
@@ -624,10 +639,13 @@ LRESULT CSystemTray::OnTrayNotification(WPARAM wParam, LPARAM lParam)
             continue;
           }
 
-          BOOL brc = SetupRecentEntryMenu(ppNewRecentEntryMenu[i], (int)i, pci);
+          BOOL brc = SetupRecentEntryMenu(ppNewRecentEntryMenu[i], (int)i, pci, pDbx);
           if (brc == 0) {
             pws_os::Trace(L"CSystemTray::OnTrayNotification: SetupRecentEntryMenu - ppNewRecentEntryMenu[%d] failed\n", i);
             continue;
+          } else {
+            // Disable select entry if GUI not yet re-populated
+            ppNewRecentEntryMenu[i]->EnableMenuItem(0, MF_BYPOSITION | (bGUIEmpty ? MF_GRAYED : MF_ENABLED));
           }
 
           // Insert new popup menu at the bottom of the list

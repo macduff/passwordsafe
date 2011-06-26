@@ -678,17 +678,17 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_CHANGETREEFONT, true, true, true, true},
   {ID_MENUITEM_CHANGEPSWDFONT, true, true, true, true},
   {ID_MENUITEM_VKEYBOARDFONT, true, true, true, true},
-  {ID_MENUITEM_REPORT_COMPARE, true, true, true, true},
-  {ID_MENUITEM_REPORT_FIND, true, true, true, true},
-  {ID_MENUITEM_REPORT_IMPORTTEXT, true, true, true, true},
-  {ID_MENUITEM_REPORT_IMPORTKP1CSV, true, true, true, true},
-  {ID_MENUITEM_REPORT_IMPORTKP1TXT, true, true, true, true},
-  {ID_MENUITEM_REPORT_IMPORTXML, true, true, true, true},
-  {ID_MENUITEM_REPORT_EXPORTTEXT, true, true, true, true},
-  {ID_MENUITEM_REPORT_EXPORTXML, true, true, true, true},
-  {ID_MENUITEM_REPORT_MERGE, true, true, true, true},
-  {ID_MENUITEM_REPORT_VALIDATE, true, true, true, true},
-  {ID_MENUITEM_REPORT_SYNCHRONIZE, true, true, true, true},
+  {ID_MENUITEM_REPORT_COMPARE, true, true, true, false},
+  {ID_MENUITEM_REPORT_FIND, true, true, true, false},
+  {ID_MENUITEM_REPORT_IMPORTTEXT, true, true, true, false},
+  {ID_MENUITEM_REPORT_IMPORTKP1CSV, true, true, true, false},
+  {ID_MENUITEM_REPORT_IMPORTKP1TXT, true, true, true, false},
+  {ID_MENUITEM_REPORT_IMPORTXML, true, true, true, false},
+  {ID_MENUITEM_REPORT_EXPORTTEXT, true, true, true, false},
+  {ID_MENUITEM_REPORT_EXPORTXML, true, true, true, false},
+  {ID_MENUITEM_REPORT_MERGE, true, true, true, false},
+  {ID_MENUITEM_REPORT_VALIDATE, true, true, true, false},
+  {ID_MENUITEM_REPORT_SYNCHRONIZE, true, true, true, false},
   {ID_MENUITEM_EDITFILTER, true, true, false, false},
   {ID_MENUITEM_APPLYFILTER, true, true, false, false},
   {ID_MENUITEM_MANAGEFILTERS, true, true, true, true},
@@ -2542,15 +2542,19 @@ void DboxMain::UpdateAccessTime(CItemData *pci)
   if (!m_core.IsReadOnly() && bMaintainDateTimeStamps) {
     pci->SetATime();
     SetChanged(TimeStamp);
-    // Need to update view if there
-    if (m_nColumnIndexByType[CItemData::ATIME] != -1) {
-      // Get index of entry
-      DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-      // Get value in correct format
-      CString cs_atime = pci->GetATimeL().c_str();
-      // Update it
-      m_ctlItemList.SetItemText(pdi->list_index,
-        m_nColumnIndexByType[CItemData::ATIME], cs_atime);
+
+    if (!IsGUIEmpty()) {
+      // Need to update view if there and the display has been
+      // rebuilt/restored after unlocking or minimized
+      if (m_nColumnIndexByType[CItemData::ATIME] != -1) {
+        // Get index of entry
+        DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
+        // Get value in correct format
+        CString cs_atime = pci->GetATimeL().c_str();
+        // Update it
+        m_ctlItemList.SetItemText(pdi->list_index,
+                 m_nColumnIndexByType[CItemData::ATIME], cs_atime);
+      }
     }
   }
 }

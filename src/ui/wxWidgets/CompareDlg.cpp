@@ -26,7 +26,8 @@
 #include "../../core/PWScore.h"
 #include "./AdvancedSelectionDlg.h"
 #include "./ComparisonGridTable.h"
-
+#include "./SizeRestrictedPanel.h"
+#include "../../core/core.h"
 #include <wx/statline.h>
 #include <wx/grid.h>
 
@@ -34,6 +35,8 @@ enum {ID_BTN_COMPARE = 100 };
 
 BEGIN_EVENT_TABLE( CompareDlg, wxDialog )
   EVT_BUTTON( ID_BTN_COMPARE,  CompareDlg::OnCompare )
+//  EVT_GRID_CELL_RIGHT_CLICK(CompareDlg::OnGridCellRightClick)
+  EVT_GRID_CELL_LEFT_CLICK(CompareDlg::OnGridCellSelection)
 END_EVENT_TABLE()
 
 struct ComparisonData {
@@ -91,7 +94,7 @@ void CompareDlg::CreateControls()
   m_optionsPane = CreateOptionsPanel(dlgSizer);
   dlgSizer->AddSpacer(RowSeparation);
 
-  CreateDataPanel(dlgSizer, _("Conflicting items"), m_conflicts)->Hide();
+  CreateDataPanel(dlgSizer, _("Conflicting items"), m_conflicts, true)->Hide();
   m_conflicts->sizerBelow = dlgSizer->AddSpacer(RowSeparation);
   m_conflicts->sizerBelow->Show(false);
 
@@ -115,18 +118,16 @@ void CompareDlg::CreateControls()
   dlgSizer->AddSpacer(RowSeparation);
   wxStdDialogButtonSizer* buttons = new wxStdDialogButtonSizer;
   buttons->Add(new wxButton(this, wxID_CANCEL));
-  buttons->SetAffirmativeButton(new wxButton(this, ID_BTN_COMPARE, _("&Compare")));
+  wxButton* compareButton = new wxButton(this, ID_BTN_COMPARE, _("&Compare"));
+  compareButton->SetDefault();
+  buttons->SetAffirmativeButton(compareButton);
   buttons->Realize();
   dlgSizer->Add(buttons, wxSizerFlags().Center().Expand().Border(wxLEFT|wxRIGHT, SideMargin).Proportion(0));
   dlgSizer->AddSpacer(BottomMargin);
 
-  int captionHeight = ::wxSystemSettings::GetMetric(wxSYS_CAPTION_Y);
-  if (captionHeight < 0)  captionHeight = 100;
-  wxSize sz = ::wxGetDisplaySize();
-  sz -= wxSize(0, captionHeight);
-  SetMaxSize(sz);
-
   SetSizerAndFit(dlgSizer);
+
+  
 }
 
 struct CompareDlgType {
@@ -186,13 +187,32 @@ wxCollapsiblePane* CompareDlg::CreateOptionsPanel(wxSizer* dlgSizer)
   return optionsPane;
 }
 
-wxCollapsiblePane* CompareDlg::CreateDataPanel(wxSizer* dlgSizer, const wxString& title, ComparisonData* cd)
+wxCollapsiblePane* CompareDlg::CreateDataPanel(wxSizer* dlgSizer, const wxString& title, ComparisonData* cd,
+                                                      bool customGrid /*=false*/)
 {
   cd->pane = new wxCollapsiblePane(this, wxID_ANY, title);
-  cd->grid = new wxGrid(cd->pane->GetPane(), wxID_ANY);
-  wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-  sizer->Add(cd->grid, wxSizerFlags().Expand().Proportion(1));
-  cd->pane->GetPane()->SetSizer(sizer);
+  SizeRestrictedPanel* sizedPanel = new SizeRestrictedPanel(cd->pane->GetPane(), cd->pane);
+
+  //create the grid with SizeRestrictedPanel as the parent
+  if (customGrid)
+    cd->grid = new ComparisonGrid(sizedPanel, wxID_ANY);
+  else
+    cd->grid = new wxGrid(sizedPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0); //don't have wxWANTS_CHARS
+#ifndef __WXMSW__
+  wxFont monospacedFont(10, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+  if (monospacedFont.IsFixedWidth())
+    cd->grid->SetDefaultCellFont(monospacedFont);
+#else
+  cd->grid->SetDefaultCellFont(wxSystemSettings::GetFont(wxSYS_OEM_FIXED_FONT));
+#endif
+  cd->grid->SetColLabelAlignment(wxALIGN_LEFT, wxALIGN_BOTTOM);
+  wxBoxSizer* gridSizer = new wxBoxSizer(wxVERTICAL);
+  gridSizer->Add(cd->grid, wxSizerFlags().Expand().Proportion(1));
+  sizedPanel->SetSizer(gridSizer);
+
+  wxSizer* sizedPanelSizer = new wxBoxSizer(wxVERTICAL);
+  sizedPanelSizer->Add(sizedPanel, wxSizerFlags().Expand().Proportion(1));
+  cd->pane->GetPane()->SetSizer(sizedPanelSizer);
 
   dlgSizer->Add(cd->pane, wxSizerFlags().Proportion(0).Expand().Border(wxLEFT|wxRIGHT, SideMargin/2));
 
@@ -212,6 +232,10 @@ void CompareDlg::DoCompare()
                           true,
                           this) == PWScore::SUCCESS) {
     bool treatWhitespacesAsEmpty = false;
+    m_current->data.clear();
+    m_comparison->data.clear();
+    m_conflicts->data.clear();
+    m_identical->data.clear();
     m_currentCore->Compare(m_otherCore, 
                            m_selCriteria->GetSelectedFields(),
                            m_selCriteria->HasSubgroupRestriction(),
@@ -229,30 +253,156 @@ void CompareDlg::DoCompare()
     struct {
       ComparisonData* cd;
       bool expand;
-    } panes[] = { {m_conflicts,  true},
-                  {m_current,    true},
-                  {m_comparison, true},
-                  {m_identical,  false}
+      bool multiSource;
+      bool useComparisonSafe; ////unused if multisource is true
+    } sections[] = { {m_conflicts,  true,  true,  false}, 
+                     {m_current,    true,  false, false},
+                     {m_comparison, true,  false, true},
+                     {m_identical,  false, false, false}
                 };
     wxSizerItem* prevSizer = 0;
-    for(size_t idx =0; idx < WXSIZEOF(panes); ++idx) {
-      if (!panes[idx].cd->data.empty()) {
+    for(size_t idx =0; idx < WXSIZEOF(sections); ++idx) {
+      if (!sections[idx].cd->data.empty()) {
         if (prevSizer)
           prevSizer->Show(true);
-        panes[idx].cd->grid->SetTable(new ComparisonGridTable(m_selCriteria, &panes[idx].cd->data, m_currentCore, m_otherCore));
-        panes[idx].cd->pane->Show();
-        if (panes[idx].expand) {
-          //GetSizer()->GetItem(panes[idx].cd->pane)->SetProportion(0);
-          panes[idx].cd->pane->Expand();
+        ComparisonGridTable* table;
+        if (sections[idx].multiSource) {
+          table = new MultiSafeCompareGridTable(m_selCriteria,
+                                                &sections[idx].cd->data,
+                                                m_currentCore,
+                                                m_otherCore);
         }
         else {
-          //GetSizer()->GetItem(panes[idx].cd->pane)->SetProportion(0);
-          panes[idx].cd->pane->Collapse();
+          table = new UniSafeCompareGridTable(m_selCriteria,
+                                              &sections[idx].cd->data,
+                                              sections[idx].useComparisonSafe? m_otherCore: m_currentCore,
+                                              sections[idx].useComparisonSafe? &st_CompareData::uuid1: &st_CompareData::uuid0,
+                                              sections[idx].useComparisonSafe? ComparisonBackgroundColor: CurrentBackgroundColor);
+        }
+        sections[idx].cd->grid->SetTable(table, true, wxGrid::wxGridSelectRows);
+        wxCollapsiblePane* pane = sections[idx].cd->pane;
+        //expand the columns to show these fields fully, as these are usually small(er) strings
+        table->AutoSizeField(CItemData::GROUP);
+        table->AutoSizeField(CItemData::TITLE);
+        table->AutoSizeField(CItemData::USER);
+        table->AutoSizeField(CItemData::PASSWORD);
+        /*
+        // wxCollapsiblePane::GetLabel() doesn't work 
+        wxString newLabel(pane->GetLabel());
+        newLabel << wxT(" (") << sections[idx].cd->data.size() << wxT(")");
+        pane->SetLabel(newLabel);
+        */
+        pane->Show();
+        if (sections[idx].expand) {
+          pane->Expand();
+        }
+        else {
+          pane->Collapse();
         }
         //if the next pane is displayed, show the sizer below this pane
-        prevSizer = panes[idx].cd->sizerBelow; 
+        prevSizer = sections[idx].cd->sizerBelow; 
+      }
+      else {
+        sections[idx].cd->pane->Hide();
       }
     }
     Layout();
   }
+}
+
+enum {
+  ID_COPY_FIELD_TO_CURRENT_DB = 100,
+  ID_MERGE_ITEMS_WITH_CURRENT_DB,
+  ID_COPY_ITEMS_TO_CURRENT_DB,
+  ID_EDIT_IN_CURRENT_DB,
+  ID_VIEW_IN_COMPARISON_DB,
+  ID_DELETE_ITEMS_FROM_CURRENT_DB
+};
+
+wxGrid* CompareDlg::GetEventSourceGrid(int id)
+{
+  if (id == m_conflicts->grid->GetId())
+    return m_conflicts->grid;
+  else if (id == m_comparison->grid->GetId())
+    return m_comparison->grid;
+  else if (id == m_current->grid->GetId())
+    return m_current->grid;
+  else if (id == m_identical->grid->GetId())
+    return m_identical->grid;
+  else {
+    wxFAIL_MSG(wxT("Unexpected grid id in CompareDlg's grid event handler"));
+    return 0;
+  }
+}
+
+void CompareDlg::OnGridCellRightClick(wxGridEvent& evt)
+{
+  wxGrid* sourceGrid = GetEventSourceGrid(evt.GetId());
+  if (!sourceGrid) {
+    evt.Skip();
+    return;
+  }
+
+  if (!sourceGrid->IsInSelection(evt.GetRow(), evt.GetCol())) {
+    sourceGrid->SelectRow(evt.GetRow(), false);
+  }
+  sourceGrid->SetGridCursor(evt.GetRow(), evt.GetCol());
+
+  const int selectionCount = sourceGrid->GetSelectedRows().GetCount();
+  stringT itemStr;
+  LoadAString(itemStr, selectionCount > 1? IDSC_ENTRIES: IDSC_ENTRY);
+
+  wxMenu itemEditMenu;
+
+  wxString strMergeItemsMenu;
+  strMergeItemsMenu << _("Merge ") << selectionCount << wxT(" selected ") << towxstring(itemStr) << _(" with current db");
+  itemEditMenu.Append(ID_MERGE_ITEMS_WITH_CURRENT_DB, strMergeItemsMenu);
+
+  wxString strCopyItemsMenu;
+  strCopyItemsMenu << _("Copy ") << selectionCount << wxT(" selected ") << towxstring(itemStr) << _(" to current db");
+  itemEditMenu.Append(ID_COPY_ITEMS_TO_CURRENT_DB, strCopyItemsMenu);
+
+  wxString strDeleteItemsMenu;
+  strDeleteItemsMenu << _("Delete ") << selectionCount << wxT(" selected ") << towxstring(itemStr) << _(" from current db");
+  itemEditMenu.Append(ID_DELETE_ITEMS_FROM_CURRENT_DB, strDeleteItemsMenu);
+
+  itemEditMenu.AppendSeparator();
+
+  itemEditMenu.Append(ID_EDIT_IN_CURRENT_DB,   wxT("&Edit entry in current db"));
+  itemEditMenu.Append(ID_VIEW_IN_COMPARISON_DB,   wxT("&View entry in comparison db"));
+
+  if (sourceGrid == m_conflicts->grid) {
+    wxString strCopyFieldMenu;
+    ComparisonGridTable* table = wxDynamicCast(sourceGrid->GetTable(), ComparisonGridTable);
+    strCopyFieldMenu << _("&Copy ") << towxstring(CItemData::FieldName(table->ColumnToField(evt.GetCol()))) << _(" to current db");
+    itemEditMenu.Insert(0, ID_COPY_FIELD_TO_CURRENT_DB, strCopyFieldMenu);
+
+    itemEditMenu.InsertSeparator(1);
+  }
+  else if (sourceGrid == m_current->grid) {
+    itemEditMenu.Delete(ID_MERGE_ITEMS_WITH_CURRENT_DB);
+    itemEditMenu.Delete(ID_COPY_ITEMS_TO_CURRENT_DB);
+    itemEditMenu.Delete(ID_VIEW_IN_COMPARISON_DB);
+  }
+  else if (sourceGrid == m_comparison->grid) {
+    itemEditMenu.Delete(ID_MERGE_ITEMS_WITH_CURRENT_DB);
+    itemEditMenu.Delete(ID_DELETE_ITEMS_FROM_CURRENT_DB);
+    itemEditMenu.Delete(ID_EDIT_IN_CURRENT_DB);
+  }
+  else if (sourceGrid == m_identical->grid) {
+    itemEditMenu.Delete(ID_MERGE_ITEMS_WITH_CURRENT_DB);
+    itemEditMenu.Delete(ID_COPY_ITEMS_TO_CURRENT_DB);
+  }
+  sourceGrid->PopupMenu(&itemEditMenu);
+}
+
+void CompareDlg::OnGridCellSelection(wxGridEvent& evt)
+{
+  wxGrid* sourceGrid = GetEventSourceGrid(evt.GetId());
+  if (!sourceGrid) {
+    evt.Skip();
+    return;
+  }
+
+  sourceGrid->SelectRow(evt.GetRow(), evt.ControlDown() || evt.ShiftDown());
 }

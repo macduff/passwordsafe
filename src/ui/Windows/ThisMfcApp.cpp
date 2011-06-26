@@ -1036,7 +1036,7 @@ BOOL ThisMfcApp::InitInstance()
   m_UnLockedIcon = app.LoadIcon(IDI_UNLOCKEDICON);
   int iData = prefs->GetPref(PWSprefs::ClosedTrayIconColour);
   SetClosedTrayIcon(iData);
-  m_pTrayIcon = new CSystemTray((CWnd *)m_pMainDlg, PWS_MSG_ICON_NOTIFY, L"PasswordSafe",
+  m_pTrayIcon = new CSystemTray(m_pMainDlg, PWS_MSG_ICON_NOTIFY, L"PasswordSafe",
                                 m_LockedIcon, dbox.m_RUEList,
                                 PWS_MSG_ICON_NOTIFY, IDR_POPTRAY);
   m_pTrayIcon->SetTarget(&dbox);
@@ -1424,6 +1424,9 @@ void ThisMfcApp::GetLanguageFiles()
     // length should be either 10+2 (pwsafeLL.dll) or 10+5 (pwsafeLL_CC.dll)
     int len = cs_dll.GetLength();
     ASSERT(len == 12 || len == 15);
+    if (len != 12 && len != 15)
+      continue;
+
     cs_LL = cs_dll.Mid(6, 2);
     if (len == 15)
       cs_CC = cs_dll.Mid(9, 2);
@@ -1440,21 +1443,27 @@ void ThisMfcApp::GetLanguageFiles()
     if (FoundResLangID == m_AppLangID)
       continue;
 
+    // Create LCID
     LCID lcid = MAKELCID(FoundResLangID, SORT_DEFAULT);
+
     wchar_t *szLanguage_Native(NULL), *szLanguage_English(NULL);
-    wchar_t  *szCountry_Native(NULL), *szCountry_English(NULL);
+    wchar_t *szCountry_Native(NULL), *szCountry_English(NULL);
+
     int inum = ::GetLocaleInfo(lcid, LOCALE_SNATIVELANGNAME, NULL, 0);
     if (inum > 0) {
+      // Get language name in that language
       szLanguage_Native = new wchar_t[inum + 1];
       ::GetLocaleInfo(lcid, LOCALE_SNATIVELANGNAME, szLanguage_Native, inum);
 
       int jnum = 0, knum = 0;
       if (!cs_CC.IsEmpty()) {
+        // Get Country name in that language
         jnum = ::GetLocaleInfo(lcid, LOCALE_SNATIVECTRYNAME, NULL, 0);
         if (jnum > 0) {
           szCountry_Native = new wchar_t[jnum + 1];
           ::GetLocaleInfo(lcid, LOCALE_SNATIVECTRYNAME, szCountry_Native, jnum);
         }
+        // Get Country name in English
         knum = ::GetLocaleInfo(lcid, LOCALE_SENGCOUNTRY, NULL, 0);
         if (knum > 0) {
           szCountry_English = new wchar_t[knum + 1];
@@ -1462,6 +1471,28 @@ void ThisMfcApp::GetLanguageFiles()
         }
       }
 
+      // Now try to make first character of language name in that language upper case
+      // Should use LCMapStringEx but that is for Vista + and we support XP & later
+      wchar_t *szLanguage_NativeUpper(NULL);
+      int iu = LCMapString(lcid, LCMAP_LINGUISTIC_CASING | LCMAP_UPPERCASE,
+                           szLanguage_Native, inum,
+                           szLanguage_NativeUpper, 0);
+      if (iu > 0) {
+        szLanguage_NativeUpper = new wchar_t[iu + 1];
+        iu = LCMapString(lcid, LCMAP_LINGUISTIC_CASING | LCMAP_UPPERCASE,
+                         szLanguage_Native, inum,
+                         szLanguage_NativeUpper, iu);
+        if (szLanguage_NativeUpper[0] != L'?') {
+          // Assume all OK and language supports Upper case and is read Left->Right
+          // Seems to translate non-Latin characters from Hindi, Punjabi, Hebrew, Korean & Chinese
+          // to the same character - so not issue (and one of them reads Right->Left)
+          // Must be because they do not have a concept of upper & lower case.
+          // Works for Russian Cyrillic alphabet though. Can't promise for future languages!
+          szLanguage_Native[0] = szLanguage_NativeUpper[0];
+        }
+        delete szLanguage_NativeUpper;
+      }
+      // Get language name in Englsh
       int lnum = ::GetLocaleInfo(lcid, LOCALE_SENGLANGUAGE, NULL, 0);
       if (lnum > 0) {
         szLanguage_English = new wchar_t[lnum + 1];

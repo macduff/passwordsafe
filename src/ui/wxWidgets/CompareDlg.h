@@ -21,14 +21,18 @@ struct SelectionCriteria;
 class DbSelectionPanel;
 class wxGrid;
 struct ComparisonData;
+class wxGridEvent;
 
 class CompareDlg: public wxDialog
 {
   void CreateControls();
   wxCollapsiblePane* CreateDBSelectionPanel(wxSizer* sizer);
   wxCollapsiblePane* CreateOptionsPanel(wxSizer* dlgSizer);
-  wxCollapsiblePane* CreateDataPanel(wxSizer* dlgSizer, const wxString& title, ComparisonData* cd);
+  wxCollapsiblePane* CreateDataPanel(wxSizer* dlgSizer, const wxString& title, ComparisonData* cd,
+                                              bool customGrid = false);
   void OnCompare(wxCommandEvent& );
+  void OnGridCellRightClick(wxGridEvent& evt);
+  void OnGridCellSelection(wxGridEvent& evt);
 
 public:
   CompareDlg(wxWindow* parent, PWScore* core);
@@ -44,6 +48,7 @@ private:
   ComparisonData      *m_current, *m_comparison, *m_conflicts, *m_identical;
 
   void DoCompare();
+  wxGrid* GetEventSourceGrid(int id);
 
   DECLARE_EVENT_TABLE()
 };
