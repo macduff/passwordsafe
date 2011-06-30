@@ -2265,6 +2265,11 @@ void DboxMain::OnChangeMode()
         case PWSRC::END_OF_FILE:
           uiMsg = IDS_CM_FAIL_REASON5;
           break;
+        case PWSRC::READ_FAIL:
+          // Temporary use of this value to indicate DB is R-O at the file level
+          // and so cannot change to R/W
+          uiMsg = IDS_FILEREADONLY;
+          break;
         default:
           ASSERT(0);
       }
