@@ -1219,6 +1219,9 @@ BOOL DboxMain::OnInitDialog()
   // Set up DragBar Tooltips
   SetDragbarToolTips();
 
+  // Update Minidump user streams
+  app.SetMinidumpUserStreams(m_bOpen, !IsDBReadOnly());
+
   return TRUE;  // return TRUE unless you set the focus to a control
 }
 
@@ -1417,7 +1420,6 @@ void DboxMain::OnItemDoubleClick(NMHDR *, LRESULT *pLResult)
   *pLResult = 1L;
 
   // Continue if in ListView or Leaf in TreeView
-
 #if defined(POCKET_PC)
   if (app.GetProfileInt(PWS_REG_OPTIONS, L"dcshowspassword", FALSE) == FALSE) {
     OnCopyPassword();
@@ -1435,9 +1437,12 @@ void DboxMain::OnItemDoubleClick(NMHDR *, LRESULT *pLResult)
   }
 
   short iDCA;
-  pci->GetDCA(iDCA);
+  const bool m_bShiftKey = ((GetKeyState(VK_SHIFT) & 0x8000) == 0x8000);
+  pci->GetDCA(iDCA, m_bShiftKey);
+
   if (iDCA < PWSprefs::minDCA || iDCA > PWSprefs::maxDCA)
-    iDCA = (short)PWSprefs::GetInstance()->GetPref(PWSprefs::DoubleClickAction);
+    iDCA = (short)PWSprefs::GetInstance()->GetPref(m_bShiftKey ? 
+              PWSprefs::ShiftDoubleClickAction : PWSprefs::DoubleClickAction);
 
   switch (iDCA) {
     case PWSprefs::DoubleClickAutoType:
@@ -1668,6 +1673,7 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
   //  GCP_NORMAL     (1) OK, CANCEL & HELP buttons
   //  GCP_RESTORE    (2) OK, CANCEL & HELP buttons
   //  GCP_WITHEXIT   (3) OK, CANCEL, EXIT & HELP buttons
+  //  GCB_CHANGEMODE (4) OK, CANCEL & HELP buttons
 
   // for adv_type values, see enum in AdvancedDlg.h
 
@@ -1760,6 +1766,7 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
         break;
       case GCP_RESTORE:
       case GCP_WITHEXIT:
+      case GCP_CHANGEMODE:
       default:
         // user can't change R-O status
         break;
@@ -2461,6 +2468,9 @@ void DboxMain::SetLanguage(LCID lcid)
   // Set up DragBar Tooltips
   SetDragbarToolTips();
 
+  // Update Minidump user streams - language is a string preference
+  app.SetMinidumpUserStreams(m_bOpen, !IsDBReadOnly(), us3);
+
   // Remove wait cursor
   wait.Restore();
 }
@@ -2704,6 +2714,7 @@ void DboxMain::UpdateStatusBar()
     CFont *pFont = m_statusBar.GetFont();
     ASSERT(pFont);
     dc.SelectObject(pFont);
+    const int iBMWidth = m_statusBar.GetBitmapWidth();
 
     if (m_bOpen) {
       dc.DrawText(m_lastclipboardaction, &rectPane, DT_CALCRECT);
@@ -2733,6 +2744,9 @@ void DboxMain::UpdateStatusBar()
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_NUM_ENT, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_NUM_ENT, uiID, uiStyle, rectPane.Width());
       m_statusBar.SetPaneText(CPWStatusBar::SB_NUM_ENT, s);
+
+      m_statusBar.GetPaneInfo(CPWStatusBar::SB_FILTER, uiID, uiStyle, iWidth);
+      m_statusBar.SetPaneInfo(CPWStatusBar::SB_FILTER, uiID, uiStyle | SBT_OWNERDRAW, iBMWidth);
     } else {
       s.LoadString(IDS_STATCOMPANY);
       m_statusBar.SetPaneText(CPWStatusBar::SB_DBLCLICK, s);
@@ -2754,8 +2768,14 @@ void DboxMain::UpdateStatusBar()
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_NUM_ENT, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_NUM_ENT, uiID, uiStyle, rectPane.Width());
       m_statusBar.SetPaneText(CPWStatusBar::SB_NUM_ENT, L" ");
+
+      m_statusBar.GetPaneInfo(CPWStatusBar::SB_FILTER, uiID, uiStyle, iWidth);
+      m_statusBar.SetPaneInfo(CPWStatusBar::SB_FILTER, uiID, uiStyle | SBT_OWNERDRAW, iBMWidth);
     }
   }
+
+  m_statusBar.Invalidate();
+  m_statusBar.UpdateWindow();
 
   /*
   This doesn't exactly belong here, but it makes sure that the
@@ -2770,7 +2790,7 @@ void DboxMain::SetDCAText(CItemData *pci)
 {
   const short si_dca_default = short(PWSprefs::GetInstance()->
                        GetPref(PWSprefs::DoubleClickAction));
-  short si_dca;
+  short si_dca(0);
   if (pci == NULL) {
     si_dca = -1;
   } else {

@@ -95,10 +95,10 @@ void CPWStatusBar::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
       CRect rect(&lpDrawItemStruct->rcItem);
       if (m_bFilterStatus) {
         // Centre bitmap in pane.
-        int ileft = rect.left +  rect.Width() / 2 - m_bmWidth / 2;
-        int itop = rect.top +  rect.Height() / 2 - m_bmHeight / 2;
+        int ileft = rect.left + rect.Width() / 2 - m_bmWidth / 2;
+        int itop = rect.top + rect.Height() / 2 - m_bmHeight / 2;
 
-        CBitmap* pBitmap = &m_FilterBitmap;
+        CBitmap *pBitmap = &m_FilterBitmap;
         CDC srcDC; // select current bitmap into a compatible CDC
         srcDC.CreateCompatibleDC(NULL);
         CBitmap* pOldBitmap = srcDC.SelectObject(pBitmap);
@@ -221,8 +221,10 @@ void CPWStatusBar::OnMouseMove(UINT nFlags, CPoint point)
       for (int i = 0; i < SB_TOTAL; i++) {
         GetItemRect(i, &rc);
 
-        if(PtInRect(&rc, point))
+        if (PtInRect(&rc, point)) {
           nPane = i;
+          break;
+        }
       }
     }
 

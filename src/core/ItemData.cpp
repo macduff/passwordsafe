@@ -55,8 +55,9 @@ CItemData::CItemData()
     m_tttATime(ATIME), m_tttCTime(CTIME), m_tttXTime(XTIME),
     m_tttPMTime(PMTIME), m_tttRMTime(RMTIME), m_PWHistory(PWHIST),
     m_PWPolicy(POLICY), m_XTimeInterval(XTIME_INT), m_RunCommand(RUNCMD),
-    m_DCA(DCA), m_email(EMAIL), m_protected(PROTECTED), m_symbols(SYMBOLS),
-    m_entrytype(ET_NORMAL), m_entrystatus(ES_CLEAN), m_display_info(NULL)
+    m_DCA(DCA), m_ShiftDCA(SHIFTDCA), m_email(EMAIL), m_protected(PROTECTED),
+    m_symbols(SYMBOLS), m_entrytype(ET_NORMAL), m_entrystatus(ES_CLEAN),
+    m_display_info(NULL)
 {
   PWSrand::GetInstance()->GetRandomData( m_salt, SaltLength );
 }
@@ -69,8 +70,8 @@ CItemData::CItemData(const CItemData &that) :
   m_tttXTime(that.m_tttXTime), m_tttPMTime(that.m_tttPMTime),
   m_tttRMTime(that.m_tttRMTime), m_PWHistory(that.m_PWHistory),
   m_PWPolicy(that.m_PWPolicy), m_XTimeInterval(that.m_XTimeInterval),
-  m_RunCommand(that.m_RunCommand), m_DCA(that.m_DCA), m_email(that.m_email),
-  m_protected(that.m_protected), m_symbols(that.m_symbols),
+  m_RunCommand(that.m_RunCommand), m_DCA(that.m_DCA), m_ShiftDCA(that.m_ShiftDCA),
+  m_email(that.m_email), m_protected(that.m_protected), m_symbols(that.m_symbols),
   m_entrytype(that.m_entrytype), m_entrystatus(that.m_entrystatus),
   m_display_info(that.m_display_info == NULL ?
                       NULL : that.m_display_info->clone())
@@ -102,6 +103,7 @@ CItemData& CItemData::operator=(const CItemData &that)
     m_AutoType = that.m_AutoType;
     m_RunCommand = that.m_RunCommand;
     m_DCA = that.m_DCA;
+    m_ShiftDCA = that.m_ShiftDCA;
     m_email = that.m_email;
     m_symbols = that.m_symbols;
     m_tttCTime = that.m_tttCTime;
@@ -142,6 +144,7 @@ void CItemData::Clear()
   m_AutoType.Empty();
   m_RunCommand.Empty();
   m_DCA.Empty();
+  m_ShiftDCA.Empty();
   m_email.Empty();
   m_symbols.Empty();
   m_tttCTime.Empty();
@@ -582,12 +585,12 @@ bool CItemData::IsProtected() const
   return ucprotected != 0;
 }
 
-void CItemData::GetDCA(short &iDCA) const
+void CItemData::GetDCA(short &iDCA, const bool bShift) const
 {
   unsigned char in[TwoFish::BLOCKSIZE]; // required by GetField
   size_t tlen = sizeof(in); // ditto
 
-  GetField(m_DCA, in, tlen);
+  GetField(bShift ? m_ShiftDCA : m_DCA, in, tlen);
 
   if (tlen != 0) {
     ASSERT(tlen == sizeof(short));
@@ -597,10 +600,10 @@ void CItemData::GetDCA(short &iDCA) const
   }
 }
 
-StringX CItemData::GetDCA() const
+StringX CItemData::GetDCA(const bool bShift) const
 {
   short dca;
-  GetDCA(dca);
+  GetDCA(dca, bShift);
   oStringXStream os;
   os << dca;
   return os.str();
@@ -755,6 +758,7 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
            history + separator +
            GetRunCommand() + separator +
            GetDCA() + separator +
+           GetShiftDCA() + separator +
            GetEmail() + separator +
            sxProtected + separator +
            GetSymbols() + separator +
@@ -796,6 +800,8 @@ StringX CItemData::GetPlaintext(const TCHAR &separator,
       ret += GetRunCommand() + separator;
     if (bsFields.test(CItemData::DCA))
       ret += GetDCA() + separator;
+    if (bsFields.test(CItemData::SHIFTDCA))
+      ret += GetShiftDCA() + separator;
     if (bsFields.test(CItemData::EMAIL))
       ret += GetEmail() + separator;
     if (bsFields.test(CItemData::PROTECTED)) {
@@ -996,6 +1002,12 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
   if (bsExport.test(CItemData::DCA) &&
       i16 >= PWSprefs::minDCA && i16 <= PWSprefs::maxDCA)
     oss << "\t\t<dca>" << i16 << "</dca>" << endl;
+
+  GetShiftDCA(i16);
+  if (bsExport.test(CItemData::SHIFTDCA) &&
+      i16 >= PWSprefs::minDCA && i16 <= PWSprefs::maxDCA)
+    oss << "\t\t<shiftdca>" << i16 << "</shiftdca>" << endl;
+
 
   tmp = GetEmail();
   if (bsExport.test(CItemData::EMAIL) && !tmp.empty())
@@ -1444,17 +1456,18 @@ void CItemData::SetSymbols(const StringX &sx_symbols)
   SetField(m_symbols, sx_symbols);
 }
 
-void CItemData::SetDCA(const short &iDCA)
+void CItemData::SetDCA(const short &iDCA, const bool bShift)
 {
-   SetField(m_DCA, reinterpret_cast<const unsigned char *>(&iDCA), sizeof(short));
+   SetField(bShift ? m_ShiftDCA : m_DCA, reinterpret_cast<const unsigned char *>(&iDCA),
+            sizeof(short));
 }
 
-bool CItemData::SetDCA(const stringT &cs_DCA)
+bool CItemData::SetDCA(const stringT &cs_DCA, const bool bShift)
 {
   short iDCA(-1);
 
   if (cs_DCA.empty()) {
-    SetDCA(iDCA);
+    SetDCA(iDCA, bShift);
     return true;
   }
 
@@ -1464,7 +1477,7 @@ bool CItemData::SetDCA(const stringT &cs_DCA)
     if (is.fail())
       return false;
     if (iDCA == -1 || (iDCA >= PWSprefs::minDCA && iDCA <= PWSprefs::maxDCA)) {
-      SetDCA(iDCA);
+      SetDCA(iDCA, bShift);
       return true;
     }
   }
@@ -1539,6 +1552,9 @@ void CItemData::SetFieldValue(const FieldType &ft, const StringX &value)
       break;
     case SYMBOLS:    /* 16 */
       SetSymbols(value);
+      break;
+    case SHIFTDCA:   /* 17 */
+      SetShiftDCA(value.c_str());
       break;
     case GROUPTITLE: /* 00 */
     case UUID:       /* 01 */
@@ -1710,6 +1726,9 @@ bool CItemData::Matches(int num1, int num2, int iObject,
     case ENTRYSIZE:
       GetSize(reinterpret_cast<size_t &>(iValue));
       break;
+    case PASSWORDLEN:
+      iValue = GetPasswordLength();
+      break;
     default:
       ASSERT(0);
       return false;
@@ -1725,12 +1744,13 @@ bool CItemData::Matches(int num1, int num2, int iObject,
     return PWSMatch::Match(num1, num2, iValue, iFunction);
 }
 
-bool CItemData::Matches(short dca, int iFunction) const
+bool CItemData::Matches(short dca, int iFunction, const bool bShift) const
 {
   short iDCA;
-  GetDCA(iDCA);
+  GetDCA(iDCA, bShift);
   if (iDCA < 0)
-    iDCA = (short)PWSprefs::GetInstance()->GetPref(PWSprefs::DoubleClickAction);
+    iDCA = (short)PWSprefs::GetInstance()->GetPref(bShift ?
+               PWSprefs::ShiftDoubleClickAction : PWSprefs::DoubleClickAction);
 
   switch (iFunction) {
     case PWSMatch::MR_IS:
@@ -2076,6 +2096,10 @@ bool CItemData::SetField(int type, const unsigned char *data, size_t len)
       if (!pull_int16(i16, data, len)) return false;
       SetDCA(i16);
       break;
+    case SHIFTDCA:
+      if (!pull_int16(i16, data, len)) return false;
+      SetShiftDCA(i16);
+      break;
     case EMAIL:
       if (!pull_string(str, data, len)) return false;
       SetEmail(str);
@@ -2243,28 +2267,29 @@ stringT CItemData::FieldName(FieldType ft)
 {
   stringT retval(_T(""));
   switch (ft) {
-  case GROUPTITLE: LoadAString(retval, IDSC_FLDNMGROUPTITLE); break;
-  case UUID:       LoadAString(retval, IDSC_FLDNMUUID); break;
-  case GROUP:      LoadAString(retval, IDSC_FLDNMGROUP); break;
-  case TITLE:      LoadAString(retval, IDSC_FLDNMTITLE); break;
-  case USER:       LoadAString(retval, IDSC_FLDNMUSERNAME); break;
-  case NOTES:      LoadAString(retval, IDSC_FLDNMNOTES); break;
-  case PASSWORD:   LoadAString(retval, IDSC_FLDNMPASSWORD); break;
-  case CTIME:      LoadAString(retval, IDSC_FLDNMCTIME); break;
-  case PMTIME:     LoadAString(retval, IDSC_FLDNMPMTIME); break;
-  case ATIME:      LoadAString(retval, IDSC_FLDNMATIME); break;
-  case XTIME:      LoadAString(retval, IDSC_FLDNMXTIME); break;
-  case RMTIME:     LoadAString(retval, IDSC_FLDNMRMTIME); break;
-  case URL:        LoadAString(retval, IDSC_FLDNMURL); break;
-  case AUTOTYPE:   LoadAString(retval, IDSC_FLDNMAUTOTYPE); break;
-  case PWHIST:     LoadAString(retval, IDSC_FLDNMPWHISTORY); break;
-  case POLICY:     LoadAString(retval, IDSC_FLDNMPWPOLICY); break;
-  case XTIME_INT:  LoadAString(retval, IDSC_FLDNMXTIMEINT); break;
-  case RUNCMD:     LoadAString(retval, IDSC_FLDNMRUNCOMMAND); break;
-  case DCA:        LoadAString(retval, IDSC_FLDNMDCA); break;
-  case EMAIL:      LoadAString(retval, IDSC_FLDNMEMAIL); break;
-  case PROTECTED:  LoadAString(retval, IDSC_FLDNMPROTECTED); break;
-  case SYMBOLS:    LoadAString(retval, IDSC_FLDNMSYMBOLS); break;
+  case GROUPTITLE:   LoadAString(retval, IDSC_FLDNMGROUPTITLE); break;
+  case UUID:         LoadAString(retval, IDSC_FLDNMUUID); break;
+  case GROUP:        LoadAString(retval, IDSC_FLDNMGROUP); break;
+  case TITLE:        LoadAString(retval, IDSC_FLDNMTITLE); break;
+  case USER:         LoadAString(retval, IDSC_FLDNMUSERNAME); break;
+  case NOTES:        LoadAString(retval, IDSC_FLDNMNOTES); break;
+  case PASSWORD:     LoadAString(retval, IDSC_FLDNMPASSWORD); break;
+  case CTIME:        LoadAString(retval, IDSC_FLDNMCTIME); break;
+  case PMTIME:       LoadAString(retval, IDSC_FLDNMPMTIME); break;
+  case ATIME:        LoadAString(retval, IDSC_FLDNMATIME); break;
+  case XTIME:        LoadAString(retval, IDSC_FLDNMXTIME); break;
+  case RMTIME:       LoadAString(retval, IDSC_FLDNMRMTIME); break;
+  case URL:          LoadAString(retval, IDSC_FLDNMURL); break;
+  case AUTOTYPE:     LoadAString(retval, IDSC_FLDNMAUTOTYPE); break;
+  case PWHIST:       LoadAString(retval, IDSC_FLDNMPWHISTORY); break;
+  case POLICY:       LoadAString(retval, IDSC_FLDNMPWPOLICY); break;
+  case XTIME_INT:    LoadAString(retval, IDSC_FLDNMXTIMEINT); break;
+  case RUNCMD:       LoadAString(retval, IDSC_FLDNMRUNCOMMAND); break;
+  case DCA:          LoadAString(retval, IDSC_FLDNMDCA); break;
+  case SHIFTDCA:     LoadAString(retval, IDSC_FLDNMSHIFTDCA); break;
+  case EMAIL:        LoadAString(retval, IDSC_FLDNMEMAIL); break;
+  case PROTECTED:    LoadAString(retval, IDSC_FLDNMPROTECTED); break;
+  case SYMBOLS:      LoadAString(retval, IDSC_FLDNMSYMBOLS); break;
   default:
     ASSERT(0);
   };

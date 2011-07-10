@@ -465,6 +465,7 @@
     <xs:element name="runcommand" type="stringpresentfilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="email" type="stringpresentfilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="DCA" type="dcafilterentry" minOccurs="1" maxOccurs="1" />
+    <xs:element name="ShiftDCA" type="dcafilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="autotype" type="stringpresentfilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="password_expiry_interval" type="integerfilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="protected" type="booleanisfilterentry" minOccurs="1" maxOccurs="1" />
@@ -489,6 +490,7 @@
     <xs:element name="policy_pronounceable" type="booleansetfilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="policy_hexadecimal" type="booleansetfilterentry" minOccurs="1" maxOccurs="1" />
 
+    <xs:element name="password_length" type="integerfilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="entrysize" type="sizefilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="entrytype" type="entrytypefilterentry" minOccurs="1" maxOccurs="1" />
     <xs:element name="entrystatus" type="entrystatusfilterentry" minOccurs="1" maxOccurs="1" />

@@ -55,11 +55,12 @@ down the streetsky.  [Groucho Marx]
 static wchar_t PSSWDCHAR = L'*';
 
 // See DboxMain.h for the relevant enum
-int CPasskeyEntry::dialog_lookup[4] = {
+int CPasskeyEntry::dialog_lookup[5] = {
   IDD_PASSKEYENTRY_FIRST,          // GCP_FIRST
   IDD_PASSKEYENTRY,                // GCP_NORMAL
   IDD_PASSKEYENTRY,                // GCP_RESTORE
-  IDD_PASSKEYENTRY_WITHEXIT};      // GCP_WITHEXIT
+  IDD_PASSKEYENTRY_WITHEXIT,       // GCP_WITHEXIT
+  IDD_PASSKEYENTRY};               // GCP_CHANGEMODE
 
 //-----------------------------------------------------------------------------
 CPasskeyEntry::CPasskeyEntry(CWnd* pParent, const CString& a_filespec, int index,
@@ -209,6 +210,7 @@ BOOL CPasskeyEntry::OnInitDialog(void)
       break;
     case GCP_RESTORE:
     case GCP_WITHEXIT:
+    case GCP_CHANGEMODE:
       // on Restore - user can't change status
       GetDlgItem(IDC_READONLY)->EnableWindow(FALSE);
       GetDlgItem(IDC_READONLY)->ShowWindow(SW_HIDE);
@@ -434,44 +436,44 @@ void CPasskeyEntry::ProcessPhrase()
 {
   CGeneralMsgBox gmb;
   switch (m_pDbx->CheckPasskey(LPCWSTR(m_filespec), LPCWSTR(m_passkey))) {
-    case PWSRC::SUCCESS:
-      CPWDialog::OnOK();
-      break;
-    case PWSRC::WRONG_PASSWORD:
-      if (m_tries >= 2) { // too many tries
-        CTryAgainDlg errorDlg(this);
+  case PWSRC::SUCCESS:
+    CPWDialog::OnOK();
+    break;
+  case PWSRC::WRONG_PASSWORD:
+    if (m_tries >= 2) { // too many tries
+      CTryAgainDlg errorDlg(this);
 
-        INT_PTR nResponse = errorDlg.DoModal();
-        if (nResponse == IDOK) {
-        } else if (nResponse == IDCANCEL) {
-          m_status = errorDlg.GetCancelReturnValue();
-          if (m_status == TAR_OPEN) { // open another
-            PostMessage(WM_COMMAND, IDC_BTN_BROWSE);
-          } else if (m_status == TAR_NEW) { // create new
-            PostMessage(WM_COMMAND, IDC_CREATE_DB);
-          }
-          CPWDialog::OnCancel();
+      INT_PTR nResponse = errorDlg.DoModal();
+      if (nResponse == IDOK) {
+      } else if (nResponse == IDCANCEL) {
+        m_status = errorDlg.GetCancelReturnValue();
+        if (m_status == TAR_OPEN) { // open another
+          PostMessage(WM_COMMAND, IDC_BTN_BROWSE);
+        } else if (m_status == TAR_NEW) { // create new
+          PostMessage(WM_COMMAND, IDC_CREATE_DB);
         }
-      } else { // try again
-        m_tries++;
-        gmb.AfxMessageBox(IDS_INCORRECTKEY);
-        m_pctlPasskey->SetSel(MAKEWORD(-1, 0));
-        m_pctlPasskey->SetFocus();
+        CPWDialog::OnCancel();
       }
-      break;
-    case PWSRC::READ_FAIL:
-      gmb.AfxMessageBox(IDSC_FILE_UNREADABLE);
-      CPWDialog::OnCancel();
-      break;
-    case PWSRC::TRUNCATED_FILE:
-      gmb.AfxMessageBox(IDSC_FILE_TRUNCATED);
-      CPWDialog::OnCancel();
-      break;
-    default:
-      ASSERT(0);
-      gmb.AfxMessageBox(IDSC_UNKNOWN_ERROR);
-      CPWDialog::OnCancel();
-      break;
+    } else { // try again
+      m_tries++;
+      gmb.AfxMessageBox(m_index == GCP_CHANGEMODE ? IDS_BADPASSKEY : IDS_INCORRECTKEY);
+      m_pctlPasskey->SetSel(MAKEWORD(-1, 0));
+      m_pctlPasskey->SetFocus();
+    }
+    break;
+  case PWSRC::READ_FAIL:
+    gmb.AfxMessageBox(IDSC_FILE_UNREADABLE);
+    CPWDialog::OnCancel();
+    break;
+  case PWSRC::TRUNCATED_FILE:
+    gmb.AfxMessageBox(IDSC_FILE_TRUNCATED);
+    CPWDialog::OnCancel();
+    break;
+  default:
+    ASSERT(0);
+    gmb.AfxMessageBox(IDSC_UNKNOWN_ERROR);
+    CPWDialog::OnCancel();
+    break;
   }
 }
 

@@ -37,6 +37,10 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+const UINT COptionsMisc::uiDBPrefs[] = {
+  IDC_USERNAME, IDC_MAINTAINDATETIMESTAMPS, IDC_USEDEFUSER
+};
+
 /////////////////////////////////////////////////////////////////////////////
 // COptionsMisc property page
 
@@ -59,10 +63,15 @@ COptionsMisc::COptionsMisc(CWnd *pParent, st_Opt_master_data *pOPTMD)
   m_QuerySetDefUsername = M_QuerySetDefUsername();
   m_AutotypeMinimize = M_AutotypeMinimize();
   m_DoubleClickAction = M_DoubleClickAction();
+  m_ShiftDoubleClickAction = M_ShiftDoubleClickAction();
   
   if (m_DoubleClickAction < PWSprefs::minDCA ||
       m_DoubleClickAction > PWSprefs::maxDCA)
     m_DoubleClickAction = M_DoubleClickAction() = PWSprefs::DoubleClickCopyPassword;
+
+  if (m_ShiftDoubleClickAction < PWSprefs::minDCA ||
+      m_ShiftDoubleClickAction > PWSprefs::maxDCA)
+    m_ShiftDoubleClickAction = M_ShiftDoubleClickAction() = PWSprefs::DoubleClickCopyPassword;
 }
 
 COptionsMisc::~COptionsMisc()
@@ -82,6 +91,7 @@ void COptionsMisc::DoDataExchange(CDataExchange* pDX)
   DDX_Check(pDX, IDC_CONFIRMDELETE, m_ConfirmDelete);
   DDX_Check(pDX, IDC_ESC_EXITS, m_EscExits);
   DDX_Control(pDX, IDC_DOUBLE_CLICK_ACTION, m_dblclk_cbox);
+  DDX_Control(pDX, IDC_SHIFT_DOUBLE_CLICK_ACTION, m_shiftdblclk_cbox);
   DDX_Check(pDX, IDC_HOTKEY_ENABLE, m_HotkeyEnabled);
   DDX_Control(pDX, IDC_HOTKEY_CTRL, m_HotkeyCtrl);
   DDX_Check(pDX, IDC_QUERYSETDEF, m_QuerySetDefUsername);
@@ -94,13 +104,15 @@ void COptionsMisc::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(COptionsMisc, COptions_PropertyPage)
   //{{AFX_MSG_MAP(COptionsMisc)
+  ON_WM_CTLCOLOR()
   ON_BN_CLICKED(ID_HELP, OnHelp)
 
   ON_BN_CLICKED(IDC_HOTKEY_ENABLE, OnEnableHotKey)
   ON_BN_CLICKED(IDC_USEDEFUSER, OnUseDefUser)
   ON_COMMAND_RANGE(IDC_BROWSEFORLOCATION_BROWSER, 
                    IDC_BROWSEFORLOCATION_EDITOR, OnBrowseForLocation)
-  ON_CBN_SELCHANGE(IDC_DOUBLE_CLICK_ACTION, OnComboChanged)
+  ON_CBN_SELCHANGE(IDC_DOUBLE_CLICK_ACTION, OnDCAComboChanged)
+  ON_CBN_SELCHANGE(IDC_SHIFT_DOUBLE_CLICK_ACTION, OnShiftDCAComboChanged)
   ON_MESSAGE(PSM_QUERYSIBLINGS, OnQuerySiblings)
   //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -109,62 +121,24 @@ BOOL COptionsMisc::OnInitDialog()
 {
   COptions_PropertyPage::OnInitDialog();
 
+  for (int i = 0; i < sizeof(uiDBPrefs) / sizeof(uiDBPrefs[0]); i++) {
+    SetWindowTheme(GetDlgItem(uiDBPrefs[i])->GetSafeHwnd(), L"", L"");
+  }
+
   OnUseDefUser();
 
   // For some reason, MFC calls us twice when initializing.
   // Populate the combo box only once.
   if (m_dblclk_cbox.GetCount() == 0) {
-    // ComboBox now sorted - no need to add in English alphabetical order
-    int nIndex;
-    CString cs_text;
+    SetupCombo(&m_dblclk_cbox);
+  }
 
-    cs_text.LoadString(IDSC_DCAAUTOTYPE);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickAutoType);
-
-    cs_text.LoadString(IDSC_DCABROWSE);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickBrowse);
-
-    cs_text.LoadString(IDSC_DCABROWSEPLUS);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickBrowsePlus);
-
-    cs_text.LoadString(IDSC_DCACOPYNOTES);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickCopyNotes);
-
-    cs_text.LoadString(IDSC_DCACOPYPASSWORD);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickCopyPassword);
-
-    cs_text.LoadString(IDSC_DCACOPYPASSWORDMIN);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickCopyPasswordMinimize);
-
-    cs_text.LoadString(IDSC_DCACOPYUSERNAME);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickCopyUsername);
-
-    cs_text.LoadString(IDSC_DCAVIEWEDIT);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickViewEdit);
- 
-    cs_text.LoadString(IDSC_DCARUN);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickRun);
-
-    cs_text.LoadString(IDSC_DCASENDEMAIL);
-    nIndex = m_dblclk_cbox.AddString(cs_text);
-    m_dblclk_cbox.SetItemData(nIndex, PWSprefs::DoubleClickSendEmail);
-
-    for (int i = 0; i < m_dblclk_cbox.GetCount(); i++) {
-      int ival = (int)m_dblclk_cbox.GetItemData(i);
-      m_DCA_to_Index[ival] = i;
-    }
+  if (m_shiftdblclk_cbox.GetCount() == 0) {
+    SetupCombo(&m_shiftdblclk_cbox);
   }
 
   m_dblclk_cbox.SetCurSel(m_DCA_to_Index[m_DoubleClickAction]);
+  m_shiftdblclk_cbox.SetCurSel(m_DCA_to_Index[m_ShiftDoubleClickAction]);
 
   m_HotkeyCtrl.SetHotKey(LOWORD(m_HotkeyValue),HIWORD(m_HotkeyValue));
   if (m_HotkeyEnabled == FALSE)
@@ -225,6 +199,7 @@ LRESULT COptionsMisc::OnQuerySiblings(WPARAM wParam, LPARAM lParam)
           M_QuerySetDefUsername()    != m_QuerySetDefUsername      ||
           M_Hotkey_Value()           != m_HotkeyValue              ||
           M_DoubleClickAction()      != m_DoubleClickAction        ||
+          M_ShiftDoubleClickAction() != m_ShiftDoubleClickAction   ||
           M_OtherBrowserLocation()   != m_OtherBrowserLocation     ||
           M_OtherEditorLocation()    != m_OtherEditorLocation      ||
           M_BrowserCmdLineParms()    != m_BrowserCmdLineParms      ||
@@ -290,6 +265,7 @@ BOOL COptionsMisc::OnApply()
   M_QuerySetDefUsername() = m_QuerySetDefUsername;
   M_AutotypeMinimize() = m_AutotypeMinimize;
   M_DoubleClickAction() = m_DoubleClickAction;
+  M_ShiftDoubleClickAction() = m_ShiftDoubleClickAction;
 
   return COptions_PropertyPage::OnApply();
 }
@@ -329,10 +305,71 @@ void COptionsMisc::OnEnableHotKey()
 #endif
 }
 
-void COptionsMisc::OnComboChanged()
+void COptionsMisc::SetupCombo(CComboBox *pcbox)
+{
+  if (pcbox == NULL)
+    return;
+
+  // ComboBox now sorted - no need to add in English alphabetical order
+  int nIndex;
+  CString cs_text;
+
+  cs_text.LoadString(IDSC_DCAAUTOTYPE);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickAutoType);
+
+  cs_text.LoadString(IDSC_DCABROWSE);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickBrowse);
+
+  cs_text.LoadString(IDSC_DCABROWSEPLUS);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickBrowsePlus);
+
+  cs_text.LoadString(IDSC_DCACOPYNOTES);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickCopyNotes);
+
+  cs_text.LoadString(IDSC_DCACOPYPASSWORD);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickCopyPassword);
+
+  cs_text.LoadString(IDSC_DCACOPYPASSWORDMIN);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickCopyPasswordMinimize);
+
+  cs_text.LoadString(IDSC_DCACOPYUSERNAME);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickCopyUsername);
+
+  cs_text.LoadString(IDSC_DCAVIEWEDIT);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickViewEdit);
+ 
+  cs_text.LoadString(IDSC_DCARUN);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickRun);
+
+  cs_text.LoadString(IDSC_DCASENDEMAIL);
+  nIndex = pcbox->AddString(cs_text);
+  pcbox->SetItemData(nIndex, PWSprefs::DoubleClickSendEmail);
+
+  for (int i = 0; i < pcbox->GetCount(); i++) {
+    int ival = (int)pcbox->GetItemData(i);
+    m_DCA_to_Index[ival] = i;
+  }
+}
+
+void COptionsMisc::OnDCAComboChanged()
 {
   int nIndex = m_dblclk_cbox.GetCurSel();
   m_DoubleClickAction = (int)m_dblclk_cbox.GetItemData(nIndex);
+}
+
+void COptionsMisc::OnShiftDCAComboChanged()
+{
+  int nIndex = m_shiftdblclk_cbox.GetCurSel();
+  m_ShiftDoubleClickAction = (int)m_shiftdblclk_cbox.GetItemData(nIndex);
 }
 
 void COptionsMisc::OnUseDefUser()
@@ -389,4 +426,21 @@ void COptionsMisc::OnBrowseForLocation(UINT nID)
     GetDlgItem(nID == IDC_BROWSEFORLOCATION_BROWSER ? IDC_OTHERBROWSERLOCATION :
                         IDC_OTHEREDITORLOCATION)->SetWindowText(fd.GetPathName());
   }
+}
+
+HBRUSH COptionsMisc::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
+{
+  // Database preferences - controls + associated static text
+  switch (pWnd->GetDlgCtrlID()) {
+    case IDC_USERNAME:
+    case IDC_STATIC_USERNAME:
+    case IDC_STATIC_DEFAUTOTYPE:
+    case IDC_MAINTAINDATETIMESTAMPS:
+    case IDC_USEDEFUSER:
+      pDC->SetTextColor(CR_DATABASE_OPTIONS);
+      pDC->SetBkMode(TRANSPARENT);
+      break;
+  }
+
+  return CPWPropertyPage::OnCtlColor(pDC, pWnd, nCtlColor);
 }

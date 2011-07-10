@@ -283,7 +283,7 @@ void DboxMain::OnValidate()
   CAddEdit_DateTimes::m_bShowUUID = true;
 }
 
-void DboxMain::OnOptions() 
+void DboxMain::OnOptions()
 {
   PWSprefs *prefs = PWSprefs::GetInstance();
 
@@ -590,6 +590,9 @@ void DboxMain::OnOptions()
       gmb.AfxMessageBox(IDS_NOHOTKEY, MB_OK);
     }
   }
+
+  // Update Minidump user streams
+  app.SetMinidumpUserStreams(m_bOpen, !IsDBReadOnly(), usPrefs);
 }
 
 void DboxMain::OnGeneratePassword()

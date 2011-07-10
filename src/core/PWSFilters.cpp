@@ -139,6 +139,10 @@ static void GetFilterTestXML(const st_FilterRow &st_fldata,
       oss << sztab5 << "<dca>" << st_fldata.fdca 
                                               << "</dca>" << szendl;
       break;
+    case PWSMatch::MT_SHIFTDCA:
+      oss << sztab5 << "<shiftdca>" << st_fldata.fdca 
+                                              << "</shiftdca>" << szendl;
+      break;
     case PWSMatch::MT_ENTRYSTATUS:
     {
       // Get index for string values
@@ -249,6 +253,9 @@ static string GetFilterXML(const st_filters &filters, bool bWithFormatting)
       case FT_DCA:
         pszfieldtype = "DCA";
         break;
+      case FT_SHIFTDCA:
+        pszfieldtype = "ShiftDCA";
+        break;
       case FT_EMAIL:
         pszfieldtype = "email";
         break;
@@ -285,6 +292,9 @@ static string GetFilterXML(const st_filters &filters, bool bWithFormatting)
         pszfieldtype = "password_policy";
         break;
       // Other!
+      case FT_PASSWORDLEN:
+        pszfieldtype = "password_length";
+        break;
       case FT_UNKNOWNFIELDS:
         pszfieldtype = "unknownfields";
         break;
@@ -736,6 +746,7 @@ stringT PWSFilters::GetFilterDescription(const st_FilterRow &st_fldata)
       cs_criteria = cs_rule;
       break;
     case PWSMatch::MT_DCA:
+    case PWSMatch::MT_SHIFTDCA:
       Format(cs_criteria, _T("%s %s"), cs_rule.c_str(), cs1.c_str());
       break;
     case PWSMatch::MT_ENTRYTYPE:

@@ -65,13 +65,14 @@ public:
     PASSWORD = 0x06, CTIME = 0x07, PMTIME = 0x08, ATIME = 0x09, XTIME = 0x0a,
     RESERVED = 0x0b /* cannot use */, RMTIME = 0x0c, URL = 0x0d, AUTOTYPE = 0x0e,
     PWHIST = 0x0f, POLICY = 0x10, XTIME_INT = 0x11, RUNCMD = 0x12, DCA = 0x13,
-    EMAIL = 0x14, PROTECTED = 0x15, SYMBOLS = 0x16,
+    EMAIL = 0x14, PROTECTED = 0x15, SYMBOLS = 0x16, SHIFTDCA = 0x17,
     LAST,        // Start of unknown fields!
     END = 0xff,
     // Internal fields only - used in filters
-    ENTRYSIZE = 0x100, ENTRYTYPE = 0x101, ENTRYSTATUS  = 0x102, ATTACHMENTS = 0x103,
+    ENTRYSIZE = 0x100, ENTRYTYPE = 0x101, ENTRYSTATUS  = 0x102, PASSWORDLEN = 0x103,
+    ATTACHMENTS = 0x104,
     // Unknown fields must be last
-    UNKNOWNFIELDS = 0x104};
+    UNKNOWNFIELDS = 0x105};
 
   // SubGroup Object - same as FieldType
 
@@ -116,6 +117,7 @@ public:
   StringX GetTitle() const; // V20
   StringX GetUser() const; // V20
   StringX GetPassword() const;
+  size_t GetPasswordLength() const {return GetField(m_Password).length();}
   StringX GetNotes(TCHAR delimiter = 0) const;
   void GetUUID(uuid_array_t &) const; // V20
   const pws_os::CUUID GetUUID() const; // V20 - see comment in .cpp re return type
@@ -159,8 +161,10 @@ public:
   void GetPWPolicy(PWPolicy &pwp) const;
   StringX GetPWPolicy() const;
   StringX GetRunCommand() const;
-  void GetDCA(short &iDCA)  const;
-  StringX GetDCA() const;
+  void GetDCA(short &iDCA, const bool bShift = false) const;
+  StringX GetDCA(const bool bShift = false) const;
+  void GetShiftDCA(short &iDCA) const {GetDCA(iDCA, true);}
+  StringX GetShiftDCA() const {return GetDCA(true);}
   StringX GetEmail() const;
   StringX GetProtected() const;
   void GetProtected(unsigned char &ucprotected) const;
@@ -224,8 +228,10 @@ public:
   void SetPWPolicy(const PWPolicy &pwp);
   bool SetPWPolicy(const stringT &cs_pwp);
   void SetRunCommand(const StringX &cs_RunCommand);
-  void SetDCA(const short &iDCA);
-  bool SetDCA(const stringT &cs_DCA);
+  void SetDCA(const short &iDCA, const bool bShift = false);
+  bool SetDCA(const stringT &cs_DCA, const bool bShift = false);
+  void SetShiftDCA(const short &iDCA) {SetDCA(iDCA, true);}
+  bool SetShiftDCA(const stringT &cs_DCA) {return SetDCA(cs_DCA, true);}
   void SetEmail(const StringX &sx_email);
   void SetProtected(const bool &bOnOff);
   void SetSymbols(const StringX &sx_symbols);
@@ -251,7 +257,7 @@ public:
                int iFunction) const;  // integer values
   bool Matches(time_t time1, time_t time2, int iObject,
                int iFunction) const;  // time values
-  bool Matches(short dca, int iFunction) const;  // DCA values
+  bool Matches(short dca, int iFunction, const bool bShift = false) const;  // DCA values
   bool Matches(EntryType etype, int iFunction) const;  // Entrytype values
   bool Matches(EntryStatus estatus, int iFunction) const;  // Entrystatus values
 
@@ -339,6 +345,7 @@ private:
   CItemField m_XTimeInterval;
   CItemField m_RunCommand;
   CItemField m_DCA;
+  CItemField m_ShiftDCA;
   CItemField m_email;
   CItemField m_protected;
   CItemField m_symbols;
@@ -385,7 +392,7 @@ inline bool CItemData::IsTextField(unsigned char t)
 {
   return !(t == UUID || t == CTIME || t == PMTIME ||
     t == ATIME || t == XTIME || t == RMTIME || t == XTIME_INT ||
-    t == RESERVED || t == DCA ||
+    t == RESERVED || t == DCA || t == SHIFTDCA ||
     t >= LAST);
 }
 #endif /* __ITEMDATA_H */

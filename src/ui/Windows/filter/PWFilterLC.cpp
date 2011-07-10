@@ -759,6 +759,9 @@ bool CPWFilterLC::SetField(const int iItem)
           // Password MUST be present - no need to add that check
           mt = PWSMatch::MT_PASSWORD;
           break;
+        case FT_PASSWORDLEN:
+          mt = PWSMatch::MT_INTEGER;
+          break;
         case FT_GROUP:
         case FT_USER:
         case FT_NOTES:
@@ -771,6 +774,7 @@ bool CPWFilterLC::SetField(const int iItem)
           mt = PWSMatch::MT_STRING;
           break;
         case FT_DCA:
+        case FT_SHIFTDCA:
           mt = PWSMatch::MT_DCA;
           break;
         case FT_CTIME:
@@ -1300,6 +1304,7 @@ bool CPWFilterLC::GetCriterion()
       }
       break;
     case PWSMatch::MT_DCA:
+    case PWSMatch::MT_SHIFTDCA:
       m_fDCA.m_title = cs_selected;
       if (!vcbxChanged[m_iItem] &&
           st_fldata.rule != PWSMatch::MR_INVALID) {
@@ -1452,6 +1457,10 @@ void CPWFilterLC::SetUpComboBoxData()
         stf.ftype = FT_DCA;
         vFcbx_data.push_back(stf);
 
+        stf.cs_text = CItemData::FieldName(CItemData::SHIFTDCA).c_str();
+        stf.ftype = FT_SHIFTDCA;
+        vFcbx_data.push_back(stf);
+
         stf.cs_text = CItemData::FieldName(CItemData::EMAIL).c_str();
         stf.ftype = FT_EMAIL;
         vFcbx_data.push_back(stf);
@@ -1494,6 +1503,10 @@ void CPWFilterLC::SetUpComboBoxData()
 
         stf.cs_text = CItemData::FieldName(CItemData::POLICY).c_str();
         stf.ftype = FT_POLICY;
+        vFcbx_data.push_back(stf);
+
+        stf.cs_text.LoadString(IDS_PASSWORDLEN);
+        stf.ftype = FT_PASSWORDLEN;
         vFcbx_data.push_back(stf);
 
         stf.cs_text.LoadString(IDS_ENTRYTYPE);

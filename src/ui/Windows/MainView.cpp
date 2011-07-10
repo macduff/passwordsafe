@@ -437,9 +437,8 @@ void DboxMain::setupBars()
 
   // Add the status bar
   if (m_statusBar.Create(this)) {
-    // Set up DoubleClickAction text
-    const int dca = int(PWSprefs::GetInstance()->
-      GetPref(PWSprefs::DoubleClickAction));
+    // Set up DoubleClickAction text - remove Shift+DCA
+    const int dca = int(PWSprefs::GetInstance()->GetPref(PWSprefs::DoubleClickAction));
     switch (dca) {
       case PWSprefs::DoubleClickAutoType:
         statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATAUTOTYPE;
@@ -483,7 +482,7 @@ void DboxMain::setupBars()
     // Set up the rest - all but one empty as pane now re-sized according to contents
     statustext[CPWStatusBar::SB_MODIFIED] = IDS_BLANK;
     statustext[CPWStatusBar::SB_NUM_ENT] = IDS_BLANK;
-    statustext[CPWStatusBar::SB_FILTER] = IDS_FILTER1;
+    statustext[CPWStatusBar::SB_FILTER] = IDS_BLANK;
     statustext[CPWStatusBar::SB_READONLY] = IDS_READ_ONLY;
 
     // And show

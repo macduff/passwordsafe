@@ -63,6 +63,7 @@ public:
   static void SetReporter(Reporter *pReporter) {m_pReporter = pReporter;}
   static void XMLify(charT t, stringT &name);
   static bool UserSetCfgFile() {return m_userSetCfgFile;}
+  ConfigOption GetConfigOption() {return m_ConfigOption;}
 
   // prefString is stored in database file, format described in PWSprefs.cpp
   void Load(const StringX &prefString, bool bUseCopy = false);
@@ -107,7 +108,7 @@ public:
     NumPWHistoryDefault, BackupSuffix, BackupMaxIncremented,
     PreExpiryWarnDays, ClosedTrayIconColour, PWDigitMinLength,
     PWLowercaseMinLength, PWSymbolMinLength, PWUppercaseMinLength,
-    OptShortcutColumnWidth,
+    OptShortcutColumnWidth, ShiftDoubleClickAction,
     NumIntPrefs};
   enum StringPrefs {CurrentBackup, CurrentFile, LastView, DefaultUsername,
     TreeFont, BackupPrefixValue, BackupDir, AltBrowser, ListColumns,
@@ -117,7 +118,7 @@ public:
     LanguageFile, DefaultSymbols, EraseProgram, ErasePgmCmdLineParms,
     NumStringPrefs};
 
-  // for DoubleClickAction
+  // for DoubleClickAction and ShiftDoubleClickAction
   // NOTE: When adding items, update the pwsafe.xsd & pwsafe_filter.xsd schemas
   //       to increase the maximum value in "dcaType"
   enum {minDCA = 0, DoubleClickCopyPassword = 0, DoubleClickViewEdit = 1,
@@ -174,6 +175,11 @@ public:
   bool GetPrefDefVal(BoolPrefs pref_enum) const;
   unsigned int GetPrefDefVal(IntPrefs pref_enum) const;
   StringX GetPrefDefVal(StringPrefs pref_enum) const;
+
+  // Get all preferences for minidump user stream
+  StringX GetAllBoolPrefs();
+  StringX GetAllIntPrefs();
+  StringX GetAllStringPrefs();
 
   // Special cases
   void GetPrefRect(long &top, long &bottom, long &left, long &right) const;

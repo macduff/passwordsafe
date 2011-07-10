@@ -27,6 +27,9 @@
 #include "DisplayFSBkupFiles.h"
 #include "ExpPWListDlg.h"
 #include "AddEdit_DateTimes.h"
+#include "PasskeyEntry.h"
+#include "PWSFaultHandler.h"
+#include "version.h"
 
 #include "WZPropertySheet.h"
 
@@ -551,6 +554,9 @@ int DboxMain::Close(const bool bTrySave)
   KillTimer(TIMER_EXPENT);
   RegisterSessionNotification(false);
 
+  // Update Minidump user streams
+  app.SetMinidumpUserStreams(m_bOpen, !IsDBReadOnly());
+
   return PWSRC::SUCCESS;
 }
 
@@ -752,6 +758,11 @@ int DboxMain::Open(const StringX &sx_Filename, const bool bReadOnly,  const bool
   // clear the data before loading the new file
   ClearData();
 
+  // Tidy up filters
+  m_currentfilter.Empty();
+  m_bFilterActive = false;
+  ApplyFilters();
+
   // Zero entry UUID selected and first visible at minimize and group text
   m_LUUIDSelectedAtMinimize = CUUID::NullUUID();
   m_TUUIDSelectedAtMinimize = CUUID::NullUUID();
@@ -896,6 +907,9 @@ void DboxMain::PostOpenProcessing()
   // Set up notification of desktop state, one way or another
   startLockCheckTimer();
   RegisterSessionNotification(true);
+  
+  // Update Minidump user streams
+  app.SetMinidumpUserStreams(m_bOpen, !IsDBReadOnly());
 }
 
 int DboxMain::CheckEmergencyBackupFiles(StringX sx_Filename, StringX &passkey)
@@ -2219,6 +2233,35 @@ void DboxMain::OnChangeMode()
 
     // Clear the Commands
     m_core.ClearCommands();
+  } else {
+    // Taken from GetAndCheckPassword.
+    // We don't wanr all the other processing that GetAndCheckPassword does
+    CPasskeyEntry *dbox_pkentry = new CPasskeyEntry(this,
+                                   m_core.GetCurFile().c_str(),
+                                   GCP_CHANGEMODE, true,
+                                   false,
+                                   true);
+
+    int nMajor(0), nMinor(0), nBuild(0);
+    DWORD dwMajorMinor = app.GetFileVersionMajorMinor();
+    DWORD dwBuildRevision = app.GetFileVersionBuildRevision();
+
+    if (dwMajorMinor > 0) {
+      nMajor = HIWORD(dwMajorMinor);
+      nMinor = LOWORD(dwMajorMinor);
+      nBuild = HIWORD(dwBuildRevision);
+    }
+    if (nBuild == 0)
+      dbox_pkentry->m_appversion.Format(L"Version %d.%02d%s",
+                                        nMajor, nMinor, SPECIAL_BUILD);
+    else
+      dbox_pkentry->m_appversion.Format(L"Version %d.%02d.%02d%s",
+                                        nMajor, nMinor, nBuild, SPECIAL_BUILD);
+
+    INT_PTR rc = dbox_pkentry->DoModal();
+    delete dbox_pkentry;
+    if (rc != IDOK)
+      return;
   }
 
   CGeneralMsgBox gmb;
@@ -2291,6 +2334,9 @@ void DboxMain::OnChangeMode()
       gmb.MessageBox(cs_msg, cs_title, MB_OK | MB_ICONWARNING);
     }
   }
+
+  // Update Minidump user streams - mode is in user stream 0
+  app.SetMinidumpUserStreams(m_bOpen, !IsDBReadOnly(), us0);
 }
 
 void DboxMain::OnCompare()
@@ -3274,11 +3320,11 @@ void DboxMain::ReportAdvancedOptions(CReport *pRpt, const bool bAdvanced, const 
     // Non-time fields
     int ifields[] = {CItemData::PASSWORD, CItemData::NOTES, CItemData::URL,
                      CItemData::AUTOTYPE, CItemData::PWHIST, CItemData::POLICY,
-                     CItemData::RUNCMD, CItemData::DCA, CItemData::EMAIL,
+                     CItemData::RUNCMD, CItemData::DCA, CItemData::SHIFTDCA, CItemData::EMAIL,
                      CItemData::PROTECTED, CItemData::SYMBOLS};
     UINT uimsgids[] = {IDS_COMPPASSWORD, IDS_COMPNOTES, IDS_COMPURL,
                        IDS_COMPAUTOTYPE, IDS_COMPPWHISTORY, IDS_COMPPWPOLICY,
-                       IDS_COMPRUNCOMMAND, IDS_COMPDCA, IDS_COMPEMAIL,
+                       IDS_COMPRUNCOMMAND, IDS_COMPDCA, IDS_COMPSHIFTDCA, IDS_COMPEMAIL,
                        IDS_COMPPROTECTED, IDS_COMPSYMBOLS};
     ASSERT(_countof(ifields) == _countof(uimsgids));
 
