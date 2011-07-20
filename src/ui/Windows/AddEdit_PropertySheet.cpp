@@ -31,6 +31,7 @@ CAddEdit_PropertySheet::CAddEdit_PropertySheet(UINT nID, CWnd* pParent,
 	m_bAttachmentsChanged(false), m_pp_basic(NULL),
   m_pp_additional(NULL), m_pp_datetimes(NULL), m_pp_pwpolicy(NULL), m_pp_attachments(NULL)
 {
+  m_AEMD.bLongPPs = chooseResource();
   m_AEMD.uicaller = nID;
 
   ASSERT(pParent != NULL);

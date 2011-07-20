@@ -30,7 +30,7 @@ HRESULT ResolveShortcut(LPCWSTR lpszShortcutPath,
 IMPLEMENT_DYNAMIC(CAddEdit_Attachments, CAddEdit_PropertyPage)
 
 CAddEdit_Attachments::CAddEdit_Attachments(CWnd *pParent, st_AE_master_data *pAEMD)
-  : CAddEdit_PropertyPage(pParent, CAddEdit_Attachments::IDD, CAddEdit_Attachments::IDD, pAEMD),
+  : CAddEdit_PropertyPage(pParent, CAddEdit_Attachments::IDD, pAEMD),
   m_pToolTipCtrl(NULL), m_bInitdone(false)
 {
   pAEMD->pci_original->GetUUID(m_entry_uuid);
