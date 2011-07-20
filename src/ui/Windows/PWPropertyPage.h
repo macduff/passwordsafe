@@ -12,6 +12,9 @@ class CPWPropertyPage : public CPropertyPage
 {
 public:
   CPWPropertyPage(UINT nID);
+  // accepts two resids, choose which one to display based
+  // on screen dimensions @ invoke time
+  CPWPropertyPage(UINT nID, UINT shortID);
   virtual ~CPWPropertyPage() {}
 
   // Following override to reset idle timeout on any event
@@ -23,13 +26,6 @@ public:
         PP_UPDATE_TIMES};
 
   DECLARE_DYNAMIC(CPWPropertyPage)
-
-protected:
-  // Generated message map functions
-  //{{AFX_MSG(CPWPropertyPage)
-  //}}AFX_MSG
-
-  DECLARE_MESSAGE_MAP()
 };
 //-----------------------------------------------------------------------------
 // Local variables:
