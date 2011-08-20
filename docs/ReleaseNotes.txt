@@ -10,6 +10,8 @@ releases may be found in the file ChangeLog.txt.
 
 New Features for 3.26.1
 =======================
+[3367590] User can now add a database name and description via the Properties
+diaolg.
 [3349458] Allow filters to match on rules based on the password's length.
 [3316779] Shift + "left mouse button 'Double-Click'" now configurable for user.
 Default is copy the username to the clipboard.
@@ -21,10 +23,15 @@ Changes to Existing Features in 3.26.1
 
 Bugs fixed in 3.26.1
 ====================
+[3382422] Toolbar now updated to reflect R/W or R-O mode when user dynamically changes mode.
+[3380714] User can now save database after manually taking a bakup.
+[3380424] System Menu 'X' now closes the Edit/View PropertyPages when the database
+is in R-O mode or the entry is protected.
 [] Filter image in Status bar is no longer replaced by 'Filter1' after changing
 preferences via Manage->Options.
 [] Selecting hexadecimal passwords as the database policy no longer causes validation
 to fail.
+[] Correctly show database has been modified (to allow saving) if database preferences have been changed.
 
 New Features for 3.26
 =====================

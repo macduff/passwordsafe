@@ -115,7 +115,7 @@ int DboxMain::BackupSafe()
       return PWSRC::USER_CANCEL;
   }
 
-  rc = m_core.WriteFile(tempname);
+  rc = m_core.WriteFile(tempname, false);
   if (rc == PWSRC::CANT_OPEN_FILE) {
     CGeneralMsgBox gmb;
     cs_temp.Format(IDS_CANTOPENWRITING, tempname);
@@ -290,7 +290,9 @@ void DboxMain::OnOptions()
   // Get old DB preferences String value for use later
   const StringX sxOldDBPrefsString(prefs->Store());
 
-  COptions_PropertySheet optionsPS(IDS_OPTIONS, this);
+  bool bLongPPs = LongPPs();
+
+  COptions_PropertySheet optionsPS(IDS_OPTIONS, this, bLongPPs);
 
   // Remove the "Apply Now" button.
   optionsPS.m_psh.dwFlags |= PSH_NOAPPLYNOW;
@@ -464,9 +466,6 @@ void DboxMain::OnOptions()
       }
     }
 
-    if (m_core.HaveDBPrefsChanged())
-      ChangeOkUpdate();
-
     if (prefs->GetPref(PWSprefs::UseSystemTray)) { 
       if (prefs->GetPref(PWSprefs::HideSystemTray) && 
           prefs->GetPref(PWSprefs::HotKeyEnabled) &&
@@ -487,7 +486,7 @@ void DboxMain::OnOptions()
     StringX sxNewDBPrefsString(prefs->Store(true));
 
     // Maybe needed if this causes changes to database
-    // (currently only DB preferences + updating PWHistory in exisiting entries)
+    // (currently only DB preferences + updating PWHistory in existing entries)
     MultiCommands *pmulticmds = MultiCommands::Create(&m_core);
 
     // Set up Command to update string in database, if necessary & possible
@@ -499,7 +498,7 @@ void DboxMain::OnOptions()
         // Determine whether Tree needs redisplayng due to change
         // in what is shown (e.g. usernames/passwords)
         bool bUserDisplayChanged = optionsPS.UserDisplayChanged();
-        // Note: passwords are only shown in the Tree is usernames are also shown
+        // Note: passwords are only shown in the Tree if usernames are also shown
         bool bPswdDisplayChanged = optionsPS.PswdDisplayChanged();
         bool bNeedGUITreeUpdate = bUserDisplayChanged || 
                  (optionsPS.ShowUsernameInTree() && bPswdDisplayChanged);
@@ -569,6 +568,9 @@ void DboxMain::OnOptions()
         delete pmulticmds;
       }
     }
+
+    if (m_core.HaveDBPrefsChanged())
+      ChangeOkUpdate();
   }
 
   // Restore hotkey as it was or as user changed it - if user pressed OK
@@ -597,7 +599,9 @@ void DboxMain::OnOptions()
 
 void DboxMain::OnGeneratePassword()
 {
-  COptions_PropertySheet GenPswdPS(IDS_GENERATEPASSWORD, this);
+  bool bLongPPs = LongPPs();
+
+  COptions_PropertySheet GenPswdPS(IDS_GENERATEPASSWORD, this, bLongPPs);
 
   GenPswdPS.m_psh.dwFlags |= PSH_NOAPPLYNOW;
 

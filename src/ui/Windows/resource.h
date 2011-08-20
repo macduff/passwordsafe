@@ -21,7 +21,6 @@
 #define IDD_IMPORT_TEXT                 125
 #define IDD_IMPORT_XML                  126
 #define IDD_KEYCHANGE_DIALOG            127
-#define IDD_OPTIONS                     129
 #define IDD_PASSKEYENTRY                130
 #define IDD_PASSKEYENTRY_FIRST          131
 #define IDD_PASSKEYENTRY_WITHEXIT       132
@@ -38,7 +37,6 @@
 #define IDD_QUERYSETDEF                 144
 #define IDD_SECURECLEAR                 145
 #define IDD_TRYAGAIN                    146
-#define IDD_USERNAMEENTRY               147
 #define IDD_PWFONTDIALOG                148
 #define IDD_SAMPLETEXT                  149
 #define IDD_SETFILTERS                  150
@@ -72,6 +70,7 @@
 #define IDI_CORNERICON                  180
 #define IDI_LOCKEDICON                  181
 #define IDI_MBASKICON                   182
+#define IDI_MBINFOICON                  183
 #define IDI_MBINFOICON                  183
 #define IDI_MBSTOPICON                  184
 #define IDI_MBWARNICON                  185
@@ -159,7 +158,6 @@
 #define IDB_COPYNOTES_CLASSIC           313
 #define IDB_COPYNOTES_NEW               314
 #define IDB_COPYNOTES_NEW_D             315
-#define IDB_COPYNOTES_NEW32             316
 #define IDB_COPYPASSWORD_CLASSIC        317
 #define IDB_COPYPASSWORD_NEW            318
 #define IDB_COPYPASSWORD_NEW_D          319
@@ -223,7 +221,6 @@
 #define IDB_RESTORE_CLASSIC             377
 #define IDB_RESTORE_NEW                 378
 #define IDB_RESTORE_NEW_D               379
-#define IDB_RESTORE_NEW32               380
 #define IDB_SAVE_CLASSIC                381
 #define IDB_SAVE_NEW                    382
 #define IDB_SAVE_NEW_D                  383
@@ -273,7 +270,6 @@
 #define IDB_UNCHECKED                   427
 #define IDB_EMPTY                       428
 #define IDB_BLANK                       429
-#define IDD_EXPORTFILTERS               430
 #define IDB_DRAGGROUP_NEW               431
 #define IDB_DRAGTITLE_NEW               432
 #define IDB_DRAGUSER_NEW                433
@@ -353,36 +349,36 @@
 #define IDD_PS_PASSWORDPOLICY_SHORT     508
 #define IDD_PS_SHORTCUTS_SHORT          509
 #define IDD_PS_SYSTEM_SHORT             510
-#define IDD_ADDEDIT_ATTACHMENTS         511
-#define IDD_EXTRACT_ATTACHMENT          512
-#define IDD_VIEW_ATTACHMENTS            513
-#define IDB_UNCHECKEDA                  514
-#define IDB_VIEW_ATTACHMENTS_CLASSIC    515
-#define IDB_VIEW_ATTACHMENTS_NEW        516
-#define IDB_VIEW_ATTACHMENTS_NEW_D      517
-#define IDD_ATT_PROPERTIES              518
-#define IDR_POPATTACHMENTS              519
-#define IDD_ANIMATE                     520
-#define IDD_ADD_DESCRIPTION             521
-#define IDD_EXPORT_ATTACHMENT           522
-#define IDD_ADVANCED_ATT                523
-#define IDB_ATT_NORMAL                  524
-#define IDB_ATT_NORMAL_WARNEXPIRED      525
-#define IDB_ATT_NORMAL_EXPIRED          526
-#define IDB_ATT_ABASE                   527
-#define IDB_ATT_ABASE_WARNEXPIRED       528
-#define IDB_ATT_ABASE_EXPIRED           529
-#define IDB_ATT_ALIAS                   530
-#define IDB_ATT_SBASE                   531
-#define IDB_ATT_SBASE_WARNEXPIRED       532
-#define IDB_ATT_SBASE_EXPIRED           533
-#define IDB_UNCHECKEDA_D                534
-#define IDB_CHECKED_D                   535
-#define IDD_ATTPROGRESS                 536
-#define IDD_CONFIRMDELETE_DIALOGGRP     537
+#define IDD_INPUTBOX                    511
+#define IDD_ADDEDIT_ATTACHMENTS         512
+#define IDD_EXTRACT_ATTACHMENT          513
+#define IDD_VIEW_ATTACHMENTS            514
+#define IDB_UNCHECKEDA                  515
+#define IDB_VIEW_ATTACHMENTS_CLASSIC    516
+#define IDB_VIEW_ATTACHMENTS_NEW        517
+#define IDB_VIEW_ATTACHMENTS_NEW_D      518
+#define IDD_ATT_PROPERTIES              519
+#define IDR_POPATTACHMENTS              520
+#define IDD_ANIMATE                     521
+#define IDD_ADD_DESCRIPTION             522
+#define IDD_EXPORT_ATTACHMENT           523
+#define IDD_ADVANCED_ATT                524
+#define IDB_ATT_NORMAL                  525
+#define IDB_ATT_NORMAL_WARNEXPIRED      526
+#define IDB_ATT_NORMAL_EXPIRED          527
+#define IDB_ATT_ABASE                   528
+#define IDB_ATT_ABASE_WARNEXPIRED       529
+#define IDB_ATT_ABASE_EXPIRED           530
+#define IDB_ATT_ALIAS                   531
+#define IDB_ATT_SBASE                   532
+#define IDB_ATT_SBASE_WARNEXPIRED       533
+#define IDB_ATT_SBASE_EXPIRED           534
+#define IDB_UNCHECKEDA_D                535
+#define IDB_CHECKED_D                   536
+#define IDD_ATTPROGRESS                 537
+#define IDD_CONFIRMDELETE_DIALOGGRP     538
 #define IDC_APPVERSION                  1000
 #define IDC_VERSION                     1001
-#define IDC_BROWSE                      1002
 #define IDC_CREATE_DB                   1003
 #define IDC_EXIT                        1004
 #define IDC_PASSWORD                    1005
@@ -407,7 +403,6 @@
 #define IDC_OPEN                        1024
 #define IDC_RANDOM                      1025
 #define IDC_LOCKONMINIMIZE              1026
-#define IDC_DEFPWSHOW                   1027
 #define IDC_DEFPWSHOWINEDIT             1028
 #define IDC_USEDEFUSER                  1029
 #define IDC_QUERYSETDEF                 1030
@@ -418,8 +413,6 @@
 #define IDC_DEFPWLENGTH                 1036
 #define IDC_MESSAGE                     1037
 #define IDC_QUERYCHECK                  1038
-#define IDC_STATIC_RULES                1039
-#define IDC_MAKEDEF                     1040
 #define IDC_NEW                         1041
 #define IDC_STATIC_LOGO                 1042
 #define IDC_ALWAYSONTOP                 1043
@@ -494,24 +487,18 @@
 #define IDC_MAINTAINDATETIMESTAMPS      1121
 #define IDC_STATIC_DTGROUP              1122
 #define IDC_STATIC_DTEXPGROUP           1123
-#define IDC_LEFT_HIDEABLE               1126
-#define IDC_RIGHT_HIDEABLE              1127
 #define IDC_EXPIRED_PASSWORD_LIST       1128
 #define IDC_RESPIN                      1132
 #define IDC_MRUSPIN                     1133
 #define IDC_PWHSPIN                     1134
-#define IDC_STATIC_PWHGROUP             1135
 #define IDC_PWHISTORY_LIST              1136
 #define IDC_SAVEPWHISTORY               1137
 #define IDC_MAXPWHISTORY                1138
 #define IDC_DEFPWHNUM                   1139
 #define IDC_COPY_OLDPW_TO_CLIPBOARD     1140
 #define IDC_CLEAR_PWHIST                1141
-#define IDC_STATIC_PWHIST               1142
 #define IDC_SAVE_PWHIST                 1143
 #define IDC_STATIC_OLDPW1               1144
-#define IDC_SHOW_PWHIST                 1145
-#define IDC_XML_IMPORT_RESULTS          1147
 #define IDC_PASSWORD2                   1149
 #define IDC_CLEAR_HISTORY               1150
 #define IDC_REPORT2CLIPBOARD            1151
@@ -537,7 +524,6 @@
 #define IDC_SETMAXPWHISTORY             1186
 #define IDC_STATIC_UPDATEPWHISTORY      1187
 #define IDC_REGDEL                      1188
-#define IDC_SHOWNOTES                   1189
 #define IDC_DEFNOTESSHOWINEDIT          1190
 #define IDC_DATABASENAME                1191
 #define IDC_DATABASEFORMAT              1192
@@ -604,14 +590,10 @@
 #define IDC_STATIC_ISANALIAS            1269
 #define IDC_NEWVER_STATUS               1272
 #define IDC_VISIT_WEBSITE               1273
-#define IDC_TRAYICONCOLOUR              1274
-#define IDC_TRAYICON                    1275
 #define IDC_RST_BLK                     1276
 #define IDC_RST_BLUE                    1277
 #define IDC_RST_WHITE                   1278
 #define IDC_RST_YELLOW                  1279
-#define IDC_SETPWPOLICY                 1281
-#define IDC_CLEARPWPOLICY               1282
 #define IDC_SAMPLETEXT                  1283
 #define IDC_TREATWHITESPACEASEMPTY      1284
 #define IDC_STATIC_LC1                  1285
@@ -675,7 +657,6 @@
 #define IDC_FILTEREXPORT                1346
 #define IDC_FILTERPROPERTIES            1347
 #define IDC_STATIC_FILTERNAME           1348
-#define IDC_STATIC_ACTIONS              1349
 #define IDC_STATIC_GROUP                1350
 #define IDC_STATIC_TITLE                1351
 #define IDC_STATIC_USERNAME             1352
@@ -691,8 +672,6 @@
 #define IDC_STATICSUBSETWARNING         1362
 #define IDC_DEFNOTESWRAP                1363
 #define IDC_STATIC_DTSTATS              1364
-#define IDC_TXT_FLDS_COMBO              1365
-#define IDC_TXT_FLD                     1366
 #define IDC_SHORTCUTLIST                1367
 #define IDC_RESETALLSHORTCUTS           1368
 #define IDC_SHORTCUTHOTKEY              1369
@@ -776,8 +755,14 @@
 #define IDC_STATIC_PSWDLENGTH           1448
 #define IDC_SHIFT_DOUBLE_CLICK_ACTION   1449
 #define IDC_SHIFT_DCA_DEFAULT           1450
-#define IDC_HELP_PREFERENCES            1452
 #define IDC_STATIC_PREFERENCES          1453
+#define IDC_STATIC_DB_PREFS_RO_WARNING  1454
+#define IDC_DATABASE_NAME               1455
+#define IDC_DATABASE_DESCRIPTION        1456
+#define IDC_CHANGE_DESCRIPTION          1457
+#define IDC_CHANGE_NAME                 1458
+#define IDC_INPUTBOX_TEXT               1459
+#define IDC_INPUTBOX_CHAR_COUNT         1460
 
 #define IDC_ADD_ATTACHMENT              7000
 #define IDC_DELETE_ATTACHMENT           7001
@@ -857,9 +842,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        538
+#define _APS_NEXT_RESOURCE_VALUE        539
 #define _APS_NEXT_COMMAND_VALUE         30001
-#define _APS_NEXT_CONTROL_VALUE         1454
+#define _APS_NEXT_CONTROL_VALUE         1461
 #define _APS_NEXT_SYMED_VALUE           166
 #endif
 #endif

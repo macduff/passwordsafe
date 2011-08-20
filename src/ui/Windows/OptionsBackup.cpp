@@ -49,7 +49,7 @@ IMPLEMENT_DYNAMIC(COptionsBackup, COptions_PropertyPage)
 
 COptionsBackup::COptionsBackup(CWnd *pParent, st_Opt_master_data *pOPTMD)
   : COptions_PropertyPage(pParent,
-                          pOPTMD->bLongPPs ? COptionsBackup::IDD : COptionsBackup::IDD_SHORT,
+                          COptionsBackup::IDD, COptionsBackup::IDD_SHORT,
                           pOPTMD),
   m_pToolTipCtrl(NULL)
 {
@@ -120,6 +120,10 @@ BOOL COptionsBackup::OnInitDialog()
 {
   COptions_PropertyPage::OnInitDialog();
 
+  if (!M_pDbx()->IsDBReadOnly())
+    GetDlgItem(IDC_STATIC_DB_PREFS_RO_WARNING)->ShowWindow(SW_HIDE);
+
+  // Need to disable XP themes to change colour of non-static controls!
   for (int i = 0; i < sizeof(uiDBPrefs) / sizeof(uiDBPrefs[0]); i++) {
     SetWindowTheme(GetDlgItem(uiDBPrefs[i])->GetSafeHwnd(), L"", L"");
   }
@@ -491,6 +495,10 @@ HBRUSH COptionsBackup::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
       break;
     case IDC_STATIC_PREFERENCES:
       pDC->SetTextColor(RGB(0, 0, 255));
+      pDC->SetBkMode(TRANSPARENT);
+      break;
+    case IDC_STATIC_DB_PREFS_RO_WARNING:
+      pDC->SetTextColor(RGB(255, 0, 0));
       pDC->SetBkMode(TRANSPARENT);
       break;
   }

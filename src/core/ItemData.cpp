@@ -293,6 +293,8 @@ StringX CItemData::GetFieldValue(const FieldType &ft) const
     }
     case SYMBOLS:    /* 16 */
       return GetSymbols();
+    case SHIFTDCA:   /* 17 */
+      return GetShiftDCA();
     default:
       ASSERT(0);
   }
@@ -321,6 +323,7 @@ size_t CItemData::GetSize()
   length += m_XTimeInterval.GetLength();
   length += m_RunCommand.GetLength();
   length += m_DCA.GetLength();
+  length += m_ShiftDCA.GetLength();
   length += m_email.GetLength();
   length += m_protected.GetLength();
   length += m_symbols.GetLength();
@@ -354,6 +357,7 @@ void CItemData::GetSize(size_t &isize) const
   isize += m_XTimeInterval.GetLength();
   isize += m_RunCommand.GetLength();
   isize += m_DCA.GetLength();
+  isize += m_ShiftDCA.GetLength();
   isize += m_email.GetLength();
   isize += m_protected.GetLength();
   isize += m_symbols.GetLength();
@@ -2236,6 +2240,7 @@ void CItemData::SerializePlainText(vector<char> &v,
 
   push_string(v, RUNCMD, GetRunCommand());
   GetDCA(i16);   push_int16(v, DCA, i16);
+  GetShiftDCA(i16);   push_int16(v, SHIFTDCA, i16);
   push_string(v, EMAIL, GetEmail());
   GetProtected(uc); push_uchar(v, PROTECTED, uc);
   push_string(v, SYMBOLS, GetSymbols());
@@ -2318,6 +2323,7 @@ stringT CItemData::EngFieldName(FieldType ft)
   case XTIME_INT:  return _T("Password Expiry Interval");
   case RUNCMD:     return _T("Run Command");
   case DCA:        return _T("DCA");
+  case SHIFTDCA:   return _T("Shift-DCA");
   case EMAIL:      return _T("e-mail");
   case PROTECTED:  return _T("Protected");
   case SYMBOLS:    return _T("Symbols");

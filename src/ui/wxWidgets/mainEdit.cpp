@@ -44,6 +44,10 @@
 
 #include <algorithm>
 
+#ifdef __WXMSW__
+#include <wx/msw/msvcrt.h>
+#endif
+
 using pws_os::CUUID;
 
 /*!
@@ -63,7 +67,7 @@ void PasswordSafeFrame::DoEdit(CItemData item)
 {
   int rc = 0;
   if (!item.IsShortcut()) {
-    AddEditPropSheet editDbox(this, m_core, AddEditPropSheet::EDIT, &item);
+    AddEditPropSheet editDbox(this, m_core, AddEditPropSheet::EDIT, &item, this);
     rc = editDbox.ShowModal();
   } else {
     EditShortcut editDbox(this, m_core, &item);

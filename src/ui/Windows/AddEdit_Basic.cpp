@@ -50,7 +50,7 @@ IMPLEMENT_DYNAMIC(CAddEdit_Basic, CAddEdit_PropertyPage)
 
 CAddEdit_Basic::CAddEdit_Basic(CWnd *pParent, st_AE_master_data *pAEMD)
   : CAddEdit_PropertyPage(pParent,
-                          pAEMD->bLongPPs ? CAddEdit_Basic::IDD : CAddEdit_Basic::IDD_SHORT,
+                          CAddEdit_Basic::IDD, CAddEdit_Basic::IDD_SHORT,
                           pAEMD),
   m_pToolTipCtrl(NULL), m_bInitdone(false), m_thread(NULL)
 {
@@ -261,6 +261,9 @@ BOOL CAddEdit_Basic::OnInitDialog()
   if (M_uicaller() == IDS_VIEWENTRY ||
       (M_uicaller() == IDS_EDITENTRY && M_protected() != 0)) {
     // Change 'OK' to 'Close' and disable 'Cancel'
+    // "CancelToClose"  disables the System Command SC_CLOSE
+    // from clicking X on PropertySheet so have implemented
+    // CAddEdit_PropertySheet::OnSysCommand to deal with it
     CancelToClose();
 
     // Disable Group Combo

@@ -2029,7 +2029,7 @@ void DboxMain::OnSysCommand(UINT nID, LPARAM lParam)
     return;
   }
 
-  UINT const nSysID = nID & 0xFFFF;
+  UINT const nSysID = nID & 0xFFF0;
   switch (nSysID) {
     case SC_MINIMIZE:
       break;
@@ -2420,7 +2420,7 @@ LRESULT DboxMain::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
           sxLL += L"_";
           sxLL += sxCC;
         }
-        app.m_vlanguagefiles[iLang].lcid = app.m_vlanguagefiles[iLang].lcid;
+        lcid = app.m_vlanguagefiles[iLang].lcid = app.m_vlanguagefiles[iLang].lcid;
       }
       PWSprefs::GetInstance()->SetPref(PWSprefs::LanguageFile, sxLL);
       SetLanguage(lcid);

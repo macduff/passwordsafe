@@ -32,11 +32,11 @@ public:
 };
 
 
-class ComparisonGridTable: public wxGridTableBase, public UIInterFace
+class ComparisonGridTable: public wxGridTableBase
 {
 public:
   ComparisonGridTable(SelectionCriteria* criteria);
-  ~ComparisonGridTable();
+  virtual ~ComparisonGridTable();
 
   //virtual overrides
   int GetNumberCols();
@@ -52,7 +52,8 @@ public:
 
   //should return wxNOT_FOUND on error
   virtual int GetItemRow(const pws_os::CUUID& uuid) = 0;
-  virtual void EditEntry(int idx, wxWindow* parent, bool readonly) = 0;
+  virtual pws_os::CUUID GetSelectedItemId(bool readOnly) = 0;
+  virtual const st_CompareData& operator[](size_t index) const = 0;
 
 protected:
   SelectionCriteria*      m_criteria;
@@ -65,14 +66,7 @@ protected:
 
   //UIinterface overrides
 public:
-  virtual void DatabaseModified(bool bChanged);
-  virtual void UpdateGUI(UpdateGUICommand::GUI_Action ga,
-                         const pws_os::CUUID &entry_uuid,
-                         CItemData::FieldType ft = CItemData::START,
-                         bool bUpdateGUI = true);
-  virtual void GUISetupDisplayInfo(CItemData &ci);
-  virtual void GUIRefreshEntry(const CItemData &ci);
-  virtual void UpdateWizard(const stringT &s);
+  void RefreshRow(int row) const;
 };
 
 ///////////////////////////////////////////////////////////////
@@ -95,6 +89,7 @@ public:
                           PWScore* core,
                           uuid_ptr pu,
                           const wxColour& backgroundColour);
+  virtual ~UniSafeCompareGridTable();
   
   //virtual overrides
   int GetNumberRows();
@@ -103,8 +98,13 @@ public:
   wxGridCellAttr* GetAttr(int row, int col, wxGridCellAttr::wxAttrKind kind);
   
   //virtual override from ComparisonGridTable
-  void EditEntry(int idx, wxWindow* parent, bool readonly);
   int GetItemRow(const pws_os::CUUID& uuid);
+  virtual pws_os::CUUID GetSelectedItemId(bool readOnly);
+  virtual const st_CompareData& operator[](size_t index) const {
+    return m_compData->at(index);
+  }
+  bool DeleteRows(size_t pos, size_t numRows);
+  bool AppendRows(size_t numRows = 1);
 };
 
 ///////////////////////////////////////////////////////////////////
@@ -126,6 +126,7 @@ public:
                                CompareData* data,
                                PWScore* current,
                                PWScore* other);
+  virtual ~MultiSafeCompareGridTable();
   
   //virtual overrides
   int GetNumberRows();
@@ -135,8 +136,12 @@ public:
   wxGridCellAttr* GetAttr(int row, int col, wxGridCellAttr::wxAttrKind kind);
 
   //virtual override from ComparisonGridTable
-  void EditEntry(int idx, wxWindow* parent, bool readonly);
   int GetItemRow(const pws_os::CUUID& uuid);
+  virtual pws_os::CUUID GetSelectedItemId(bool readOnly);
+  virtual const st_CompareData& operator[](size_t index) const {
+    return m_compData->at(index/2);
+  }
+  bool DeleteRows(size_t pos, size_t numRows);
 private:
   
   PWScore* GetRowCore(int row);

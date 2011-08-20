@@ -25,13 +25,14 @@ IMPLEMENT_DYNAMIC(CAddEdit_PropertySheet, CPWPropertySheet)
 CAddEdit_PropertySheet::CAddEdit_PropertySheet(UINT nID, CWnd* pParent,
                                                PWScore *pcore, 
                                                CItemData *pci_original, CItemData *pci,
+                                               const bool bLongPPs,
                                                const StringX currentDB)
   : CPWPropertySheet(nID, pParent), m_bIsModified(false), m_bChanged(false),
   m_bNotesChanged(false), m_bSymbolsChanged(false),
 	m_bAttachmentsChanged(false), m_pp_basic(NULL),
   m_pp_additional(NULL), m_pp_datetimes(NULL), m_pp_pwpolicy(NULL), m_pp_attachments(NULL)
 {
-  m_AEMD.bLongPPs = chooseResource();
+  m_AEMD.bLongPPs = bLongPPs;
   m_AEMD.uicaller = nID;
 
   ASSERT(pParent != NULL);
@@ -141,6 +142,24 @@ CAddEdit_PropertySheet::~CAddEdit_PropertySheet()
     delete m_pp_attachments;
 }
 
+BEGIN_MESSAGE_MAP(CAddEdit_PropertySheet, CPWPropertySheet)
+  //{{AFX_MSG_MAP(CAddEdit_PropertySheet)
+  ON_WM_SYSCOMMAND()
+  //}}AFX_MSG_MAP
+END_MESSAGE_MAP()
+
+void CAddEdit_PropertySheet::OnSysCommand(UINT nID, LPARAM lParam)
+{
+  const UINT nSysID = nID & 0xFFF0;
+  if (nSysID == SC_CLOSE &&
+      (m_AEMD.uicaller == IDS_VIEWENTRY ||
+      (m_AEMD.uicaller == IDS_EDITENTRY &&  m_AEMD.ucprotected != 0))) {
+    EndDialog(IDCANCEL);
+    return;
+  }
+  CPWPropertySheet::OnSysCommand(nID, lParam);
+}
+
 BOOL CAddEdit_PropertySheet::OnInitDialog()
 {
   CPWPropertySheet::OnInitDialog();
@@ -234,7 +253,7 @@ BOOL CAddEdit_PropertySheet::OnCommand(WPARAM wParam, LPARAM lParam)
   int rc(PWSRC::SUCCESS);
   const int iCID = LOWORD(wParam);
 
-  if (iCID == IDOK || iCID == ID_APPLY_NOW) {
+  if (HIWORD(wParam) == BN_CLICKED && (iCID == IDOK || iCID == ID_APPLY_NOW)) {
     // Don't care what user has done if entry is protected or DB R-O.
     if (m_AEMD.ucprotected != 0 || m_AEMD.uicaller == IDS_VIEWENTRY)
       CPWPropertySheet::EndDialog(IDOK);
