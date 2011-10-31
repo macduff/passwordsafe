@@ -140,7 +140,7 @@ namespace PWSUtil {
   extern const TCHAR *UNKNOWN_ASC_TIME_STR, *UNKNOWN_XML_TIME_STR;
   void GetTimeStamp(stringT &sTimeStamp);
   void GetTimeStampA(std::string &sTimeStamp);
-  StringX NormalizeTTT(const StringX &in);
+  StringX NormalizeTTT(const StringX &in, size_t maxlen = 64);
   void WriteXMLField(std::ostream &os, const char *fname,
                      const StringX &value, CUTF8Conv &utf8conv,
                      const char *tabs = "\t\t");

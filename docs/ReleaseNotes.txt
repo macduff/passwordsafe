@@ -1,5 +1,5 @@
-Password Safe 3.26.1 Release Notes - July 2011
-==============================================
+Password Safe 3.27.1 Release Notes - October 2011
+=================================================
 
 This note describe the new features, fixed bugs and known problems
 with the latest versions of Password Safe. For a short description of
@@ -8,8 +8,24 @@ information on the product and the project, please visit
 http://passwordsafe.sourceforge.net. Details about changes to older
 releases may be found in the file ChangeLog.txt.
 
-New Features for 3.26.1
+New Features for 3.27.1
 =======================
+None
+
+Changes to Existing Features in 3.27.1
+======================================
+[] As indicated with the V3.26 release, date time fields, when exported to XML,
+now are in the W3C dateTime standard format instead of PasswordSafe's.  This release
+can nolonger import XML files with date time fields in the old PasswordSafe's forms.
+See Help file (the XML section of "Import Password Entries") on how to manually change
+the XML file exported prior to V3.26 to allow it to be successfully imported in this release.
+
+Bugs fixed in 3.27.1
+====================
+[3430196] Buttons in the Options property pages now retain the user's Windows theme.
+
+New Features for 3.27
+=====================
 [3367590] User can now add a database name and description via the Properties
 diaolg.
 [3349458] Allow filters to match on rules based on the password's length.
@@ -17,21 +33,30 @@ diaolg.
 Default is copy the username to the clipboard.
 [] Preferences stored in the database are shown in blue in the Options dialogs.
 
-Changes to Existing Features in 3.26.1
-======================================
-[3348954] The passphrase is now required to change from read-only to read/write.
+Changes to Existing Features in 3.27
+====================================
+[3406549] Tooltip for System tray (displaying database file path) is
+now limited to 40 characters (replacing text in the middle with '...'
+if needed).
+[3348954] The passphrase is now required to change from read-only to
+read/write.
 
-Bugs fixed in 3.26.1
-====================
-[3382422] Toolbar now updated to reflect R/W or R-O mode when user dynamically changes mode.
+Bugs fixed in 3.27
+==================
+[3411210] No longer crashes when unlocking with Subset Password dialog
+box opened.
+[3395549] PasswordSafe now displays forms correctly on Netbooks.
+[3382422] Toolbar now updated to reflect R/W or R-O mode when user
+dynamically changes mode. 
 [3380714] User can now save database after manually taking a bakup.
-[3380424] System Menu 'X' now closes the Edit/View PropertyPages when the database
-is in R-O mode or the entry is protected.
-[] Filter image in Status bar is no longer replaced by 'Filter1' after changing
-preferences via Manage->Options.
-[] Selecting hexadecimal passwords as the database policy no longer causes validation
-to fail.
-[] Correctly show database has been modified (to allow saving) if database preferences have been changed.
+[3380424] System Menu 'X' now closes the Edit/View PropertyPages when
+the database is in R-O mode or the entry is protected.
+[] Filter image in Status bar is no longer replaced by 'Filter1' after
+changing preferences via Manage->Options.
+[] Selecting hexadecimal passwords as the database policy no longer
+causes validation to fail.
+[] Correctly show database has been modified (to allow saving) if
+database preferences have been changed.
 
 New Features for 3.26
 =====================

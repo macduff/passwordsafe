@@ -38,6 +38,7 @@ protected:
   int m_IdleTimeOut;
   //}}AFX_DATA
 
+  CButtonExtn m_chkbox[2];
   CString m_EraseProgram;
   CString m_ErasePgmCmdLineParms;
 
@@ -63,8 +64,5 @@ protected:
   //}}AFX_MSG
 
   DECLARE_MESSAGE_MAP()
-
-private:
-  static const UINT uiDBPrefs[];
 };
 

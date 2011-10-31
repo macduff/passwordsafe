@@ -215,12 +215,6 @@ DboxMain::~DboxMain()
   std::bitset<UIInterFace::NUM_SUPPORTED> bsSupportedFunctions(0);
   m_core.SetUIInterFace(NULL, UIInterFace::NUM_SUPPORTED, bsSupportedFunctions);
 
-  MapKeyNameIDIter KNIDiter;
-  for (KNIDiter = m_MapKeyNameID.begin(); KNIDiter != m_MapKeyNameID.end(); KNIDiter++) {
-    free((void *)KNIDiter->second);
-    KNIDiter->second = NULL;
-  }
-
   ::DestroyIcon(m_hIcon);
   ::DestroyIcon(m_hIconSm);
 
@@ -2432,6 +2426,7 @@ LRESULT DboxMain::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 
 void DboxMain::SetLanguage(LCID lcid)
 {
+  UNREFERENCED_PARAMETER(lcid);
   // Show wait cursor
   CWaitCursor wait;
 
@@ -2444,7 +2439,7 @@ void DboxMain::SetLanguage(LCID lcid)
   CMenuShortcut::InitStrings();
 
   // Set up menu shortcuts
-  SetUpInitialMenuStrings(lcid);
+  SetUpInitialMenuStrings();
 
   // Set up local strings
   SetLocalStrings();

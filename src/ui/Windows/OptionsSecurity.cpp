@@ -35,10 +35,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-const UINT COptionsSecurity::uiDBPrefs[] = {
-  IDC_COPYPSWDURL, IDC_LOCK_TIMER
-};
-
 /////////////////////////////////////////////////////////////////////////////
 // COptionsSecurity property page
 
@@ -78,6 +74,9 @@ void COptionsSecurity::DoDataExchange(CDataExchange* pDX)
   DDX_Check(pDX, IDC_LOCKONSCREEN, m_LockOnWindowLock);
   DDX_Text(pDX, IDC_ERASERLOCATION, m_EraseProgram);
   DDX_Text(pDX, IDC_ERASERCMDLINE, m_ErasePgmCmdLineParms);
+
+  DDX_Control(pDX, IDC_COPYPSWDURL, m_chkbox[0]);
+  DDX_Control(pDX, IDC_LOCK_TIMER, m_chkbox[1]);
   //}}AFX_DATA_MAP
 }
 
@@ -98,8 +97,8 @@ BOOL COptionsSecurity::OnInitDialog()
 {
   COptions_PropertyPage::OnInitDialog();
 
-  for (int i = 0; i < sizeof(uiDBPrefs) / sizeof(uiDBPrefs[0]); i++) {
-    SetWindowTheme(GetDlgItem(uiDBPrefs[i])->GetSafeHwnd(), L"", L"");
+  for (int i = 0; i < 2; i++) {
+    m_chkbox[i].SetTextColour(CR_DATABASE_OPTIONS);
   }
 
   OnLockOnIdleTimeout();
@@ -269,11 +268,9 @@ HBRUSH COptionsSecurity::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
 {
   HBRUSH hbr = CPWPropertyPage::OnCtlColor(pDC, pWnd, nCtlColor);
 
-  // Database preferences - controls + associated static text
+  // Database preferences - associated static text
   switch (pWnd->GetDlgCtrlID()) {
     case IDC_STATIC_IDLEMINS:
-    case IDC_COPYPSWDURL:
-    case IDC_LOCK_TIMER:
       pDC->SetTextColor(CR_DATABASE_OPTIONS);
       pDC->SetBkMode(TRANSPARENT);
       break;

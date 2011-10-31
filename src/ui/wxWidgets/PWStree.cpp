@@ -292,6 +292,22 @@ wxString PWSTreeCtrl::GetPath(const wxTreeItemId &node) const
   return retval;
 }
 
+wxString PWSTreeCtrl::GetItemGroup(const wxTreeItemId& item) const
+{
+  if (!item.IsOk() || item == GetRootItem())
+    return wxEmptyString;
+  else if (ItemHasChildren(item)) {
+    const wxString path = GetPath(item);
+    const wxString name = GetItemText(item);
+    if (path.IsEmpty())//parent is root
+      return name; //group under root
+    else
+      return path + _(".") + name; //sub-group of some (non-root) group
+  }
+  else
+    return GetPath(item); 
+}
+
 void PWSTreeCtrl::UpdateItem(const CItemData &item)
 {
   const wxTreeItemId node = Find(item);
@@ -324,14 +340,13 @@ void PWSTreeCtrl::UpdateItemField(const CItemData &item, CItemData::FieldType ft
     UpdateItem(item);
   }
   //these are the only items ever shown in the tree
-  else if (ft == CItemData::TITLE ||
+  else if (ft == CItemData::TITLE || ft == CItemData::START ||
        (ft == CItemData::USER && prefs->GetPref(PWSprefs::ShowUsernameInTree)) ||
        (ft == CItemData::PASSWORD && prefs->GetPref(PWSprefs::ShowPasswordInTree))) {
     wxRect rc;
     wxTreeItemId ti = Find(item);
-    if (ti.IsOk() && GetBoundingRect(ti, rc, true)) { //true => only text, not the icon
-      rc.Intersect(GetClientRect());
-      RefreshRect(rc, true);
+    if (ti.IsOk()) {
+      SetItemText(ti, ItemDisplayString(item));
     }
   }
 }

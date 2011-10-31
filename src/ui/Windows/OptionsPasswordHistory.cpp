@@ -32,8 +32,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-const UINT COptionsPasswordHistory::uiDBPrefs[] = {IDC_SAVEPWHISTORY};
-
 /////////////////////////////////////////////////////////////////////////////
 // COptionsPasswordHistory property page
 
@@ -61,6 +59,8 @@ void COptionsPasswordHistory::DoDataExchange(CDataExchange* pDX)
   DDX_Check(pDX, IDC_SAVEPWHISTORY, m_SavePWHistory);
   DDX_Text(pDX, IDC_DEFPWHNUM, m_PWHistoryNumDefault);
   DDX_Radio(pDX, IDC_PWHISTORYNOACTION, m_PWHAction);
+
+  DDX_Control(pDX, IDC_SAVEPWHISTORY, m_chkbox);
   //}}AFX_DATA_MAP
 }
 
@@ -85,9 +85,7 @@ BOOL COptionsPasswordHistory::OnInitDialog()
 {
   COptions_PropertyPage::OnInitDialog();
 
-  for (int i = 0; i < sizeof(uiDBPrefs) / sizeof(uiDBPrefs[0]); i++) {
-    SetWindowTheme(GetDlgItem(uiDBPrefs[i])->GetSafeHwnd(), L"", L"");
-  }
+  m_chkbox.SetTextColour(CR_DATABASE_OPTIONS);
 
   CSpinButtonCtrl *pspin = (CSpinButtonCtrl *)GetDlgItem(IDC_PWHSPIN);
 
@@ -226,10 +224,9 @@ HBRUSH COptionsPasswordHistory::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
 {
   HBRUSH hbr = CPWPropertyPage::OnCtlColor(pDC, pWnd, nCtlColor);
 
-  // Database preferences - controls + associated static text
+  // Database preferences - associated static text
   switch (pWnd->GetDlgCtrlID()) {
     case IDC_STATIC_NUMPWSDHIST:
-    case IDC_SAVEPWHISTORY:
       pDC->SetTextColor(CR_DATABASE_OPTIONS);
       pDC->SetBkMode(TRANSPARENT);
       break;

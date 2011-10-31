@@ -48,6 +48,8 @@ protected:
   int m_DoubleClickAction, m_ShiftDoubleClickAction;
   //}}AFX_DATA
 
+  CButtonExtn m_chkbox[2];
+
   int m_DCA_to_Index[PWSprefs::maxDCA + 1];
 
   // Overrides
@@ -78,6 +80,4 @@ private:
   void SetupCombo(CComboBox *pcbox);
 
   CToolTipCtrl* m_pToolTipCtrl;
-
-  static const UINT uiDBPrefs[];
 };

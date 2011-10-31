@@ -47,6 +47,8 @@ protected:
   CString m_currentFileDir;
   CString m_currentFileBasename;
 
+  CButtonExtn m_chkbox;
+
   // Overrides
   // ClassWizard generate virtual function overrides
   //{{AFX_VIRTUAL(COptionsBackup)
@@ -77,7 +79,5 @@ protected:
 private:
   void SetExample();
   CToolTipCtrl* m_pToolTipCtrl;
-
-  static const UINT uiDBPrefs[];
 };
 

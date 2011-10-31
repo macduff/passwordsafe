@@ -31,13 +31,6 @@ COptions_PropertyPage::COptions_PropertyPage(CWnd *pParent,
 {
 }
 
-BOOL COptions_PropertyPage::OnInitDialog()
-{
-  CPWPropertyPage::OnInitDialog();
-
-  return TRUE;
-}
-
 BOOL COptions_PropertyPage::OnQueryCancel()
 {
   // Check whether there have been any changes in order to ask the user
