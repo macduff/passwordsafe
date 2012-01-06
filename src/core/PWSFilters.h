@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -59,6 +59,7 @@ enum FieldType {
   FT_EMAIL         = CItemData::EMAIL,
   FT_PROTECTED     = CItemData::PROTECTED,
   FT_SYMBOLS       = CItemData::SYMBOLS,
+  FT_POLICYNAME    = CItemData::POLICYNAME,
   FT_END           = CItemData::END,
 
   // Internal fields purely for filters

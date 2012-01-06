@@ -20,19 +20,19 @@ LIBSRC          = BlowFish.cpp CheckVersion.cpp hmac.cpp \
                   PWHistory.cpp PWSAuxParse.cpp \
                   PWScore.cpp PWSdirs.cpp PWSfile.cpp \
                   PWSfileV1V2.cpp PWSfileV3.cpp \
-                  PWSFilters.cpp PWSprefs.cpp \
+                  PWSFilters.cpp PWSLog.cpp PWSprefs.cpp \
                   Command.cpp PWSrand.cpp Report.cpp \
                   sha1.cpp sha256.cpp core_st.cpp\
                   StringX.cpp SysInfo.cpp \
                   TwoFish.cpp UnknownField.cpp  \
-                  UTF8Conv.cpp Util.cpp UUIDGen.cpp \
+                  UTF8Conv.cpp Util.cpp CoreOtherDB.cpp \
                   VerifyFormat.cpp XMLprefs.cpp \
                   ExpiredList.cpp tinyxml/tinyxml.cpp \
                   tinyxml/tinyxmlerror.cpp tinyxml/tinyxmlparser.cpp \
                   XML/XMLFileHandlers.cpp XML/XMLFileValidation.cpp \
                   XML/Xerces/XFileSAX2Handlers.cpp XML/Xerces/XFileValidator.cpp \
                   XML/Xerces/XFileXMLProcessor.cpp XML/Xerces/XFilterSAX2Handlers.cpp \
-                  XML/Xerces/XFilterXMLProcessor.cpp XML/Xerces/XSecMemMgr.cpp                  
+                  XML/Xerces/XFilterXMLProcessor.cpp XML/Xerces/XSecMemMgr.cpp PWSLog.cpp
 
 SRC             = $(LIBSRC)
 
@@ -44,27 +44,29 @@ LIBOBJ    = $(addprefix $(OBJPATH)/,$(subst .cpp,.o,$(LIBSRC)))
 LIB       = $(LIBPATH)/libcore.a
 OBJ       = $(LIBOBJ)
 
-CXXFLAGS +=  -Wall -I.. -DLINUX
+CPPFLAGS = $(CXXFLAGS) -Wall -I.. -DLINUX
 
 ifeq ($(CONFIG),debug)
-CXXFLAGS += -O0 -ggdb -D_DEBUG -DDEBUG
+CPPFLAGS += -O0 -g -ggdb -D_DEBUG -DDEBUG
+
 else ifeq ($(CONFIG),release)
-CXXFLAGS += -O
+CPPFLAGS += -O -DNDEBUG
 else ifeq ($(CONFIG),unicodedebug)
-CXXFLAGS += -O0 -ggdb -DUNICODE -DUSE_XML_LIBRARY=XERCES -DWCHAR_INCOMPATIBLE_XMLCH \
+CPPFLAGS += -O0 -g -ggdb -DUNICODE -DUSE_XML_LIBRARY=XERCES -DWCHAR_INCOMPATIBLE_XMLCH \
 			-D_DEBUG -DDEBUG
+CFLAGS += -g
 else ifeq ($(CONFIG),unicoderelease)
-CXXFLAGS += -O -DUNICODE -DUSE_XML_LIBRARY=XERCES -DWCHAR_INCOMPATIBLE_XMLCH
+CPPFLAGS += -O -DUNICODE -DUSE_XML_LIBRARY=XERCES -DWCHAR_INCOMPATIBLE_XMLCH -DNDEBUG
 endif
 
 # rules
 .PHONY: all debug release unicodedebug unicoderelease clean setup
 
 $(OBJPATH)/%.o : %.c
-	$(CC) -g  $(CFLAGS)   -c $< -o $@
+	$(CC) $(CFLAGS)   -c $< -o $@
 
 $(OBJPATH)/%.o : %.cpp
-	$(CXX) -g $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) -c $< -o $@
 
 all : setup $(LIB)
 
@@ -76,6 +78,8 @@ $(LIB): $(LIBOBJ)
 
 core_st.cpp core_st.h : core.rc2
 	../../Misc/rc2cpp.pl $^
+
+StringX.cpp: core_st.h
 
 clean:
 	@rm -f *~ $(OBJ) $(TEST) $(LIB)
@@ -89,7 +93,7 @@ $(DEPDIR)/%.d: %.cpp
 	@set -e; mkdir -p $(DEPDIR) $(DEPDIR)/tinyxml; \
 	mkdir -p $(DEPDIR)/XML/Xerces; \
 	$(RM) $@; \
-	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
+	$(CXX) -MM $(CPPFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,$(OBJECTPATH)/\1.o $@ : ,g' < $@.$$$$ > $@; \
 	$(RM) $@.$$$$
 

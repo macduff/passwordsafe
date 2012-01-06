@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -35,6 +35,7 @@
 #include "os/Debug.h"
 #include "os/dir.h"
 #include "os/run.h"
+#include "os/logit.h"
 
 #if defined(POCKET_PC)
 #include "pocketpc/resource.h"
@@ -63,6 +64,8 @@ static char THIS_FILE[] = __FILE__;
 
 void DboxMain::DatabaseModified(bool bChanged)
 {
+  PWS_LOGIT_ARGS("bChanged=%s", bChanged ? _T("true") : _T("false"));
+
   // Callback from PWScore if the database has been changed
   // entries or preferences stored in the database
 
@@ -304,6 +307,9 @@ int CALLBACK DboxMain::CompareFunc(LPARAM lParam1, LPARAM lParam2,
       break;
     case CItemData::POLICY:
       iResult = CompareNoCase(pLHS->GetPWPolicy(), pRHS->GetPWPolicy());
+      break;
+    case CItemData::POLICYNAME:
+      iResult = CompareCase(pLHS->GetPolicyName(), pRHS->GetPolicyName());
       break;
     case CItemData::PROTECTED:
       iResult = pLHS->IsProtected() ? 1 : (pRHS->IsProtected() ? -1 : 1);
@@ -640,7 +646,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
   ASSERT(indices.empty());
 
   StringX curGroup, curTitle, curUser, curNotes, curPassword, curURL, curAT, curXInt;
-  StringX curEmail, curSymbols, curRunCommand, listTitle, saveTitle;
+  StringX curEmail, curSymbols, curPolicyName, curRunCommand, listTitle, saveTitle;
   bool bFoundit;
   CString searchstr(str); // Since str is const, and we might need to MakeLower
   size_t retval = 0;
@@ -685,6 +691,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
     curURL = curitem.GetURL();
     curEmail = curitem.GetEmail();
     curSymbols = curitem.GetSymbols();
+    curPolicyName = curitem.GetPolicyName();
     curRunCommand = curitem.GetRunCommand();
     curAT = curitem.GetAutoType();
     curXInt = curitem.GetXTimeInt();
@@ -697,6 +704,8 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
       ToLower(curNotes);
       ToLower(curURL);
       ToLower(curEmail);
+      // ToLower(curSymbols); - not needed as contains only symbols
+      ToLower(curPolicyName);
       ToLower(curRunCommand);
       ToLower(curAT);
     }
@@ -737,6 +746,10 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
         break;
       }
       if (bsFields.test(CItemData::RUNCMD) && ::wcsstr(curRunCommand.c_str(), searchstr)) {
+        bFoundit = true;
+        break;
+      }
+      if (bsFields.test(CItemData::POLICYNAME) && ::wcsstr(curPolicyName.c_str(), searchstr)) {
         bFoundit = true;
         break;
       }
@@ -912,6 +925,8 @@ BOOL DboxMain::SelectFindEntry(const int i, BOOL MakeVisible)
 // updates of windows suspended until all data is in.
 void DboxMain::RefreshViews(const int iView)
 {
+  PWS_LOGIT_ARGS("iView=%d", iView);
+
   if (!m_bInitDone)
     return;
 
@@ -1005,6 +1020,8 @@ static void Shower(CWnd *pWnd)
 
 void DboxMain::RestoreWindows()
 {
+  PWS_LOGIT;
+
   ShowWindow(SW_RESTORE);
 
   // Restore saved DB preferences that may not have been saved in the database
@@ -1012,9 +1029,10 @@ void DboxMain::RestoreWindows()
   // Can't use the fact that the string is empty, as that is a valid state!
   // Use arbitrary value "#Empty#" to indicate nothing here.
   if (m_savedDBprefs != EMPTYSAVEDDBPREFS) {
-    PWSprefs::GetInstance()->Load(m_savedDBprefs);
-    if (m_core.HaveHeaderPreferencesChanged(m_savedDBprefs))
+    if (m_core.HaveHeaderPreferencesChanged(m_savedDBprefs)) {
+      PWSprefs::GetInstance()->Load(m_savedDBprefs);
       m_core.SetDBPrefsChanged(true);
+    }
     m_savedDBprefs = EMPTYSAVEDDBPREFS;
   }
 
@@ -1030,6 +1048,8 @@ void DboxMain::RestoreWindows()
 // changing the size of the dialog, and not restoring it
 void DboxMain::OnSizing(UINT fwSide, LPRECT pRect)
 {
+  PWS_LOGIT;
+
 #if !defined(POCKET_PC)
   CDialog::OnSizing(fwSide, pRect);
 
@@ -1055,6 +1075,8 @@ void DboxMain::OnMove(int x, int y)
 
 void DboxMain::OnSize(UINT nType, int cx, int cy) 
 {
+  PWS_LOGIT_ARGS("nType=%d", nType);
+
   // Note that onsize runs before InitDialog (Gee, I love MFC)
   //  Also, OnSize is called AFTER the function has been peformed.
   //  To verify IF the function should be done at all, it must be checked in OnSysCommand.
@@ -1186,9 +1208,10 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
         // Can't use the fact that the string is empty, as that is a valid state!
         // Use arbitrary value "#Empty#" to indicate nothing here.
         if (m_savedDBprefs != EMPTYSAVEDDBPREFS) {
-          prefs->Load(m_savedDBprefs);
-          if (m_core.HaveHeaderPreferencesChanged(m_savedDBprefs))
+          if (m_core.HaveHeaderPreferencesChanged(m_savedDBprefs)) {
+            prefs->Load(m_savedDBprefs);
             m_core.SetDBPrefsChanged(true);
+          }
           m_savedDBprefs = EMPTYSAVEDDBPREFS;
         }
 
@@ -1237,6 +1260,8 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
 
 void DboxMain::OnMinimize()
 {
+  PWS_LOGIT;
+
   // Called when the System Tray Minimize menu option is used
   if (m_bStartHiddenAndMinimized)
     m_bStartHiddenAndMinimized = false;
@@ -1247,6 +1272,8 @@ void DboxMain::OnMinimize()
 
 void DboxMain::OnRestore()
 {
+  PWS_LOGIT;
+
   m_ctlItemTree.SetRestoreMode(true);
 
   // Called when the System Tray Restore menu option is used
@@ -1567,6 +1594,8 @@ CItemData *DboxMain::getSelectedItem()
 
 void DboxMain::ClearData(const bool clearMRE)
 {
+  PWS_LOGIT;
+
   m_core.ClearData();  // Clears DB & DB Preferences changed flags
 
   if (clearMRE)
@@ -1597,9 +1626,6 @@ void DboxMain::OnColumnClick(NMHDR *pNotifyStruct, LRESULT *pLResult)
   int iIndex = pNMListView->iSubItem;
   int iTypeSortColumn = m_nColumnTypeByIndex[iIndex];
 
-  HDITEM hdi;
-  hdi.mask = HDI_FORMAT;
-
   if (m_iTypeSortColumn == iTypeSortColumn) {
     m_bSortAscending = !m_bSortAscending;
     PWSprefs *prefs = PWSprefs::GetInstance();
@@ -1615,6 +1641,8 @@ void DboxMain::OnColumnClick(NMHDR *pNotifyStruct, LRESULT *pLResult)
   } else {
     // Turn off all previous sort arrrows
     // Note: not sure where, as user may have played with the columns!
+    HDITEM hdi;
+    hdi.mask = HDI_FORMAT;
     for (int i = 0; i < m_LVHdrCtrl.GetItemCount(); i++) {
       m_LVHdrCtrl.GetItem(i, &hdi);
       if ((hdi.fmt & (HDF_SORTUP | HDF_SORTDOWN)) != 0) {
@@ -1916,7 +1944,7 @@ void DboxMain::OnTimer(UINT_PTR nIDEvent)
     if (!LockDataBase())
       return;
 
-    // Save any database preference chnages
+    // Save any database preference changes
     PWSprefs *prefs = PWSprefs::GetInstance();
     m_savedDBprefs = prefs->Store();
     bool usingsystray = prefs->GetPref(PWSprefs::UseSystemTray);
@@ -1939,6 +1967,8 @@ void DboxMain::OnTimer(UINT_PTR nIDEvent)
 
 LRESULT DboxMain::OnSessionChange(WPARAM wParam, LPARAM )
 {
+  PWS_LOGIT_ARGS("wParam=%d", wParam);
+
   // Windows XP and later only
   // Handle Lock/Unlock, Fast User Switching and Remote access.
   // Won't be called if the registration failed (i.e. < Windows XP
@@ -1988,7 +2018,9 @@ LRESULT DboxMain::OnSessionChange(WPARAM wParam, LPARAM )
 
 bool DboxMain::LockDataBase()
 {
-  /**
+  PWS_LOGIT;
+
+  /*
    * Since we clear the data, any unchanged changes will be lost,
    * so we force a save if database is modified, and fail
    * to lock if the save fails (unless db is r-o).
@@ -2794,6 +2826,9 @@ CString DboxMain::GetHeaderText(int iType) const
     case CItemData::POLICY:        
       cs_header.LoadString(IDS_PWPOLICY);
       break;
+    case CItemData::POLICYNAME:        
+      cs_header.LoadString(IDS_POLICYNAME);
+      break;
     case CItemData::PROTECTED:        
       cs_header.LoadString(IDS_PROTECTED);
       break;
@@ -2820,6 +2855,7 @@ int DboxMain::GetHeaderWidth(int iType) const
     case CItemData::SYMBOLS:
     case CItemData::RUNCMD:
     case CItemData::POLICY:
+    case CItemData::POLICYNAME: 
     case CItemData::XTIME_INT:
       nWidth = m_nColumnHeaderWidthByType[iType];
       break;
@@ -3106,6 +3142,8 @@ int DboxMain::OnUpdateViewReports(const int nID)
 
 void DboxMain::OnRefreshWindow()
 {
+  PWS_LOGIT;
+
   // Useful for users if they are using a filter and have edited an entry
   // so it no longer passes
   RefreshViews();
@@ -3360,11 +3398,13 @@ void DboxMain::OnToolBarFindReport()
       buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPAUTOTYPE));
     if (bsFFields.test(CItemData::PWHIST))
       buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPPWHISTORY));
+    if (bsFFields.test(CItemData::POLICYNAME))
+      buffer += L"\t" + CString(MAKEINTRESOURCE(IDS_COMPPOLICYNAME));
     rpt.WriteLine((LPCWSTR)buffer);
     rpt.WriteLine();
   }
 
-  if (pindices->size() == 0) {
+  if (pindices->empty()) {
     buffer.Format(IDS_SEARCHRESULTS1, csFindString);
     rpt.WriteLine((LPCWSTR)buffer);
   } else {
@@ -3949,6 +3989,8 @@ void DboxMain::RebuildGUI(const int iView)
 
 void DboxMain::SaveGUIStatusEx(const int iView)
 {
+  PWS_LOGIT_ARGS("iView=%d", iView);
+
   if (m_bInRefresh || m_bInRestoreWindows)
     return;
 
@@ -4048,7 +4090,7 @@ void DboxMain::SaveGUIStatusEx(const int iView)
 
 void DboxMain::RestoreGUIStatusEx()
 {
-  //pws_os::Trace(L"RestoreGUIStatusEx\n");
+  PWS_LOGIT;
 
   if (m_core.GetNumEntries() == 0)
     return;
@@ -4179,12 +4221,16 @@ void DboxMain::RestoreGUIStatusEx()
 
 void DboxMain::SaveGroupDisplayState()
 {
+  PWS_LOGIT;
+
   vector <bool> v = GetGroupDisplayState(); // update it
   m_core.SetDisplayStatus(v); // store it
 }
 
 void DboxMain::RestoreGroupDisplayState()
 {
+  PWS_LOGIT;
+
   const vector<bool> &displaystatus = m_core.GetDisplayStatus();    
 
   if (!displaystatus.empty())
@@ -4193,6 +4239,8 @@ void DboxMain::RestoreGroupDisplayState()
 
 vector<bool> DboxMain::GetGroupDisplayState()
 {
+  PWS_LOGIT;
+
   HTREEITEM hItem = NULL;
   vector<bool> v;
 
@@ -4211,6 +4259,8 @@ vector<bool> DboxMain::GetGroupDisplayState()
 
 void DboxMain::SetGroupDisplayState(const vector<bool> &displaystatus)
 {
+  PWS_LOGIT;
+
   // We need to copy displaystatus since Expand may cause
   // SaveGroupDisplayState to be called, updating it
 
@@ -4238,6 +4288,8 @@ void DboxMain::SetGroupDisplayState(const vector<bool> &displaystatus)
 
 void DboxMain::SaveGUIStatus()
 {
+  PWS_LOGIT;
+
   st_SaveGUIInfo SaveGUIInfo;
   CItemData *pci_list(NULL), *pci_tree(NULL);
 
@@ -4282,6 +4334,8 @@ void DboxMain::SaveGUIStatus()
 
 void DboxMain::RestoreGUIStatus()
 {
+  PWS_LOGIT;
+
   if (m_stkSaveGUIInfo.empty())
     return; // better safe than sorry...
 
@@ -4336,3 +4390,27 @@ bool DboxMain::LongPPs()
 
   return (Y > 600); // THRESHOLD = 600 - pixels or virtual-screen coordinates?
 }
+
+bool DboxMain::GetShortCut(const unsigned int &uiMenuItem,
+                           unsigned char &cVirtKey, unsigned char &cModifier)
+{
+  cVirtKey = cModifier = '0';
+
+  MapMenuShortcutsIter iter;
+
+  iter = m_MapMenuShortcuts.find(uiMenuItem);
+  if (iter == m_MapMenuShortcuts.end())
+    return false;
+
+  if (iter->second.cVirtKey  != iter->second.cdefVirtKey ||
+      iter->second.cModifier != iter->second.cdefModifier) {
+    cVirtKey = iter->second.cVirtKey;
+    cModifier = iter->second.cModifier;
+  } else {
+    cVirtKey = iter->second.cdefVirtKey;
+    cModifier = iter->second.cdefModifier;
+  }
+
+  return true;
+}
+ 

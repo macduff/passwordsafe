@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -121,6 +121,7 @@ BOOL COptionsBackup::OnInitDialog()
   COptions_PropertyPage::OnInitDialog();
 
   m_chkbox.SetTextColour(CR_DATABASE_OPTIONS);
+  m_chkbox.SetBkgColour(COLOR_WINDOW);
 
   if (!M_pDbx()->IsDBReadOnly())
     GetDlgItem(IDC_STATIC_DB_PREFS_RO_WARNING)->ShowWindow(SW_HIDE);
@@ -486,10 +487,6 @@ HBRUSH COptionsBackup::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
 
   // Database preferences - controls + associated static text
   switch (pWnd->GetDlgCtrlID()) {
-    case IDC_SAVEIMMEDIATELY:
-      //pDC->SetTextColor(CR_DATABASE_OPTIONS);
-      //pDC->SetBkMode(TRANSPARENT);
-      break;
     case IDC_STATIC_PREFERENCES:
       pDC->SetTextColor(RGB(0, 0, 255));
       pDC->SetBkMode(TRANSPARENT);

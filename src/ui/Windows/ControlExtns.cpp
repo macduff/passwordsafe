@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -627,7 +627,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CComboBoxExt message handlers
 
-HBRUSH CComboBoxExtn::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+HBRUSH CComboBoxExtn::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
 {
   HBRUSH hbr = CComboBox::OnCtlColor(pDC, pWnd, nCtlColor);
 
@@ -912,7 +912,8 @@ LRESULT CSymbolEdit::OnPaste(WPARAM , LPARAM )
 // CButtonExtn
 
 CButtonExtn::CButtonExtn()
-  : m_bUseTextColour(false), m_caption(L""), m_type(BS_AUTOCHECKBOX)
+  : m_bUseTextColour(false), m_bUseBkgColour(false),
+  m_caption(L""), m_type(BS_AUTOCHECKBOX)
 {
 }
 
@@ -969,7 +970,8 @@ void CButtonExtn::DrawButton(HWND hWnd, HDC hDC, RECT *pRect, BOOL fChecked, BOO
   SelectObject(hMemDC, hBitmap);
 
   RECT rFillRect = {0, 0, nWidth, nHeight};
-  FillRect(hMemDC, &rFillRect, CreateSolidBrush(GetSysColor(COLOR_WINDOW)));
+  FillRect(hMemDC, &rFillRect,
+           CreateSolidBrush(GetSysColor(m_bUseBkgColour ? m_icolour : COLOR_WINDOW)));
 
   HTHEME hTheme = OpenThemeData(hWnd, L"BUTTON");
   int nStateID(0);

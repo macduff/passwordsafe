@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -203,7 +203,7 @@ public:
 
 protected:
   //{{AFX_MSG(CComboBoxExtn)
-  afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+  afx_msg HBRUSH OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor);
   afx_msg void OnDestroy();
   //}}AFX_MSG
 
@@ -246,6 +246,10 @@ public:
   {m_bUseTextColour = true; m_crfText = crf;}
   void ResetTextColour()
   {m_bUseTextColour = false;}
+  void SetBkgColour(int icolour)
+  {m_bUseBkgColour = true; m_icolour = icolour;}
+  void ResetBkgColour()
+  {m_bUseBkgColour = false;}
   void SetType(int type);
 
 protected:
@@ -259,7 +263,8 @@ private:
   void DrawButton(HWND hWnd, HDC hDC, RECT *pRect, BOOL fChecked, BOOL fHot);
 
   CString m_caption;
-  bool m_bUseTextColour;
+  bool m_bUseTextColour, m_bUseBkgColour;
   COLORREF m_crfText;
+  int m_icolour;
   int m_type;
 };

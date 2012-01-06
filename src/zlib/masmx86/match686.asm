@@ -69,8 +69,6 @@
     name    gvmatch
     .MODEL  FLAT
 
-
-
 ;  all the +zlib1222add offsets are due to the addition of fields
 ;  in zlib in the deflate_state structure since the asm code was first written
 ;  (if you compile with zlib 1.0.4 or older, use "zlib1222add equ (-4)").

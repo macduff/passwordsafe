@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -42,6 +42,7 @@
 #include "core/PWSdirs.h"
 #include "core/SysInfo.h"
 #include "core/XMLprefs.h"
+#include "core/PWSLog.h"
 
 #include "os/windows/pws_autotype/pws_at.h"
 #include "os/dir.h"
@@ -201,6 +202,8 @@ ThisMfcApp::~ThisMfcApp()
 
   PWSprefs::DeleteInstance();
   PWSrand::DeleteInstance();
+  PWSLog::DeleteLog();
+
   CoUninitialize(); // Uninitialize COM library
 
 #if !defined(POCKET_PC)
@@ -256,7 +259,7 @@ void ThisMfcApp::SetMinidumpUserStreams(const bool bOpen, const bool bRW, UserSt
   UNREFERENCED_PARAMETER(bRW);
   UNREFERENCED_PARAMETER(iStream);
 #endif
-}  
+}
 
 int ThisMfcApp::ExitInstance()
 {
@@ -863,7 +866,7 @@ bool ThisMfcApp::ParseCommandLine(DboxMain &dbox, bool &allDone)
           } else {
             arg++;
             if (!PWSprefs::SetConfigFile(std::wstring(*arg))) {
-              // SetConfigFile fails if specified file not found
+              // SetConfigFile returns false if specified file not found
               CGeneralMsgBox gmb;
               CString missing_cfg;
               // Classic chicken-and-egg here: Since the local
@@ -871,10 +874,9 @@ bool ThisMfcApp::ParseCommandLine(DboxMain &dbox, bool &allDone)
               // the desired config file can't be found, it seems
               // safest to keep this particular error message in English
               // and out of the language-specific dlls.
-              missing_cfg.Format(L"Cannot find configuration file %s",
+              missing_cfg.Format(L"Configuration file %s not found - creating it.",
                                  *arg);
-              gmb.AfxMessageBox(missing_cfg, L"Error", MB_OK|MB_ICONSTOP);
-              return FALSE;
+              gmb.AfxMessageBox(missing_cfg, L"Error", MB_OK|MB_ICONINFORMATION);
             }
           }
           break;

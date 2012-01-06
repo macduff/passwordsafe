@@ -136,12 +136,13 @@ Do NOT change the value of any resource used in a menu from V3.17 onwards.
 #define ID_MENUITEM_SHOW_ALL_EXPIRY     32131
 #define ID_MENUITEM_REPORT_IMPORTKP1TXT 32132
 #define ID_MENUITEM_REPORT_IMPORTKP1CSV 32133
-#define ID_ATTACHMENTMENU               32134
-#define ID_MENUITEM_VIEWATTACHMENTS     32135
-#define ID_MENUITEM_EXPORTATT2XML       32136
-#define ID_MENUITEM_EXPORTATTACHMENTS   32137
-#define ID_MENUITEM_IMPORTATTACHMENTS   32138
-#define ID_MENUITEM_EDITDESCRIPTION     32139
+#define ID_MENUITEM_CLEARFILTER         32134
+#define ID_ATTACHMENTMENU               32135
+#define ID_MENUITEM_VIEWATTACHMENTS     32136
+#define ID_MENUITEM_EXPORTATT2XML       32137
+#define ID_MENUITEM_EXPORTATTACHMENTS   32138
+#define ID_MENUITEM_IMPORTATTACHMENTS   32139
+#define ID_MENUITEM_EDITDESCRIPTION     32140
 
 // Manage menu
 #define ID_MANAGEMENU                   32150
@@ -153,6 +154,7 @@ Do NOT change the value of any resource used in a menu from V3.17 onwards.
 #define ID_MENUITEM_VALIDATE            32156
 #define ID_MENUITEM_GENERATEPASSWORD    32157
 #define ID_LANGUAGEMENU                 32158
+#define ID_MENUITEM_PSWD_POLICIES       32159
 
 // Help menu
 #define ID_HELPMENU                     32200
@@ -171,7 +173,7 @@ Do NOT change the value of any resource used in a menu from V3.17 onwards.
 // Compare Entry menu
 #define ID_MENUITEM_COMPVIEWEDIT        32220
 #define ID_MENUITEM_COPY_TO_ORIGINAL    32221
-#define ID_MENUITEM_COPY_TO_COMPARISON  32222
+#define ID_MENUITEM_COPY_TO_COMPARISON  32222 // obsolete: can't modify comparison DB
 
 // System Tray Menu
 #define ID_MENUITEM_TRAYLOCK            32250

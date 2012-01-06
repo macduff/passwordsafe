@@ -9,9 +9,9 @@
 # unicoderelease
 ################################################################################
 
-CONFIG=unicodedebug
+CONFIG?=unicodedebug
 
-WX_CONFIG=/usr/bin/wx-config
+WX_CONFIG?=/usr/bin/wx-config
 
 # debug
 ifeq ($(CONFIG),debug)
@@ -30,7 +30,7 @@ OUTPUTPATH=GCCDebug
 OBJECTPATH=GCCDebug
 BUILDPATHS=$(OBJECTPATH)
 PROGRAM=pwsafe
-LIBS=`$(WX_CONFIG) --debug=yes --unicode=no --libs` -lcore -los -luuid -lXtst -lX11
+LIBS=`$(WX_CONFIG) --debug=yes --unicode=no --libs` -lcore -los -lcore -luuid -lXtst -lX11
 LINKERFLAGS=
 WARNINGFLAGS=-Wall
 OPTFLAGS=-O0
@@ -58,13 +58,13 @@ OUTPUTPATH=GCCRelease
 OBJECTPATH=GCCRelease
 BUILDPATHS=$(OBJECTPATH)
 PROGRAM=pwsafe
-LIBS=`$(WX_CONFIG) --debug=no --unicode=no --inplace --libs` -lcore -los -luuid -lXtst -lX11
+LIBS=`$(WX_CONFIG) --debug=no --unicode=no --inplace --libs` -lcore -los -lcore -luuid -lXtst -lX11
 LINKERFLAGS=
 WARNINGFLAGS=-Wall
 OPTFLAGS=-O
 DEBUGFLAGS=
 LIBPATH=../../../lib/release
-CPPINC=`$(WX_CONFIG) --debug=no --unicode=no --inplace --cxxflags`
+CPPINC=`$(WX_CONFIG) --debug=no --unicode=no --inplace --cxxflags` -DNDEBUG
 GCCFLAGS=
 LIBDIRNAME=$(WXWIN)/GCCBuildReleaseGTK2/lib
 RESPATH=--include-dir "$(WXWIN)/include" --include-dir "$(WXWIN)/contrib/include" --include-dir "$(WXWIN)/GCCBuildReleaseGTK2/lib/wx/include/gtk2-ansi-release-static-2.6"
@@ -86,7 +86,7 @@ OUTPUTPATH=GCCUnicodeDebug
 OBJECTPATH=GCCUnicodeDebug
 BUILDPATHS=$(OBJECTPATH)
 PROGRAM=pwsafe
-LIBS=`$(WX_CONFIG) --debug=yes --unicode=yes --inplace --libs` -lcore -los -luuid -lXtst -lX11
+LIBS=`$(WX_CONFIG) --debug=yes --unicode=yes --inplace --libs` -lcore -los -lcore -luuid -lXtst -lX11
 LINKERFLAGS=
 WARNINGFLAGS=-Wall
 OPTFLAGS=-O0
@@ -115,13 +115,13 @@ OUTPUTPATH=GCCUnicodeRelease
 OBJECTPATH=GCCUnicodeRelease
 BUILDPATHS=$(OBJECTPATH)
 PROGRAM=pwsafe
-LIBS=`$(WX_CONFIG) --debug=no --unicode=yes --inplace --libs` -lcore -los -luuid -lXtst -lX11
+LIBS=`$(WX_CONFIG) --debug=no --unicode=yes --inplace --libs` -lcore -los -lcore -luuid -lXtst -lX11
 LINKERFLAGS=
 WARNINGFLAGS=-Wall
 OPTFLAGS=-O
 DEBUGFLAGS=
 LIBPATH=../../../lib/unicoderelease
-CPPINC=`$(WX_CONFIG) --debug=no --unicode=yes --inplace --cxxflags` -DUNICODE
+CPPINC=`$(WX_CONFIG) --debug=no --unicode=yes --inplace --cxxflags` -DUNICODE -DNDEBUG
 XERCESCPPFLAGS=-DUSE_XML_LIBRARY=XERCES -DWCHAR_INCOMPATIBLE_XMLCH
 XERCESLIBFLAGS=-lxerces-c
 GCCFLAGS=
@@ -137,7 +137,7 @@ DEPDIR= ./deps
 CPPINC += -I../..
 
 LDFLAGS=$(LIBS) -L$(LIBPATH) $(LINKERFLAGS) $(XERCESLIBFLAGS)
-CPPFLAGS=$(CPPINC) $(GCCFLAGS) $(DEBUGFLAGS) $(OPTFLAGS) $(WARNINGFLAGS) $(XERCESCPPFLAGS)
+CPPFLAGS=$(CXXFLAGS) $(CPPINC) $(GCCFLAGS) $(DEBUGFLAGS) $(OPTFLAGS) $(WARNINGFLAGS) $(XERCESCPPFLAGS)
 
 SOURCES= passwordsafeframe.cpp \
 	pwsafeapp.cpp safecombinationentry.cpp \
@@ -155,7 +155,9 @@ SOURCES= passwordsafeframe.cpp \
 	SafeCombinationCtrl.cpp ExportTextWarningDlg.cpp \
 	AdvancedSelectionDlg.cpp ViewReport.cpp dragbar.cpp \
 	PWSDragBar.cpp MergeDlg.cpp ExternalKeyboardButton.cpp \
-	PwsSync.cpp DbSelectionPanel.cpp
+	PwsSync.cpp DbSelectionPanel.cpp CompareDlg.cpp \
+	wxutils.cpp ComparisonGridTable.cpp SizeRestrictedPanel.cpp \
+	fieldselectionpanel.cpp fieldselectiondlg.cpp
 
 
 OBJECTS=$(SOURCES:%.cpp=$(OBJECTPATH)/%.o)
@@ -163,6 +165,7 @@ OBJECTS += $(RESOURCEOBJECT)
 
 
 all:	$(BUILDPATHS) $(MACPACKAGEINFO) $(OUTPUTPATH)/$(PROGRAM)
+	@echo building "$(CONFIG)" "$@"
 
 debug release unicodedebug unicoderelease:
 	$(MAKE) all CONFIG=$@

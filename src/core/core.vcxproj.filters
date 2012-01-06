@@ -194,6 +194,9 @@
     <ClCompile Include="ExpiredList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PWSLog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BlowFish.h">
@@ -404,6 +407,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="return_codes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PWSLog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

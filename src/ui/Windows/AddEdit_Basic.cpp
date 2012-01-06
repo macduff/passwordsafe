@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -157,7 +157,7 @@ BEGIN_MESSAGE_MAP(CAddEdit_Basic, CAddEdit_PropertyPage)
   ON_BN_CLICKED(ID_HELP, OnHelp)
 
   ON_BN_CLICKED(IDC_SHOWPASSWORD, OnShowPassword)
-  ON_BN_CLICKED(IDC_RANDOM, OnRandom)
+  ON_BN_CLICKED(IDC_GENERATEPASSWORD, OnGeneratePassword)
   ON_BN_CLICKED(IDC_LAUNCH, OnLaunch)
   ON_BN_CLICKED(IDC_SENDEMAIL, OnSendEmail)
   ON_BN_CLICKED(IDC_VIEWDEPENDENTS, OnViewDependents)
@@ -261,9 +261,9 @@ BOOL CAddEdit_Basic::OnInitDialog()
   if (M_uicaller() == IDS_VIEWENTRY ||
       (M_uicaller() == IDS_EDITENTRY && M_protected() != 0)) {
     // Change 'OK' to 'Close' and disable 'Cancel'
-    // "CancelToClose"  disables the System Command SC_CLOSE
+    // "CancelToClose" disables the System Command SC_CLOSE
     // from clicking X on PropertySheet so have implemented
-    // CAddEdit_PropertySheet::OnSysCommand to deal with it
+    // CAddEdit_PropertySheet::OnSysCommand to deal with it.
     CancelToClose();
 
     // Disable Group Combo
@@ -280,7 +280,7 @@ BOOL CAddEdit_Basic::OnInitDialog()
     GetDlgItem(IDC_EMAIL)->SendMessage(EM_SETREADONLY, TRUE, 0);
 
     // Disable Button
-    GetDlgItem(IDC_RANDOM)->EnableWindow(FALSE);
+    GetDlgItem(IDC_GENERATEPASSWORD)->EnableWindow(FALSE);
   }
 
   m_pex_notes->EnableWindow(m_bWordWrap ? FALSE : TRUE);
@@ -375,7 +375,7 @@ void CAddEdit_Basic::OnHelp()
   HtmlHelp(DWORD_PTR((LPCWSTR)cs_HelpTopic), HH_DISPLAY_TOPIC);
 }
 
-HBRUSH CAddEdit_Basic::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+HBRUSH CAddEdit_Basic::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
 {
   HBRUSH hbr = CAddEdit_PropertyPage::OnCtlColor(pDC, pWnd, nCtlColor);
 
@@ -764,7 +764,7 @@ void CAddEdit_Basic::HideNotes()
   ((CEdit *)GetDlgItem(IDC_NOTESWW))->Invalidate();
 }
 
-void CAddEdit_Basic::OnRandom()
+void CAddEdit_Basic::OnGeneratePassword()
 {
   UpdateData(TRUE);
 
@@ -796,7 +796,14 @@ void CAddEdit_Basic::OnRandom()
   }
 
   StringX passwd;
-  M_pDbx()->MakeRandomPassword(passwd, M_pwp(), M_symbols());
+  if (M_ipolicy() == NAMED_POLICY) {
+    st_PSWDPolicy st_pp;
+    M_pDbx()->GetPolicyFromName(M_policyname(), st_pp);
+    M_pDbx()->MakeRandomPassword(passwd, st_pp.pwp, st_pp.symbols.c_str());
+  } else {
+    M_pDbx()->MakeRandomPassword(passwd, M_pwp(), M_symbols());
+  }
+
   if (rc == CChangeAliasPswd::CHANGEBASE) {
     // Change Base
     ItemListIter iter = M_pDbx()->Find(M_base_uuid());
@@ -898,7 +905,7 @@ void CAddEdit_Basic::OnSTCExClicked(UINT nID)
     case IDC_STATIC_EMAIL:
       cs_data = StringX(M_email());
       // If Ctrl pressed - also copy to URL field with the 'mailto:' prefix
-      if (GetKeyState(VK_CONTROL) != 0 && !M_email().IsEmpty()) {
+      if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && !M_email().IsEmpty()) {
         M_URL() = L"mailto:" + cs_data;
         UpdateData(FALSE);
       }

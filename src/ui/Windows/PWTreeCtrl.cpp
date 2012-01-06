@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -1753,7 +1753,8 @@ bool CPWTreeCtrl::CollectData(BYTE * &out_buffer, long &outLen)
   return (outLen > 0);
 }
 
-bool CPWTreeCtrl::ProcessData(BYTE *in_buffer, const long &inLen, const CSecString &DropGroup)
+bool CPWTreeCtrl::ProcessData(BYTE *in_buffer, const long &inLen,
+                              const CSecString &DropGroup)
 {
 #ifdef DUMP_DATA
   std:wstring stimestamp;
@@ -1775,7 +1776,7 @@ bool CPWTreeCtrl::ProcessData(BYTE *in_buffer, const long &inLen, const CSecStri
   inDDmemfile.Detach();
 
   if (!in_oblist.IsEmpty()) {
-    m_pDbx->AddEntries(in_oblist, DropGroup);
+    m_pDbx->AddDDEntries(in_oblist, DropGroup);
 
     while (!in_oblist.IsEmpty()) {
       delete (CDDObject *)in_oblist.RemoveHead();

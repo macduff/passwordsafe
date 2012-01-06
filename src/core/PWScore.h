@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -209,16 +209,17 @@ public:
                           const bool &bImportPSWDsOnly,
                           stringT &strErrors,
                           int &numImported, int &numSkipped,
-                          int &numPWHErrors, int &numRenamed,
+                          int &numPWHErrors, int &numRenamed, int &numNoPolicy,
                           CReport &rpt, Command *&pcommand);
   int ImportXMLFile(const stringT &ImportedPrefix,
                     const stringT &strXMLFileName,
                     const stringT &strXSDFileName,
                     const bool &bImportPSWDsOnly,
                     stringT &strXMLErrors, stringT &strSkippedList,
-                    stringT &strPWHErrorList, stringT &strRenameList, 
+                    stringT &strPWHErrorList, stringT &strRenameList,
                     int &numValidated, int &numImported, int &numSkipped,
-                    int &numPWHErrors, int &numRenamed, 
+                    int &numPWHErrors, int &numRenamed,
+                    int &numNoPolicy,  int &numRenamedPolicies,
                     CReport &rpt, Command *&pcommand);
   int ImportXMLAttachmentFile(const stringT &strXMLFileName,
                     const stringT &strXSDFileName,
@@ -249,13 +250,21 @@ public:
   void SetApplicationNameAndVersion(const stringT &appName, DWORD dwMajorMinor);
 
   // Return list of unique groups
-  void GetUniqueGroups(std::vector<stringT> &ary) const;
+  void GetUniqueGroups(std::vector<stringT> &vUniqueGroups) const;
+  // Construct unique title
   StringX GetUniqueTitle(const StringX &group, const StringX &title,
                          const StringX &user, const int IDS_MESSAGE);
+  // Get all password policy names
+  void GetPolicyNames(std::vector<stringT> &vNames) const;
+  bool GetPolicyFromName(StringX sxPolicyName, st_PSWDPolicy &st_pp);
+  void MakePolicyUnique(std::map<StringX, StringX> &mapRenamedPolicies,
+                        StringX &sxPolicyName, const StringX &sxMerge_DateTime,
+                        const int IDS_MESSAGE);
 
   // Populate setGTU & setUUID from m_pwlist. Returns false & empty set if
   // m_pwlist had one or more entries with same GTU/UUID respectively.
   bool InitialiseGTU(GTUSet &setGTU);
+  bool InitialiseGTU(GTUSet &setGTU, const StringX &sxPolicyName);
   bool InitialiseUUID(UUIDSet &setUUID);
   // Adds an st_GroupTitleUser to setGTU, possible modifying title
   // to ensure uniqueness. Returns false if title was modified.
@@ -389,6 +398,16 @@ public:
 
   size_t GetExpirySize() {return m_ExpireCandidates.size();}
   ExpiredList GetExpired(int idays) {return m_ExpireCandidates.GetExpired(idays);}
+
+  // Password Policies
+  bool IncrementPasswordPolicy(const StringX &sxPolicyName);
+  bool DecrementPasswordPolicy(const StringX &sxPolicyName);
+  const PSWDPolicyMap &GetPasswordPolicies()
+  {return m_MapPSWDPLC;}
+  void SetPasswordPolicies(const PSWDPolicyMap &MapPSWDPLC)
+  {m_MapPSWDPLC = MapPSWDPLC; SetDBChanged(true);}
+  void AddPolicy(const StringX &sxPolicyName, const st_PSWDPolicy &st_pp,
+                 const bool bAllowReplace = false);
 
 private:
   // Database update routines
@@ -554,6 +573,9 @@ private:
                          const StringX &value);
   void RemoveExpiryEntry(const CItemData &ci)
   {m_ExpireCandidates.Remove(ci);}
+
+  stringT GetXMLPWPolicies();
+  PSWDPolicyMap m_MapPSWDPLC;
 };
 
 #endif /* __PWSCORE_H */

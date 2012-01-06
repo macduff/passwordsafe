@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -97,7 +97,13 @@ class CommandInterface
                                  const StringX &value) = 0;
   virtual void RemoveExpiryEntry(const CItemData &ci) = 0;
 
-  // Attachment members
+  virtual const PSWDPolicyMap &GetPasswordPolicies() = 0;
+  virtual void SetPasswordPolicies(const PSWDPolicyMap &MapPSWDPLC) = 0;
+  virtual void AddPolicy(const StringX &sxPolicyName, const st_PSWDPolicy &st_pp,
+                         const bool bAllowReplace = false) = 0;
+  virtual bool GetPolicyFromName(StringX sxPolicyName, st_PSWDPolicy &st_pp) = 0;
+
+   // Attachment members
   virtual size_t HasAttachments(const CUUID &entry_uuid) = 0;
 
   virtual void AddAttachments(ATRVector &vNewATRecords) = 0;
@@ -117,6 +123,7 @@ class CommandInterface
                                    PWSAttfile::VERSION version = PWSAttfile::VCURRENT) = 0;
   virtual int XCompleteImportFile(const stringT &impfilename,
                                   PWSAttfile::VERSION version = PWSAttfile::VCURRENT) = 0;
+
   virtual ~CommandInterface() {}
 };
 

@@ -15,17 +15,22 @@ CP = /bin/cp
 RM = /bin/rm -rf
 SED = /bin/sed
 ZIP = /usr/bin/zip
+FIND = /usr/bin/find
+CHMOD = /bin/chmod
 
-RELDIR = ../../src/ui/wxWidgets/GCCUnicodeRelease
-DOCSDIR = ../../docs
-XMLDIR = ../../xml
-HELPDIR = ../../help
+RELDIR  := ../../src/ui/wxWidgets/GCCUnicodeRelease
+DOCSDIR := ../../docs
+XMLDIR  := ../../xml
+HELPDIR := ../../help
+MODIR   := ../../src/ui/wxWidgets/I18N/mos
 
-PWSAFE-BIN = $(RELDIR)/pwsafe
-DOCS = ../../README.txt $(DOCSDIR)/ReleaseNotes.txt \
+PWSAFE-BIN := $(RELDIR)/pwsafe
+DOCS := ../../README.txt $(DOCSDIR)/ReleaseNotes.txt \
 	$(DOCSDIR)/ChangeLog.txt
-MANPAGE = $(DOCSDIR)/pwsafe.1
-XMLFILES = $(XMLDIR)/pwsafe.xsd $(XMLDIR)/pwsafe_filter.xsd $(XMLDIR)/pwsafe.xsl
+MANPAGE := $(DOCSDIR)/pwsafe.1
+XMLFILES := $(foreach i,\
+						  pwsafe.xsd pwsafe_filter.xsd pwsafe.xsl KPV1_to_PWS.xslt,\
+				  		$(XMLDIR)/$i)
 HELPFILES = $(HELPDIR)/help.zip
 
 INFILES = $(PWSAFE-BIN) $(DOCS) $(MANPAGE) $(XMLFILES) $(HELPFILES)
@@ -60,6 +65,7 @@ debtree:
 	@$(MKDIR) debian/usr/share/pwsafe/xml
 	@$(MKDIR) debian/usr/share/doc/passwordsafe/help
 	@$(MKDIR) debian/usr/share/man/man1
+	@$(MKDIR) debian/usr/share/locale
 	@$(MKDIR) debian/tmp
 	@$(CP) $(PWSAFE-BIN) debian/usr/bin
 	@strip debian/usr/bin/pwsafe
@@ -73,7 +79,9 @@ debtree:
 	@gzip -9 debian/usr/share/man/man1/pwsafe.1
 	@$(CP) $(XMLFILES) debian/usr/share/pwsafe/xml
 	@$(CP) $(HELPFILES) debian/usr/share/doc/passwordsafe/help
+	@$(CP) -r $(MODIR)/* debian/usr/share/locale
 	@$(MKDIR) debian/DEBIAN
+	@$(FIND) debian -type d -exec $(CHMOD) 755 {} \;
 	@$(SED) s/VERSION/$(RELEASENAME)/ < control > debian/DEBIAN/control
 	@$(CP) ../desktop/pwsafe.desktop debian/tmp
 	@$(CP) ../graphics/pwsafe.png debian/tmp

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -15,9 +15,11 @@
 #include "PWSprefs.h"
 #include "core.h"
 #include "return_codes.h"
+#include "PWSLog.h"
 
 #include "os/debug.h"
 #include "os/file.h"
+#include "os/logit.h"
 
 #include "XML/XMLDefs.h"  // Required if testing "USE_XML_LIBRARY"
 
@@ -29,6 +31,9 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <iomanip>
+
+extern void String2PWPolicy(const stringT &cs_pwp, PWPolicy &pwp);
+extern void PWPolicy2String(const PWPolicy &pwp, stringT &cs_pwp);
 
 using namespace std;
 using pws_os::CUUID;
@@ -51,6 +56,8 @@ PWSfileV3::~PWSfileV3()
 
 int PWSfileV3::Open(const StringX &passkey)
 {
+  PWS_LOGIT;
+
   int status = PWSRC::SUCCESS;
 
   ASSERT(m_curversion == V30);
@@ -78,6 +85,8 @@ int PWSfileV3::Open(const StringX &passkey)
 
 int PWSfileV3::Close()
 {
+  PWS_LOGIT;
+
   if (m_fd == NULL)
     return PWSRC::SUCCESS; // idempotent
 
@@ -160,6 +169,8 @@ int PWSfileV3::CheckPasskey(const StringX &filename,
                             const StringX &passkey, FILE *a_fd,
                             unsigned char *aPtag, int *nITER)
 {
+  PWS_LOGIT;
+
   FILE *fd = a_fd;
   int retval = PWSRC::SUCCESS;
   SHA256 H;
@@ -312,6 +323,9 @@ int PWSfileV3::WriteRecord(const CItemData &item)
   tmp = item.GetSymbols();
   if (!tmp.empty())
     WriteCBC(CItemData::SYMBOLS, tmp);
+  tmp = item.GetPolicyName();
+  if (!tmp.empty())
+    WriteCBC(CItemData::POLICYNAME, tmp);
 
   UnknownFieldsConstIter vi_IterURFE;
   for (vi_IterURFE = item.GetURFIterBegin();
@@ -375,6 +389,24 @@ int PWSfileV3::ReadRecord(CItemData &item)
       delete[] utf8; utf8 = NULL; utf8Len = 0;
     }
   } while (type != CItemData::END && fieldLen > 0 && --emergencyExit > 0);
+  
+  if (item.IsPasswordPolicySet() && item.IsPolicyNameSet()) {
+    // Error can't have both - clear Password Policy Name
+    item.SetPolicyName(StringX(_T("")));
+  }
+  
+  if (item.IsPolicyNameSet()) {
+    StringX sxPolicyName = item.GetPolicyName();
+    PSWDPolicyMapIter iter = m_MapPSWDPLC.find(sxPolicyName);
+    if (iter == m_MapPSWDPLC.end()) {
+      // Map name not present in database - clear it!
+      item.SetPolicyName(StringX(_T("")));
+    } else {
+      // Increase use count
+      iter->second.usecount++;
+    }
+  }
+    
   if (numread > 0)
     return status;
   else
@@ -418,7 +450,7 @@ void PWSfileV3::StretchKey(const unsigned char *salt, unsigned long saltLen,
   }
 }
 
-const short VersionNum = 0x0309;
+const short VersionNum = 0x030A;
 
 // Following specific for PWSfileV3::WriteHeader
 #define SAFE_FWRITE(p, sz, cnt, stream) \
@@ -429,6 +461,8 @@ const short VersionNum = 0x0309;
 
 int PWSfileV3::WriteHeader()
 {
+  PWS_LOGIT;
+
   // Following code is divided into {} blocks to
   // prevent "uninitialized" compile errors, as we use
   // goto for error handling
@@ -596,17 +630,50 @@ int PWSfileV3::WriteHeader()
     oss << setw(2) << setfill('0') << hex << num;
     UUIDListIter iter = m_hdr.m_RUEList.begin();
     // Only save up to max as defined by FormatV3.
-    for (size_t n = 0; n < num; n++) {
+    for (size_t n = 0; n < num; n++, iter++) {
       const uuid_array_t *rep = iter->GetARep();
       for (size_t i = 0; i < sizeof(uuid_array_t); i++) {
         oss << setw(2) << setfill('0') << hex <<  static_cast<unsigned int>((*rep)[i]);
       }
-      iter++;
     }
 
     numWritten = WriteCBC(HDR_RUE, 
                           reinterpret_cast<const unsigned char *>(oss.str().c_str()),
                           oss.str().length());
+    if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
+  }
+
+  if (!m_MapPSWDPLC.empty()) {
+    oStringXStream oss;
+    oss.fill(charT('0'));
+
+    size_t num = m_MapPSWDPLC.size();
+    if (num > 255)
+      num = 255;  // Do not exceed 2 hex character length field
+
+    oss << setw(2) << hex << num;
+    PSWDPolicyMapIter iter = m_MapPSWDPLC.begin();
+    for (size_t n = 0; n < num; n++, iter++) {
+      // The Policy name is limited to 255 characters.
+      // This should have been prevented by the GUI.
+      // If not, don't write it out as it may cause issues
+      if (iter->first.length() > 255)
+        continue;
+
+      oss << setw(2) << hex << iter->first.length();
+      oss << iter->first.c_str();
+      stringT strpwp;
+      PWPolicy2String(iter->second.pwp, strpwp);
+      oss << strpwp.c_str();
+      if (iter->second.symbols.empty()) {
+        oss << _T("00");
+      } else {
+        oss << setw(2) << hex << iter->second.symbols.length();
+        oss << iter->second.symbols.c_str();
+      }
+    }
+
+    numWritten = WriteCBC(HDR_PSWDPOLICIES, StringX(oss.str().c_str()));
     if (numWritten <= 0) { status = PWSRC::FAILURE; goto end; }
   }
 
@@ -632,6 +699,8 @@ int PWSfileV3::WriteHeader()
 
 int PWSfileV3::ReadHeader()
 {
+  PWS_LOGIT;
+
   unsigned char Ptag[SHA256::HASHLEN];
   int status = CheckPasskey(m_filename, m_passkey, m_fd,
     Ptag, &m_hdr.m_nITER);
@@ -763,7 +832,7 @@ int PWSfileV3::ReadHeader()
             int ulen = 0;
             is >> hex >> ulen;
             StringX uh = text.substr(4);
-            m_hdr.m_lastsavedby = uh.substr(0,ulen);
+            m_hdr.m_lastsavedby = uh.substr(0, ulen);
             m_hdr.m_lastsavedon = uh.substr(ulen);
           } else
             pws_os::Trace0(_T("FromUTF8(m_wholastsaved) failed\n"));
@@ -818,18 +887,18 @@ int PWSfileV3::ReadHeader()
           if (!pws_os::FileExists(XSDFilename)) {
             // No filter schema => user won't be able to access stored filters
             // Inform her of the fact (probably an installation problem).
-              stringT message, message2;
-              Format(message, IDSC_MISSINGXSD, _T("pwsafe_filter.xsd"));
-              LoadAString(message2, IDSC_FILTERSKEPT);
-              message += stringT(_T("\n\n")) + message2;
-              if (m_pReporter != NULL)
-                (*m_pReporter)(message);
+            stringT message, message2;
+            Format(message, IDSC_MISSINGXSD, _T("pwsafe_filter.xsd"));
+            LoadAString(message2, IDSC_FILTERSKEPT);
+            message += stringT(_T("\n\n")) + message2;
+            if (m_pReporter != NULL)
+              (*m_pReporter)(message);
 
-              // Treat it as an Unknown field!
-              // Maybe user used a later version of PWS
-              // and we don't want to lose anything
-             UnknownFieldEntry unkhfe(fieldType, utf8Len, utf8);
-             m_UHFL.push_back(unkhfe);
+            // Treat it as an Unknown field!
+            // Maybe user used a later version of PWS
+            // and we don't want to lose anything
+            UnknownFieldEntry unkhfe(fieldType, utf8Len, utf8);
+            m_UHFL.push_back(unkhfe);
             break;
           }
           int rc = m_MapFilters.ImportFilterXMLFile(FPOOL_DATABASE, text.c_str(), _T(""),
@@ -880,6 +949,68 @@ int PWSfileV3::ReadHeader()
           const CUUID uuid(ua);
           if (uuid != CUUID::NullUUID())
             m_hdr.m_RUEList.push_back(uuid);
+        }
+        break;
+      }
+
+      case HDR_PSWDPOLICIES:
+      {
+        if (utf8 != NULL) utf8[utf8Len] = '\0';
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
+        if (utf8status) {
+          const size_t recordlength = text.length();
+          StringX sxBlank(_T(" "));  // Needed in case hex value is all zeroes!
+          StringX sxTemp;
+
+          // Get number of polices
+          sxTemp = text.substr(0, 2) + sxBlank;
+          size_t j = 2;  // Skip over # name entries
+          iStringXStream is(sxTemp);
+          int num(0);
+          is >> hex >> num;
+
+          // Get the policies and save them
+          for (int n = 0; n < num; n++) {
+            if (j > recordlength) break;  // Error
+
+            int namelength, symbollength;
+
+            sxTemp = text.substr(j, 2) + sxBlank;
+            iStringXStream is(sxTemp);
+            j += 2;  // Skip over name length
+
+            is >> hex >> namelength;
+            if (j + namelength > recordlength) break;  // Error
+            
+            StringX sxPolicyName = text.substr(j, namelength);
+            j += namelength;  // Skip over name
+            if (j + 19 > recordlength) break;  // Error
+
+            PWPolicy pwp;
+            StringX cs_pwp(text.substr(j, 19));
+            j += 19;  // Skip over pwp
+
+            pwp.flags = 0;
+            String2PWPolicy(cs_pwp.c_str(), pwp);
+            
+            if (j + 2 > recordlength) break;  // Error
+            sxTemp = text.substr(j, 2) + sxBlank;
+            is.str(sxTemp);
+            j += 2;  // Skip over symbols length
+            is >> hex >> symbollength;
+            
+            StringX sxSymbols;
+            if (symbollength != 0) {
+              if (j + symbollength > recordlength) break;  // Error
+              sxSymbols = text.substr(j, symbollength);
+              j += symbollength;  // Skip over symbols
+            }
+
+            st_PSWDPolicy st_pp(pwp, sxSymbols, 0);
+            pair< map<StringX, st_PSWDPolicy>::iterator, bool > pr;
+            pr = m_MapPSWDPLC.insert(PSWDPolicyMapPair(sxPolicyName, st_pp));
+            if (pr.second == false) break; // Error
+          }
         }
         break;
       }

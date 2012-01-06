@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -84,7 +84,7 @@ protected:
   afx_msg void OnHelp();
   afx_msg BOOL OnKillActive();
   afx_msg LRESULT OnQuerySiblings(WPARAM wParam, LPARAM);
-  afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+  afx_msg HBRUSH OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor);
 
   afx_msg void OnPasskeySetFocus();
   afx_msg void OnENSetFocusPassword();
@@ -98,7 +98,7 @@ protected:
   afx_msg void OnENChangeEmail();
   afx_msg void OnGroupComboChanged();
 
-  afx_msg void OnRandom();
+  afx_msg void OnGeneratePassword();
   afx_msg void OnShowPassword();
   afx_msg void OnSTCExClicked(UINT nId);
   afx_msg void OnViewDependents();

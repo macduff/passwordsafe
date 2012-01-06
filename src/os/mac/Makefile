@@ -12,11 +12,11 @@ DEPDIR= ./deps
 NAME=os
 
 LIBSRC          = debug.cpp dir.cpp env.cpp \
-                  file.cpp mem.cpp pws_str.cpp \
+                  file.cpp logit.cpp mem.cpp pws_str.cpp \
                   pws_time.cpp rand.cpp run.cpp\
                   utf8conv.cpp KeySend.cpp\
                   sleep.cpp macsendstring.cpp\
-									registry.cpp
+									registry.cpp UUID.cpp zdebug.cpp
 
 SRC             = $(LIBSRC)
 
@@ -32,11 +32,11 @@ CXXFLAGS +=  -Wall -I../../core -I../..
 ifeq ($(CONFIG),debug)
 CXXFLAGS += -O0 -ggdb
 else ifeq ($(CONFIG),release)
-CXXFLAGS += -O
+CXXFLAGS += -O -DNDEBUG
 else ifeq ($(CONFIG),unicodedebug)
 CXXFLAGS += -O0 -ggdb -DUNICODE
 else ifeq ($(CONFIG),unicoderelease)
-CXXFLAGS += -O -DUNICODE
+CXXFLAGS += -O -DUNICODE -DNDEBUG
 endif
 
 # rules

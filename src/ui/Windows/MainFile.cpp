@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -47,6 +47,7 @@
 
 #include "os/file.h"
 #include "os/dir.h"
+#include "os/logit.h"
 
 #include "resource.h"
 #include "resource2.h"  // Menu, Toolbar & Accelerator resources
@@ -90,6 +91,8 @@ static void DisplayFileWriteError(INT_PTR rc, const StringX &cs_newfile)
 
 BOOL DboxMain::OpenOnInit()
 {
+  PWS_LOGIT;
+
   /*
     Routine to account for the differences between opening PSafe for
     the first time, and just opening a different database or
@@ -454,11 +457,15 @@ int DboxMain::NewFile(StringX &newfilename)
 
 void DboxMain::OnClose()
 {
+  PWS_LOGIT;
+
   Close();
 }
 
 int DboxMain::Close(const bool bTrySave)
 {
+  PWS_LOGIT_ARGS("bTrySave=%s", bTrySave ? _T("true") : _T("false"));
+
   PWSprefs *prefs = PWSprefs::GetInstance();
 
   if (bTrySave) {
@@ -562,6 +569,8 @@ int DboxMain::Close(const bool bTrySave)
 
 void DboxMain::OnOpen()
 {
+  PWS_LOGIT;
+
   int rc = Open();
 
   if (rc == PWSRC::SUCCESS) {
@@ -611,6 +620,8 @@ void DboxMain::OnOpenMRU(UINT nID)
 
 int DboxMain::Open(const UINT uiTitle)
 {
+  PWS_LOGIT_ARGS("uiTitle=%d", uiTitle);
+
   int rc = PWSRC::SUCCESS;
   StringX sx_Filename;
   CString cs_text(MAKEINTRESOURCE(uiTitle));
@@ -758,6 +769,9 @@ int DboxMain::Open(const StringX &sx_Filename, const bool bReadOnly,  const bool
   // clear the data before loading the new file
   ClearData();
 
+  // Reset saved DB preferences
+  m_savedDBprefs = EMPTYSAVEDDBPREFS;
+
   // Tidy up filters
   m_currentfilter.Empty();
   m_bFilterActive = false;
@@ -851,6 +865,8 @@ exit:
 
 void DboxMain::PostOpenProcessing()
 {
+  PWS_LOGIT;
+
 #if !defined(POCKET_PC)
   m_titlebar = PWSUtil::NormalizeTTT(L"Password Safe - " +
                                      m_core.GetCurFile()).c_str();
@@ -1038,6 +1054,8 @@ void DboxMain::OnSave()
 
 int DboxMain::Save(const SaveType savetype)
 {
+  PWS_LOGIT_ARGS("savetype=%d", savetype);
+
   int rc;
   CString cs_msg, cs_temp;
   CGeneralMsgBox gmb;
@@ -1160,6 +1178,8 @@ int DboxMain::Save(const SaveType savetype)
 
 int DboxMain::SaveIfChanged()
 {
+  PWS_LOGIT;
+
   /*
    * Save silently (without asking user) iff:
    * 1. NOT read-only AND
@@ -1222,6 +1242,8 @@ void DboxMain::OnSaveAs()
 
 int DboxMain::SaveAs()
 {
+  PWS_LOGIT;
+
   CGeneralMsgBox gmb;
   INT_PTR rc;
   StringX newfile;
@@ -1672,7 +1694,8 @@ void DboxMain::OnImportText()
     bool bWasEmpty = m_core.GetNumEntries() == 0;
     std::wstring strError;
     StringX TxtFileName = fd.GetPathName();
-    int numImported(0), numSkipped(0), numPWHErrors(0), numRenamed(0), numWarnings(0);
+    int numImported(0), numSkipped(0), numPWHErrors(0), numRenamed(0), numWarnings(0),
+      numNoPolicy(0);
     wchar_t delimiter = dlg.m_defimpdelim[0];
     bool bImportPSWDsOnly = dlg.m_bImportPSWDsOnly == TRUE;
 
@@ -1691,6 +1714,7 @@ void DboxMain::OnImportText()
                                     delimiter, bImportPSWDsOnly,
                                     strError,
                                     numImported, numSkipped, numPWHErrors, numRenamed,
+                                    numNoPolicy,
                                     rpt, pcmd);
 
     switch (rc) {
@@ -1755,7 +1779,7 @@ void DboxMain::OnImportText()
           cs_temp += cs_tmp;
         }
 
-        if (numWarnings != 0) {
+        if (numWarnings != 0 || numNoPolicy != 0) {
           CString cs_tmp(MAKEINTRESOURCE(IDS_WITHWARNINGS));
           cs_temp += cs_tmp;
         }
@@ -2078,6 +2102,7 @@ void DboxMain::OnImportXML()
     std::wstring strXMLErrors, strSkippedList, strPWHErrorList, strRenameList;
     CString XMLFilename = fd.GetPathName();
     int numValidated, numImported, numSkipped, numRenamed, numPWHErrors;
+    int numRenamedPolicies, numNoPolicy;
     bool bImportPSWDsOnly = dlg.m_bImportPSWDsOnly == TRUE;
 
     CWaitCursor waitCursor;  // This may take a while!
@@ -2098,7 +2123,9 @@ void DboxMain::OnImportXML()
                                    XSDFilename.c_str(), bImportPSWDsOnly,
                                    strXMLErrors, strSkippedList, strPWHErrorList, strRenameList,
                                    numValidated, numImported, numSkipped, numPWHErrors, numRenamed,
+                                   numNoPolicy, numRenamedPolicies,
                                    rpt, pcmd);
+
     waitCursor.Restore();  // Restore normal cursor
 
     std::wstring csErrors(L"");
@@ -2171,6 +2198,23 @@ void DboxMain::OnImportXML()
 
     // Finish Report
     rpt.WriteLine((LPCWSTR)cs_temp);
+
+    if (numNoPolicy != 0 || numRenamedPolicies != 0) {
+      CString cs_tmp(MAKEINTRESOURCE(IDS_WITHWARNINGS));
+      cs_temp += cs_tmp;
+
+      if (numNoPolicy != 0) {
+        rpt.WriteLine();
+        cs_tmp.LoadString(IDSC_MISSINGPOLICYNAMES);
+        rpt.WriteLine((LPCWSTR)cs_tmp);
+      }
+      if (numRenamedPolicies != 0) {
+        rpt.WriteLine();
+        cs_tmp.LoadString(IDSC_RENAMEDPOLICYNAMES);
+        rpt.WriteLine((LPCWSTR)cs_tmp);
+      }
+    }
+
     rpt.EndReport();
 
     if (rc != PWSRC::SUCCESS || !strXMLErrors.empty())
@@ -2210,6 +2254,8 @@ void DboxMain::OnProperties()
 
 void DboxMain::OnChangeMode()
 {
+  PWS_LOGIT;
+
   // From StatusBar and menu
   const bool bWasRO = IsDBReadOnly();
 
@@ -2561,9 +2607,9 @@ bool DboxMain::DoCompare(PWScore *pothercore,
                 m_core.GetCurFile().c_str(), pothercore->GetCurFile().c_str());
 
   bool brc(true);  // True == databases are identical
-  if (m_list_OnlyInCurrent.size() == 0 &&
-      m_list_OnlyInComp.size() == 0 &&
-      m_list_Conflicts.size() == 0) {
+  if (m_list_OnlyInCurrent.empty() &&
+      m_list_OnlyInComp.empty() &&
+      m_list_Conflicts.empty()) {
     m_list_Identical.clear();
     cs_text.LoadString(IDS_IDENTICALDATABASES);
     cs_buffer += cs_text;
@@ -2767,10 +2813,6 @@ LRESULT DboxMain::OnProcessCompareResultFunction(WPARAM wParam, LPARAM lFunction
       lres = CopyCompareResult(st_info->pcore1, st_info->pcore0,
                                st_info->uuid1, st_info->uuid0);
       break;
-    case CCompareResultsDlg::COPY_TO_COMPARISONDB:
-      lres = CopyCompareResult(st_info->pcore0, st_info->pcore1,
-                               st_info->uuid0, st_info->uuid1);
-      break;
     case CCompareResultsDlg::SYNCH:
       lres = SynchCompareResult(st_info->pcore1, st_info->pcore0,
                                 st_info->uuid1, st_info->uuid0);
@@ -2908,6 +2950,8 @@ LRESULT DboxMain::SynchCompareResult(PWScore *pfromcore, PWScore *ptocore,
 
 void DboxMain::OnOK()
 {
+  PWS_LOGIT;
+
   SavePreferencesOnExit();
 
   int rc = SaveDatabaseOnExit(ST_NORMALEXIT);
@@ -2936,6 +2980,8 @@ void RelativizePath(stringT &curfile)
 
 void DboxMain::SavePreferencesOnExit()
 {
+  PWS_LOGIT;
+
   PWSprefs::IntPrefs WidthPrefs[] = {
     PWSprefs::Column1Width,
     PWSprefs::Column2Width,
@@ -3006,6 +3052,8 @@ int DboxMain::SaveDatabaseOnExit(const SaveType saveType)
 {
   if (!m_bOpen)
     return PWSRC::SUCCESS;
+
+  PWS_LOGIT_ARGS("saveType=%d", saveType);
 
   INT_PTR rc;
 
@@ -3110,6 +3158,8 @@ int DboxMain::SaveDatabaseOnExit(const SaveType saveType)
 
 void DboxMain::CleanUpAndExit(const bool bNormalExit)
 {
+  PWS_LOGIT_ARGS("bNormalExit=%s", bNormalExit ? _T("true") : _T("false"));
+
   // Clear clipboard on Exit?  Yes if:
   // a. the app is minimized and the systemtray is enabled
   // b. the user has set the "ClearClipboardOnExit" pref
@@ -3328,11 +3378,11 @@ void DboxMain::ReportAdvancedOptions(CReport *pRpt, const bool bAdvanced, const 
     int ifields[] = {CItemData::PASSWORD, CItemData::NOTES, CItemData::URL,
                      CItemData::AUTOTYPE, CItemData::PWHIST, CItemData::POLICY,
                      CItemData::RUNCMD, CItemData::DCA, CItemData::SHIFTDCA, CItemData::EMAIL,
-                     CItemData::PROTECTED, CItemData::SYMBOLS};
+                     CItemData::PROTECTED, CItemData::SYMBOLS, CItemData::POLICYNAME};
     UINT uimsgids[] = {IDS_COMPPASSWORD, IDS_COMPNOTES, IDS_COMPURL,
                        IDS_COMPAUTOTYPE, IDS_COMPPWHISTORY, IDS_COMPPWPOLICY,
                        IDS_COMPRUNCOMMAND, IDS_COMPDCA, IDS_COMPSHIFTDCA, IDS_COMPEMAIL,
-                       IDS_COMPPROTECTED, IDS_COMPSYMBOLS};
+                       IDS_COMPPROTECTED, IDS_COMPSYMBOLS, IDS_COMPPOLICYNAME};
     ASSERT(_countof(ifields) == _countof(uimsgids));
 
     // Time fields

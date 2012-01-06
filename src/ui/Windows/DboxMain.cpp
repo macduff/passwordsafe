@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2003-2011 Rony Shapiro <ronys@users.sourceforge.net>.
+* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
 * All rights reserved. Use of the code is allowed under the
 * Artistic License 2.0 terms, as specified in the LICENSE file
 * distributed with this code, or available from
@@ -49,6 +49,7 @@
 #include "os/file.h"
 #include "os/env.h"
 #include "os/dir.h"
+#include "os/logit.h"
 
 #if defined(POCKET_PC)
 #include "pocketpc/resource.h"
@@ -128,7 +129,7 @@ DboxMain::DboxMain(CWnd* pParent)
   m_core(app.m_core), m_pFontTree(NULL),
   m_bTSUpdated(false),
   m_iSessionEndingStatus(IDIGNORE),
-  m_pchTip(NULL), m_pwchTip(NULL),
+  m_pwchTip(NULL),
   m_bValidate(false), m_bOpen(false), 
   m_IsStartClosed(false), m_IsStartSilent(false),
   m_bStartHiddenAndMinimized(false),
@@ -218,7 +219,6 @@ DboxMain::~DboxMain()
   ::DestroyIcon(m_hIcon);
   ::DestroyIcon(m_hIconSm);
 
-  delete m_pchTip;
   delete m_pwchTip;
   delete m_pFontTree;
   DeletePasswordFont();
@@ -445,6 +445,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND_RANGE(ID_MENUITEM_REPORT_EXPORTTEXT, ID_MENUITEM_REPORT_EXPORTXML, OnViewReportsByID)
   ON_COMMAND_RANGE(ID_MENUITEM_REPORT_IMPORTKP1TXT, ID_MENUITEM_REPORT_IMPORTKP1CSV, OnViewReportsByID)
   ON_COMMAND(ID_MENUITEM_APPLYFILTER, OnApplyFilter)
+  ON_COMMAND(ID_MENUITEM_CLEARFILTER, OnApplyFilter)
   ON_COMMAND(ID_MENUITEM_EDITFILTER, OnSetFilter)
   ON_COMMAND(ID_MENUITEM_MANAGEFILTERS, OnManageFilters)
   ON_COMMAND(ID_MENUITEM_PASSWORDSUBSET, OnDisplayPswdSubset)
@@ -461,6 +462,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND(ID_MENUITEM_RESTORESAFE, OnRestoreSafe)
   ON_COMMAND(ID_MENUITEM_OPTIONS, OnOptions)
   ON_COMMAND(ID_MENUITEM_GENERATEPASSWORD, OnGeneratePassword)
+  ON_COMMAND(ID_MENUITEM_PSWD_POLICIES, OnManagePasswordPolicies)
 
   // Help Menu
   ON_COMMAND(ID_MENUITEM_ABOUT, OnAbout)
@@ -478,7 +480,7 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   // Double-click on R-O R/W indicator on StatusBar
   ON_COMMAND(IDS_READ_ONLY, OnChangeMode)
   // Double-click on filter indicator on StatusBar
-  ON_COMMAND(IDS_FILTER1, OnCancelFilter)
+  ON_COMMAND(IDB_FILTER_ACTIVE, OnCancelFilter)
 
 #if defined(POCKET_PC)
   ON_WM_CREATE()
@@ -591,7 +593,6 @@ BEGIN_MESSAGE_MAP(DboxMain, CDialog)
   ON_COMMAND_RANGE(ID_MENUITEM_TRAYSELECT1, ID_MENUITEM_TRAYSELECTMAX, OnTraySelect)
   ON_UPDATE_COMMAND_UI_RANGE(ID_MENUITEM_TRAYSELECT1, ID_MENUITEM_TRAYSELECTMAX, OnUpdateTraySelect)
   ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
-  ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
 #endif
 END_MESSAGE_MAP()
 
@@ -685,6 +686,7 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_REPORT_SYNCHRONIZE, true, true, true, false},
   {ID_MENUITEM_EDITFILTER, true, true, false, false},
   {ID_MENUITEM_APPLYFILTER, true, true, false, false},
+  {ID_MENUITEM_CLEARFILTER, true, true, false, false},
   {ID_MENUITEM_MANAGEFILTERS, true, true, true, true},
   {ID_MENUITEM_PASSWORDSUBSET, true, true, false, false},
   {ID_MENUITEM_REFRESH, true, true, false, false},
@@ -700,6 +702,7 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   {ID_MENUITEM_OPTIONS, true, true, true, true},
   {ID_MENUITEM_VALIDATE, false, false, false, true},
   {ID_MENUITEM_GENERATEPASSWORD, true, true, true, true},
+  {ID_MENUITEM_PSWD_POLICIES, true, true, true, false},
   // Help Menu
   {ID_MENUITEM_PWSAFE_WEBSITE, true, true, true, true},
   {ID_MENUITEM_ABOUT, true, true, true, true},
@@ -712,7 +715,6 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
   // Compare popup menu
   {ID_MENUITEM_COMPVIEWEDIT, true, false, true, false},
   {ID_MENUITEM_COPY_TO_ORIGINAL, true, false, true, false},
-  {ID_MENUITEM_COPY_TO_COMPARISON, true, true, true, false},
   // Tray popup menu
   {ID_MENUITEM_TRAYUNLOCK, true, true, true, false},
   {ID_MENUITEM_TRAYLOCK, true, true, true, false},
@@ -739,6 +741,8 @@ const DboxMain::UICommandTableEntry DboxMain::m_UICommandTable[] = {
 
 void DboxMain::InitPasswordSafe()
 {
+  PWS_LOGIT;
+
   pws_os::getosversion(m_WindowsMajorVersion, m_WindowsMinorVersion);
   PWSprefs *prefs = PWSprefs::GetInstance();
 
@@ -1112,6 +1116,8 @@ LRESULT DboxMain::OnHdrToCCDragComplete(WPARAM wType, LPARAM /* lParam */)
 
 BOOL DboxMain::OnInitDialog()
 {
+  PWS_LOGIT;
+
   CDialog::OnInitDialog();
 
   // Set up UPDATE_UI data map.
@@ -1552,6 +1558,8 @@ void DboxMain::SetStartSilent(bool state)
 
 void DboxMain::SetChanged(ChangeType changed)
 {
+  PWS_LOGIT_ARGS("changed=%d", changed);
+
   if (m_core.IsReadOnly())
     return;
 
@@ -1662,6 +1670,8 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
                                   int flags,
                                   PWScore *pcore)
 {
+  PWS_LOGIT_ARGS("index=%d; flags=0x%04x", index, flags);
+
   // index:
   //  GCP_FIRST      (0) first
   //  GCP_NORMAL     (1) OK, CANCEL & HELP buttons
@@ -1678,7 +1688,7 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
   int retval;
   bool bFileIsReadOnly = false;
 
-  /// Get all read-only values from flags
+  // Get all read-only values from flags
   bool bReadOnly = (flags & GCP_READONLY) == GCP_READONLY;
   bool bForceReadOnly = (flags & GCP_FORCEREADONLY) == GCP_FORCEREADONLY;
   bool bHideReadOnly = (flags & GCP_HIDEREADONLY) == GCP_HIDEREADONLY;
@@ -1733,8 +1743,12 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
     dbox_pkentry->m_appversion.Format(L"Version %d.%02d.%02d%s",
                                       nMajor, nMinor, nBuild, SPECIAL_BUILD);
 
+  // Ensure blank DboxMain dialog is not shown if user double-clicks
+  // on SystemTray icon when being prompted for passphrase
+  CWnd *pOldTarget = app.SetSystemTrayTarget(dbox_pkentry);
+  
   INT_PTR rc = dbox_pkentry->DoModal();
-
+ 
   if (rc == IDOK) {
     DBGMSG("PasskeyEntry returns IDOK\n");
     const StringX curFile = dbox_pkentry->GetFileName().GetString();
@@ -1857,6 +1871,10 @@ int DboxMain::GetAndCheckPassword(const StringX &filename,
         break;
     }
   }
+
+  // Put it back
+  app.SetSystemTrayTarget(pOldTarget);
+
   delete dbox_pkentry;
   dbox_pkentry = NULL;
   return retval;
@@ -1879,21 +1897,18 @@ BOOL DboxMain::OnToolTipText(UINT, NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
   // This code is copied from the DLGCBR32 example that comes with MFC
   // Updated by MS on 25/09/2005
-#if !defined(POCKET_PC)
-  ASSERT(pNotifyStruct->code == TTN_NEEDTEXTA || pNotifyStruct->code == TTN_NEEDTEXTW);
+  ASSERT(pNotifyStruct->code == TTN_NEEDTEXTW);
 
   // allow top level routing frame to handle the message
   if (GetRoutingFrame() != NULL)
     return FALSE;
 
   // need to handle both ANSI and UNICODE versions of the message
-  TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNotifyStruct;
-  TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNotifyStruct;
+  TOOLTIPTEXTW *pTTTW = (TOOLTIPTEXTW *)pNotifyStruct;
   wchar_t tc_FullText[4096];  // Maxsize of a string in a resource file
   CString cs_TipText;
   UINT nID = (UINT)pNotifyStruct->idFrom;
-  if (pNotifyStruct->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
-      pNotifyStruct->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND)) {
+  if (pTTTW->uFlags & TTF_IDISHWND) {
     // idFrom is actually the HWND of the tool
     nID = ((UINT)(WORD)::GetDlgCtrlID((HWND)nID));
   }
@@ -1913,59 +1928,17 @@ BOOL DboxMain::OnToolTipText(UINT, NMHDR *pNotifyStruct, LRESULT *pLResult)
 
   // Assume ToolTip is greater than 80 characters in ALL cases and so use
   // the pointer approach.
-  // Otherwise comment out the definition of LONG_TOOLTIPS below
 
-#define LONG_TOOLTIPS
+  delete m_pwchTip;
 
-#ifdef LONG_TOOLTIPS
-  if (pNotifyStruct->code == TTN_NEEDTEXTA) {
-    delete m_pchTip;
-
-    m_pchTip = new char[cs_TipText.GetLength() + 1];
-#if (_MSC_VER >= 1400)
-    size_t num_converted;
-    wcstombs_s(&num_converted, m_pchTip, cs_TipText.GetLength() + 1, cs_TipText,
-               cs_TipText.GetLength() + 1);
-#else
-    wcstombs(m_pchTip, cs_TipText, cs_TipText.GetLength() + 1);
-#endif
-    pTTTA->lpszText = (LPSTR)m_pchTip;
-  } else {
-    delete m_pwchTip;
-
-    m_pwchTip = new WCHAR[cs_TipText.GetLength() + 1];
-#if (_MSC_VER >= 1400)
-    wcsncpy_s(m_pwchTip, cs_TipText.GetLength() + 1,
+  m_pwchTip = new WCHAR[cs_TipText.GetLength() + 1];
+  wcsncpy_s(m_pwchTip, cs_TipText.GetLength() + 1,
               cs_TipText, _TRUNCATE);
-#else
-    wcsncpy(m_pwchTip, cs_TipText, cs_TipText.GetLength() + 1);
-#endif
-    pTTTW->lpszText = (LPWSTR)m_pwchTip;
-  }
-#else // Short Tooltips!
-  if (pNotifyStruct->code == TTN_NEEDTEXTA) {
-    int n = WideCharToMultiByte(CP_ACP, 0, cs_TipText, -1,
-                                pTTTA->szText,
-                                _countof(pTTTA->szText),
-                                NULL, NULL);
-    if (n > 0)
-      pTTTA->szText[n - 1] = 0;
-  } else {
-#if (_MSC_VER >= 1400)
-    wcsncpy_s(pTTTW->szText, _countof(pTTTW->szText),
-              cs_TipText, _TRUNCATE);
-#else
-    wcsncpy(pTTTW->szText, cs_TipText, _countof(pTTTW->szText));
-#endif
-  }
-#endif // LONG_TOOLTIPS
+
+  pTTTW->lpszText = (LPWSTR)m_pwchTip;
 
   *pLResult = 0;
 
-  // bring the tooltip window above other popup windows
-  ::SetWindowPos(pNotifyStruct->hwndFrom, HWND_TOP, 0, 0, 0, 0,
-                 SWP_NOACTIVATE|SWP_NOSIZE|SWP_NOMOVE);
-#endif  // POCKET_PC
   return TRUE;    // message was handled
 }
 
@@ -2024,6 +1997,9 @@ void DboxMain::OnSysCommand(UINT nID, LPARAM lParam)
   }
 
   UINT const nSysID = nID & 0xFFF0;
+
+  PWS_LOGIT_ARGS("nID=%04X", nID);
+
   switch (nSysID) {
     case SC_MINIMIZE:
       break;
@@ -2138,6 +2114,10 @@ LRESULT DboxMain::OnTrayNotification(WPARAM , LPARAM)
 
 bool DboxMain::RestoreWindowsData(bool bUpdateWindows, bool bShow)
 {
+  PWS_LOGIT_ARGS("bUpdateWindows=%s, bShow=%s",
+    bUpdateWindows ? _T("true") : _T("false"), 
+    bShow ? _T("true") : _T("false"));
+
   // This restores the data in the main dialog.
   // If currently locked, it checks the user knows the correct passphrase first
   // Note: bUpdateWindows = true only when called from within OnSysCommand-SC_RESTORE
@@ -2517,7 +2497,7 @@ void DboxMain::TellUserAboutExpiredPasswords()
   int idays = PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarnDays);
   ExpiredList expiredEntries = m_core.GetExpired(idays);
 
-  if (m_bTellUserExpired && expiredEntries.size() != 0) {
+  if (m_bTellUserExpired && !expiredEntries.empty()) {
     m_bTellUserExpired = !m_bTellUserExpired;
 
     // Give user option to display and edit them
@@ -2566,6 +2546,8 @@ void DboxMain::UpdateAccessTime(CItemData *pci)
 
 LRESULT DboxMain::OnQueryEndSession(WPARAM , LPARAM lParam)
 {
+    PWS_LOGIT_ARGS("lParam=%d", lParam);
+
   /*
     ********************************************************************************
     NOTE: If the Windows API ExitWindowsEx is called with the EWX_FORCE flag,
@@ -2649,6 +2631,8 @@ LRESULT DboxMain::OnQueryEndSession(WPARAM , LPARAM lParam)
 
 LRESULT DboxMain::OnEndSession(WPARAM wParam, LPARAM )
 {
+  PWS_LOGIT_ARGS("wParam=%d", wParam);
+
   /*
     See comments in OnQueryEndSession above.
   */
@@ -2735,12 +2719,14 @@ void DboxMain::UpdateStatusBar()
                  m_core.GetNumEntries());
       else
         s.Format(IDS_NUMITEMS, m_core.GetNumEntries());
+
       dc.DrawText(s, &rectPane, DT_CALCRECT);
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_NUM_ENT, uiID, uiStyle, iWidth);
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_NUM_ENT, uiID, uiStyle, rectPane.Width());
       m_statusBar.SetPaneText(CPWStatusBar::SB_NUM_ENT, s);
 
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_FILTER, uiID, uiStyle, iWidth);
+      uiID = m_bFilterActive ? IDB_FILTER_ACTIVE : IDS_BLANK;
       m_statusBar.SetPaneInfo(CPWStatusBar::SB_FILTER, uiID, uiStyle | SBT_OWNERDRAW, iBMWidth);
     } else {
       s.LoadString(IDS_STATCOMPANY);
@@ -2765,7 +2751,7 @@ void DboxMain::UpdateStatusBar()
       m_statusBar.SetPaneText(CPWStatusBar::SB_NUM_ENT, L" ");
 
       m_statusBar.GetPaneInfo(CPWStatusBar::SB_FILTER, uiID, uiStyle, iWidth);
-      m_statusBar.SetPaneInfo(CPWStatusBar::SB_FILTER, uiID, uiStyle | SBT_OWNERDRAW, iBMWidth);
+      m_statusBar.SetPaneInfo(CPWStatusBar::SB_FILTER, IDS_BLANK, uiStyle | SBT_OWNERDRAW, iBMWidth);
     }
   }
 
