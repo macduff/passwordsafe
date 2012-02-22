@@ -40,7 +40,7 @@ extern int s_cfgLockCount;
 
 struct st_prefShortcut {
   unsigned int id;
-  unsigned char cVirtKey;
+  unsigned short int siVirtKey;
   unsigned char cModifier;
 };
 
@@ -49,7 +49,6 @@ class CXMLprefs;
 class PWSprefs
 {
 public:
-
   enum ConfigOption {CF_NONE = 0, CF_REGISTRY,
                      CF_FILE_RO, CF_FILE_RW, CF_FILE_RW_NEW};
 

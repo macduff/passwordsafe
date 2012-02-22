@@ -1838,12 +1838,12 @@
   <ItemGroup Condition=" '$(Platform)' == 'x64' ">
     <CustomBuild Include="masmx64\gvmat64.asm">
       <Message>Assembling...</Message>
-      <Command>ml64.exe /c /coff /safeseh /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
+      <Command>ml64.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
       <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="masmx64\inffasx64.asm">
       <Message>Assembling...</Message>
-      <Command>ml64.exe /c /coff /safeseh /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
+      <Command>ml64.exe /c /nologo /Zi /Fo"$(PWSObj)\zlib\%(FileName).obj" /W3 /errorReport:prompt /Ta.\masmx64\%(FileName).asm"</Command>
       <Outputs>$(PWSObj)\zlib\%(FileName).obj;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>

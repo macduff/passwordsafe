@@ -90,6 +90,7 @@
 #define IDI_TRAY_YELLOW                 208
 #define IDI_UNLOCKEDICON                209
 #define IDR_POPLANGUAGES                210
+#define IDR_POPCOPYALLTOORIGINAL        211
 #define IDB_CLOGO                       220
 #define IDB_CLOGO_SMALL                 221
 #define IDB_PSLOGO                      223
@@ -358,33 +359,36 @@
 #define IDB_PSWD_POLICIES_NEW_D         518
 #define IDB_COPYTOCLIPBOARD_CLASSIC     519
 #define IDB_COPYTOCLIPBOARD_NEW         520
-#define IDD_ADDEDIT_ATTACHMENTS         521
-#define IDD_EXTRACT_ATTACHMENT          522
-#define IDD_VIEW_ATTACHMENTS            523
-#define IDB_UNCHECKEDA                  524
-#define IDB_VIEW_ATTACHMENTS_CLASSIC    525
-#define IDB_VIEW_ATTACHMENTS_NEW        526
-#define IDB_VIEW_ATTACHMENTS_NEW_D      527
-#define IDD_ATT_PROPERTIES              528
-#define IDR_POPATTACHMENTS              529
-#define IDD_ANIMATE                     530
-#define IDD_ADD_DESCRIPTION             531
-#define IDD_EXPORT_ATTACHMENT           532
-#define IDD_ADVANCED_ATT                533
-#define IDB_ATT_NORMAL                  534
-#define IDB_ATT_NORMAL_WARNEXPIRED      535
-#define IDB_ATT_NORMAL_EXPIRED          536
-#define IDB_ATT_ABASE                   537
-#define IDB_ATT_ABASE_WARNEXPIRED       538
-#define IDB_ATT_ABASE_EXPIRED           539
-#define IDB_ATT_ALIAS                   540
-#define IDB_ATT_SBASE                   541
-#define IDB_ATT_SBASE_WARNEXPIRED       542
-#define IDB_ATT_SBASE_EXPIRED           543
-#define IDB_UNCHECKEDA_D                544
-#define IDB_CHECKED_D                   545
-#define IDD_ATTPROGRESS                 546
-#define IDD_CONFIRMDELETE_DIALOGGRP     547
+#define IDR_POPCOMPAREENTRIES           521
+#define IDD_SHOW_COMPARE                522
+#define IDD_COMPARE_WITH                523
+#define IDD_ADDEDIT_ATTACHMENTS         524
+#define IDD_EXTRACT_ATTACHMENT          525
+#define IDD_VIEW_ATTACHMENTS            526
+#define IDB_UNCHECKEDA                  527
+#define IDB_VIEW_ATTACHMENTS_CLASSIC    528
+#define IDB_VIEW_ATTACHMENTS_NEW        529
+#define IDB_VIEW_ATTACHMENTS_NEW_D      530
+#define IDD_ATT_PROPERTIES              531
+#define IDR_POPATTACHMENTS              532
+#define IDD_ANIMATE                     533
+#define IDD_ADD_DESCRIPTION             534
+#define IDD_EXPORT_ATTACHMENT           535
+#define IDD_ADVANCED_ATT                536
+#define IDB_ATT_NORMAL                  537
+#define IDB_ATT_NORMAL_WARNEXPIRED      538
+#define IDB_ATT_NORMAL_EXPIRED          539
+#define IDB_ATT_ABASE                   540
+#define IDB_ATT_ABASE_WARNEXPIRED       541
+#define IDB_ATT_ABASE_EXPIRED           542
+#define IDB_ATT_ALIAS                   543
+#define IDB_ATT_SBASE                   544
+#define IDB_ATT_SBASE_WARNEXPIRED       545
+#define IDB_ATT_SBASE_EXPIRED           546
+#define IDB_UNCHECKEDA_D                547
+#define IDB_CHECKED_D                   548
+#define IDD_ATTPROGRESS                 549
+#define IDD_CONFIRMDELETE_DIALOGGRP     550
 #define IDC_APPVERSION                  1000
 #define IDC_VERSION                     1001
 #define IDC_CREATE_DB                   1003
@@ -404,7 +408,6 @@
 #define IDC_DELITEM                     1017
 #define IDC_VERIFY                      1018
 #define IDC_CONFIRMDELETE               1019
-#define IDC_NOTESWW                     1020
 #define IDC_CONFIRMCOPY                 1021
 #define IDC_TRYAGAIN                    1022
 #define IDC_QUIT                        1023
@@ -532,6 +535,7 @@
 #define IDC_SETMAXPWHISTORY             1186
 #define IDC_STATIC_UPDATEPWHISTORY      1187
 #define IDC_REGDEL                      1188
+#define IDC_SETMAXPWHISTORY2            1188
 #define IDC_DEFNOTESSHOWINEDIT          1190
 #define IDC_DATABASENAME                1191
 #define IDC_DATABASEFORMAT              1192
@@ -689,7 +693,6 @@
 #define IDC_SETSAMPLETEXT               1373
 #define IDC_RESETFONT                   1374
 #define IDC_ENTRYPWPOLICY               1376
-#define IDC_DCA_DEFAULT                 1378
 #define IDC_LAUNCH                      1379
 #define IDC_SENDEMAIL                   1380
 #define IDC_STATIC_PWH_ADD              1381
@@ -760,7 +763,6 @@
 #define IDC_STATIC_DEFAUTOTYPE          1447
 #define IDC_STATIC_PSWDLENGTH           1448
 #define IDC_SHIFT_DOUBLE_CLICK_ACTION   1449
-#define IDC_SHIFT_DCA_DEFAULT           1450
 #define IDC_STATIC_PREFERENCES          1453
 #define IDC_STATIC_DB_PREFS_RO_WARNING  1454
 #define IDC_DATABASE_NAME               1455
@@ -785,6 +787,9 @@
 #define IDC_STATIC_COPYPSWD             1474
 #define IDC_UNDO                        1475
 #define IDC_REDO                        1476
+#define IDC_CLEARPWHISTORY              1477
+#define IDC_UPDATEPROTECTEDPWH          1478
+#define IDC_SHOW_IDENTICAL_FIELDS       1479
 
 #define IDC_ADD_ATTACHMENT              7000
 #define IDC_DELETE_ATTACHMENT           7001
@@ -864,9 +869,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        548
+#define _APS_NEXT_RESOURCE_VALUE        551
 #define _APS_NEXT_COMMAND_VALUE         30001
-#define _APS_NEXT_CONTROL_VALUE         1477
+#define _APS_NEXT_CONTROL_VALUE         1480
 #define _APS_NEXT_SYMED_VALUE           166
 #endif
 #endif

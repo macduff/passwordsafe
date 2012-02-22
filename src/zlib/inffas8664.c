@@ -103,12 +103,15 @@
     } type_ar;
 #ifdef ASMINF
 
-void inflate_fast(z_streamp strm, unsigned start)
+void inflate_fast(strm, start)
+z_streamp strm;
+unsigned start;         /* inflate()'s starting value for strm->avail_out */
 {
-    // start = inflate()'s starting value for strm->avail_out
     struct inflate_state FAR *state;
     type_ar ar;
     void inffas8664fnc(struct inffast_ar * par);
+
+
 
 #if (defined( __GNUC__ ) && defined( __amd64__ ) && ! defined( __i386 )) || (defined(_MSC_VER) && defined(_M_AMD64))
 #define PAD_AVAIL_IN 6

@@ -224,7 +224,9 @@ int DboxMain::RestoreSafe()
   // clear the data before restoring
   ClearData();
 
-  rc = m_core.ReadFile(backup, passkey, MAXTEXTCHARS);
+  // Validate it unless user says NO
+  CReport Rpt;
+  rc = m_core.ReadFile(backup, passkey, !m_bNoValidation, MAXTEXTCHARS, &Rpt);
   if (rc == PWSRC::CANT_OPEN_FILE) {
     cs_temp.Format(IDS_CANTOPENREADING, backup);
     cs_title.LoadString(IDS_FILEREADERROR);
@@ -242,47 +244,6 @@ int DboxMain::RestoreSafe()
   RefreshViews();
 
   return PWSRC::SUCCESS;
-}
-
-void DboxMain::OnValidate() 
-{
-  CGeneralMsgBox gmb;
-  if (!m_bValidate) {
-    // We didn't get here via command line flag - so must be via the menu
-    int rc = Open(IDS_CHOOSEDATABASEV);
-    if (rc != PWSRC::SUCCESS)
-      return;
-  }
-
-  CReport rpt;
-  std::wstring cs_title;
-  LoadAString(cs_title, IDS_RPTVALIDATE);
-  rpt.StartReport(cs_title.c_str(), m_core.GetCurFile().c_str());
-
-  std::wstring cs_msg;
-  bool bchanged = m_core.Validate(cs_msg, rpt, MAXTEXTCHARS);
-  if (!bchanged)
-    LoadAString(cs_msg, IDS_VALIDATEOK);
-  else {
-    SetChanged(Data);
-    ChangeOkUpdate();
-  }
-
-  rpt.EndReport();
-
-  gmb.SetTitle(cs_title.c_str());
-  gmb.SetMsg(cs_msg.c_str());
-  gmb.SetStandardIcon(bchanged ? MB_ICONEXCLAMATION : MB_ICONINFORMATION);
-  gmb.AddButton(IDS_OK, IDS_OK, TRUE, TRUE);
-  if (bchanged)
-    gmb.AddButton(IDS_VIEWREPORT, IDS_VIEWREPORT);
-
-  INT_PTR rc = gmb.DoModal();
-  if (rc == IDS_VIEWREPORT)
-    ViewReport(rpt);
-
-  // Show UUID in Edit Date/Time property sheet stats
-  CAddEdit_DateTimes::m_bShowUUID = true;
 }
 
 void DboxMain::OnOptions()
@@ -442,15 +403,30 @@ void DboxMain::OnOptions()
           continue;
         }
         // Now only those different from default
-        if (iter->second.cVirtKey  != iter->second.cdefVirtKey  ||
-            iter->second.cModifier != iter->second.cdefModifier) {
+        if (iter->second.siVirtKey  != iter->second.siDefVirtKey  ||
+            iter->second.cModifier != iter->second.cDefModifier) {
           st_prefShortcut stxst;
           stxst.id = iter->first;
-          stxst.cVirtKey = iter->second.cVirtKey;
+          stxst.siVirtKey = iter->second.siVirtKey;
           stxst.cModifier = iter->second.cModifier;
           vShortcuts.push_back(stxst);
         }
       }
+
+      // We need to convert from MFC shortcut modifiers to PWS modifiers
+      for (size_t i = 0; i < vShortcuts.size(); i++) {
+        unsigned char cModifier(0), cWindowsMod = vShortcuts[i].cModifier;
+        if ((cWindowsMod & HOTKEYF_ALT    ) == HOTKEYF_ALT)
+          cModifier |= PWS_HOTKEYF_ALT;
+        if ((cWindowsMod & HOTKEYF_CONTROL) == HOTKEYF_CONTROL)
+          cModifier |= PWS_HOTKEYF_CONTROL;
+        if ((cWindowsMod & HOTKEYF_SHIFT  ) == HOTKEYF_SHIFT)
+          cModifier |= PWS_HOTKEYF_SHIFT;
+        if ((cWindowsMod & HOTKEYF_EXT    ) == HOTKEYF_EXT)
+          cModifier |= PWS_HOTKEYF_EXT;
+        vShortcuts[i].cModifier = cModifier;
+      }
+
       prefs->SetPrefShortcuts(vShortcuts);
       prefs->SaveShortcuts();
 
@@ -509,7 +485,7 @@ void DboxMain::OnOptions()
         if (bNeedGUITreeUpdate) {
           Command *pcmd = UpdateGUICommand::Create(&m_core,
                                                    UpdateGUICommand::WN_UNDO,
-                                                   UpdateGUICommand::GUI_REFRESH_TREE);
+                                                   UpdateGUICommand::GUI_DB_PREFERENCES_CHANGED);
           pmulticmds->Add(pcmd);
         }
         Command *pcmd = DBPrefsCommand::Create(&m_core, sxNewDBPrefsString);
@@ -517,7 +493,7 @@ void DboxMain::OnOptions()
         if (bNeedGUITreeUpdate) {
           Command *pcmd = UpdateGUICommand::Create(&m_core,
                                                    UpdateGUICommand::WN_EXECUTE_REDO,
-                                                   UpdateGUICommand::GUI_REFRESH_TREE);
+                                                   UpdateGUICommand::GUI_DB_PREFERENCES_CHANGED);
           pmulticmds->Add(pcmd);
         }
       }
@@ -526,13 +502,23 @@ void DboxMain::OnOptions()
     const int iAction = optionsPS.GetPWHAction();
     const int new_default_max = optionsPS.GetPWHistoryMax();
     size_t ipwh_exec(0);
+    int num_altered(0);
 
     if (iAction != 0) {
+      Command *pcmd1 = UpdateGUICommand::Create(&m_core,
+                                                UpdateGUICommand::WN_UNDO,
+                                                UpdateGUICommand::GUI_PWH_CHANGED_IN_DB);
+      pmulticmds->Add(pcmd1);
       Command *pcmd = UpdatePasswordHistoryCommand::Create(&m_core,
                                                            iAction,
                                                            new_default_max);
       pmulticmds->Add(pcmd);
       ipwh_exec = pmulticmds->GetSize();
+
+      Command *pcmd2 = UpdateGUICommand::Create(&m_core,
+                                                UpdateGUICommand::WN_EXECUTE_REDO,
+                                                UpdateGUICommand::GUI_PWH_CHANGED_IN_DB);
+      pmulticmds->Add(pcmd2);
     }
 
     // If DB preferences changed and/or password history options
@@ -541,18 +527,24 @@ void DboxMain::OnOptions()
         Execute(pmulticmds);
         if (ipwh_exec > 0) {
           // We did do PWHistory update
-          int num_altered(0);
           if (pmulticmds->GetRC(ipwh_exec, num_altered)) {
             UINT uimsg_id(0);
             switch (iAction) {
-              case 1:   // reset off
+              case -1:   // reset off - include protected entries
+              case  1:   // reset off - exclude protected entries
                 uimsg_id = IDS_ENTRIESCHANGEDSTOP;
                 break;
-              case 2:   // reset on
+              case -2:   // reset on - include protected entries
+              case  2:   // reset on - exclude protected entries
                 uimsg_id = IDS_ENTRIESCHANGEDSAVE;
                 break;
-              case 3:   // setmax
+              case -3:   // setmax - include protected entries
+              case  3:   // setmax - exclude protected entries
                 uimsg_id = IDS_ENTRIESRESETMAX;
+                break;
+              case -4:   // clearall - include protected entries
+              case  4:   // clearall - exclude protected entries
+                uimsg_id = IDS_ENTRIESCLEARALL;
                 break;
               default:
                 ASSERT(0);
@@ -573,8 +565,14 @@ void DboxMain::OnOptions()
       }
     }
 
-    if (m_core.HaveDBPrefsChanged())
+    if (m_core.HaveDBPrefsChanged() || num_altered > 0) {
+      if (m_core.HaveDBPrefsChanged())
+        SetChanged(DBPrefs);
+      if (num_altered > 0)
+        SetChanged(Data);
+      
       ChangeOkUpdate();
+    }
   }
 
   // Restore hotkey as it was or as user changed it - if user pressed OK

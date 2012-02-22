@@ -12,7 +12,7 @@
 #include "passwordsafe.h"
 #include "ExportAttDlg.h"
 #include "AdvancedAttDlg.h"
-#include "PwFont.h"
+#include "Fonts.h"
 #include "ThisMfcApp.h"
 #include "GeneralMsgBox.h"
 
@@ -55,7 +55,7 @@ BOOL CExportAttDlg::OnInitDialog()
     m_test_object[i] = m_test_function[i] = 0;
   }
 
-  ApplyPasswordFont(GetDlgItem(IDC_EXPORT_XML_PASSWORD));
+  Fonts::GetInstance()->ApplyPasswordFont(GetDlgItem(IDC_EXPORT_XML_PASSWORD));
   ((CEdit*)GetDlgItem(IDC_EXPORT_XML_PASSWORD))->SetPasswordChar(PSSWDCHAR);
   
   LOGFONT lf1, lf2;

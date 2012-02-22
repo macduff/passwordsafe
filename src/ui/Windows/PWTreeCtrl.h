@@ -13,7 +13,7 @@
 
 #include <Afxcmn.h>
 #include "SecString.h"
-#include "PwFont.h"
+#include "Fonts.h"
 
 #include <vector>
 
@@ -40,7 +40,8 @@ public:
   enum {NODE = 0,
     NORMAL, WARNEXPIRED_NORMAL, EXPIRED_NORMAL,
     ALIASBASE, WARNEXPIRED_ALIASBASE, EXPIRED_ALIASBASE, ALIAS,
-    SHORTCUTBASE, WARNEXPIRED_SHORTCUTBASE, EXPIRED_SHORTCUTBASE, SHORTCUT};
+    SHORTCUTBASE, WARNEXPIRED_SHORTCUTBASE, EXPIRED_SHORTCUTBASE, SHORTCUT,
+    NUM_IMAGES};
 
   struct TreeItemFunctor { // For use by Iterate()
     virtual void operator()(HTREEITEM) = 0;
@@ -81,7 +82,7 @@ public:
   void EndDrop() {m_bDropped = true;}
   void SetFilterState(bool bState);
   bool WasLabelEdited() {return m_bEditLabelCompleted;};
-  void SetUpFont(CFont *pfont) {m_fonts.SetUpFont(this, pfont);}
+  void SetUpFont();
   void SetHighlightChanges(bool bvalue)
   {m_bUseHighLighting = bvalue;}
   HTREEITEM FindItem(const CString &path, HTREEITEM hRoot);
@@ -144,14 +145,13 @@ private:
   bool CopyItem(HTREEITEM hitem, HTREEITEM hNewParent, const CSecString &prefix);
   bool IsChildNodeOf(HTREEITEM hitemChild, HTREEITEM hitemSuspectedParent) const;
   bool ExistsInTree(HTREEITEM &node, const CSecString &s, HTREEITEM &si) const; 
-  void UpdateLeafsGroup(MultiCommands *pmulticmds, HTREEITEM hItem, CString prefix);
   void CollapseBranch(HTREEITEM hItem);
   CSecString GetPrefix(HTREEITEM hItem) const;
   bool CollectData(BYTE * &out_buffer, long &outLen);
   bool ProcessData(BYTE *in_buffer, const long &inLen, const CSecString &DropGroup);
   void GetGroupEntriesData(CDDObList &out_oblist, HTREEITEM hItem);
   void GetEntryData(CDDObList &out_oblist, CItemData *pci);
-  HFONT GetFontBasedOnStatus(HTREEITEM &hItem, CItemData *pci, COLORREF &cf);
+  CFont *GetFontBasedOnStatus(HTREEITEM &hItem, CItemData *pci, COLORREF &cf);
 
   // Notes Display
   UINT_PTR m_nHoverNDTimerID, m_nShowNDTimerID;
@@ -162,7 +162,6 @@ private:
   bool m_bFilterActive;
   bool m_bEditLabelCompleted;
 
-  PWFonts m_fonts;
   bool m_bUseHighLighting;
   std::vector<StringX> m_vnodes_modified;
 };

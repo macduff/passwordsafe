@@ -23,6 +23,8 @@
 #include "CreateShortcutDlg.h"
 #include "PasswordSubsetDlg.h"
 #include "ExpPWListDlg.h"
+#include "CompareWithSelectDlg.h"
+#include "ShowCompareDlg.h"
 
 #include "core/pwsprefs.h"
 #include "core/PWSAuxParse.h"
@@ -56,7 +58,7 @@ void DboxMain::OnAdd()
 
   bool bLongPPs = LongPPs();
 
-  CAddEdit_PropertySheet add_entry_psh(IDS_ADDENTRY, this, &m_core, NULL, &ci, bLongPPs,  L""); 
+  CAddEdit_PropertySheet add_entry_psh(IDS_ADDENTRY, this, &m_core, NULL, &ci, bLongPPs,  L"");
 
   PWSprefs *prefs = PWSprefs::GetInstance();
   if (prefs->GetPref(PWSprefs::UseDefaultUser)) {
@@ -197,7 +199,7 @@ void DboxMain::OnCreateShortcut()
   CItemData *pci = getSelectedItem();
   ASSERT(pci != NULL);
 
-  CCreateShortcutDlg dlg_createshortcut(this, pci->GetGroup(), 
+  CCreateShortcutDlg dlg_createshortcut(this, pci->GetGroup(),
     pci->GetTitle(), pci->GetUser());
 
   PWSprefs *prefs = PWSprefs::GetInstance();
@@ -221,7 +223,7 @@ void DboxMain::OnCreateShortcut()
         // Update Copy with new values
         prefs->SetPref(PWSprefs::UseDefaultUser, true, true);
         prefs->SetPref(PWSprefs::DefaultUsername, dlg_createshortcut.m_username, true);
-        // Get old DB preferences String value (from current preferences) & 
+        // Get old DB preferences String value (from current preferences) &
         // new DB preferences String value (from Copy)
         const StringX sxOldDBPrefsString(prefs->Store());
         sxNewDBPrefsString = prefs->Store(true);
@@ -230,12 +232,12 @@ void DboxMain::OnCreateShortcut()
         }
       }
     }
-    if (dlg_createshortcut.m_username.IsEmpty() && 
+    if (dlg_createshortcut.m_username.IsEmpty() &&
         prefs->GetPref(PWSprefs::UseDefaultUser))
       dlg_createshortcut.m_username = prefs->GetPref(PWSprefs::DefaultUsername).c_str();
 
-    CreateShortcutEntry(pci, dlg_createshortcut.m_group, 
-                        dlg_createshortcut.m_title, 
+    CreateShortcutEntry(pci, dlg_createshortcut.m_group,
+                        dlg_createshortcut.m_title,
                         dlg_createshortcut.m_username, sxNewDBPrefsString);
   }
 }
@@ -425,7 +427,7 @@ void DboxMain::OnDuplicateGroup()
           bDependentsExist = true;
           continue;
         }
-        
+
         TRACE(L"Copying %s.%s\n", pci->GetGroup().c_str(), pci->GetTitle().c_str());
         // Set up copy
         CItemData ci2(*pci);
@@ -468,7 +470,7 @@ void DboxMain::OnDuplicateGroup()
           if (!pci->IsDependent()) {
             continue;
           }
- 
+
           // Set up copy
           CItemData ci2(*pci);
           ci2.SetDisplayInfo(NULL);
@@ -612,10 +614,10 @@ void DboxMain::OnProtect(UINT nID)
   if (pci != NULL) {
     // Entry
     ASSERT(nID == ID_MENUITEM_PROTECT || nID == ID_MENUITEM_UNPROTECT);
-    Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci, 
+    Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci,
                                                CItemData::PROTECTED,
                                                nID == ID_MENUITEM_UNPROTECT ? L"0" : L"1");
-    Execute(pcmd, &m_core);
+    Execute(pcmd);
 
     SetChanged(Data);
   } else {
@@ -624,6 +626,56 @@ void DboxMain::OnProtect(UINT nID)
     ChangeSubtreeEntriesProtectStatus(nID);
   }
   ChangeOkUpdate();
+}
+
+void DboxMain::OnCompareEntries()
+{
+  CItemData *pci(NULL), *pci_other(NULL);
+
+  // Not yet supported in Tree view unless command line flag present.
+  if (!m_IsListView && !m_bCompareEntries)
+    return;
+
+  if (m_IsListView) {
+    // Only called if 2 entries selected
+    POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
+    int nItem = m_ctlItemList.GetNextSelectedItem(pos);
+    pci = (CItemData *)m_ctlItemList.GetItemData(nItem);
+    nItem = m_ctlItemList.GetNextSelectedItem(pos);
+    pci_other = (CItemData *)m_ctlItemList.GetItemData(nItem);
+  } else {
+    // Not yet supported in Tree view - get user to select other item
+    HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
+    if (hStartItem != NULL) {
+      pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
+    }
+
+    if (pci != NULL) {
+      // Entry - selected - shouldn't be called when group is selected
+      // Now get the other entry
+      CCompareWithSelectDlg dlg(pci, &m_core, this);
+
+      if (dlg.DoModal() == IDOK) {
+        // Get UUID of the entry
+        CUUID otherUUID = dlg.GetUUID();
+        if (otherUUID == CUUID::NullUUID())
+          return;
+
+        ItemListIter pos = Find(otherUUID);
+        if (pos == End())
+          return;
+ 
+        pci_other = &pos->second;
+      } else
+        return;
+    }
+  }
+
+  if (pci != NULL && pci_other != NULL) {
+    // Entries - selected - shouldn't be call when group is seelcted
+    CShowCompareDlg showdlg(pci, pci_other, this);
+    showdlg.DoModal();
+  }
 }
 
 void DboxMain::ChangeSubtreeEntriesProtectStatus(const UINT nID)
@@ -647,13 +699,13 @@ void DboxMain::ChangeSubtreeEntriesProtectStatus(const UINT nID)
       if (pci != NULL) {
         if (!pci->IsShortcut()) {
           if (pci->IsProtected() && nID == ID_MENUITEM_UNPROTECTGROUP) {
-            Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci, 
+            Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci,
                                              CItemData::PROTECTED,
                                              L"0");
             pmulticmds->Add(pcmd);
           } else {
             if (nID == ID_MENUITEM_PROTECTGROUP) {
-              Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci, 
+              Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci,
                                                CItemData::PROTECTED,
                                                L"1");
               pmulticmds->Add(pcmd);
@@ -710,6 +762,10 @@ void DboxMain::OnDelete()
   // to do the heavy lifting.
   // easiest way to avoid asking stupid questions... (and if user cancelled reading attachment file)
   if (m_core.GetNumEntries() == 0 || m_bNoChangeToAttachments)
+    return;
+
+  // Ignore if more than one selected - List view only
+  if (m_ctlItemList.GetSelectedCount() > 1)
     return;
 
   bool bAskForDeleteConfirmation = !(PWSprefs::GetInstance()->
@@ -852,7 +908,7 @@ Command *DboxMain::Delete(HTREEITEM ti)
   // Here if we have a bona fida group
   ASSERT(ti != NULL && !m_ctlItemTree.IsLeaf(ti));
   MultiCommands *pmulti_cmd = MultiCommands::Create(&m_core);
-  
+
   HTREEITEM cti = m_ctlItemTree.GetChildItem(ti);
 
   while (cti != NULL) {
@@ -938,7 +994,7 @@ bool DboxMain::EditItem(CItemData *pci, PWScore *pcore)
 
   CItemData ci_edit(*pci);
 
-  // As pci may be invalidated if database is Locked while in this routine, 
+  // As pci may be invalidated if database is Locked while in this routine,
   // we use a clone
   CItemData ci_original(*pci);
   pci = NULL; // Set to NULL - should use ci_original
@@ -946,8 +1002,8 @@ bool DboxMain::EditItem(CItemData *pci, PWScore *pcore)
   const UINT uicaller = pcore->IsReadOnly() ? IDS_VIEWENTRY : IDS_EDITENTRY;
   bool bLongPPs = LongPPs();
   CAddEdit_PropertySheet edit_entry_psh(uicaller, this, pcore,
-                                        &ci_original, &ci_edit, 
-                                        bLongPPs, pcore->GetCurFile()); 
+                                        &ci_original, &ci_edit,
+                                        bLongPPs, pcore->GetCurFile());
 
   // List might be cleared if db locked.
   // Need to take care that we handle a rebuilt list.
@@ -955,7 +1011,7 @@ bool DboxMain::EditItem(CItemData *pci, PWScore *pcore)
   StringX sxDefUserValue;
   PWSprefs *prefs = PWSprefs::GetInstance();
   if (pcore == &m_core) {
-    // As it is us, get values from actually current 
+    // As it is us, get values from actually current
     bIsDefUserSet = prefs->GetPref(PWSprefs::UseDefaultUser) ? TRUE : FALSE;
     sxDefUserValue = prefs->GetPref(PWSprefs::DefaultUsername);
   } else {
@@ -1023,7 +1079,7 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
       pci_original->GetPassword() != newPassword) {
     // Original was a 'normal' entry and the password has changed
     if (pentry_psh->GetIBasedata() > 0) { // Now an alias
-      Command *pcmd = AddDependentEntryCommand::Create(pcore, new_base_uuid, 
+      Command *pcmd = AddDependentEntryCommand::Create(pcore, new_base_uuid,
                                                        original_uuid,
                                                        CItemData::ET_ALIAS);
       pmulticmds->Add(pcmd);
@@ -1046,7 +1102,7 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
     if (newPassword == pentry_psh->GetBase()) {
       // Password (i.e. base) unchanged - put it back
       Command *pcmd = AddDependentEntryCommand::Create(pcore,
-                                                       original_base_uuid, 
+                                                       original_base_uuid,
                                                        original_uuid,
                                                        CItemData::ET_ALIAS);
       pmulticmds->Add(pcmd);
@@ -1054,7 +1110,7 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
       // Password changed so might be an alias of another entry!
       // Could also be the same entry i.e. [:t:] == [t] !
       if (pentry_psh->GetIBasedata() > 0) { // Still an alias
-        Command *pcmd = AddDependentEntryCommand::Create(pcore, new_base_uuid, 
+        Command *pcmd = AddDependentEntryCommand::Create(pcore, new_base_uuid,
                                                          original_uuid,
                                                          CItemData::ET_ALIAS);
         pmulticmds->Add(pcmd);
@@ -1073,7 +1129,7 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
     if (pentry_psh->GetIBasedata() > 0) {
       // Now an alias
       // Make this one an alias
-      Command *pcmd1 = AddDependentEntryCommand::Create(pcore, new_base_uuid, 
+      Command *pcmd1 = AddDependentEntryCommand::Create(pcore, new_base_uuid,
                                                         original_uuid,
                                                         CItemData::ET_ALIAS);
       pmulticmds->Add(pcmd1);
@@ -1081,7 +1137,7 @@ int DboxMain::UpdateEntry(CAddEdit_PropertySheet *pentry_psh)
       pci_new->SetAlias();
       // Move old aliases across
       Command *pcmd2 = MoveDependentEntriesCommand::Create(pcore,
-                                                           original_uuid, 
+                                                           original_uuid,
                                                            new_base_uuid,
                                                            CItemData::ET_ALIAS);
       pmulticmds->Add(pcmd2);
@@ -1175,7 +1231,7 @@ bool DboxMain::EditShortcut(CItemData *pci, PWScore *pcore)
   // List might be cleared if db locked.
   // Need to take care that we handle a rebuilt list.
   CItemData ci_edit(*pci);
-  // As pci may be invalidated if database is Locked while in this routine, 
+  // As pci may be invalidated if database is Locked while in this routine,
   // we use a clone
   CItemData ci_original(*pci);
   pci = NULL; // Set to NULL - should use ci_original
@@ -1185,7 +1241,7 @@ bool DboxMain::EditShortcut(CItemData *pci, PWScore *pcore)
   CEditShortcutDlg dlg_editshortcut(&ci_edit, this, pbci->GetGroup(),
                                     pbci->GetTitle(), pbci->GetUser());
 
-  // Need to get Default User value from this core's preferences stored in its header, 
+  // Need to get Default User value from this core's preferences stored in its header,
   // which are not necessarily in our PWSprefs::GetInstance !
   bool bIsDefUserSet;
   StringX sxDefUserValue, sxDBPreferences;
@@ -1338,13 +1394,8 @@ void DboxMain::OnDisplayPswdSubset()
 
   CPasswordSubsetDlg DisplaySubsetDlg(this, pci->GetPassword());
 
-  if (DisplaySubsetDlg.DoModal() != IDCANCEL) {
-    // get pci again, in case PasswordSafe was locked and pci is invalidated
-    ItemListIter iter = Find(uuid);
-    if (iter != End()) { // can happen if dbox didn't minimize
-      UpdateAccessTime(&iter->second);
-    }
-  }
+  if (DisplaySubsetDlg.DoModal() != IDCANCEL)
+    UpdateAccessTime(uuid);
 }
 
 void DboxMain::OnCopyPassword()
@@ -1401,7 +1452,7 @@ void DboxMain::CopyDataToClipBoard(const CItemData::FieldType ft, const bool bSp
   CItemData *pci = getSelectedItem();
   ASSERT(pci != NULL);
 
-  CItemData *pci_original(pci);
+  const pws_os::CUUID uuid = pci->GetUUID();
 
   if (pci->IsShortcut() ||
       (pci->IsAlias() && ft == CItemData::PASSWORD)) {
@@ -1484,7 +1535,7 @@ void DboxMain::CopyDataToClipBoard(const CItemData::FieldType ft, const bool bSp
 
   SetClipboardData(sxData);
   UpdateLastClipboardAction(ft);
-  UpdateAccessTime(pci_original);
+  UpdateAccessTime(uuid);
 }
 
 void DboxMain::UpdateLastClipboardAction(const int iaction)
@@ -1530,7 +1581,7 @@ void DboxMain::UpdateLastClipboardAction(const int iaction)
 
   if (iaction > 0) {
     wchar_t szTimeFormat[80], szTimeString[80];
-    VERIFY(::GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STIMEFORMAT, 
+    VERIFY(::GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STIMEFORMAT,
                            szTimeFormat, 80 /* sizeof(szTimeFormat) / sizeof(wchar_t) */));
     GetTimeFormat(LOCALE_USER_DEFAULT, 0, NULL, szTimeFormat,
                   szTimeString, 80 /* sizeof(szTimeString) / sizeof(wchar_t) */);
@@ -1600,7 +1651,7 @@ void DboxMain::OnAutoType()
   if (pci == NULL)
     return;
 
-  UpdateAccessTime(pci);
+  UpdateAccessTime(pci->GetUUID());
 
   // All code using ci must be before this AutoType since the
   // latter may trash *pci if lock-on-minimize
@@ -1668,7 +1719,7 @@ void DboxMain::OnGotoBaseEntry()
     if (pbci != NULL) {
       DisplayInfo *pdi = (DisplayInfo *)pbci->GetDisplayInfo();
       SelectEntry(pdi->list_index);
-      UpdateAccessTime(pci);
+      UpdateAccessTime(pci->GetUUID());
     }
   }
 }
@@ -1682,11 +1733,11 @@ void DboxMain::OnEditBaseEntry()
 
     CItemData *pbci = GetBaseEntry(pci);
     if (pbci != NULL) {
-       DisplayInfo *pdi = (DisplayInfo *)pbci->GetDisplayInfo();
-       SelectEntry(pdi->list_index);
-       EditItem(pbci);
-       // pbci may be invalid upon return!
-       UpdateAccessTime(GetBaseEntry(pci));
+      const pws_os::CUUID uuid = pbci->GetUUID();
+      DisplayInfo *pdi = (DisplayInfo *)pbci->GetDisplayInfo();
+      SelectEntry(pdi->list_index);
+      EditItem(pbci);
+      UpdateAccessTime(uuid);
     }
   }
 }
@@ -1699,7 +1750,7 @@ void DboxMain::OnRunCommand()
   CItemData *pci = getSelectedItem();
   ASSERT(pci != NULL);
 
-  CItemData *pci_original(pci);
+  const pws_os::CUUID uuid = pci->GetUUID();
   StringX sx_pswd;
 
   if (pci->IsDependent()) {
@@ -1719,9 +1770,9 @@ void DboxMain::OnRunCommand()
   std::wstring errmsg;
   StringX::size_type st_column;
   bool bURLSpecial;
-  sx_Expanded_ES = PWSAuxParse::GetExpandedString(sx_RunCommand, 
-                       m_core.GetCurFile(), pci, 
-                       m_bDoAutoType, m_AutoType, 
+  sx_Expanded_ES = PWSAuxParse::GetExpandedString(sx_RunCommand,
+                       m_core.GetCurFile(), pci,
+                       m_bDoAutoType, m_AutoType,
                        errmsg, st_column, bURLSpecial);
   if (!errmsg.empty()) {
     CGeneralMsgBox gmb;
@@ -1732,13 +1783,13 @@ void DboxMain::OnRunCommand()
     return;
   }
 
-  m_AutoType = PWSAuxParse::GetAutoTypeString(m_AutoType, pci->GetGroup(), 
-                                 pci->GetTitle(), pci->GetUser(), 
+  m_AutoType = PWSAuxParse::GetAutoTypeString(m_AutoType, pci->GetGroup(),
+                                 pci->GetTitle(), pci->GetUser(),
                                  sx_pswd, pci->GetNotes(),
                                  m_vactionverboffsets);
   SetClipboardData(pci->GetPassword());
   UpdateLastClipboardAction(CItemData::PASSWORD);
-  UpdateAccessTime(pci_original);
+  UpdateAccessTime(uuid);
 
   // Now honour presence of [alt], {alt} or [ssh] in the url if present
   // in the RunCommand field.  Note: they are all treated the same (unlike
@@ -1753,7 +1804,7 @@ void DboxMain::OnRunCommand()
     if (sxAltBrowser[0] != L'\'' && sxAltBrowser[0] != L'"')
       sxAltBrowser = L"\"" + sxAltBrowser + L"\"";
     if (!sxCmdLineParms.empty())
-      sx_Expanded_ES = sxAltBrowser + StringX(L" ") + 
+      sx_Expanded_ES = sxAltBrowser + StringX(L" ") +
                        sxCmdLineParms + StringX(L" ") + sx_Expanded_ES;
     else
       sx_Expanded_ES = sxAltBrowser + StringX(L" ") + sx_Expanded_ES;
@@ -1818,7 +1869,7 @@ void DboxMain::AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup)
         // It exists in target database
         if (st_pp != currentDB_st_pp) {
           // They are not the same - make this policy unique
-          m_core.MakePolicyUnique(mapRenamedPolicies, sxPolicyName, sxDD_DateTime, 
+          m_core.MakePolicyUnique(mapRenamedPolicies, sxPolicyName, sxDD_DateTime,
                                   IDS_DRAGPOLICY);
           ci_temp.SetPolicyName(sxPolicyName);
           bChangedPolicy = true;
@@ -1972,7 +2023,7 @@ void DboxMain::AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup)
                                                       CItemData::PASSWORD);
   pmulticmds->Add(pcmdA);
   Command *pcmdS = AddDependentEntriesCommand::Create(&m_core,
-                                                      Possible_Shortcuts, NULL, 
+                                                      Possible_Shortcuts, NULL,
                                                       CItemData::ET_SHORTCUT,
                                                       CItemData::PASSWORD);
   pmulticmds->Add(pcmdS);

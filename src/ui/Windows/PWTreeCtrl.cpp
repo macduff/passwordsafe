@@ -437,27 +437,9 @@ void CPWTreeCtrl::OnDragLeave()
     ;
 }
 
-void CPWTreeCtrl::UpdateLeafsGroup(MultiCommands *pmulticmds, HTREEITEM hItem, CString prefix)
+void CPWTreeCtrl::SetUpFont()
 {
-  // Starting with hItem, update the Group field of all of hItem's
-  // children. Called after a label has been edited.
-  if (IsLeaf(hItem)) {
-    CItemData *pci = (CItemData *)GetItemData(hItem);
-    ASSERT(pci != NULL);
-    Command *pcmd = NULL;
-    pcmd = UpdateEntryCommand::Create(m_pDbx->GetCore(), *pci,
-                                               CItemData::GROUP, (LPCWSTR)prefix);
-    pcmd->SetNoGUINotify();
-    pmulticmds->Add(pcmd);
-  } else { // update prefix with current group name and recurse
-    if (!prefix.IsEmpty())
-      prefix += GROUP_SEP;
-    prefix += GetItemText(hItem);
-    HTREEITEM child;
-    for (child = GetChildItem(hItem); child != NULL; child = GetNextSiblingItem(child)) {
-      UpdateLeafsGroup(pmulticmds, child, prefix);
-    }
-  }
+  Fonts::GetInstance()->SetUpFont(this, Fonts::GetInstance()->GetCurrentFont());
 }
 
 void CPWTreeCtrl::OnBeginLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
@@ -635,7 +617,7 @@ void CPWTreeCtrl::OnSelectionChanged(NMHDR *pNotifyStruct, LRESULT *pLResult)
   if (((NMTREEVIEW *)pNotifyStruct)->action != TVC_BYKEYBOARD || GetCount() == 0)
     return;
 
-  m_pDbx->OnItemSelected(pNotifyStruct, pLResult);
+  m_pDbx->OnItemSelected(pNotifyStruct, pLResult, true);
 }
 
 void CPWTreeCtrl::OnDeleteItem(NMHDR *pNotifyStruct, LRESULT *pLResult)
@@ -860,8 +842,20 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
       }
     }
   } else {
+    // We refresh the view
+    Command *pcmd1 = UpdateGUICommand::Create(pcore,
+                                              UpdateGUICommand::WN_UNDO,
+                                              UpdateGUICommand::GUI_REFRESH_TREE);
+    pmulticmds->Add(pcmd1);
+
     // Update Group
-    UpdateLeafsGroup(pmulticmds, ti, prefix);
+    pmulticmds->Add(RenameGroupCommand::Create(pcore, sxOldPath, sxNewPath));
+
+    // We refresh the view
+    Command *pcmd2 = UpdateGUICommand::Create(pcore,
+                                              UpdateGUICommand::WN_EXECUTE_REDO,
+                                              UpdateGUICommand::GUI_REFRESH_TREE);
+    pmulticmds->Add(pcmd2);
   }
 
   m_pDbx->Execute(pmulticmds);
@@ -876,7 +870,8 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
   // OK
   *pLResult = TRUE;
   m_bEditLabelCompleted = true;
-  if (m_pDbx->IsFilterActive())
+
+  if (bIsLeaf)
     m_pDbx->RefreshViews();
 
   return;
@@ -1446,9 +1441,9 @@ void CPWTreeCtrl::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
 
   // Bug in MS TreeCtrl and CreateDragImage.  During Drag, it doesn't show
   // the entry's text as well as the drag image if the font is not MS Sans Serif !!!!
-  SetFont(m_fonts.GetDragFixFont(), false);
+  SetFont(Fonts::GetInstance()->GetDragFixFont(), false);
   CImageList *pil = CreateDragImage(m_hitemDrag);
-  SetFont(m_fonts.GetCurrentFont(), false);
+  SetFont(Fonts::GetInstance()->GetCurrentFont(), false);
 
   pil->SetDragCursorImage(0, CPoint(0, 0));
   pil->BeginDrag(0, CPoint(0,0));
@@ -2277,13 +2272,14 @@ bad_return:
   return retval;
 }
 
-HFONT CPWTreeCtrl::GetFontBasedOnStatus(HTREEITEM &hItem, CItemData *pci, COLORREF &cf)
+CFont *CPWTreeCtrl::GetFontBasedOnStatus(HTREEITEM &hItem, CItemData *pci, COLORREF &cf)
 {
+  Fonts *pFonts = Fonts::GetInstance();
   if (pci == NULL) {
     StringX path = GetGroup(hItem);
     if (m_pDbx->IsNodeModified(path)) {
-      cf = PWFonts::MODIFIED_COLOR;
-      return (HFONT)*m_fonts.m_pModifiedFont;
+      cf = pFonts->GetModified_Color();
+      return pFonts->GetModifiedFont();
     } else
       return NULL;
   }
@@ -2291,8 +2287,8 @@ HFONT CPWTreeCtrl::GetFontBasedOnStatus(HTREEITEM &hItem, CItemData *pci, COLORR
   switch (pci->GetStatus()) {
     case CItemData::ES_ADDED:
     case CItemData::ES_MODIFIED:
-      cf = PWFonts::MODIFIED_COLOR;
-      return (HFONT)*m_fonts.m_pModifiedFont;
+      cf = pFonts->GetModified_Color();
+      return pFonts->GetModifiedFont();
     default:
       break;
   }
@@ -2306,25 +2302,29 @@ void CPWTreeCtrl::OnCustomDraw(NMHDR *pNotifyStruct, LRESULT *pLResult)
   *pLResult = CDRF_DODEFAULT;
 
   static bool bchanged_item_font(false);
-  HFONT hfont;
-  COLORREF cf;
+  static CFont *pcurrentfont;
+  static CDC *pDC = NULL;
+  
   HTREEITEM hItem = (HTREEITEM)pNMLVCUSTOMDRAW->nmcd.dwItemSpec;
   CItemData *pci = (CItemData *)pNMLVCUSTOMDRAW->nmcd.lItemlParam;
 
   switch (pNMLVCUSTOMDRAW->nmcd.dwDrawStage) {
     case CDDS_PREPAINT:
       // PrePaint
+      pDC = CDC::FromHandle(pNMLVCUSTOMDRAW->nmcd.hdc);
       bchanged_item_font = false;
+      pcurrentfont = Fonts::GetInstance()->GetCurrentFont();
       *pLResult = CDRF_NOTIFYITEMDRAW;
       break;
 
     case CDDS_ITEMPREPAINT:
       // Item PrePaint
       if (m_bUseHighLighting) {
-        hfont = GetFontBasedOnStatus(hItem, pci, cf);
-        if (hfont != NULL) {
+        COLORREF cf;
+        CFont *uFont = GetFontBasedOnStatus(hItem, pci, cf);
+        if (uFont != NULL) {
           bchanged_item_font = true;
-          SelectObject(pNMLVCUSTOMDRAW->nmcd.hdc, hfont);
+          pDC->SelectObject(uFont);
           if (pci == NULL || GetItemState(hItem, TVIS_SELECTED) == 0)
             pNMLVCUSTOMDRAW->clrText = cf;
           *pLResult |= (CDRF_NOTIFYPOSTPAINT | CDRF_NEWFONT);
@@ -2336,7 +2336,7 @@ void CPWTreeCtrl::OnCustomDraw(NMHDR *pNotifyStruct, LRESULT *pLResult)
       // Item PostPaint - restore old font if any
       if (bchanged_item_font) {
         bchanged_item_font = false;
-        SelectObject(pNMLVCUSTOMDRAW->nmcd.hdc, (HFONT)m_fonts.m_pCurrentFont);
+        SelectObject(pNMLVCUSTOMDRAW->nmcd.hdc, (HFONT)pcurrentfont);
         *pLResult |= CDRF_NEWFONT;
       }
       break;

@@ -51,6 +51,7 @@ using namespace std;
 #include <wx/clipbrd.h>
 #endif
 #include <wx/snglinst.h>
+#include "../../core/PWSLog.h"
 
 #ifdef __WXMSW__
 #include <wx/msw/msvcrt.h>
@@ -145,36 +146,35 @@ END_EVENT_TABLE()
 
 
  
-static void initLanguageSupport()
+void PwsafeApp::initLanguageSupport()
 {
-  wxLocale* locale;
   long language =  wxLANGUAGE_DEFAULT;
  
   // load language if possible, fall back to english otherwise
   if(wxLocale::IsAvailable(language)) {
-    locale = new wxLocale( language, wxLOCALE_CONV_ENCODING );
+    m_locale = new wxLocale( language, wxLOCALE_CONV_ENCODING );
  
     // add locale search paths
-    locale->AddCatalogLookupPathPrefix(wxT("/usr"));
-    locale->AddCatalogLookupPathPrefix(wxT("/usr/local"));
+    m_locale->AddCatalogLookupPathPrefix(wxT("/usr"));
+    m_locale->AddCatalogLookupPathPrefix(wxT("/usr/local"));
 #if defined(__WXDEBUG__) || defined(_DEBUG) || defined(DEBUG)
-    locale->AddCatalogLookupPathPrefix(wxT("../I18N/mos"));
+    m_locale->AddCatalogLookupPathPrefix(wxT("../I18N/mos"));
 #endif
-    if (!locale->AddCatalog(wxT("pwsafe"))) {
+    if (!m_locale->AddCatalog(wxT("pwsafe"))) {
       std::wcerr << L"Couldn't load text for "
-		 << locale->GetLanguageName(language).c_str() << endl;
+		 << m_locale->GetLanguageName(language).c_str() << endl;
     }
  
-    if(! locale->IsOk()) {
+    if(! m_locale->IsOk()) {
       std::cerr << "selected language is wrong" << std::endl;
-      delete locale;
-      locale = new wxLocale( wxLANGUAGE_ENGLISH );
+      delete m_locale;
+      m_locale = new wxLocale( wxLANGUAGE_ENGLISH );
       language = wxLANGUAGE_ENGLISH;
     }
   } else {
     std::cerr << "The selected language is not supported by your system."
 	      << "Try installing support for this language." << std::endl;
-    locale = new wxLocale( wxLANGUAGE_ENGLISH );
+    m_locale = new wxLocale( wxLANGUAGE_ENGLISH );
     language = wxLANGUAGE_ENGLISH;
   }
 }
@@ -184,8 +184,8 @@ static void initLanguageSupport()
  */
 
 PwsafeApp::PwsafeApp() : m_activityTimer(new wxTimer(this, ACTIVITY_TIMER_ID)),
-  m_frame(0), m_recentDatabases(0),
-  m_controller(new wxHtmlHelpController)
+			 m_frame(0), m_recentDatabases(0),
+			 m_controller(new wxHtmlHelpController), m_locale(NULL)
 {
     Init();
 }
@@ -200,8 +200,10 @@ PwsafeApp::~PwsafeApp()
 
   PWSprefs::DeleteInstance();
   PWSrand::DeleteInstance();
+  PWSLog::DeleteLog();
   
   delete m_controller;
+  delete m_locale;
 }
 
 /*!
@@ -253,7 +255,6 @@ bool PwsafeApp::OnInit()
   wxString filename, user, host, cfg_file;
   bool cmd_ro = cmdParser.Found(wxT("r"));
   // Next variable currently not referenced
-  bool cmd_validate = cmdParser.Found(wxT("v"), &filename);
   bool cmd_encrypt = cmdParser.Found(wxT("e"), &filename);
   bool cmd_decrypt = cmdParser.Found(wxT("d"), &filename);
   bool cmd_closed = cmdParser.Found(wxT("c"));
@@ -338,7 +339,6 @@ bool PwsafeApp::OnInit()
     //dbox.SetStartClosed(true);
     // dbox.SetStartSilent(true);
   }
-  // dbox.SetValidate(cmd_validate);
 
   //Initialize help subsystem
   wxFileSystem::AddHandler(new wxArchiveFSHandler);
@@ -366,8 +366,6 @@ bool PwsafeApp::OnInit()
     wxASSERT_MSG(!m_frame, wxT("Frame window created unexpectedly"));
     m_frame = new PasswordSafeFrame(NULL, m_core);
     m_frame->Load(initWindow->GetPassword());
-    if (cmd_validate)
-      m_frame->ValidateCurrentDatabase();
   } 
   else {
     wxASSERT_MSG(!m_frame, wxT("Frame window created unexpectedly"));
@@ -376,6 +374,7 @@ bool PwsafeApp::OnInit()
 
   RestoreFrameCoords();
   m_frame->Show();
+  SetTopWindow(m_frame);
   return true;
 }
 

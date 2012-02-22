@@ -1,13 +1,11 @@
 /* zutil.c -- target dependent utility functions for the compression library
- * Copyright (C) 1995-2005, 2010 Jean-loup Gailly.
+ * Copyright (C) 1995-2005, 2010, 2011 Jean-loup Gailly.
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
 /* @(#) $Id$ */
 
 #include "zutil.h"
-
-#include "../os/zdebug.h"
 
 #ifndef NO_DUMMY_DECL
 struct internal_state      {int dummy;}; /* for buggy compilers */
@@ -24,6 +22,7 @@ const char * const z_errmsg[10] = {
 "buffer error",        /* Z_BUF_ERROR     (-5) */
 "incompatible version",/* Z_VERSION_ERROR (-6) */
 ""};
+
 
 const char * ZEXPORT zlibVersion()
 {
@@ -86,31 +85,11 @@ uLong ZEXPORT zlibCompileFlags()
 #ifdef FASTEST
     flags += 1L << 21;
 #endif
-#ifdef STDC
-#  ifdef NO_vsnprintf
-        flags += 1L << 25;
-#    ifdef HAS_vsprintf_void
-        flags += 1L << 26;
-#    endif
-#  else
-#    ifdef HAS_vsnprintf_void
-        flags += 1L << 26;
-#    endif
-#  endif
-#else
-        flags += 1L << 24;
-#  ifdef NO_snprintf
-        flags += 1L << 25;
-#    ifdef HAS_sprintf_void
-        flags += 1L << 26;
-#    endif
-#  else
-#    ifdef HAS_snprintf_void
-        flags += 1L << 26;
-#    endif
-#  endif
-#endif
+#ifdef Z_SOLO
     return flags;
+#else
+    return flags + gzflags();
+#endif
 }
 
 #ifdef DEBUG
@@ -120,9 +99,10 @@ uLong ZEXPORT zlibCompileFlags()
 #  endif
 int ZLIB_INTERNAL z_verbose = verbose;
 
-void ZLIB_INTERNAL z_error(char *m)
+void ZLIB_INTERNAL z_error (m)
+    char *m;
 {
-    zTrace("%s\n", m);
+    fprintf(stderr, "%s\n", m);
     exit(1);
 }
 #endif
@@ -130,7 +110,8 @@ void ZLIB_INTERNAL z_error(char *m)
 /* exported to allow conversion of error code to string for compress() and
  * uncompress()
  */
-const char * ZEXPORT zError(int err)
+const char * ZEXPORT zError(err)
+    int err;
 {
     return ERR_MSG(err);
 }
@@ -145,7 +126,10 @@ const char * ZEXPORT zError(int err)
 
 #ifndef HAVE_MEMCPY
 
-void ZLIB_INTERNAL zmemcpy(Bytef* dest, const Bytef* source, uInt len)
+void ZLIB_INTERNAL zmemcpy(dest, source, len)
+    Bytef* dest;
+    const Bytef* source;
+    uInt  len;
 {
     if (len == 0) return;
     do {
@@ -166,7 +150,9 @@ int ZLIB_INTERNAL zmemcmp(s1, s2, len)
     return 0;
 }
 
-void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len)
+void ZLIB_INTERNAL zmemzero(dest, len)
+    Bytef* dest;
+    uInt  len;
 {
     if (len == 0) return;
     do {
@@ -175,6 +161,7 @@ void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len)
 }
 #endif
 
+#ifndef Z_SOLO
 
 #ifdef SYS16BIT
 
@@ -207,7 +194,7 @@ local ptr_table table[MAX_PTR];
  * a protected system like OS/2. Use Microsoft C instead.
  */
 
-voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size)
+voidpf ZLIB_INTERNAL zcalloc (voidpf opaque, unsigned items, unsigned size)
 {
     voidpf buf = opaque; /* just to make some compilers happy */
     ulg bsize = (ulg)items*size;
@@ -231,7 +218,7 @@ voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size)
     return buf;
 }
 
-void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr)
+void ZLIB_INTERNAL zcfree (voidpf opaque, voidpf ptr)
 {
     int n;
     if (*(ush*)&ptr != 0) { /* object < 64K */
@@ -266,13 +253,13 @@ void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr)
 #  define _hfree   hfree
 #endif
 
-voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, uInt items, uInt size)
+voidpf ZLIB_INTERNAL zcalloc (voidpf opaque, uInt items, uInt size)
 {
     if (opaque) opaque = 0; /* to make compiler happy */
     return _halloc((long)items, size);
 }
 
-void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr)
+void ZLIB_INTERNAL zcfree (voidpf opaque, voidpf ptr)
 {
     if (opaque) opaque = 0; /* to make compiler happy */
     _hfree(ptr);
@@ -291,17 +278,24 @@ extern voidp  calloc OF((uInt items, uInt size));
 extern void   free   OF((voidpf ptr));
 #endif
 
-voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size)
+voidpf ZLIB_INTERNAL zcalloc (opaque, items, size)
+    voidpf opaque;
+    unsigned items;
+    unsigned size;
 {
     if (opaque) items += size - size; /* make compiler happy */
     return sizeof(uInt) > 2 ? (voidpf)malloc(items * size) :
                               (voidpf)calloc(items, size);
 }
 
-void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr)
+void ZLIB_INTERNAL zcfree (opaque, ptr)
+    voidpf opaque;
+    voidpf ptr;
 {
     free(ptr);
     if (opaque) return; /* make compiler happy */
 }
 
 #endif /* MY_ZCALLOC */
+
+#endif /* !Z_SOLO */

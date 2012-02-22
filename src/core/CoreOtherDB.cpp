@@ -148,35 +148,58 @@ void PWScore::Compare(PWScore *pothercore,
          .... ..1.  SYMBOLS    [0x16]
          .... ...1  SHIFTDCA   [0x17]
 
-         Forth byte
+         Fourth byte
          1... ....  POLICYNAME [0x18] - not checked by default
 
 
-         */
+        */
         bsConflicts.reset();
+        StringX sxCurrentPassword, sxComparisonPassword;
 
         CItemData compItem = pothercore->GetEntry(foundPos);
+
+        if (currentItem.GetEntryType() == CItemData::ET_ALIAS ||
+            currentItem.GetEntryType() == CItemData::ET_SHORTCUT) {
+          CItemData *pci_base = GetBaseEntry(&currentItem);
+          sxCurrentPassword == pci_base->GetPassword();
+        } else
+          sxCurrentPassword == currentItem.GetPassword();
+
+        if (compItem.GetEntryType() == CItemData::ET_ALIAS ||
+            compItem.GetEntryType() == CItemData::ET_SHORTCUT) {
+          CItemData *pci_base = pothercore->GetBaseEntry(&compItem);
+          sxComparisonPassword == pci_base->GetPassword();
+        } else
+          sxComparisonPassword == compItem.GetPassword();
+
+        if (bsFields.test(CItemData::PASSWORD) &&
+            sxCurrentPassword != sxComparisonPassword)
+          bsConflicts.flip(CItemData::PASSWORD);
+
         if (bsFields.test(CItemData::NOTES) &&
             FieldsNotEqual(currentItem.GetNotes(), compItem.GetNotes(), bTreatWhiteSpaceasEmpty))
           bsConflicts.flip(CItemData::NOTES);
-        if (bsFields.test(CItemData::PASSWORD) &&
-            currentItem.GetPassword() != compItem.GetPassword())
-          bsConflicts.flip(CItemData::PASSWORD);
+
         if (bsFields.test(CItemData::CTIME) &&
             currentItem.GetCTime() != compItem.GetCTime())
           bsConflicts.flip(CItemData::CTIME);
+
         if (bsFields.test(CItemData::PMTIME) &&
             currentItem.GetPMTime() != compItem.GetPMTime())
           bsConflicts.flip(CItemData::PMTIME);
+
         if (bsFields.test(CItemData::ATIME) &&
             currentItem.GetATime() != compItem.GetATime())
           bsConflicts.flip(CItemData::ATIME);
+
         if (bsFields.test(CItemData::XTIME) &&
             currentItem.GetXTime() != compItem.GetXTime())
           bsConflicts.flip(CItemData::XTIME);
+
         if (bsFields.test(CItemData::RMTIME) &&
             currentItem.GetRMTime() != compItem.GetRMTime())
           bsConflicts.flip(CItemData::RMTIME);
+
         if (bsFields.test(CItemData::XTIME_INT)) {
           int current_xint, comp_xint;
           currentItem.GetXTimeInt(current_xint);
@@ -184,39 +207,55 @@ void PWScore::Compare(PWScore *pothercore,
           if (current_xint != comp_xint)
             bsConflicts.flip(CItemData::XTIME_INT);
         }
+
         if (bsFields.test(CItemData::URL) &&
-            FieldsNotEqual(currentItem.GetURL(), compItem.GetURL(), bTreatWhiteSpaceasEmpty))
+            FieldsNotEqual(currentItem.GetURL(), compItem.GetURL(),
+                           bTreatWhiteSpaceasEmpty))
           bsConflicts.flip(CItemData::URL);
+
         if (bsFields.test(CItemData::AUTOTYPE) &&
-            FieldsNotEqual(currentItem.GetAutoType(), compItem.GetAutoType(), bTreatWhiteSpaceasEmpty))
+            FieldsNotEqual(currentItem.GetAutoType(), compItem.GetAutoType(),
+                           bTreatWhiteSpaceasEmpty))
           bsConflicts.flip(CItemData::AUTOTYPE);
+
         if (bsFields.test(CItemData::PWHIST) &&
             currentItem.GetPWHistory() != compItem.GetPWHistory())
           bsConflicts.flip(CItemData::PWHIST);
-        if (bsFields.test(CItemData::POLICY) &&
-            currentItem.GetPWPolicy() != compItem.GetPWPolicy())
-          bsConflicts.flip(CItemData::POLICY);
+
         if (bsFields.test(CItemData::POLICYNAME) &&
             currentItem.GetPolicyName() != compItem.GetPolicyName())
           bsConflicts.flip(CItemData::POLICYNAME);
+
+        // Don't test policy or symbols if either entry is using a named policy
+        // as these are meaningless to compare
+        if (currentItem.GetPolicyName().empty() && compItem.GetPolicyName().empty()) {
+          if (bsFields.test(CItemData::POLICY) &&
+              currentItem.GetPWPolicy() != compItem.GetPWPolicy())
+            bsConflicts.flip(CItemData::POLICY);
+          if (bsFields.test(CItemData::SYMBOLS) &&
+              currentItem.GetSymbols() != compItem.GetSymbols())
+            bsConflicts.flip(CItemData::SYMBOLS);
+        }
+
         if (bsFields.test(CItemData::RUNCMD) &&
             currentItem.GetRunCommand() != compItem.GetRunCommand())
           bsConflicts.flip(CItemData::RUNCMD);
+
         if (bsFields.test(CItemData::DCA) &&
             currentItem.GetDCA() != compItem.GetDCA())
           bsConflicts.flip(CItemData::DCA);
+
         if (bsFields.test(CItemData::SHIFTDCA) &&
             currentItem.GetShiftDCA() != compItem.GetShiftDCA())
           bsConflicts.flip(CItemData::SHIFTDCA);
+
         if (bsFields.test(CItemData::EMAIL) &&
             currentItem.GetEmail() != compItem.GetEmail())
           bsConflicts.flip(CItemData::EMAIL);
+
         if (bsFields.test(CItemData::PROTECTED) &&
             currentItem.GetProtected() != compItem.GetProtected())
           bsConflicts.flip(CItemData::PROTECTED);
-        if (bsFields.test(CItemData::SYMBOLS) &&
-            currentItem.GetSymbols() != compItem.GetSymbols())
-          bsConflicts.flip(CItemData::SYMBOLS);
 
         st_data.uuid0 = currentPos->first;
         st_data.uuid1 = foundPos->first;
@@ -342,7 +381,7 @@ stringT PWScore::Merge(PWScore *pothercore,
                        const bool &subgroup_bset,
                        const stringT &subgroup_name,
                        const int &subgroup_object, const int &subgroup_function,
-                       CReport *prpt)
+                       CReport *pRpt)
 {
   std::vector<StringX> vs_added;
   std::vector<StringX> vs_AliasesAdded;
@@ -520,8 +559,8 @@ stringT PWScore::Merge(PWScore *pothercore,
                        str_diffs.c_str());
 
         // log it
-        if (prpt != NULL)
-          prpt->WriteLine(strWarnMsg.c_str());
+        if (pRpt != NULL)
+          pRpt->WriteLine(strWarnMsg.c_str());
 
         // Check no conflict of unique uuid
         if (Find(base_uuid) != GetEntryEndIter()) {
@@ -648,45 +687,45 @@ stringT PWScore::Merge(PWScore *pothercore,
   } // iteration over other core's entries
 
   stringT str_results;
-  if (numAdded > 0 && prpt != NULL) {
+  if (numAdded > 0 && pRpt != NULL) {
     std::sort(vs_added.begin(), vs_added.end(), MergeSyncGTUCompare);
     stringT str_singular_plural_type, str_singular_plural_verb;
     LoadAString(str_singular_plural_type, numAdded == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
     LoadAString(str_singular_plural_verb, numAdded == 1 ? IDSC_WAS : IDSC_WERE);
     Format(str_results, IDSC_MERGEADDED, str_singular_plural_type.c_str(),
                     str_singular_plural_verb.c_str());
-    prpt->WriteLine(str_results.c_str());
+    pRpt->WriteLine(str_results.c_str());
     for (size_t i = 0; i < vs_added.size(); i++) {
       Format(str_results, _T("\t%s"), vs_added[i].c_str());
-      prpt->WriteLine(str_results.c_str());
+      pRpt->WriteLine(str_results.c_str());
     }
   }
 
-  if (numAliasesAdded > 0 && prpt != NULL) {
+  if (numAliasesAdded > 0 && pRpt != NULL) {
     std::sort(vs_AliasesAdded.begin(), vs_AliasesAdded.end(), MergeSyncGTUCompare);
     stringT str_singular_plural_type, str_singular_plural_verb;
     LoadAString(str_singular_plural_type, numAliasesAdded == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
     LoadAString(str_singular_plural_verb, numAliasesAdded == 1 ? IDSC_WAS : IDSC_WERE);
     Format(str_results, IDSC_MERGEADDED, str_singular_plural_type.c_str(),
                     str_singular_plural_verb.c_str());
-    prpt->WriteLine(str_results.c_str());
+    pRpt->WriteLine(str_results.c_str());
     for (size_t i = 0; i < vs_AliasesAdded.size(); i++) {
       Format(str_results, _T("\t%s"), vs_AliasesAdded[i].c_str());
-      prpt->WriteLine(str_results.c_str());
+      pRpt->WriteLine(str_results.c_str());
     }
   }
 
-  if (numShortcutsAdded > 0 && prpt != NULL) {
+  if (numShortcutsAdded > 0 && pRpt != NULL) {
     std::sort(vs_ShortcutsAdded.begin(), vs_ShortcutsAdded.end(), MergeSyncGTUCompare);
     stringT str_singular_plural_type, str_singular_plural_verb;
     LoadAString(str_singular_plural_type, numShortcutsAdded == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
     LoadAString(str_singular_plural_verb, numShortcutsAdded == 1 ? IDSC_WAS : IDSC_WERE);
     Format(str_results, IDSC_MERGEADDED, str_singular_plural_type.c_str(),
                     str_singular_plural_verb.c_str());
-    prpt->WriteLine(str_results.c_str());
+    pRpt->WriteLine(str_results.c_str());
     for (size_t i = 0; i < vs_ShortcutsAdded.size(); i++) {
       Format(str_results, _T("\t%s"), vs_ShortcutsAdded[i].c_str());
-      prpt->WriteLine(str_results.c_str());
+      pRpt->WriteLine(str_results.c_str());
     }
   }
 
@@ -708,7 +747,7 @@ stringT PWScore::Merge(PWScore *pothercore,
                    numConflicts, str_conflicts.c_str(),
                    numAliasesAdded, str_aliases.c_str(),
                    numShortcutsAdded, str_shortcuts.c_str());
-  prpt->WriteLine(str_results.c_str());
+  pRpt->WriteLine(str_results.c_str());
 
   return str_results;
 }
@@ -787,7 +826,7 @@ void PWScore::Synchronize(PWScore *pothercore,
                           const CItemData::FieldBits &bsFields, const bool &subgroup_bset,
                           const stringT &subgroup_name,
                           const int &subgroup_object, const int &subgroup_function,
-                          int &numUpdated, CReport *prpt)
+                          int &numUpdated, CReport *pRpt)
 {
   /*
   Purpose:
@@ -879,17 +918,17 @@ void PWScore::Synchronize(PWScore *pothercore,
   } // iteration over other core's entries
 
   stringT str_results;
-  if (numUpdated > 0 && prpt != NULL) {
+  if (numUpdated > 0 && pRpt != NULL) {
     std::sort(vs_updated.begin(), vs_updated.end(), MergeSyncGTUCompare);
     stringT str_singular_plural_type, str_singular_plural_verb;
     LoadAString(str_singular_plural_type, numUpdated == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
     LoadAString(str_singular_plural_verb, numUpdated == 1 ? IDSC_WAS : IDSC_WERE);
     Format(str_results, IDSC_SYNCHUPDATED, str_singular_plural_type.c_str(),
                     str_singular_plural_verb.c_str());
-    prpt->WriteLine(str_results.c_str());
+    pRpt->WriteLine(str_results.c_str());
     for (size_t i = 0; i < vs_updated.size(); i++) {
       Format(str_results, _T("\t%s"), vs_updated[i].c_str());
-      prpt->WriteLine(str_results.c_str());
+      pRpt->WriteLine(str_results.c_str());
     }
   }
 
@@ -902,5 +941,5 @@ void PWScore::Synchronize(PWScore *pothercore,
   stringT str_entries;
   LoadAString(str_entries, numUpdated == 1 ? IDSC_ENTRY : IDSC_ENTRIES);
   Format(str_results, IDSC_SYNCHCOMPLETED, numUpdated, str_entries.c_str());
-  prpt->WriteLine(str_results.c_str());
+  pRpt->WriteLine(str_results.c_str());
 }

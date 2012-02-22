@@ -35,7 +35,6 @@
 #include "DDStatic.h"
 #include "MenuShortcuts.h"
 #include "AdvancedDlg.h"
-#include "CompareResultsDlg.h"
 #include "AttProgressDlg.h"
 
 #include "core/UIinterface.h"
@@ -87,9 +86,10 @@ DECLARE_HANDLE(HDROP);
 
 // Process Compare Result Dialog click/menu functions
 #define PWS_MSG_COMPARE_RESULT_FUNCTION (WM_APP + 30)
+#define PWS_MSG_COMPARE_RESULT_ALLFNCTN (WM_APP + 31)
 
 // Equivalent one from Expired Password dialog
-#define PWS_MSG_EXPIRED_PASSWORD_EDIT   (WM_APP + 31)
+#define PWS_MSG_EXPIRED_PASSWORD_EDIT   (WM_APP + 32)
 
 // Edit/Add extra context menu messages
 #define PWS_MSG_CALL_EXTERNAL_EDITOR    (WM_APP + 40)
@@ -97,6 +97,8 @@ DECLARE_HANDLE(HDROP);
 #define PWS_MSG_EDIT_WORDWRAP           (WM_APP + 42)
 #define PWS_MSG_EDIT_SHOWNOTES          (WM_APP + 43)
 #define PWS_MSG_EDIT_APPLY              (WM_APP + 44)
+#define PWS_MSG_CALL_NOTESZOOMIN        (WM_APP + 45)
+#define PWS_MSG_CALL_NOTESZOOMOUT       (WM_APP + 46)
 
 // Simulate Ctrl+F from Find Toolbar "enter"
 #define PWS_MSG_TOOLBAR_FIND            (WM_APP + 50)
@@ -124,28 +126,28 @@ DECLARE_HANDLE(HDROP);
   Timer related values (note - all documented her but some defined only where needed.
 */
 
-/* timer event number used to by PupText.  Here for doc. only
+/* Timer event number used to by PupText.  Here for doc. only
 #define TIMER_PUPTEXT             0x03 */
-// timer event number used to check if the workstation is locked
+// Timer event number used to check if the workstation is locked
 #define TIMER_LOCKONWTSLOCK       0x04
-// timer event number used to support lock on user-defined idle timeout
+// Timer event number used to support lock on user-defined idle timeout
 #define TIMER_LOCKDBONIDLETIMEOUT 0x05
 // Definition of a minute in milliseconds
 #define MINUTE 60000
 // How ofter should idle timeout timer check:
 #define IDLE_CHECK_RATE 2
 #define IDLE_CHECK_INTERVAL (MINUTE/IDLE_CHECK_RATE)
-// timer event number used to support Find in PWListCtrl when icons visible
+// Timer event number used to support Find in PWListCtrl when icons visible
 #define TIMER_FIND                0x06
-// timer event number used to support display of notes in List & Tree controls
+// Timer event number used to support display of notes in List & Tree controls
 #define TIMER_ND_HOVER            0x07
 #define TIMER_ND_SHOWING          0x08
-// timer event number used to support DragBar
+// Timer event number used to support DragBar
 #define TIMER_DRAGBAR             0x09
-/* timer event numbers used to by ControlExtns for ListBox tooltips.  Here for doc. only
+/* Timer event numbers used to by ControlExtns for ListBox tooltips.  Here for doc. only
 #define TIMER_LB_HOVER            0x0A
 #define TIMER_LB_SHOWING          0x0B 
-/* timer event numbers used by StatusBar for tooltips.  Here for doc. only
+/* Timer event numbers used by StatusBar for tooltips.  Here for doc. only
 #define TIMER_SB_HOVER            0x0C
 #define TIMER_SB_SHOWING          0x0D */
 // Timer event for daily expired entries check
@@ -310,7 +312,6 @@ public:
   bool IsDBReadOnly() const {return m_core.IsReadOnly();}
   void SetStartSilent(bool state);
   void SetStartClosed(bool state) {m_IsStartClosed = state;}
-  void SetValidate(bool state) {m_bValidate = state;}
   void MakeRandomPassword(StringX &password, PWPolicy &pwp, stringT st_symbols,
                           bool bIssueMsg = false);
   BOOL LaunchBrowser(const CString &csURL, const StringX &sxAutotype,
@@ -373,8 +374,8 @@ public:
                   const std::vector<size_t> &vactionverboffsets);
   void UpdateLastClipboardAction(const int iaction);
   void PlaceWindow(CWnd *pWnd, CRect *pRect, UINT uiShowCmd);
-  void SetDCAText(CItemData * pci = NULL);
-  void OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult);
+  void SetDCAText(CItemData *pci = NULL);
+  void OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult, const bool bTreeView);
   bool IsNodeModified(StringX &path) const
   {return m_core.IsNodeModified(path);}
   StringX GetCurFile() const {return m_core.GetCurFile();}
@@ -389,7 +390,7 @@ public:
   
   // Need this to be public
   bool LongPPs();
-  bool GetShortCut(const unsigned int &uiMenuItem, unsigned char &cVirtKey,
+  bool GetShortCut(const unsigned int &uiMenuItem, unsigned short int &siVirtKey,
                    unsigned char &cModifier);
 
   // Following to simplify Command creation in child dialogs:
@@ -470,7 +471,9 @@ public:
   bool CheckPreTranslateRename(MSG* pMsg);
   bool CheckPreTranslateAutoType(MSG* pMsg);
 
-  void SetSetup() {m_bSetup = true;} // called by app when '--setup' passed
+  void SetSetup() {m_bSetup = true;}                     // called by app when '--setup' passed
+  void NoValidation() {m_bNoValidation = true;}          // called by app when '--novalidate' passed
+  void AllowCompareEntries() {m_bCompareEntries = true;} // called by app when '--cetreeview' passed
 
   // Needed public function for ComapreResultsDialog
   void CPRInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
@@ -504,10 +507,11 @@ protected:
   bool m_bSizing;
   bool m_bIsRestoring;
   bool m_bOpen;
-  bool m_bValidate; // do validation after reading db
   bool m_bInRestoreWindowsData;
 
-  bool m_bSetup; // invoked with '--setup'?
+  bool m_bSetup;          // invoked with '--setup'?
+  bool m_bNoValidation;   // invoked with '--novalidate'?
+  bool m_bCompareEntries; // invoked with '--cetreeview'?
   
 #if !defined(POCKET_PC)
   CString m_titlebar; // what's displayed in the title bar
@@ -580,6 +584,7 @@ protected:
   LRESULT OnTrayNotification(WPARAM wParam, LPARAM lParam);
 
   LRESULT OnProcessCompareResultFunction(WPARAM wParam, LPARAM lParam);
+  LRESULT OnProcessCompareResultAllFunction(WPARAM wParam, LPARAM lParam);
   LRESULT OnEditExpiredPasswordEntry(WPARAM wParam, LPARAM lParam);
   LRESULT ViewCompareResult(PWScore *pcore, const pws_os::CUUID &uuid);
   LRESULT EditCompareResult(PWScore *pcore, const pws_os::CUUID &uuid);
@@ -587,6 +592,8 @@ protected:
                             const pws_os::CUUID &fromuuid, const pws_os::CUUID &touuid);
   LRESULT SynchCompareResult(PWScore *pfromcore, PWScore *ptocore,
                              const pws_os::CUUID &fromuuid, const pws_os::CUUID &touuid);
+  LRESULT CopyAllCompareResult(WPARAM wParam);
+  LRESULT SynchAllCompareResult(WPARAM wParam);
   LRESULT OnToolBarFindMessage(WPARAM wParam, LPARAM lParam);
   LRESULT OnDragAutoType(WPARAM wParam, LPARAM lParam);
   LRESULT OnExecuteFilters(WPARAM wParam, LPARAM lParam);
@@ -728,13 +735,13 @@ protected:
   afx_msg void OnDuplicateEntry();
   afx_msg void OnOptions();
   afx_msg void OnManagePasswordPolicies();
-  afx_msg void OnValidate();
   afx_msg void OnGeneratePassword();
   afx_msg void OnSave();
   afx_msg void OnAdd();
   afx_msg void OnAddGroup();
   afx_msg void OnDuplicateGroup();
   afx_msg void OnProtect(UINT nID);
+  afx_msg void OnCompareEntries();
   afx_msg void OnCreateShortcut();
   afx_msg void OnOK();
   afx_msg void OnShowHideToolbar();
@@ -850,6 +857,7 @@ private:
 
   StringX m_BrowseURL; // set by OnContextMenu(), used by OnBrowse()
   PWScore &m_core;
+
   bool m_IsStartSilent;
   bool m_IsStartClosed;
   bool m_bStartHiddenAndMinimized;
@@ -865,7 +873,6 @@ private:
   int m_nColumnWidthByIndex[CItemData::LAST];
   int m_nColumnHeaderWidthByType[CItemData::LAST];
   int m_iheadermaxwidth;
-  CFont *m_pFontTree;
   size_t m_numNormalImages;
 
   pws_os::CUUID m_LUUIDSelectedAtMinimize; // to restore List entry selection upon un-minimize
@@ -897,7 +904,7 @@ private:
   void CheckExpireList(const bool bAtOpen = false); // Upon open, timer + menu, check list, show exp.
   void TellUserAboutExpiredPasswords();
   bool RestoreWindowsData(bool bUpdateWindows, bool bShow = true);
-  void UpdateAccessTime(CItemData *pci);
+  void UpdateAccessTime(const pws_os::CUUID &uuid);
   void RestoreGroupDisplayState();
   std::vector<bool> GetGroupDisplayState(); // get current display state from window
   void SetGroupDisplayState(const std::vector<bool> &displaystatus); // changes display

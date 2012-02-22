@@ -94,7 +94,8 @@ public:
     GUI_REDO_MERGESYNC,
     GUI_UNDO_MERGESYNC,
     GUI_REFRESH_TREE,
-    GUI_DB_PREFERENCES_CHANGED
+    GUI_DB_PREFERENCES_CHANGED,
+    GUI_PWH_CHANGED_IN_DB
   };
 
   static UpdateGUICommand *Create(CommandInterface *pcomInt,
@@ -410,6 +411,22 @@ private:
   int m_iAction;
   int m_new_default_max;
   SavePWHistoryMap m_mapSavedHistory;
+};
+
+class RenameGroupCommand : public Command
+{
+public:
+  static RenameGroupCommand *Create(CommandInterface *pcomInt,
+                                    const StringX sxOldPath, const StringX sxNewPath)
+  { return new RenameGroupCommand(pcomInt, sxOldPath, sxNewPath); }
+  int Execute(const bool bRedo = false);
+  void Undo();
+
+private:
+  RenameGroupCommand(CommandInterface *pcomInt,
+                     StringX sxOldPath, StringX sxNewPath);
+
+   StringX m_sxOldPath, m_sxNewPath;
 };
 
 // Derived MultiCommands class

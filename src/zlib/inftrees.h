@@ -58,5 +58,5 @@ typedef enum {
 } codetype;
 
 int ZLIB_INTERNAL inflate_table OF((codetype type, unsigned short FAR *lens,
-                                    unsigned int codes, code FAR * FAR *table,
-                                    unsigned int FAR *bits, unsigned short FAR *work));
+                             unsigned codes, code FAR * FAR *table,
+                             unsigned FAR *bits, unsigned short FAR *work));

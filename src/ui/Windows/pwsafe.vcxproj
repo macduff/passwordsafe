@@ -1092,11 +1092,13 @@
     <ClCompile Include="ColumnChooserDlg.cpp" />
     <ClCompile Include="ColumnChooserLC.cpp" />
     <ClCompile Include="CompareResultsDlg.cpp" />
+    <ClCompile Include="CompareWithSelectDlg.cpp" />
     <ClCompile Include="ConfirmDeleteDlg.cpp" />
     <ClCompile Include="ControlExtns.cpp" />
     <ClCompile Include="CoolMenu.cpp" />
     <ClCompile Include="CreateShortcutDlg.cpp" />
     <ClCompile Include="CryptKeyEntry.cpp" />
+    <ClCompile Include="CWTreeCtrl.cpp" />
     <ClCompile Include="DboxMain.cpp" />
     <ClCompile Include="DboxTray.cpp" />
     <ClCompile Include="DDStatic.cpp" />
@@ -1122,6 +1124,8 @@
     <ClCompile Include="filter\FilterIntegerDlg.cpp" />
     <ClCompile Include="filter\FilterPasswordDlg.cpp" />
     <ClCompile Include="filter\FilterStringDlg.cpp" />
+    <ClCompile Include="Fonts.cpp" />
+    <ClCompile Include="FontsDialog.cpp" />
     <ClCompile Include="GeneralMsgBox.cpp" />
     <ClCompile Include="ImportTextDlg.cpp" />
     <ClCompile Include="ImportXMLDlg.cpp" />
@@ -1164,10 +1168,9 @@
     <ClCompile Include="filter\PWFilterLC.cpp" />
     <ClCompile Include="filter\PWFiltersDlg.cpp" />
     <ClCompile Include="PWFindToolBar.cpp" />
-    <ClCompile Include="PwFont.cpp" />
-    <ClCompile Include="PWFontDialog.cpp" />
     <ClCompile Include="PWHdrCtrlNoChng.cpp" />
     <ClCompile Include="PWHistDlg.cpp" />
+    <ClCompile Include="PWHistListCtrl.cpp" />
     <ClCompile Include="PWListCtrl.cpp" />
     <ClCompile Include="PWPropertyPage.cpp" />
     <ClCompile Include="PWPropertySheet.cpp" />
@@ -1176,12 +1179,14 @@
     <ClCompile Include="PWSFaultHandler.cpp" />
     <ClCompile Include="PWSRecentFileList.cpp" />
     <ClCompile Include="PWStatusBar.cpp" />
+    <ClCompile Include="PWSversion.cpp" />
     <ClCompile Include="PWToolBar.cpp" />
     <ClCompile Include="PWTreeCtrl.cpp" />
     <ClCompile Include="QuerySetDef.cpp" />
     <ClCompile Include="RichEditCtrlExtn.cpp" />
     <ClCompile Include="RUEList.cpp" />
     <ClCompile Include="SampleTextDlg.cpp" />
+    <ClCompile Include="SCWListCtrl.cpp" />
     <ClCompile Include="SecString.cpp" />
     <ClCompile Include="filter\SetFiltersDlg.cpp" />
     <ClCompile Include="filter\SetHistoryFiltersDlg.cpp" />
@@ -1189,6 +1194,7 @@
     <ClCompile Include="SHCTHotKey.cpp" />
     <ClCompile Include="SHCTListCtrl.cpp" />
     <ClCompile Include="Shortcut.cpp" />
+    <ClCompile Include="ShowCompareDlg.cpp" />
     <ClCompile Include="SingleInstance.cpp" />
     <ClCompile Include="SMemFile.cpp" />
     <ClCompile Include="Subclass.cpp" />
@@ -1226,12 +1232,14 @@
     <ClInclude Include="ColumnChooserDlg.h" />
     <ClInclude Include="ColumnChooserLC.h" />
     <ClInclude Include="CompareResultsDlg.h" />
+    <ClInclude Include="CompareWithSelectDlg.h" />
     <ClInclude Include="ConfirmDeleteDlg.h" />
     <ClInclude Include="ControlExtns.h" />
     <ClInclude Include="CoolMenu.h" />
     <ClInclude Include="..\..\core\core.h" />
     <ClInclude Include="CreateShortcutDlg.h" />
     <ClInclude Include="CryptKeyEntry.h" />
+    <ClInclude Include="CWTreeCtrl.h" />
     <ClInclude Include="DboxMain.h" />
     <ClInclude Include="DDStatic.h" />
     <ClInclude Include="DDSupport.h" />
@@ -1255,6 +1263,8 @@
     <ClInclude Include="filter\FilterIntegerDlg.h" />
     <ClInclude Include="filter\FilterPasswordDlg.h" />
     <ClInclude Include="filter\FilterStringDlg.h" />
+    <ClInclude Include="Fonts.h" />
+    <ClInclude Include="FontsDialog.h" />
     <ClInclude Include="GeneralMsgBox.h" />
     <ClInclude Include="ImportTextDlg.h" />
     <ClInclude Include="ImportXMLDlg.h" />
@@ -1291,10 +1301,9 @@
     <ClInclude Include="filter\PWFilterLC.h" />
     <ClInclude Include="filter\PWFiltersDlg.h" />
     <ClInclude Include="PWFindToolBar.h" />
-    <ClInclude Include="PwFont.h" />
-    <ClInclude Include="PWFontDialog.h" />
     <ClInclude Include="PWHdrCtrlNoChng.h" />
     <ClInclude Include="PWHistDlg.h" />
+    <ClInclude Include="PWHistListCtrl.h" />
     <ClInclude Include="PWListCtrl.h" />
     <ClInclude Include="PWPropertyPage.h" />
     <ClInclude Include="PWPropertySheet.h" />
@@ -1303,6 +1312,7 @@
     <ClInclude Include="PWSFaultHandler.h" />
     <ClInclude Include="PWSRecentFileList.h" />
     <ClInclude Include="PWStatusBar.h" />
+    <ClInclude Include="PWSversion.h" />
     <ClInclude Include="PWToolBar.h" />
     <ClInclude Include="PWTreeCtrl.h" />
     <ClInclude Include="QuerySetDef.h" />
@@ -1312,6 +1322,7 @@
     <ClInclude Include="RichEditCtrlExtn.h" />
     <ClInclude Include="RUEList.h" />
     <ClInclude Include="SampleTextDlg.h" />
+    <ClInclude Include="SCWListCtrl.h" />
     <ClInclude Include="SecString.h" />
     <ClInclude Include="filter\SetFiltersDlg.h" />
     <ClInclude Include="filter\SetHistoryFiltersDlg.h" />
@@ -1319,6 +1330,7 @@
     <ClInclude Include="SHCTHotKey.h" />
     <ClInclude Include="SHCTListCtrl.h" />
     <ClInclude Include="Shortcut.h" />
+    <ClInclude Include="ShowCompareDlg.h" />
     <ClInclude Include="SingleInstance.h" />
     <ClInclude Include="SMemFile.h" />
     <ClInclude Include="StdAfx.h" />

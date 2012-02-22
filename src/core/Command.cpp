@@ -60,14 +60,14 @@ void Command::SaveState()
 {
   m_bSaveDBChanged = m_pcomInt->IsChanged();
   m_bUniqueGTUValidated = m_pcomInt->GetUniqueGTUValidated();
-  m_saved_vNodes_Modified = m_pcomInt->GetVNodesModified();
+  m_saved_vNodes_Modified = m_pcomInt->GetVnodesModified();
 }
 
 void Command::RestoreState()
 {
   m_pcomInt->SetDBChanged(m_bSaveDBChanged);
   m_pcomInt->SetUniqueGTUValidated(m_bUniqueGTUValidated);
-  m_pcomInt->SetVNodesModified(m_saved_vNodes_Modified);
+  m_pcomInt->SetVnodesModified(m_saved_vNodes_Modified);
 }
 
 // ------------------------------------------------
@@ -994,6 +994,37 @@ void UpdatePasswordHistoryCommand::Undo()
 
   m_pcomInt->UndoUpdatePasswordHistory(m_mapSavedHistory);
 
+  RestoreState();
+  m_bState = false;
+}
+
+// ------------------------------------------------
+// RenameGroupCommand
+// ------------------------------------------------
+
+RenameGroupCommand::RenameGroupCommand(CommandInterface *pcomInt,
+                                       const StringX sxOldPath, const StringX sxNewPath)
+ : Command(pcomInt), m_sxOldPath(sxOldPath), m_sxNewPath(sxNewPath)
+{}
+
+int RenameGroupCommand::Execute(const bool /* bRedo */)
+{
+  SaveState();
+
+  if (m_pcomInt->IsReadOnly())
+    return 0;
+
+  int rc = m_pcomInt->DoRenameGroup(m_sxOldPath, m_sxNewPath);
+  m_bState = true;
+  return rc;
+}
+
+void RenameGroupCommand::Undo()
+{
+  if (m_pcomInt->IsReadOnly())
+    return;
+
+  m_pcomInt->UndoRenameGroup(m_sxOldPath, m_sxNewPath);
   RestoreState();
   m_bState = false;
 }

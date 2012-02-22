@@ -51,6 +51,7 @@
 #define IDS_OTHERBROWSERLOCATION        5108
 #define IDS_OTHEREDITORLOCATION         5109
 #define IDS_MIGRATETOAPPDATA            5110
+#define IDS_CLEARPWHISTORY              5111
 
 // Program strings
 #define IDS_LITTLEENDIAN                5207
@@ -216,7 +217,7 @@
 #define IDS_PICKBACKUP                  5375
 #define IDS_PICKRESTORE                 5376
 #define IDS_UNTITLEDRESTORE             5377
-#define IDS_VALIDATEOK                  5378
+#define IDS_VALIDATE_OK                 5378
 #define IDS_FAILEDSAVEPREF              5379
 #define IDS_FAILEDSAVEPREFRO            5380
 #define IDS_ENTRIESCHANGEDSTOP          5381
@@ -721,6 +722,19 @@
 #define IDS_CLICKTOCOPYGENPSWD          5917
 #define IDS_PR_MUSTHAVECHARACTERS       5918
 #define IDS_OWNSYMBOLSMISSING           5919
+#define IDS_ENTRIESCLEARALL             5920
+#define IDS_NOTESZOOMIN                 5921
+#define IDS_NOTESZOOMOUT                5922
+#define IDS_VALIDATE_ISSUES             5923
+#define IDS_CURRENT_ENTRY               5924
+#define IDS_COMPARISON_ENTRY            5925
+#define IDS_PWHACTIVE                   5926
+#define IDS_PWHMAX                      5927
+#define IDS_PWHNUM                      5928
+#define IDS_PWHENTRY                    5929
+#define IDS_COPYALL                     5930
+#define IDS_SYNCHRONIZEALL              5931
+#define IDS_SYNCENTRY                   5932
 
 #define IDS_ATT_TOOLTIP0                7000
 #define IDS_ATT_TOOLTIP1                7001
@@ -773,4 +787,3 @@
 #define IDS_BADATTDATA                  7048
 #define IDS_BADATTLENGTH                7049
 #define IDS_BADINFLATE                  7050
-

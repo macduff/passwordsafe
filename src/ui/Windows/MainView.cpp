@@ -18,8 +18,8 @@
 #include "TryAgainDlg.h"
 #include "ColumnChooserDlg.h"
 #include "GeneralMsgBox.h"
-#include "PWFontDialog.h"
-#include "PWFont.h"
+#include "FontsDialog.h"
+#include "Fonts.h"
 #include "InfoDisplay.h"
 #include "ViewReport.h"
 #include "ExpPWListDlg.h"
@@ -149,18 +149,25 @@ void DboxMain::UpdateGUI(UpdateGUICommand::GUI_Action ga,
       // the action is complete - when these calls are then sent
       RebuildGUI();
       break;
+    case UpdateGUICommand::GUI_PWH_CHANGED_IN_DB:
+      // During this process, many entries may have been edited (marked modified)
+      if (prefs->GetPref(PWSprefs::HighlightChanges))
+        RebuildGUI();
+      break;
     case UpdateGUICommand::GUI_REFRESH_TREE:
       // Rebuid the entire tree view
       RebuildGUI(iTreeOnly);
       break;
     case UpdateGUICommand::GUI_DB_PREFERENCES_CHANGED:
       // Change any impact on the application due to a database preference change
-      // Currently - only Idle Timeout values
+      // Currently - only Idle Timeout values and potentially whether the
+      // user/password is shown in the Tree view
       KillTimer(TIMER_LOCKDBONIDLETIMEOUT);
       ResetIdleLockCounter();
       if (prefs->GetPref(PWSprefs::LockDBOnIdleTimeout)) {
         SetTimer(TIMER_LOCKDBONIDLETIMEOUT, IDLE_CHECK_INTERVAL, NULL);
       }
+      RebuildGUI(iTreeOnly);
       break;
     default:
       break;
@@ -223,7 +230,7 @@ int CALLBACK DboxMain::CompareFunc(LPARAM lParam1, LPARAM lParam2,
   int xint1, xint2;
 
   int iResult;
-  switch(nTypeSortColumn) {
+  switch (nTypeSortColumn) {
     case CItemData::UUID:  // Image
       iResult = (pLHS->GetEntryType() < pRHS->GetEntryType()) ? -1 : 1;
       break;
@@ -976,11 +983,11 @@ void DboxMain::RefreshViews(const int iView)
 #endif
     for (listPos = m_core.GetEntryIter(); listPos != m_core.GetEntryEndIter();
          listPos++) {
-      CItemData &pci = m_core.GetEntry(listPos);
-      DisplayInfo *pdi = (DisplayInfo *)pci.GetDisplayInfo();
+      CItemData &ci = m_core.GetEntry(listPos);
+      DisplayInfo *pdi = (DisplayInfo *)ci.GetDisplayInfo();
       if (pdi != NULL)
         pdi->list_index = -1; // easier, but less efficient, to delete pdi
-      InsertItemIntoGUITreeList(pci, -1, false, iView);
+      InsertItemIntoGUITreeList(ci, -1, false, iView);
     }
 
     m_ctlItemTree.SortTree(TVI_ROOT);
@@ -1289,110 +1296,125 @@ void DboxMain::OnRestore()
   TellUserAboutExpiredPasswords();
 }
 
+void DboxMain::OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult, const bool bTreeView)
+{
+  // Needed as need public function called by CPWTreeCtrl and CPWListCtrl
+  if (bTreeView)
+    OnTreeItemSelected(pNotifyStruct, pLResult);
+  else
+    OnListItemSelected(pNotifyStruct, pLResult);
+
+}
+
 void DboxMain::OnListItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-  OnItemSelected(pNotifyStruct, pLResult);
+  // ListView
+  *pLResult = 0L;
+  CItemData *pci(NULL);
+
+  // More than 2 selected is meaningless in List view
+  //if (m_IsListView && m_ctlItemList.GetSelectedCount() == 2) {
+  //  *pLResult = 1L;
+  //  return;
+  //}
+
+  int iItem(-1);
+  switch (pNotifyStruct->code) {
+    case NM_CLICK:
+    {
+      LPNMITEMACTIVATE pLVItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNotifyStruct);
+      iItem = pLVItemActivate->iItem;
+      break;
+    }
+    case LVN_KEYDOWN:
+    {
+      LPNMLVKEYDOWN pLVKeyDown = reinterpret_cast<LPNMLVKEYDOWN>(pNotifyStruct);
+      iItem = m_ctlItemList.GetNextItem(-1, LVNI_SELECTED);
+      int nCount = m_ctlItemList.GetItemCount();
+      if (pLVKeyDown->wVKey == VK_DOWN)
+        iItem = (iItem + 1) % nCount;
+      if (pLVKeyDown->wVKey == VK_UP)
+        iItem = (iItem - 1 + nCount) % nCount;
+      break;
+    }
+    default:
+      // No idea how we got here!
+      return;
+  }
+
+  if (iItem != -1) {
+    // -1 if nothing selected, e.g., empty list
+    pci = (CItemData *)m_ctlItemList.GetItemData(iItem);
+  }
+
+  UpdateToolBarForSelectedItem(pci);
+  SetDCAText(pci);
+
+  m_LastFoundTreeItem = NULL;
+  m_LastFoundListItem = -1;
 }
 
 void DboxMain::OnTreeItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-  OnItemSelected(pNotifyStruct, pLResult);
-}
-
-void DboxMain::OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
-{
+  // TreeView
   *pLResult = 0L;
   CItemData *pci(NULL);
 
-  if (!m_IsListView) {
-    // TreeView
+  // Seems that under Vista with Windows Common Controls V6, it is ignoring
+  // the single click on the button (+/-) of a node and only processing the 
+  // double click, which generates a copy of whatever the user selected
+  // for a double click (except that it invalid for a node!) and then does
+  // the expand/collapse as appropriate.
+  // This codes attempts to fix this.
+  HTREEITEM hItem(NULL);
 
-    // Seems that under Vista with Windows Common Controls V6, it is ignoring
-    // the single click on the button (+/-) of a node and only processing the 
-    // double click, which generates a copy of whatever the user selected
-    // for a double click (except that it invalid for a node!) and then does
-    // the expand/collapse as appropriate.
-    // This codes attempts to fix this.
-    HTREEITEM hItem(NULL);
-
-    UnFindItem();
-    switch (pNotifyStruct->code) {
-      case NM_CLICK:
-      {
-        // Mouseclick - Need to find the item clicked via HitTest
-        TVHITTESTINFO htinfo = {0};
-        CPoint local = ::GetMessagePos();
-        m_ctlItemTree.ScreenToClient(&local);
-        htinfo.pt = local;
-        m_ctlItemTree.HitTest(&htinfo);
-        hItem = htinfo.hItem;
+  UnFindItem();
+  switch (pNotifyStruct->code) {
+    case NM_CLICK:
+    {
+      // Mouseclick - Need to find the item clicked via HitTest
+      TVHITTESTINFO htinfo = {0};
+      CPoint local = ::GetMessagePos();
+      m_ctlItemTree.ScreenToClient(&local);
+      htinfo.pt = local;
+      m_ctlItemTree.HitTest(&htinfo);
+      hItem = htinfo.hItem;
 
         // Ignore any clicks not on an item (group or entry)
         if (hItem == NULL ||
             htinfo.flags & (TVHT_NOWHERE | TVHT_ONITEMRIGHT | 
-                            TVHT_ABOVE | TVHT_BELOW | 
+                            TVHT_ABOVE   | TVHT_BELOW | 
                             TVHT_TORIGHT | TVHT_TOLEFT))
             return;
 
-        // If a group
-        if (!m_ctlItemTree.IsLeaf(hItem)) {
-          // If on indent or button
-          if (htinfo.flags & (TVHT_ONITEMINDENT | TVHT_ONITEMBUTTON)) {
-            m_ctlItemTree.Expand(htinfo.hItem, TVE_TOGGLE);
-            *pLResult = 1L; // We have toggled the group
-            return;
-          }
+      // If a group
+      if (!m_ctlItemTree.IsLeaf(hItem)) {
+        // If on indent or button
+        if (htinfo.flags & (TVHT_ONITEMINDENT | TVHT_ONITEMBUTTON)) {
+          m_ctlItemTree.Expand(htinfo.hItem, TVE_TOGGLE);
+          *pLResult = 1L; // We have toggled the group
+          return;
         }
-        break;
       }
-      case TVN_SELCHANGED:
-        // Keyboard - We are given the new selected entry
-        hItem = ((NMTREEVIEW *)pNotifyStruct)->itemNew.hItem;
-        break;
-      default:
-        // No idea how we got here!
-        return;
-    }    
-
-    // Check it was on an item
-    if (hItem != NULL && m_ctlItemTree.IsLeaf(hItem)) {
-      pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
+      break;
     }
+    case TVN_SELCHANGED:
+      // Keyboard - We are given the new selected entry
+      hItem = ((NMTREEVIEW *)pNotifyStruct)->itemNew.hItem;
+      break;
+    default:
+      // No idea how we got here!
+      return;
+  }    
 
-    HTREEITEM hti = m_ctlItemTree.GetDropHilightItem();
-    if (hti != NULL)
-      m_ctlItemTree.SetItemState(hti, 0, TVIS_DROPHILITED);
-  } else {
-    // ListView
-
-    int iItem(-1);
-    switch (pNotifyStruct->code) {
-      case NM_CLICK:
-      {
-        LPNMITEMACTIVATE pLVItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNotifyStruct);
-        iItem = pLVItemActivate->iItem;
-        break;
-      }
-      case LVN_KEYDOWN:
-      {
-        LPNMLVKEYDOWN pLVKeyDown = reinterpret_cast<LPNMLVKEYDOWN>(pNotifyStruct);
-        iItem = m_ctlItemList.GetNextItem(-1, LVNI_SELECTED);
-        int nCount = m_ctlItemList.GetItemCount();
-        if (pLVKeyDown->wVKey == VK_DOWN)
-          iItem = (iItem + 1) % nCount;
-        if (pLVKeyDown->wVKey == VK_UP)
-          iItem = (iItem - 1 + nCount) % nCount;
-        break;
-      }
-      default:
-        // No idea how we got here!
-        return;
-    }
-    if (iItem != -1) {
-      // -1 if nothing selected, e.g., empty list
-      pci = (CItemData *)m_ctlItemList.GetItemData(iItem);
-    }
+  // Check it was on an item
+  if (hItem != NULL && m_ctlItemTree.IsLeaf(hItem)) {
+    pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
   }
+
+  HTREEITEM hti = m_ctlItemTree.GetDropHilightItem();
+  if (hti != NULL)
+    m_ctlItemTree.SetItemState(hti, 0, TVIS_DROPHILITED);
 
   UpdateToolBarForSelectedItem(pci);
   SetDCAText(pci);
@@ -2090,18 +2112,17 @@ void DboxMain::OnChangeTreeFont()
   // Allow user to apply changes to font
   StringX cs_TreeListSampleText = prefs->GetPref(PWSprefs::TreeListSampleText);
 
-  CPWFontDialog fontdlg(&lf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT, NULL, NULL, TLFONT);
+  CFontsDialog fontdlg(&lf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT, NULL, NULL, TLFONT);
 
   fontdlg.m_sampletext = cs_TreeListSampleText.c_str();
 
   if (fontdlg.DoModal() == IDOK) {
-    m_pFontTree->DeleteObject();
-    m_pFontTree->CreateFontIndirect(&lf);
+    Fonts::GetInstance()->SetCurrentFont(&lf);
 
     // Transfer the fonts to the tree and list windows
-    m_ctlItemTree.SetUpFont(m_pFontTree);
-    m_ctlItemList.SetUpFont(m_pFontTree);
-    m_LVHdrCtrl.SetFont(m_pFontTree);
+    m_ctlItemTree.SetUpFont();
+    m_ctlItemList.SetUpFont();
+    m_LVHdrCtrl.SetFont(Fonts::GetInstance()->GetCurrentFont());
 
     // Recalculate header widths
     CalcHeaderWidths();
@@ -2136,22 +2157,23 @@ void DboxMain::OnChangePswdFont()
   PWSprefs *prefs = PWSprefs::GetInstance();
   LOGFONT lf;
   // Get Password font in case the user wants to change this.
-  GetPasswordFont(&lf);
+  Fonts *pFonts = Fonts::GetInstance();
+  pFonts->GetPasswordFont(&lf);
 
   // Present Password font and possibly change it
   // Allow user to apply changes to font
   StringX cs_PswdSampleText = prefs->GetPref(PWSprefs::PswdSampleText);
 
-  CPWFontDialog fontdlg(&lf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT, NULL, NULL, PWFONT);
+  CFontsDialog fontdlg(&lf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT, NULL, NULL, PWFONT);
 
   fontdlg.m_sampletext = cs_PswdSampleText.c_str();
 
   if (fontdlg.DoModal() == IDOK) {
     // Transfer the new font to the passwords
-    SetPasswordFont(&lf);
+    pFonts->SetPasswordFont(&lf);
 
     LOGFONT dfltfont;
-    GetDefaultPasswordFont(dfltfont);
+    pFonts->GetDefaultPasswordFont(dfltfont);
 
     // Check if default
     CString csfn(lf.lfFaceName), csdfltfn(dfltfont.lfFaceName);
@@ -2193,7 +2215,7 @@ void DboxMain::OnChangeVKFont()
   // Allow user to apply changes to font
   StringX cs_VKSampleText = prefs->GetPref(PWSprefs::VKSampleText);
 
-  CPWFontDialog fontdlg(&lf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT | 
+  CFontsDialog fontdlg(&lf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT | 
                              CF_LIMITSIZE | CF_NOSCRIPTSEL,
                              NULL, NULL, VKFONT);
 
@@ -4392,9 +4414,10 @@ bool DboxMain::LongPPs()
 }
 
 bool DboxMain::GetShortCut(const unsigned int &uiMenuItem,
-                           unsigned char &cVirtKey, unsigned char &cModifier)
+                           unsigned short int &siVirtKey, unsigned char &cModifier)
 {
-  cVirtKey = cModifier = '0';
+  siVirtKey = 0;
+  cModifier = '0';
 
   MapMenuShortcutsIter iter;
 
@@ -4402,13 +4425,13 @@ bool DboxMain::GetShortCut(const unsigned int &uiMenuItem,
   if (iter == m_MapMenuShortcuts.end())
     return false;
 
-  if (iter->second.cVirtKey  != iter->second.cdefVirtKey ||
-      iter->second.cModifier != iter->second.cdefModifier) {
-    cVirtKey = iter->second.cVirtKey;
+  if (iter->second.siVirtKey  != iter->second.siDefVirtKey ||
+      iter->second.cModifier != iter->second.cDefModifier) {
+    siVirtKey = iter->second.siVirtKey;
     cModifier = iter->second.cModifier;
   } else {
-    cVirtKey = iter->second.cdefVirtKey;
-    cModifier = iter->second.cdefModifier;
+    siVirtKey = iter->second.siDefVirtKey;
+    cModifier = iter->second.cDefModifier;
   }
 
   return true;
