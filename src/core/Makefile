@@ -86,10 +86,10 @@ clean:
 	@rm core_st.cpp core_st.h
 
 setup:
-	@mkdir -p $(OBJPATH) $(OBJPATH)/tinyxml $(OBJPATH)/XML/Xerces $(LIBPATH) $(DEPDIR)
+	@mkdir -p $(OBJPATH) $(OBJPATH)/pugixml $(OBJPATH)/XML/Xerces $(LIBPATH) $(DEPDIR)
 
 $(DEPDIR)/%.d: %.cpp
-	@set -e; mkdir -p $(DEPDIR) $(DEPDIR)/tinyxml; \
+	@set -e; mkdir -p $(DEPDIR) $(DEPDIR)/pugixml; \
 	mkdir -p $(DEPDIR)/XML/Xerces; \
 	$(RM) $@; \
 	$(CXX) -MM $(CPPFLAGS) $< > $@.$$$$; \
