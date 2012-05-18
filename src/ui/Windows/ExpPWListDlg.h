@@ -65,7 +65,6 @@ public:
   // Dialog Data
   enum { IDD = IDD_DISPLAY_EXPIRED_ENTRIES };
   CExpPswdLC m_expPWListCtrl;
-  CImageList *m_pImageList;
   CString m_message;
   int m_iSortedColumn; 
   BOOL m_bSortAscending; 
@@ -89,5 +88,5 @@ private:
 
   std::vector<st_ExpLocalListEntry> m_vExpLocalListEntries;
   int m_idays;
-  static int CALLBACK ExpPWCompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
+  static int CALLBACK ExpPWCompareFunction(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 };

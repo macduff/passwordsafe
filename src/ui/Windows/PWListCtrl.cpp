@@ -7,6 +7,9 @@
 */
 
 #include "stdafx.h"
+
+#include "WindowsDefs.h"
+
 #include "PWListCtrl.h"
 #include "DboxMain.h"
 #include "InfoDisplay.h"
@@ -92,9 +95,8 @@ LRESULT CPWListCtrl::OnCharItemlist(WPARAM wParam, LPARAM /* lParam */)
 
 void CPWListCtrl::OnDestroy()
 {
-  // Remove dummy ImageList. PWTreeCtrl removes the real one!
-  m_pDbx->m_pImageList0->DeleteImageList();
-  delete m_pDbx->m_pImageList0;
+  SetImageList(NULL, LVSIL_NORMAL);
+  SetImageList(NULL, LVSIL_SMALL);
 }
 
 void CPWListCtrl::OnPaint()
@@ -203,7 +205,7 @@ LRESULT CPWListCtrl::OnMouseLeave(WPARAM, LPARAM)
 
 bool CPWListCtrl::FindNext(const CString &cs_find, const int iSubItem)
 {
-  int iItem;
+  int iIndex;
   bool bFound(false);
   CString cs_text;
   const int iNum = GetItemCount();
@@ -214,40 +216,40 @@ bool CPWListCtrl::FindNext(const CString &cs_find, const int iSubItem)
 
   // First search down.
   if (pos == NULL)
-    iItem = 0;
+    iIndex = 0;
   else
-    iItem = (int)pos;
+    iIndex = (int)pos;
 
   do {
-    cs_text = GetItemText(iItem, iSubItem);
+    cs_text = GetItemText(iIndex, iSubItem);
     cs_text = cs_text.Mid(0, iFindLen);
     if (cs_text.GetLength() > 0 && cs_find.CompareNoCase(cs_text) == 0) {
       bFound = true;
       break;
     }
-    iItem++;
-  } while (iItem <= iNum);
+    iIndex++;
+  } while (iIndex <= iNum);
 
   // Not found searching down and we didn't start from the top, now start from the top until
   // we get to where we started!
   if (!bFound && pos != NULL) {
-    iItem = 0;
+    iIndex = 0;
     do {
-      cs_text = GetItemText(iItem, iSubItem);
+      cs_text = GetItemText(iIndex, iSubItem);
       cs_text = cs_text.Mid(0, iFindLen);
       if (cs_text.GetLength() > 0 && cs_find.CompareNoCase(cs_text) == 0) {
         bFound = true;
         break;
       }
-      iItem++;
-    } while (iItem != (int)pos);
+      iIndex++;
+    } while (iIndex != (int)pos);
   }
 
   if (bFound) {
-    SetItemState(iItem, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
-    EnsureVisible(iItem, FALSE);
+    SetItemState(iIndex, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+    EnsureVisible(iIndex, FALSE);
     Invalidate();
-    CItemData *pci = (CItemData *)GetItemData(iItem);
+    CItemData *pci = (CItemData *)GetItemData(iIndex);
     m_pDbx->UpdateToolBarForSelectedItem(pci);
   }
 

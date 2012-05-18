@@ -84,7 +84,7 @@ protected:
   DECLARE_MESSAGE_MAP()
 
 private:
-  static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
+  static int CALLBACK CompareFunction(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 
   MapMenuShortcuts m_MapMenuShortcuts, m_MapSaveMenuShortcuts;
   std::vector<UINT> m_ExcludedMenuItems;

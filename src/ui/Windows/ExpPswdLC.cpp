@@ -9,6 +9,7 @@
 #include "stdafx.h"
 #include "ExpPswdLC.h"
 #include "PWTreeCtrl.h"
+#include "Images.h"
 
 #include "resource3.h"
 
@@ -136,31 +137,31 @@ BOOL CExpPswdLC::OnToolTipText(UINT /*id*/, NMHDR *pNotifyStruct, LRESULT *pLRes
     GetItem(&lv);
     UINT uimsg(0);
     switch (lv.iImage) {
-      case CPWTreeCtrl::NORMAL:
+      case CItemData::EI_NORMAL:
         uimsg = IDS_EXP_NORMAL;
         break;
-      case CPWTreeCtrl::WARNEXPIRED_NORMAL:
+      case CItemData::EI_WARNEXPIRED_NORMAL:
         uimsg = IDS_EXP_NORMAL_WARN;
         break;
-      case CPWTreeCtrl::EXPIRED_NORMAL:
+      case CItemData::EI_EXPIRED_NORMAL:
         uimsg = IDS_EXP_NORMAL_EXP;
         break;
-      case CPWTreeCtrl::ALIASBASE:
+      case CItemData::EI_ALIASBASE:
         uimsg = IDS_EXP_ABASE;
         break;
-      case CPWTreeCtrl::WARNEXPIRED_ALIASBASE:
+      case CItemData::EI_WARNEXPIRED_ALIASBASE:
         uimsg = IDS_EXP_ABASE_WARN;
         break;
-      case CPWTreeCtrl::EXPIRED_ALIASBASE:
+      case CItemData::EI_EXPIRED_ALIASBASE:
         uimsg = IDS_EXP_ABASE_EXP;
         break;
-      case CPWTreeCtrl::SHORTCUTBASE:
+      case CItemData::EI_SHORTCUTBASE:
         uimsg = IDS_EXP_SBASE;
         break;
-      case CPWTreeCtrl::WARNEXPIRED_SHORTCUTBASE:
+      case CItemData::EI_WARNEXPIRED_SHORTCUTBASE:
         uimsg = IDS_EXP_SBASE_WARN;
         break;
-      case CPWTreeCtrl::EXPIRED_SHORTCUTBASE:
+      case CItemData::EI_EXPIRED_SHORTCUTBASE:
         uimsg = IDS_EXP_SBASE_EXP;
         break;
       default:

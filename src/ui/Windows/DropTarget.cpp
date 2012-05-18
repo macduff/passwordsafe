@@ -1,9 +1,9 @@
 /*
-* Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
-* All rights reserved. Use of the code is allowed under the
-* Artistic License 2.0 terms, as specified in the LICENSE file
-* distributed with this code, or available from
-* http://www.opensource.org/licenses/artistic-license-2.0.php
+ *Copyright (c) 2003-2012 Rony Shapiro <ronys@users.sourceforge.net>.
+ *All rights reserved. Use of the code is allowed under the
+ *Artistic License 2.0 terms, as specified in the LICENSE file
+ *distributed with this code, or available from
+ *http://www.opensource.org/licenses/artistic-license-2.0.php
 */
 
 #include "stdafx.h"
@@ -16,8 +16,9 @@ CDropTarget::CDropTarget()
 
 CDropTarget::~CDropTarget() {}
 
-DROPEFFECT CDropTarget::OnDragEnter(CWnd* /* pWnd */,
-                                    COleDataObject* /* pDataObject */, DWORD dwKeyState, CPoint /* point */ )
+DROPEFFECT CDropTarget::OnDragEnter(CWnd * /*pWnd*/,
+                                    COleDataObject * /*pDataObject */,
+                                    DWORD dwKeyState, CPoint /*point*/ )
 {
   if ((dwKeyState & MK_CONTROL) == MK_CONTROL)
     return DROPEFFECT_COPY; // Copy the source
@@ -25,13 +26,14 @@ DROPEFFECT CDropTarget::OnDragEnter(CWnd* /* pWnd */,
     return DROPEFFECT_MOVE; // Move the source
 }
 
-void CDropTarget::OnDragLeave(CWnd* pWnd)
+void CDropTarget::OnDragLeave(CWnd *pWnd)
 {
   COleDropTarget::OnDragLeave(pWnd);
 }
 
-DROPEFFECT CDropTarget::OnDragOver(CWnd* /* pWnd */,
-                                   COleDataObject* /* pDataObject */, DWORD dwKeyState, CPoint /* point */)
+DROPEFFECT CDropTarget::OnDragOver(CWnd * /*pWnd*/,
+                                   COleDataObject * /*pDataObject*/,
+                                   DWORD dwKeyState, CPoint /*point*/)
 {
   if ((dwKeyState & MK_CONTROL) == MK_CONTROL)
     return DROPEFFECT_COPY;
@@ -39,13 +41,13 @@ DROPEFFECT CDropTarget::OnDragOver(CWnd* /* pWnd */,
     return DROPEFFECT_MOVE;
 }
 
-BOOL CDropTarget::OnDrop(CWnd* /* pWnd */, COleDataObject* /* pDataObject */,
-                         DROPEFFECT /* dropEffect */, CPoint /* point */)
+BOOL CDropTarget::OnDrop(CWnd * /*pWnd */, COleDataObject * /*pDataObject*/,
+                         DROPEFFECT /*dropEffect*/, CPoint /*point*/)
 {
   return TRUE;
 }
 
-BOOL CDropTarget::Initialize(CWnd* wnd)
+BOOL CDropTarget::Initialize(CWnd *wnd)
 {
   if (m_bRegistered == TRUE)
     return FALSE;

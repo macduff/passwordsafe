@@ -12,6 +12,7 @@
 #include "PasswordSafe.h"
 #include "ThisMfcApp.h"
 #include "DboxMain.h"
+#include "TreeUtils.h"
 
 #include "core/PWSprefs.h"
 
@@ -29,10 +30,14 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+extern StringX sxDot;
+
+using namespace TreeUtils;
+
 // Functor for count_if
 struct CountShortcuts {
-  bool operator()(const std::pair<const UINT, CMenuShortcut> &p) {
-    return (p.second.siVirtKey != 0);
+  bool operator()(const std::pair<const UINT, CMenuShortcut> &pr) {
+    return (pr.second.siVirtKey != 0);
   }
 };
 
@@ -41,15 +46,15 @@ struct CreateAccelTable {
   CreateAccelTable(ACCEL *pacceltbl, unsigned char ucAutotypeKey) 
     : m_pacceltbl(pacceltbl), m_ucAutotypeKey(ucAutotypeKey) {}
 
-  void operator()(const std::pair<UINT, CMenuShortcut> &p)
+  void operator()(const std::pair<UINT, CMenuShortcut> &pr)
   {
-    if (p.second.siVirtKey != 0 && p.second.siVirtKey != m_ucAutotypeKey) {
+    if (pr.second.siVirtKey != 0 && pr.second.siVirtKey != m_ucAutotypeKey) {
       m_pacceltbl->fVirt = FVIRTKEY |
-               ((p.second.cModifier & HOTKEYF_CONTROL) == HOTKEYF_CONTROL ? FCONTROL : 0) |
-               ((p.second.cModifier & HOTKEYF_ALT)     == HOTKEYF_ALT     ? FALT     : 0) |
-               ((p.second.cModifier & HOTKEYF_SHIFT)   == HOTKEYF_SHIFT   ? FSHIFT   : 0);
-      m_pacceltbl->key = (WORD)p.second.siVirtKey;
-      m_pacceltbl->cmd = (WORD)p.first;
+               ((pr.second.cModifier & HOTKEYF_CONTROL) == HOTKEYF_CONTROL ? FCONTROL : 0) |
+               ((pr.second.cModifier & HOTKEYF_ALT)     == HOTKEYF_ALT     ? FALT     : 0) |
+               ((pr.second.cModifier & HOTKEYF_SHIFT)   == HOTKEYF_SHIFT   ? FSHIFT   : 0);
+      m_pacceltbl->key = (WORD)pr.second.siVirtKey;
+      m_pacceltbl->cmd = (WORD)pr.first;
       m_pacceltbl++;
     }
   }
@@ -505,12 +510,52 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
   // adds the "check" mark via CheckMenuRadioItem for view type and toolbar.
   // It now tailors the Edit menu depending on whether a Group or Entry is selected.
   // "EnableMenuItem" is handled by the UPDATE_UI routines
-  bool bGroupSelected(false);
-  const bool bTreeView = m_ctlItemTree.IsWindowVisible() == TRUE;
-  const bool bItemSelected = (SelItemOk() == TRUE);
+
   const bool bReadOnly = m_core.IsReadOnly();
   const CItemData *pci(NULL);
-  const wchar_t *tc_dummy = L" ";
+  CPWTreeView *pTreeView(NULL);
+  CPWListView *pListView(NULL);
+  StringX sxPath;
+
+  bool bGroupSelected(false);
+  bool bItemSelected(false);
+  switch (m_ViewType) {
+    case LIST:
+    case TREE:
+      bItemSelected = (SelItemOk() == TRUE);
+      break;
+    case EXPLORER:
+    {
+      int nRow(-1), nCol(-1);
+      CRect r;
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+        break;
+      if (nCol == 0) {
+        pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
+        HTREEITEM hItem = pTreeView->GetTreeCtrl().GetSelectedItem();
+        if (hItem != NULL) {
+          sxPath = (LPCWSTR)GetGroupFullPath(&pTreeView->GetTreeCtrl(), hItem);
+          sxPath += sxDot + (LPCWSTR)pTreeView->GetTreeCtrl().GetItemText(hItem);
+          bGroupSelected = true;
+        }
+      } else {
+        pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+        POSITION pos = pListView->GetListCtrl().GetFirstSelectedItemPosition();
+        if (pos != NULL) {
+          int iIndex = pListView->GetListCtrl().GetNextSelectedItem(pos);
+          st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListView->GetListCtrl().GetItemData(iIndex);
+          ASSERT(pLP != NULL);
+          pci = (CItemData *)pLP->pci;
+          if (pci == NULL) {
+            sxPath = pListView->GetCurrentPath() + sxDot +
+                              (LPCWSTR)pListView->GetListCtrl().GetItemText(iIndex, 1);
+            bGroupSelected = true;
+          }
+        }            
+      }
+      break;
+    }
+  }
 
   ASSERT_VALID(pPopupMenu);
 
@@ -531,45 +576,9 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
   if (uiMenuID != ID_EDITMENU && uiMenuID != ID_VIEWMENU && uiMenuID != ID_FILTERMENU)
     return;
 
-  // If View menu selected (contains 'Flattened &List' menu item)
+  // If View menu selected (contains 'Flattened &LIST' menu item)
   if (uiMenuID == ID_VIEWMENU) {
-    // Delete Show Find Toolbar menu item - don't know if there or previously deleted
-    pPopupMenu->RemoveMenu(ID_MENUITEM_SHOWFINDTOOLBAR, MF_BYCOMMAND);
-    if (!m_FindToolBar.IsVisible()) {
-      // Put it back if not visible - before the separator
-      int pos = app.FindMenuItem(pPopupMenu, ID_MENUITEM_SHOWHIDE_DRAGBAR);
-      pPopupMenu->InsertMenu(pos + 1,
-                             MF_BYPOSITION  | MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_SHOWFINDTOOLBAR, tc_dummy);
-    }
-    pPopupMenu->CheckMenuRadioItem(ID_MENUITEM_LIST_VIEW, ID_MENUITEM_TREE_VIEW,
-                                   bTreeView ? ID_MENUITEM_TREE_VIEW : ID_MENUITEM_LIST_VIEW,
-                                   MF_BYCOMMAND);
-
-    pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOWHIDE_TOOLBAR, MF_BYCOMMAND |
-                              m_MainToolBar.IsWindowVisible() ? MF_CHECKED : MF_UNCHECKED);
-
-    bool bDragBarState = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowDragbar);
-    pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOWHIDE_DRAGBAR, MF_BYCOMMAND |
-                              bDragBarState ? MF_CHECKED : MF_UNCHECKED);
-
-    pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOWHIDE_UNSAVED, MF_BYCOMMAND |
-                              m_bUnsavedDisplayed ? MF_CHECKED : MF_UNCHECKED);
-
-    pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOW_ALL_EXPIRY, MF_BYCOMMAND |
-                              m_bExpireDisplayed ? MF_CHECKED : MF_UNCHECKED);
-
-    // Don't show filter menu if "internal" menu active
-    pPopupMenu->EnableMenuItem(ID_FILTERMENU, MF_BYCOMMAND |
-             (m_bUnsavedDisplayed || m_bExpireDisplayed) ? MF_GRAYED : MF_ENABLED);
-
-    pPopupMenu->CheckMenuRadioItem(ID_MENUITEM_NEW_TOOLBAR,
-                                   ID_MENUITEM_OLD_TOOLBAR,
-                                   m_toolbarMode, MF_BYCOMMAND);
-
-    // Disable View Reports menu if no database open as we need the full path
-    // of the database to get to its reports!
-    pPopupMenu->EnableMenuItem(ID_REPORTSMENU, MF_BYCOMMAND | (m_bOpen ? MF_ENABLED : MF_GRAYED));
+    SetupViewMenu(pPopupMenu);
     goto exit;
   }  // View menu
 
@@ -585,299 +594,590 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
     ASSERT(pci != NULL);
   }
 
-  // Save original entry type before possibly changing pci
-  const CItemData::EntryType etype_original = 
-          pci == NULL ? CItemData::ET_INVALID : pci->GetEntryType();
-
   if (bItemSelected && pci->IsShortcut())
     pci = m_core.GetBaseEntry(pci);
 
-  if (bTreeView) {
-    HTREEITEM hi = m_ctlItemTree.GetSelectedItem();
-    bGroupSelected = (hi != NULL && !m_ctlItemTree.IsLeaf(hi));
+  if (m_ViewType == TREE) {
+    HTREEITEM hItem = m_ctlItemTree.GetSelectedItem();
+    bGroupSelected = (hItem != NULL && !IsLeaf(&m_ctlItemTree, hItem));
+    if (bGroupSelected) {
+      sxPath = (LPCWSTR)GetGroupFullPath(&m_ctlItemTree, hItem);
+      sxPath += sxDot + (LPCWSTR)m_ctlItemTree.GetItemText(hItem);
+    }
   }
 
   // If Edit menu selected
   if (uiMenuID == ID_EDITMENU) {
-    // Delete all entries and rebuild depending on group/entry selected
-    // and, if entry, if fields are non-empty
-    UINT uiCount = pPopupMenu->GetMenuItemCount();
-    ASSERT((int)uiCount >= 0);
-
-    for (UINT ui = 0; ui < uiCount; ui++) {
-      pPopupMenu->RemoveMenu(0, MF_BYPOSITION);
-    }
-
-    /*
-     Three scenarios:
-     Note: If the database is read-only, anything modifying it is not added.
-     1. Nothing selected
-       Tree View - Add Entry, Sep, Add Group, Sep, Clear Clipboard
-       List View - Add Entry, Sep, Clear Clipboard
-     2. Group selected (Tree view only)
-       Add Entry, Sep, <Group Items>, Sep, Clear Clipboard
-       Add Group, Duplicate Group, (Un)Protect entries
-     3. Entry selected
-       Tree View - <Entry Items>, Sep, Add Group, Sep, Clear Clipboard, Sep
-                   Entry functions (copy to clipboard, browse, run etc)
-       List View - <Entry Items>, Sep, Clear Clipboard, Sep
-                   Entry functions (copy to clipboard, browse, run etc)
-    */
-
-    // Scenario 1 - Nothing selected
-    //   Tree View - Add Entry, Sep, Add Group, Sep, Clear Clipboard
-    //   List View - Add Entry, Sep, Clear Clipboard
-    if (pci == NULL && !bGroupSelected) {
-      if (m_IsListView) {
-        if (!bReadOnly) {
-          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                 ID_MENUITEM_ADD, tc_dummy);
-          pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-        }
-      } else {
-        if (!bReadOnly) {
-          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                 ID_MENUITEM_ADD, tc_dummy);
-          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                 ID_MENUITEM_ADDGROUP, tc_dummy);
-          pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-        }
-      }
-      if (m_core.AnyToUndo() || m_core.AnyToRedo()) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_UNDO, tc_dummy);
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_REDO, tc_dummy);
-        pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-      }
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
-      goto exit;
-    }
-
-    // Scenario 2 - Group selected (Tree view only)
-    //   Add Entry, Sep, <Group Items>, Sep, Clear Clipboard
-    if (!m_IsListView && bGroupSelected) {
-      if (!bReadOnly) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_ADD, tc_dummy);
-        pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-      }
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_GROUPENTER, tc_dummy);
-      if (!bReadOnly) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_DELETEGROUP, tc_dummy);
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_RENAMEGROUP, tc_dummy);
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_ADDGROUP, tc_dummy);
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_DUPLICATEGROUP, tc_dummy);
-        int numProtected, numUnprotected;
-        bool bProtect = GetSubtreeEntriesProtectedStatus(numProtected, numUnprotected);
-        if (bProtect) {
-          if (numUnprotected > 0)
-            pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                   ID_MENUITEM_PROTECTGROUP, tc_dummy);
-          if (numProtected > 0)
-            pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                   ID_MENUITEM_UNPROTECTGROUP, tc_dummy);
-        }
-      }
-      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-      if (m_core.AnyToUndo() || m_core.AnyToRedo()) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_UNDO, tc_dummy);
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_REDO, tc_dummy);
-        pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-      }
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
-      goto exit;
-    }
-
-    // Scenario 3 - Entry selected
-    //   Tree View - <Entry Items>, Sep, Add Entry, Add Group, Sep, Clear Clipboard, Sep,
-    //               Entry functions (copy to clipboard, browse, run etc)
-    //   List View - <Entry Items>, Sep, Add Entry, Sep, Clear Clipboard, Sep,
-    //               Entry functions (copy to clipboard, browse, run etc)
-    if (pci != NULL) {
-      // Entry is selected
-
-      // Deal with multi-selection
-      // More than 2 is meaningless in List view
-      if (m_IsListView && m_ctlItemList.GetSelectedCount() > 2)
-        return;
-
-      // If exactly 2 selected - show compare entries menu
-      if (m_IsListView  && m_ctlItemList.GetSelectedCount() == 2) {
-        CString cs_txt(MAKEINTRESOURCE(ID_MENUITEM_COMPARE_ENTRIES));
-        cs_txt.TrimLeft();  // Remove leading newline
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_COMPARE_ENTRIES, cs_txt);
-        return;
-      }
-
-      if (!bReadOnly) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_ADD, tc_dummy);
-      }
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             m_core.IsReadOnly() ? ID_MENUITEM_VIEW : ID_MENUITEM_EDIT,
-                             tc_dummy);
-      if (!bReadOnly) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_DELETEENTRY, tc_dummy);
-        if (!m_IsListView) {
-          // Rename not valid in List View
-          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                 ID_MENUITEM_RENAMEENTRY, tc_dummy);
-        }
-      }
-      // Only have Find Next/Previous if find still active and entries were found
-      if (m_FindToolBar.IsVisible() && m_FindToolBar.EntriesFound()) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_FIND, tc_dummy);
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_FINDUP, tc_dummy);
-      } else { // otherwise just add "Find..."
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_FINDELLIPSIS, tc_dummy);
-      }
-      if (!bReadOnly) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_DUPLICATEENTRY, tc_dummy);
-        if (!m_IsListView) {
-          pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                 ID_MENUITEM_ADDGROUP, tc_dummy);
-        }
-      }
-      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-      if (m_core.AnyToUndo() || m_core.AnyToRedo()) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_UNDO, tc_dummy);
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_REDO, tc_dummy);
-        pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-      }
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
-      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_COPYPASSWORD, tc_dummy);
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_PASSWORDSUBSET, tc_dummy);
-
-      if (!pci->IsUserEmpty())
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_COPYUSERNAME, tc_dummy);
-
-      if (!pci->IsNotesEmpty())
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_COPYNOTESFLD, tc_dummy);
-
-      /*
-      *  Rules:
-      *    1. If email field is not empty, add email menuitem.
-      *    2. If URL is not empty and is NOT an email address, add browse menuitem
-      *    3. If URL is not empty and is an email address, add email menuitem
-      *       (if not already added)
-      */
-      bool bAddCopyEmail = !pci->IsEmailEmpty();
-      bool bAddSendEmail = bAddCopyEmail || (!pci->IsURLEmpty() && pci->IsURLEmail());
-      bool bAddURL = !pci->IsURLEmpty();
-
-      // Add copies in order
-      if (bAddURL) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_COPYURL, tc_dummy);
-      }
-      if (bAddCopyEmail) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_COPYEMAIL, tc_dummy);
-      }
-
-      if (!pci->IsRunCommandEmpty())
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_COPYRUNCOMMAND, tc_dummy);
-
-      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-
-      // Add actions in order
-      if (bAddURL && !pci->IsURLEmail()) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_BROWSEURL, tc_dummy);
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_BROWSEURLPLUS, tc_dummy);
-      }
-      if (bAddSendEmail) {
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_SENDEMAIL, tc_dummy);
-      }
-
-      if (!pci->IsRunCommandEmpty())
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_RUNCOMMAND, tc_dummy);
-
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_AUTOTYPE, tc_dummy);
-
-      switch (etype_original) {
-        case CItemData::ET_NORMAL:
-        case CItemData::ET_SHORTCUTBASE:
-          // Allow creation of a shortcut
-          if (!bReadOnly) {
-            pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                   ID_MENUITEM_CREATESHORTCUT, tc_dummy);
-          }
-          break;
-        case CItemData::ET_ALIASBASE:
-          // Can't have a shortcut to an AliasBase entry + can't goto base
-          break;
-        case CItemData::ET_ALIAS:
-        case CItemData::ET_SHORTCUT:
-          // Allow going to/editing the appropriate base entry
-          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                 ID_MENUITEM_GOTOBASEENTRY, tc_dummy); 
-          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                                 ID_MENUITEM_EDITBASEENTRY, tc_dummy);
-         break;
-        default:
-          ASSERT(0);
-      }
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_EXPORTENT2PLAINTEXT, tc_dummy); 
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_EXPORTENT2XML, tc_dummy);
-
-      if (!bReadOnly && etype_original != CItemData::ET_SHORTCUT)
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               pci->IsProtected() ? ID_MENUITEM_UNPROTECT : ID_MENUITEM_PROTECT,
-                               tc_dummy);
-
-      // Tree view and command flag present only
-      if (!m_IsListView && m_bCompareEntries &&
-           etype_original != CItemData::ET_SHORTCUT)
-        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                               ID_MENUITEM_COMPARE_ENTRIES, tc_dummy);
-    } else {
-      // Must be List view with no entry selected
-      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
-      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
-                             ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
-    }
+    SetupEditMenu(pPopupMenu, pci, sxPath,
+                  pListView, bReadOnly, bGroupSelected);
   }  // Edit menu
 
 exit:
-    SetUpMenuStrings(pPopupMenu);
+  SetUpMenuStrings(pPopupMenu);
+  return;
+}
+
+void DboxMain::SetupViewMenu(CMenu *pPopupMenu)
+{
+  const wchar_t *tc_dummy = L" ";
+
+  // Delete Show Find Toolbar menu item - don't know if there or previously deleted
+  pPopupMenu->RemoveMenu(ID_MENUITEM_SHOWFINDTOOLBAR, MF_BYCOMMAND);
+  if (!m_FindToolBar.IsVisible()) {
+    // Put it back if not visible - before the separator
+    int pos = app.FindMenuItem(pPopupMenu, ID_MENUITEM_SHOWHIDE_DRAGBAR);
+    pPopupMenu->InsertMenu(pos + 1,
+                           MF_BYPOSITION  | MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_SHOWFINDTOOLBAR, tc_dummy);
+  }
+
+  switch (m_ViewType) {
+    case LIST:
+      // Remove Expand/Collapse options if not in TREE view
+      pPopupMenu->RemoveMenu(ID_MENUITEM_EXPANDALL, MF_BYCOMMAND);
+      pPopupMenu->RemoveMenu(ID_MENUITEM_COLLAPSEALL, MF_BYCOMMAND);
+      // Remove Split options if not in EXPLORER view
+      pPopupMenu->RemoveMenu(ID_MENUITEM_EXPL_ADDSPLIT, MF_BYCOMMAND);
+      pPopupMenu->RemoveMenu(ID_MENUITEM_EXPL_REMOVESPLIT, MF_BYCOMMAND);
+      break;
+    case TREE:
+    {
+      // Remove Split options if not in EXPLORER view
+      pPopupMenu->RemoveMenu(ID_MENUITEM_EXPL_ADDSPLIT, MF_BYCOMMAND);
+      pPopupMenu->RemoveMenu(ID_MENUITEM_EXPL_REMOVESPLIT, MF_BYCOMMAND);
+
+      // Ensure Expand/Collapse options present if in TREE view
+      int pos = app.FindMenuItem(pPopupMenu, ID_MENUITEM_REFRESH);
+      int posExpand = app.FindMenuItem(pPopupMenu, ID_MENUITEM_EXPANDALL);
+      int posCollapse = app.FindMenuItem(pPopupMenu, ID_MENUITEM_COLLAPSEALL);
+      if (posExpand == -1 && posCollapse == -1) {
+        // Neither there
+        pPopupMenu->InsertMenu(pos,
+                               MF_BYPOSITION  | MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_EXPANDALL,
+                               tc_dummy);
+        pPopupMenu->InsertMenu(pos + 1,
+                               MF_BYPOSITION  | MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_COLLAPSEALL,
+                               tc_dummy);
+      }
+      break;
+    }
+    case EXPLORER:
+    {
+      // Remove Expand/Collapse options if not in TREE view
+      pPopupMenu->RemoveMenu(ID_MENUITEM_EXPANDALL, MF_BYCOMMAND);
+      pPopupMenu->RemoveMenu(ID_MENUITEM_COLLAPSEALL, MF_BYCOMMAND);
+      // Leave it in and add appropriate Split/Remove Split menu item
+      int pos = app.FindMenuItem(pPopupMenu, ID_MENUITEM_EXPL_VIEW);
+      int posADD = app.FindMenuItem(pPopupMenu, ID_MENUITEM_EXPL_ADDSPLIT);
+      int posREMOVE = app.FindMenuItem(pPopupMenu, ID_MENUITEM_EXPL_REMOVESPLIT);
+      if (posADD == -1 && posREMOVE == -1) {
+        // Neither there
+        pPopupMenu->InsertMenu(pos + 1,
+                               MF_BYPOSITION  | MF_ENABLED | MF_STRING,
+                               m_bSplitView ?
+                               ID_MENUITEM_EXPL_REMOVESPLIT : ID_MENUITEM_EXPL_ADDSPLIT,
+                               tc_dummy);
+      } else
+      if (posADD != -1 && posREMOVE != -1) {
+        // Both there
+        pPopupMenu->RemoveMenu(m_bSplitView ?
+                               ID_MENUITEM_EXPL_ADDSPLIT : ID_MENUITEM_EXPL_REMOVESPLIT,
+                               MF_BYCOMMAND);
+      } else {
+        // One there - make it the right one
+        pPopupMenu->ModifyMenu(pos + 1, MF_BYPOSITION,
+                               m_bSplitView ?
+                               ID_MENUITEM_EXPL_REMOVESPLIT : ID_MENUITEM_EXPL_ADDSPLIT,
+                               tc_dummy);
+      }
+      int nRow(-1), nCol(-1);
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL) {
+        // No pane active, set top row List view as active pane
+        nRow = 0; nCol = 1;
+        m_ctlItemView.SetActivePane(nRow, nCol);
+      }
+      break;
+    }
+  }
+  
+  // ID_MENUITEM_LIST_VIEW, ID_MENUITEM_TREE_VIEW, ID_MENUITEM_EXPL_VIEW
+  pPopupMenu->CheckMenuRadioItem(0, 2, (int)m_ViewType, MF_BYPOSITION);
+
+  pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOWHIDE_TOOLBAR, MF_BYCOMMAND |
+                            m_MainToolBar.IsWindowVisible() ? MF_CHECKED : MF_UNCHECKED);
+
+  bool bDragBarState = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowDragbar);
+  pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOWHIDE_DRAGBAR, MF_BYCOMMAND |
+                            bDragBarState ? MF_CHECKED : MF_UNCHECKED);
+
+  pPopupMenu->CheckMenuRadioItem(ID_MENUITEM_NEW_TOOLBAR,
+                                 ID_MENUITEM_OLD_TOOLBAR,
+                                 m_toolbarMode, MF_BYCOMMAND);
+
+  switch (m_ViewType) {
+    case EXPLORER:
+      // Can't have any filter (internal or user) in EXPLORER view
+      pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOWHIDE_UNSAVED, MF_BYCOMMAND | MF_UNCHECKED);
+      pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOW_ALL_EXPIRY, MF_BYCOMMAND | MF_UNCHECKED);
+      pPopupMenu->EnableMenuItem(ID_MENUITEM_SHOWHIDE_UNSAVED, MF_BYCOMMAND | MF_GRAYED);
+      pPopupMenu->EnableMenuItem(ID_MENUITEM_SHOW_ALL_EXPIRY, MF_BYCOMMAND | MF_GRAYED);
+      pPopupMenu->EnableMenuItem(ID_FILTERMENU, MF_BYCOMMAND | MF_GRAYED);
+      break;
+    default:
+      // Enable internal filters just in case they were disabled in EXPLORER view
+      pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOWHIDE_UNSAVED, MF_BYCOMMAND |
+                            m_bUnsavedDisplayed ? MF_CHECKED : MF_UNCHECKED);
+      pPopupMenu->CheckMenuItem(ID_MENUITEM_SHOW_ALL_EXPIRY, MF_BYCOMMAND |
+                            m_bExpireDisplayed ? MF_CHECKED : MF_UNCHECKED);
+      // Don't show filter menu if "internal" menu active
+      pPopupMenu->EnableMenuItem(ID_FILTERMENU, MF_BYCOMMAND |
+           (m_bUnsavedDisplayed || m_bExpireDisplayed) ? MF_GRAYED : MF_ENABLED);
+      break;
+  }
+
+  // Disable View Reports menu if no database open as we need the full path
+  // of the database to get to its reports!
+  pPopupMenu->EnableMenuItem(ID_REPORTSMENU,
+                             MF_BYCOMMAND | m_bOpen ? MF_ENABLED : MF_GRAYED);
+}
+
+void DboxMain::SetupEditMenu(CMenu *pPopupMenu, const CItemData *pci, StringX &sxPath,
+                             CPWListView *pListView,
+                             const bool bReadOnly, const bool bGroupSelected)
+{
+  const wchar_t *tc_dummy = L" ";
+  CItemData::EntryType etype_original =
+      pci == NULL ? CItemData::ET_INVALID : pci->GetEntryType();
+
+  // Compare decisions
+  bool bStandAloneCompare(false), bAddCompare(false);
+
+  // Delete all entries and rebuild depending on group/entry selected
+  // and, if entry, if fields are non-empty
+  UINT uiCount = pPopupMenu->GetMenuItemCount();
+  ASSERT((int)uiCount >= 0);
+
+  for (UINT ui = 0; ui < uiCount; ui++) {
+    pPopupMenu->RemoveMenu(0, MF_BYPOSITION);
+  }
+
+  if (m_ViewType == EXPLORER && pListView != NULL) {
+    // Nothing valid to show if more than 2 items selected 
+    if (pListView->GetListCtrl().GetSelectedCount() > 2)
+      return;
+
+    // Nothing valid to show if one or more is a group
+    if (pListView->GetListCtrl().GetSelectedCount() > 1) {
+      POSITION pos = pListView->GetListCtrl().GetFirstSelectedItemPosition();
+      while (pos != NULL) {
+        int nIndex = pListView->GetListCtrl().GetNextSelectedItem(pos);
+        st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListView->GetListCtrl().GetItemData(nIndex);
+        if (pLP->pci == NULL)
+          return;
+      }
+    }
+  }
+
+  /*
+   Three scenarios:
+   Note: If the database is read-only, anything modifying it is not added.
+   1. Nothing selected
+     TREE View - Add Entry, Sep, Add Group, Sep, Clear Clipboard
+     LIST View - Add Entry, Sep, Clear Clipboard
+     EXPLORER View - Add Entry, Sep, Add Group, Sep, Clear Clipboard (same as TREE View)
+   2. Group selected (TREE & EXPLORER views only)
+     TREE View - Add Entry, Sep, <Group Items>, Sep, Clear Clipboard
+     TREE View - Add Group, Duplicate Group, (Un)Protect entries
+     EXPLORER View - Left pane (TreeView) - Duplicate Group, (Un)Protect entries
+     EXPLORER View - Right pane (ListView) - Add Entry, Sep, <Group Items>, Sep, Clear Clipboard
+   3. Entry selected - All views
+     TREE View - <Entry Items>, Sep, Add Group, Sep, Clear Clipboard, Sep
+                 Entry functions (copy to clipboard, browse, run etc)
+     LIST View - <Entry Items>, Sep, Clear Clipboard, Sep
+                 Entry functions (copy to clipboard, browse, run etc)
+                 However, if 2 entries selected, only Compare is shown
+     EXPLORER View - Right pane (ListView) - <Entry Items>, Sep, Add Group, Sep,
+                 Clear Clipboard, Sep
+                 Entry functions (copy to clipboard, browse, run etc)
+                 However, if 2 entries selected, only Compare is shown
+  */
+
+  /*
+   Scenario 1 - Nothing selected
+       TREE View - Add Entry, Sep, Add Group, Sep, Clear Clipboard
+       LIST View - Add Entry, Sep, Clear Clipboard
+       EXPLORER View - Add Entry, Sep, Add Group, Sep, Clear Clipboard - same as TREE View
+  */
+  if (pci == NULL && !bGroupSelected) {
+    if (m_ViewType == LIST) {
+      if (!bReadOnly) {
+        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_ADD, tc_dummy);
+        pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+      }
+    } else {
+      if (!bReadOnly) {
+        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_ADD, tc_dummy);
+        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_ADDGROUP, tc_dummy);
+        pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+      }
+    }
+    if (m_core.AnyToUndo() || m_core.AnyToRedo()) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_UNDO, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_REDO, tc_dummy);
+      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    }
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
     return;
+  }
+
+  /*
+   Scenario 2 - Group selected (TREE and EXPLORER)
+       Add Entry, Sep, <Group Items>, Sep, Clear Clipboard
+  */
+  if (m_ViewType != LIST && bGroupSelected) {
+    if (m_ViewType == EXPLORER && !bReadOnly) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_ADD, tc_dummy);
+      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    }
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_GROUPENTER, tc_dummy);
+
+    if (!bReadOnly) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_DELETEGROUP, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_RENAMEGROUP, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_ADDGROUP, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_DUPLICATEGROUP, tc_dummy);
+      int numProtected, numUnprotected;
+      bool bProtect = GetSubtreeEntriesProtectedStatus(sxPath,
+                                numProtected, numUnprotected);
+      if (bProtect) {
+        if (numUnprotected > 0)
+          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                                 ID_MENUITEM_PROTECTGROUP, tc_dummy);
+        if (numProtected > 0)
+          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                                 ID_MENUITEM_UNPROTECTGROUP, tc_dummy);
+      }
+    }
+    
+    pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    if (m_core.AnyToUndo() || m_core.AnyToRedo()) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_UNDO, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_REDO, tc_dummy);
+      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    }
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
+    return;
+  }
+
+  /*
+   Scenario 2 - Group selected (TREE and EXPLORER)
+       Add Entry, Sep, <Group Items>, Sep, Clear Clipboard
+  */
+  if (m_ViewType != LIST && bGroupSelected) {
+    if (!bReadOnly) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_ADD, tc_dummy);
+      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    }
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_GROUPENTER, tc_dummy);
+    if (!bReadOnly) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_DELETEGROUP, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_RENAMEGROUP, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_ADDGROUP, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_DUPLICATEGROUP, tc_dummy);
+      int numProtected, numUnprotected;
+      bool bProtect = GetSubtreeEntriesProtectedStatus(sxPath,
+                                numProtected, numUnprotected);
+      if (bProtect) {
+        if (numUnprotected > 0)
+          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                                 ID_MENUITEM_PROTECTGROUP, tc_dummy);
+        if (numProtected > 0)
+          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                                 ID_MENUITEM_UNPROTECTGROUP, tc_dummy);
+      }
+    }
+    pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    if (m_core.AnyToUndo() || m_core.AnyToRedo()) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_UNDO, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_REDO, tc_dummy);
+      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    }
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
+    return;
+  }
+
+  /*
+   Scenario 3 - Entry selected
+       TREE View - <Entry Items>, Sep, Add Entry, Add Group, Sep, Clear Clipboard, Sep,
+                   Entry functions (copy to clipboard, browse, run etc)
+       LIST View - <Entry Items>, Sep, Add Entry, Sep, Clear Clipboard, Sep,
+                   Entry functions (copy to clipboard, browse, run etc)
+                   However, if 2 entries selected, only Compare is shown
+       EXPLORER View - Right pane (ListView) - <Entry Items>, Sep, Add Group, Sep,
+                   Clear Clipboard, Sep
+                   Entry functions (copy to clipboard, browse, run etc)
+                   However, if 2 entries selected, only Compare is shown
+  */
+  if (pci != NULL) {
+    // Entry is selected
+
+    // Deal with multi-selection
+    // More than 2 is meaningless in LIST view
+    if (m_ViewType == LIST && m_ctlItemList.GetSelectedCount() > 2)
+      return;
+
+    // If exactly 2 selected - show compare entries menu
+    // This is in LIST view and the EXPLORER - list view only
+    // Or in a split EXPLORER view and one entry selected in each!
+    // Note: If 1 entry selected in each, add "Compare Entries" to normal Edit menu
+    // rather than use a specific compare menu
+    POSITION pos;
+    int iIndex;
+
+    if (m_ViewType == LIST && m_ctlItemList.GetSelectedCount() == 2) {
+      // LIST view and 2 entries selected
+      pos = m_ctlItemList.GetFirstSelectedItemPosition();
+      // Get second position
+      m_ctlItemList.GetNextSelectedItem(pos);
+      // Get index of this
+      iIndex = m_ctlItemList.GetNextSelectedItem(pos);
+      // Get its associated entry
+      CItemData *pci_other = (CItemData *)m_ctlItemList.GetItemData(iIndex);
+      
+      // Can't do this if either are shortcuts (no groups in LIST view)
+      if (pci->GetEntryType() == CItemData::ET_SHORTCUT ||
+          pci_other->GetEntryType() == CItemData::ET_SHORTCUT)
+        return;
+
+      bStandAloneCompare = true;
+    } else
+    if (m_ViewType == EXPLORER && pListView != NULL &&
+        pListView->GetListCtrl().GetSelectedCount() == 2) {
+      // EXPLORER view and 2 entries selected in current pane
+      st_PWLV_lParam *pLP0, *pLP1;
+      pos = pListView->GetListCtrl().GetFirstSelectedItemPosition();
+      iIndex = pListView->GetListCtrl().GetNextSelectedItem(pos);
+      pLP0 = (st_PWLV_lParam *)pListView->GetListCtrl().GetItemData(iIndex);
+      iIndex = pListView->GetListCtrl().GetNextSelectedItem(pos);
+      pLP1 = (st_PWLV_lParam *)pListView->GetListCtrl().GetItemData(iIndex);
+      
+      // Must have selected 2 entries, which are not shortcuts
+      if (pLP0->pci == NULL || pLP1->pci == NULL ||
+          pLP0->pci->GetEntryType() == CItemData::ET_SHORTCUT ||
+          pLP1->pci->GetEntryType() == CItemData::ET_SHORTCUT)
+        return;
+
+      bStandAloneCompare = true;
+    } else
+    if (m_bSplitView && pListView != NULL &&
+        m_pListView0->GetListCtrl().GetSelectedCount() == 1 &&
+        m_pListView1->GetListCtrl().GetSelectedCount() == 1) {
+      // EXPLORER view and 1 entry selected in each pane
+      st_PWLV_lParam *pLP0, *pLP1;
+      POSITION pos;
+      int iIndex;
+      pos = m_pListView0->GetListCtrl().GetFirstSelectedItemPosition();
+      iIndex = m_pListView0->GetListCtrl().GetNextSelectedItem(pos);
+      pLP0 = (st_PWLV_lParam *)m_pListView0->GetListCtrl().GetItemData(iIndex);
+      pos = m_pListView1->GetListCtrl().GetFirstSelectedItemPosition();
+      iIndex = m_pListView1->GetListCtrl().GetNextSelectedItem(pos);
+      pLP1 = (st_PWLV_lParam *)m_pListView1->GetListCtrl().GetItemData(iIndex);
+
+      // Must have selected 2 entries, which are not shortcuts
+      if (pLP0->pci != NULL  && pLP1->pci != NULL  &&
+          pLP0->pci->GetEntryType() != CItemData::ET_SHORTCUT  &&
+          pLP1->pci->GetEntryType() != CItemData::ET_SHORTCUT)
+        bAddCompare = true;
+    }
+    if (bStandAloneCompare) {
+      CString cs_txt(MAKEINTRESOURCE(ID_MENUITEM_COMPARE_ENTRIES));
+      cs_txt.TrimLeft();  // Remove leading newline
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_COMPARE_ENTRIES, cs_txt);
+      return;
+    }
+
+    if (!bReadOnly) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_ADD, tc_dummy);
+    }
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           m_core.IsReadOnly() ? ID_MENUITEM_VIEW : ID_MENUITEM_EDIT,
+                           tc_dummy);
+    if (!bReadOnly) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_DELETEENTRY, tc_dummy);
+      if (m_ViewType != LIST) {
+        // Rename not valid in LIST View
+        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_RENAMEENTRY, tc_dummy);
+      }
+    }
+    // Only have Find Next/Previous if find still active and entries were found
+    if (m_FindToolBar.IsVisible() && m_FindToolBar.EntriesFound()) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_FIND, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_FINDUP, tc_dummy);
+    } else { // otherwise just add "Find..."
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_FINDELLIPSIS, tc_dummy);
+    }
+    if (!bReadOnly) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_DUPLICATEENTRY, tc_dummy);
+      if (m_ViewType == TREE) {
+        pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_ADDGROUP, tc_dummy);
+      }
+    }
+    pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    if (m_core.AnyToUndo() || m_core.AnyToRedo()) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_UNDO, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_REDO, tc_dummy);
+      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    }
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
+    pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_COPYPASSWORD, tc_dummy);
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_PASSWORDSUBSET, tc_dummy);
+
+    if (!pci->IsUserEmpty())
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_COPYUSERNAME, tc_dummy);
+
+    if (!pci->IsNotesEmpty())
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_COPYNOTESFLD, tc_dummy);
+
+    /*
+    *  Rules:
+    *    1. If email field is not empty, add email menuitem.
+    *    2. If URL is not empty and is NOT an email address, add browse menuitem
+    *    3. If URL is not empty and is an email address, add email menuitem
+    *       (if not already added)
+    */
+    bool bAddCopyEmail = !pci->IsEmailEmpty();
+    bool bAddSendEmail = bAddCopyEmail || (!pci->IsURLEmpty() && pci->IsURLEmail());
+    bool bAddURL = !pci->IsURLEmpty();
+
+    // Add copies in order
+    if (bAddURL) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_COPYURL, tc_dummy);
+    }
+    if (bAddCopyEmail) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_COPYEMAIL, tc_dummy);
+    }
+
+    if (!pci->IsRunCommandEmpty())
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_COPYRUNCOMMAND, tc_dummy);
+
+    pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+
+    // Add actions in order
+    if (bAddURL && !pci->IsURLEmail()) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_BROWSEURL, tc_dummy);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_BROWSEURLPLUS, tc_dummy);
+    }
+    if (bAddSendEmail) {
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_SENDEMAIL, tc_dummy);
+    }
+
+    if (!pci->IsRunCommandEmpty())
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_RUNCOMMAND, tc_dummy);
+
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_AUTOTYPE, tc_dummy);
+
+    switch (etype_original) {
+      case CItemData::ET_NORMAL:
+      case CItemData::ET_SHORTCUTBASE:
+        // Allow creation of a shortcut
+        if (!bReadOnly) {
+          pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                                 ID_MENUITEM_CREATESHORTCUT, tc_dummy);
+        }
+        break;
+      case CItemData::ET_ALIASBASE:
+        // Can't have a shortcut to an AliasBase entry + can't goto base
+        break;
+      case CItemData::ET_ALIAS:
+      case CItemData::ET_SHORTCUT:
+        // Allow going to/editing the appropriate base entry
+        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_GOTOBASEENTRY, tc_dummy); 
+        pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                               ID_MENUITEM_EDITBASEENTRY, tc_dummy);
+       break;
+      default:
+        ASSERT(0);
+    }
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_EXPORTENT2PLAINTEXT, tc_dummy); 
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_EXPORTENT2XML, tc_dummy);
+
+    if (!bReadOnly && etype_original != CItemData::ET_SHORTCUT)
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             pci->IsProtected() ? ID_MENUITEM_UNPROTECT : ID_MENUITEM_PROTECT,
+                             tc_dummy);
+
+    // Add if EXPLORER with bAddCompare set or,
+    // TREE view and command flag present and selected entry is not a shortcut
+    if ((m_ViewType == EXPLORER && bAddCompare) || 
+        (m_ViewType == TREE && m_bCompareEntries &&
+         etype_original != CItemData::ET_SHORTCUT))
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_COMPARE_ENTRIES, tc_dummy);
+  } else {
+    // Must be LIST view with no entry selected
+    pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+    pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                           ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
+  }
 }
 
 // Helps with MRU by allowing ON_UPDATE_COMMAND_UI
-void DboxMain::OnInitMenuPopup(CMenu* pPopupMenu, UINT, BOOL)
+void DboxMain::OnInitMenuPopup(CMenu *pPopupMenu, UINT, BOOL)
 {
   // Original OnInitMenu code
   // All main menus are POPUPs (see PasswordSafe2.rc2)
@@ -902,6 +1202,7 @@ void DboxMain::OnInitMenuPopup(CMenu* pPopupMenu, UINT, BOOL)
 
   bool bDoShortcuts(false);
   switch (minfo.dwMenuData) {
+    // Main menu items' shortcut should be always updated as keyboard layout could be changed
     case ID_FILEMENU:
     case ID_EXPORTMENU:
     case ID_IMPORTMENU:
@@ -911,7 +1212,7 @@ void DboxMain::OnInitMenuPopup(CMenu* pPopupMenu, UINT, BOOL)
     case ID_CHANGEFONTMENU:
     case ID_REPORTSMENU:
     case ID_MANAGEMENU:
-    case ID_HELPMENU:  //main menu items' shortuct should be always updated because keyboard layout could be changed
+    case ID_HELPMENU:
       bDoShortcuts = true;
       break;
     default:
@@ -959,7 +1260,7 @@ void DboxMain::OnInitMenuPopup(CMenu* pPopupMenu, UINT, BOOL)
     state.m_pParentMenu = pPopupMenu; // Parent == child for tracking popup.
   } else
   if ((hParentMenu = this->GetMenu()) != NULL) {
-    CWnd* pParent = this;
+    CWnd *pParent = this;
     // Child windows don't have menus--need to go to the top!
     if (pParent != NULL && (hParentMenu = pParent->GetMenu()) != NULL) {
       int nIndexMax = hParentMenu->GetMenuItemCount();
@@ -1057,7 +1358,7 @@ void DboxMain::OnInitMenuPopup(CMenu* pPopupMenu, UINT, BOOL)
 }
 
 // Called when right-click is invoked in the client area of the window.
-void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
+void DboxMain::OnContextMenu(CWnd * /*pWnd*/, CPoint screen)
 {
 #if defined(POCKET_PC)
   const DWORD dwTrackPopupFlags = TPM_LEFTALIGN;
@@ -1076,31 +1377,107 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
   minfo.fMask = MIM_MENUDATA;
 
   // Note if point = (-1, -1) then invoked via keyboard.
-  // Need coordinates of current selected itme instead on mouse position when message sent
+  // Need coordinates of current selected item instead on mouse position when message sent
   bool bKeyboard = (screen.x == -1 && screen.y == -1);
 
-  CPoint mp; // Screen co-ords (from "message point" or via Shift+F10 selected item
+  CPoint mp; // Screen co-ords (from "message point" or via Shift+F10 selected item)
   CRect rect, appl_rect;
 
+  // Initialise everything to NULL to determine if any set on the way!
+  CPWTreeView *pTreeView(NULL);
+  CPWListView *pListView(NULL);
+  CTreeCtrl *pTreeCtrl(NULL);
+  CListCtrl *pListCtrl(NULL);
+  st_PWLV_lParam *pLP(NULL);
+  int nRow(-1), nCol(-1);
+
+  // Compare decisions
+  bool bStandAloneCompare(false), bAddCompare(false);
+ 
+  HTREEITEM hItem(NULL);
+  POSITION pos(NULL);
+  CWnd *pActiveSplitterPane(NULL);
+  StringX sxPath;
+
   // Get client window position
+  mp = ::GetMessagePos();
+
+  if (m_ViewType == EXPLORER) {
+    pActiveSplitterPane = m_ctlItemView.GetActivePane(&nRow, &nCol);
+    if (pActiveSplitterPane == NULL) {
+      // No pane active, set top row List view as active pane
+      nRow = 0; nCol = 1;
+      m_ctlItemView.SetActivePane(nRow, nCol);
+    }
+
+    if (nCol == 0) {
+      // Tree view
+      pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
+      pTreeCtrl = &pTreeView->GetTreeCtrl();
+    } else {
+      // List view
+      pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+      pListCtrl = &pListView->GetListCtrl();
+    }
+  }
+
   if (bKeyboard) {
     CRect r;
-    if (m_ctlItemList.IsWindowVisible()) {
-      POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
-      if (pos == NULL)
-        return;  // Nothing selected!
+    switch (m_ViewType) {
+      case LIST:
+      {
+        pos = m_ctlItemList.GetFirstSelectedItemPosition();
+        if (pos == NULL)
+          return;  // Nothing selected!
 
-      int nIndex = m_ctlItemList.GetNextSelectedItem(pos);
-      m_ctlItemList.GetItemRect(nIndex, &r, LVIR_LABEL);
-      m_ctlItemList.ClientToScreen(&r);
-    } else
-    if (m_ctlItemTree.IsWindowVisible()) {
-      HTREEITEM hItem = m_ctlItemTree.GetSelectedItem();
-      if (hItem == NULL)
-        return;  // Nothing selected!
+        int nIndex = m_ctlItemList.GetNextSelectedItem(pos);
+        m_ctlItemList.GetItemRect(nIndex, &r, LVIR_LABEL);
+        m_ctlItemList.ClientToScreen(&r);
+        break;
+      }
+      case TREE:
+      {
+        hItem = m_ctlItemTree.GetSelectedItem();
+        if (hItem == NULL)
+          return;  // Nothing selected!
 
-      m_ctlItemTree.GetItemRect(hItem, &r, TRUE);
-      m_ctlItemTree.ClientToScreen(&r);
+        m_ctlItemTree.GetItemRect(hItem, &r, TRUE);
+        m_ctlItemTree.ClientToScreen(&r);
+        break;
+      }
+      case EXPLORER:
+      {
+        int nRow(-1), nCol(-1);
+        CRect r;
+        pActiveSplitterPane = m_ctlItemView.GetActivePane(&nRow, &nCol);
+        if (pActiveSplitterPane == NULL) {
+         // No pane active, set top row List view as active pane
+         nRow = 0; nCol = 1;
+         m_ctlItemView.SetActivePane(nRow, nCol);
+        }
+
+        if (nCol == 0) {
+         // Tree view
+          pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
+          pTreeCtrl = &pTreeView->GetTreeCtrl();
+          hItem = pTreeCtrl->GetSelectedItem();
+          if (hItem != NULL) {
+            pTreeCtrl->GetItemRect(hItem, &r, TRUE);
+            pTreeCtrl->ClientToScreen(&r);
+          }
+        } else {
+          // List view
+          pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+          pListCtrl = &pListView->GetListCtrl();
+          pos = pListCtrl->GetFirstSelectedItemPosition();
+          if (pos != NULL) {
+            int nIndex = pListCtrl->GetNextSelectedItem(pos);
+            pListCtrl->GetItemRect(nIndex, &r, LVIR_LABEL);
+            pListCtrl->ClientToScreen(&r);
+          }
+        }
+        break;
+      }
     }
     mp.x = (r.left + r.right) / 2;
     mp.y = (r.top + r.bottom) / 2;
@@ -1108,19 +1485,20 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
   } else {
     mp = ::GetMessagePos();
   }
+
   GetWindowRect(&appl_rect);
   m_MainToolBar.GetWindowRect(&rect);
 
   // RClick over Main Toolbar - allow Customize Main toolbar
   if (m_MainToolBar.IsVisible() &&
       mp.x > appl_rect.left && mp.x < appl_rect.right &&
-      mp.y > rect.top && mp.y < rect.bottom) {
+      mp.y > rect.top       && mp.y < rect.bottom) {
     if (menu.LoadMenu(IDR_POPCUSTOMIZETOOLBAR)) {
       minfo.dwMenuData = IDR_POPCUSTOMIZETOOLBAR;
       brc = menu.SetMenuInfo(&minfo);
       ASSERT(brc != 0);
 
-      CMenu* pPopup = menu.GetSubMenu(0);
+      CMenu *pPopup = menu.GetSubMenu(0);
       ASSERT_VALID(pPopup);
 
       // Use this DboxMain for commands
@@ -1129,16 +1507,17 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
     return;
   }
 
+  // Nothing Open - why are we even here?
   if (!m_bOpen)
     return;
 
   client = screen;
-  // RClick over ListView
-  if (m_ctlItemList.IsWindowVisible()) {
-    // currently in flattened list view.
+  // RClick over LIST View
+  if (m_ViewType == LIST) {
+    // currently in flattened LIST view.
     m_ctlItemList.GetWindowRect(&rect);
     if (mp.x < rect.left || mp.x > appl_rect.right ||
-        mp.y < rect.top || mp.y > rect.bottom) {
+        mp.y < rect.top  || mp.y > rect.bottom) {
       // But not in the window
       return;
     }
@@ -1154,18 +1533,18 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
       return;
     }
     m_ctlItemList.SetFocus();
+    // process right click over entry below
   }
 
-  // RClick over TreeView
-  if (m_ctlItemTree.IsWindowVisible()) {
-    // currently in tree view
+  // RClick over TREE View
+  if (m_ViewType == TREE) {
+    // currently in TREE view
     m_ctlItemTree.GetWindowRect(&rect);
     if (mp.x < rect.left || mp.x > appl_rect.right ||
-        mp.y < rect.top || mp.y > rect.bottom) {
+        mp.y < rect.top  || mp.y > rect.bottom) {
       // But not in the window
       return;
     }
-    ASSERT(m_ctlItemTree.IsWindowVisible());
 
     m_ctlItemTree.ScreenToClient(&client);
     HTREEITEM ti = m_ctlItemTree.HitTest(client);
@@ -1179,6 +1558,7 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
         ASSERT(pdi->tree_item == ti);
         item = pdi->list_index;
         m_ctlItemTree.SelectItem(ti); // So that OnEdit gets the right one
+        // process right click over entry below
       } else {
         // right-click was on a group (GROUP)
         m_ctlItemTree.SelectItem(ti);
@@ -1186,12 +1566,13 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
           minfo.dwMenuData = IDR_POPEDITGROUP;
           menu.SetMenuInfo(&minfo);
 
-          CMenu* pPopup = menu.GetSubMenu(0);
+          CMenu *pPopup = menu.GetSubMenu(0);
           ASSERT_VALID(pPopup);
-          m_TreeViewGroup = m_ctlItemTree.GetGroup(ti);
+          m_sxTreeViewGroup = GetGroupFullPath(&m_ctlItemTree, ti);
 
           int numProtected, numUnprotected;
-          bool bProtect = GetSubtreeEntriesProtectedStatus(numProtected, numUnprotected);
+          bool bProtect = GetSubtreeEntriesProtectedStatus(sxPath,
+                                    numProtected, numUnprotected);
 
           if (!bProtect || numUnprotected == 0)
             pPopup->RemoveMenu(ID_MENUITEM_PROTECTGROUP, MF_BYCOMMAND);
@@ -1208,7 +1589,7 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
         minfo.dwMenuData = IDR_POPTREE;
         brc = menu.SetMenuInfo(&minfo);
         ASSERT(brc != 0);
-        CMenu* pPopup = menu.GetSubMenu(0);
+        CMenu *pPopup = menu.GetSubMenu(0);
         ASSERT_VALID(pPopup);
         
         ti = m_ctlItemTree.GetSelectedItem();
@@ -1221,18 +1602,195 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
       }
     }
     m_ctlItemTree.SetFocus();
-  } // tree view handling
+  } // TREE view handling
+
+  // RClick over EXPLORER View
+  if (m_ViewType == EXPLORER) {
+    if (pTreeView != NULL) {
+      // Left pane - TreeView
+      pTreeCtrl = &pTreeView->GetTreeCtrl();
+      pTreeView->GetWindowRect(&rect);
+      if (mp.x < rect.left || mp.x > appl_rect.right ||
+          mp.y < rect.top  || mp.y > rect.bottom) {
+        // But not in the window
+        return;
+      }
+
+      // Only groups here!
+      pTreeCtrl->ScreenToClient(&client);
+      HTREEITEM ti = pTreeCtrl->HitTest(client);
+      if (ti != NULL)
+        pTreeCtrl->SelectItem(ti);
+      
+      if (menu.LoadMenu(IDR_POPEDITGROUP)) {
+        minfo.dwMenuData = IDR_POPEDITGROUP;
+        menu.SetMenuInfo(&minfo);
+
+        CMenu *pPopup = menu.GetSubMenu(0);
+        ASSERT_VALID(pPopup);
+        
+        // Deal with (un)protected items
+        int numProtected, numUnprotected;
+        bool bProtect = GetSubtreeEntriesProtectedStatus(sxPath,
+                                  numProtected, numUnprotected);
+
+        if (!bProtect || numUnprotected == 0)
+          pPopup->RemoveMenu(ID_MENUITEM_PROTECTGROUP, MF_BYCOMMAND);
+        if (!bProtect || numProtected == 0)
+          pPopup->RemoveMenu(ID_MENUITEM_UNPROTECTGROUP, MF_BYCOMMAND);
+
+        // Use this DboxMain for commands
+        pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);
+      }
+    } else {
+      // Right pane - ListView
+      pListCtrl = &pListView->GetListCtrl();
+      pListCtrl->GetWindowRect(&rect);
+      if (mp.x < rect.left || mp.x > appl_rect.right ||
+          mp.y < rect.top || mp.y > rect.bottom) {
+        // But not in the window
+        return;
+      }
+
+      // Nothing valid to show if more than 2 items selected
+      if (pListCtrl->GetSelectedCount() > 2)
+        return;
+
+      // Nothing valid to show if one or more is a group
+      if (pListCtrl->GetSelectedCount() > 1) {
+        pos = pListCtrl->GetFirstSelectedItemPosition();
+        while (pos != NULL) {
+          int nIndex = pListCtrl->GetNextSelectedItem(pos);
+          pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(nIndex);
+          if (pLP->pci == NULL)
+            return;
+        }
+      }
+
+      pListCtrl->ScreenToClient(&client);
+      item = pListCtrl->HitTest(client);
+      if (item < 0) {
+        // not over anything
+        if (menu.LoadMenu(IDR_POPTREE)) {  // "Add Group"
+          minfo.dwMenuData = IDR_POPTREE;
+          brc = menu.SetMenuInfo(&minfo);
+          ASSERT(brc != 0);
+          CMenu *pPopup = menu.GetSubMenu(0);
+          ASSERT_VALID(pPopup);
+        
+          pPopup->RemoveMenu(ID_MENUITEM_DUPLICATEGROUP, MF_BYCOMMAND);
+
+          // Use this DboxMain for commands
+          m_sxTreeViewGroup = pListView->GetCurrentPath();
+          m_bWhitespaceRightClick = true;
+          pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);
+        }
+        return;
+      }
+
+      pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(item);
+      ASSERT(pLP != NULL);
+      pci = (CItemData *)pLP->pci;
+      UpdateToolBarForSelectedItem(pci);
+
+      if (pci != NULL) {
+        // Right-click was on an item
+        // Get CItemData
+        // We know this is an entry and so the return from GetFullPath must not be NULL
+        StringX sx_FullPath;
+        pci = pListView->GetFullPath(item, sx_FullPath);
+        ASSERT(pci != NULL);
+        item = 0;
+        // process right click over entry below
+      } else {
+        // Right-click was on a group
+        // Get group name - subitem = 1 (0 == image)
+        // We know this is a group and so the return from GetFullPath must be NULL
+        StringX sx_FullPath;
+        CItemData *pci_group = pListView->GetFullPath(item, sx_FullPath);
+        ASSERT(pci_group == NULL);
+
+        // Reset item as on a group
+        item = -1;
+        
+        // Now get item in main tree
+        HTREEITEM ti = pLP->hItem;
+
+        if (ti != NULL && menu.LoadMenu(IDR_POPEDITGROUP)) {
+          minfo.dwMenuData = IDR_POPEDITGROUP;
+          menu.SetMenuInfo(&minfo);
+
+          CMenu *pPopup = menu.GetSubMenu(0);
+          ASSERT_VALID(pPopup);
+          m_sxTreeViewGroup = GetGroupFullPath(&m_ctlItemTree, ti);
+
+          int numProtected, numUnprotected;
+          bool bProtect = GetSubtreeEntriesProtectedStatus(sxPath,
+                                    numProtected, numUnprotected);
+
+          if (!bProtect || numUnprotected == 0)
+            pPopup->RemoveMenu(ID_MENUITEM_PROTECTGROUP, MF_BYCOMMAND);
+          if (!bProtect || numProtected == 0)
+            pPopup->RemoveMenu(ID_MENUITEM_UNPROTECTGROUP, MF_BYCOMMAND);
+
+          // Use this DboxMain for commands
+          pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);
+        } else {
+          // No idea why here
+          ASSERT(0);
+          return;
+        }
+      }
+    }
+    pActiveSplitterPane->SetFocus();
+  }
 
   // RClick over an entry
   if (item >= 0) {
     CMenu *pPopup(NULL);
 
-    // More than 2 is meaningless in List view
-    if (m_IsListView && m_ctlItemList.GetSelectedCount() > 2)
+    // More than 2 is meaningless in LIST view
+    if (m_ViewType == LIST && m_ctlItemList.GetSelectedCount() > 2)
       return;
 
-    // Only compare entries if 2 entries are selected - List view only
-    if (m_IsListView && m_ctlItemList.GetSelectedCount() == 2) {
+    // If exactly 2 selected - show compare entries menu
+    // This is in LIST view and the EXPLORER - list view only
+    // Or in a spli EXPLORER view and one entry selected in each!
+    if (m_ViewType == LIST  && m_ctlItemList.GetSelectedCount() == 2) {
+      // LIST view and 2 entries selected
+      bStandAloneCompare = true;
+    } else
+    if (m_ViewType == EXPLORER && pListView != NULL &&
+        pListView->GetListCtrl().GetSelectedCount() == 2) {
+      // EXPLORER view and 2 entries seelcted in current pane
+      st_PWLV_lParam *pLP0, *pLP1;
+      POSITION pos;
+      int iIndex;
+      pos = pListCtrl->GetFirstSelectedItemPosition();
+      iIndex = pListCtrl->GetNextSelectedItem(pos);
+      pLP0 = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+      iIndex = pListCtrl->GetNextSelectedItem(pos);
+      pLP1 = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+      if (pLP0->pci != NULL && pLP1->pci != NULL)
+        bStandAloneCompare = true;
+    } else
+    if (m_bSplitView && pListView != NULL &&
+        m_pListView0->GetListCtrl().GetSelectedCount() == 1 &&
+        m_pListView1->GetListCtrl().GetSelectedCount() == 1) {
+      // EXPLORER view and 1 entry selected in each pane
+      st_PWLV_lParam *pLP0, *pLP1;
+      POSITION pos;
+      int iIndex;
+      pos = m_pListView0->GetListCtrl().GetFirstSelectedItemPosition();
+      iIndex = m_pListView0->GetListCtrl().GetNextSelectedItem(pos);
+      pLP0 = (st_PWLV_lParam *)m_pListView0->GetListCtrl().GetItemData(iIndex);
+      pos = m_pListView1->GetListCtrl().GetFirstSelectedItemPosition();
+      iIndex = m_pListView1->GetListCtrl().GetNextSelectedItem(pos);
+      pLP1 = (st_PWLV_lParam *)m_pListView1->GetListCtrl().GetItemData(iIndex);
+      if (pLP0->pci != NULL && pLP1->pci != NULL)
+        bAddCompare = true;
+    }
+    if (bStandAloneCompare) {
       brc = menu.LoadMenu(IDR_POPCOMPAREENTRIES);
       ASSERT(brc != 0);
 
@@ -1248,7 +1806,7 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
       return;
     }
 
-    ASSERT(pci != NULL);
+    ASSERT(pci != NULL);  // **************** Error - right click on Group in ListView
     brc = menu.LoadMenu(IDR_POPEDITMENU);
     ASSERT(brc != 0);
 
@@ -1320,18 +1878,22 @@ void DboxMain::OnContextMenu(CWnd * /* pWnd */, CPoint screen)
       pPopup->RemoveMenu(ID_MENUITEM_RUNCOMMAND, MF_BYCOMMAND);
     }
 
-    if (m_IsListView) {
-      // Rename not valid in List View
+    if (m_ViewType == LIST) {
+      // Rename not valid in LIST View
       pPopup->RemoveMenu(ID_MENUITEM_RENAMEENTRY, MF_BYCOMMAND);
     }
 
     // Since an entry - remove Duplicate Group
     pPopup->RemoveMenu(ID_MENUITEM_DUPLICATEGROUP, MF_BYCOMMAND);
 
-    // Remove if in List View, not allowed in Tree view or a shortcut
-    if (m_IsListView || !m_bCompareEntries ||
-        etype_original == CItemData::ET_SHORTCUT)
-        pPopup->RemoveMenu(ID_MENUITEM_COMPARE_ENTRIES, MF_BYCOMMAND);
+    // Remove if in LIST View, or
+    // If in TREE view without command flag or entry is a shortcut, or
+    // EXPLORER view but bAddCompare not set
+    if (m_ViewType == LIST ||
+        (m_ViewType == EXPLORER && !bAddCompare) || 
+        (m_ViewType == TREE && !m_bCompareEntries) ||
+         etype_original == CItemData::ET_SHORTCUT)
+      pPopup->RemoveMenu(ID_MENUITEM_COMPARE_ENTRIES, MF_BYCOMMAND);
 
     // Use this DboxMain for commands
     pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);

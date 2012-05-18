@@ -17,24 +17,7 @@ public:
   CCWTreeCtrl();
   ~CCWTreeCtrl();
 
-  // Indices of bitmaps in ImageList
-  // NOTE for normal and base entries items, order MUST be:
-  //    Not-Expired, Warn-Expired, Expired
-  // MUST BE SAME AS IN PWTreeCtrl.h !!!!
-  enum {GROUP = 0,
-    NORMAL, WARNEXPIRED_NORMAL, EXPIRED_NORMAL,
-    ALIASBASE, WARNEXPIRED_ALIASBASE, EXPIRED_ALIASBASE, ALIAS,
-    SHORTCUTBASE, WARNEXPIRED_SHORTCUTBASE, EXPIRED_SHORTCUTBASE, SHORTCUT,
-    NUM_IMAGES};
-
-  HTREEITEM AddGroup(const CString &path);
-  bool IsLeaf(HTREEITEM hItem) const;
-  int CountChildren(HTREEITEM hStartItem) const;
   CSecString MakeTreeDisplayString(const CItemData &ci) const;
-  void OnCollapseAll();
-  void OnExpandAll();
-  HTREEITEM GetNextTreeItem(HTREEITEM hItem);
-  int GetEntryImage(const CItemData &ci) const;
 
 protected:
   //{{AFX_MSG(CCWTreeCtrl)
@@ -42,9 +25,4 @@ protected:
   //}}AFX_MSG
 
   DECLARE_MESSAGE_MAP()
-
-private:
-  bool IsChildNodeOf(HTREEITEM hitemChild, HTREEITEM hitemSuspectedParent) const;
-  bool ExistsInTree(HTREEITEM &node, const CSecString &s, HTREEITEM &si) const;
-  void CollapseBranch(HTREEITEM hItem);
 };

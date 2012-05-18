@@ -14,6 +14,9 @@ down the streetsky.  [Groucho Marx]
 */
 
 #include "PasswordSafe.h"
+
+#include "WindowsDefs.h"
+
 #include "PWFileDialog.h"
 #include "ThisMfcApp.h"
 #include "GeneralMsgBox.h"

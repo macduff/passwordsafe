@@ -49,5 +49,5 @@ public:
   void DDUnSerialize(CSMemFile &inDDmemfile);
 
 public:
-  bool m_bDragNode;
+  bool m_bDraggingGroup;  // true if dragging a node, false if dragging a leaf
 };

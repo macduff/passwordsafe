@@ -9,11 +9,15 @@
 //
 
 #include "stdafx.h"
+
+#include "WindowsDefs.h"
+
 #include "ExpPWListDlg.h"
 #include "DboxMain.h"
 #include "ThisMfcApp.h"
 #include "SecString.h"
 #include "PWTreeCtrl.h"
+#include "Images.h"
 
 #include "core/Util.h"
 #include "core/PWSprefs.h"
@@ -69,12 +73,6 @@ CExpPWListDlg::~CExpPWListDlg()
 {
 }
 
-void CExpPWListDlg::OnDestroy()
-{
-  m_pImageList->DeleteImageList();
-  delete m_pImageList;
-}
-
 void CExpPWListDlg::DoDataExchange(CDataExchange* pDX)
 {
   CPWDialog::DoDataExchange(pDX);
@@ -92,6 +90,12 @@ BEGIN_MESSAGE_MAP(CExpPWListDlg, CPWDialog)
 END_MESSAGE_MAP()
 
 // CExpPWListDlg message handlers
+void CExpPWListDlg::OnDestroy()
+{
+  // Remove image list
+  m_expPWListCtrl.SetImageList(NULL, LVSIL_NORMAL);
+  m_expPWListCtrl.SetImageList(NULL, LVSIL_SMALL);
+}
 
 BOOL CExpPWListDlg::PreTranslateMessage(MSG* pMsg)
 {
@@ -122,43 +126,10 @@ BOOL CExpPWListDlg::OnInitDialog()
   cs_text.LoadString(IDS_PASSWORDEXPIRYDATE);
   m_expPWListCtrl.InsertColumn(4, cs_text);
 
-  CBitmap bitmap;
-  BITMAP bm;
+  Images *pImages = Images::GetInstance();
 
-  // Change all pixels in this 'grey' to transparent
-  const COLORREF crTransparent = RGB(192, 192, 192);
-
-  bitmap.LoadBitmap(IDB_GROUP);
-  bitmap.GetBitmap(&bm);
-
-  m_pImageList = new CImageList();
-  // Number (12) corresponds to number in CPWTreeCtrl public enum
-  BOOL status = m_pImageList->Create(bm.bmWidth, bm.bmHeight,
-                                     ILC_MASK | ILC_COLORDDB,
-                                     CPWTreeCtrl::NUM_IMAGES, 0);
-  ASSERT(status != 0);
-
-  // Order of LoadBitmap() calls matches CPWTreeCtrl public enum
-  // Also now used by CListCtrl!
-  //bitmap.LoadBitmap(IDB_GROUP); - already loaded above to get width
-  m_pImageList->Add(&bitmap, crTransparent);
-  bitmap.DeleteObject();
-  UINT bitmapResIDs[] = {
-    IDB_NORMAL, IDB_NORMAL_WARNEXPIRED, IDB_NORMAL_EXPIRED,
-    IDB_ABASE, IDB_ABASE_WARNEXPIRED, IDB_ABASE_EXPIRED,
-    IDB_ALIAS,
-    IDB_SBASE, IDB_SBASE_WARNEXPIRED, IDB_SBASE_EXPIRED,
-    IDB_SHORTCUT,
-  };
-
-  for (int i = 0; i < sizeof(bitmapResIDs) / sizeof(bitmapResIDs[0]); i++) {
-    bitmap.LoadBitmap(bitmapResIDs[i]);
-    m_pImageList->Add(&bitmap, crTransparent);
-    bitmap.DeleteObject();
-  }
-
-  m_expPWListCtrl.SetImageList(m_pImageList, LVSIL_SMALL);
-  m_expPWListCtrl.SetImageList(m_pImageList, LVSIL_NORMAL);
+  m_expPWListCtrl.SetImageList(pImages->GetImageList(), LVSIL_SMALL);
+  m_expPWListCtrl.SetImageList(pImages->GetImageList(), LVSIL_NORMAL);
 
   int nPos = 0;
   std::vector<st_ExpLocalListEntry>::const_iterator itempos;
@@ -186,7 +157,7 @@ BOOL CExpPWListDlg::OnInitDialog()
   m_expPWListCtrl.SetRedraw(FALSE);
 
   // Sort by expiry date - soonest first
-  m_expPWListCtrl.SortItems(ExpPWCompareFunc, (LPARAM)this);
+  m_expPWListCtrl.SortItems(ExpPWCompareFunction, (LPARAM)this);
 
   // Set column widths
   for (int i = 0; i < 5; i++) {
@@ -220,7 +191,7 @@ void CExpPWListDlg::OnHeaderClicked(NMHDR *pNotifyStruct, LRESULT *pLResult)
       m_bSortAscending = TRUE;
 
     m_iSortedColumn = phdn->iItem;
-    m_expPWListCtrl.SortItems(ExpPWCompareFunc, (LPARAM)this);
+    m_expPWListCtrl.SortItems(ExpPWCompareFunction, (LPARAM)this);
 
     // Note: WINVER defines the minimum system level for which this is program compiled and
     // NOT the level of system it is running on!
@@ -246,10 +217,10 @@ void CExpPWListDlg::OnHeaderClicked(NMHDR *pNotifyStruct, LRESULT *pLResult)
   *pLResult = 0;
 }
 
-int CALLBACK CExpPWListDlg::ExpPWCompareFunc(LPARAM lParam1, LPARAM lParam2,
-                                             LPARAM closure)
+int CALLBACK CExpPWListDlg::ExpPWCompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                                 LPARAM lParamSort)
 {
-  CExpPWListDlg *self = (CExpPWListDlg*)closure;
+  CExpPWListDlg *self = (CExpPWListDlg *)lParamSort;
   int nSortColumn = self->m_iSortedColumn;
   const st_ExpLocalListEntry pLHS = self->m_vExpLocalListEntries[lParam1];
   const st_ExpLocalListEntry pRHS = self->m_vExpLocalListEntries[lParam2];
@@ -336,31 +307,31 @@ void CExpPWListDlg::OnItemDoubleClick(NMHDR *, LRESULT *pLResult)
     m_expPWListCtrl.Update(irow);
 
     // Re-sort
-    m_expPWListCtrl.SortItems(ExpPWCompareFunc, (LPARAM)this);
+    m_expPWListCtrl.SortItems(ExpPWCompareFunction, (LPARAM)this);
   }
 }
 
 int CExpPWListDlg::GetEntryImage(const st_ExpLocalListEntry &elle)
 {
   if (elle.et == CItemData::ET_ALIAS)
-    return CPWTreeCtrl::ALIAS;
+    return CItemData::EI_ALIAS;
 
   if (elle.et == CItemData::ET_SHORTCUT)
-    return CPWTreeCtrl::SHORTCUT;
+    return CItemData::EI_SHORTCUT;
 
   int nImage;
   switch (elle.et) {
     case CItemData::ET_NORMAL:
-      nImage = CPWTreeCtrl::NORMAL;
+      nImage = CItemData::EI_NORMAL;
       break;
     case CItemData::ET_ALIASBASE:
-      nImage = CPWTreeCtrl::ALIASBASE;
+      nImage = CItemData::EI_ALIASBASE;
       break;
     case CItemData::ET_SHORTCUTBASE:
-      nImage = CPWTreeCtrl::SHORTCUTBASE;
+      nImage = CItemData::EI_SHORTCUTBASE;
       break;
     default:
-      nImage = CPWTreeCtrl::NORMAL;
+      nImage = CItemData::EI_NORMAL;
       break;
   }
 

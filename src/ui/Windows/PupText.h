@@ -13,8 +13,6 @@
 //
 #pragma once
 
-#define TIMER_PUPTEXT 0x03
-
 //////////////////
 // Get NONCLIENTMETRICS info: ctor calls SystemParametersInfo.
 //

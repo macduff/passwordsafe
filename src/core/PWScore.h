@@ -452,10 +452,11 @@ public:
                  const bool bAllowReplace = false);
 
   // Empty Groups
-  void SetEmptyGroups(const std::vector<StringX> &vEmptyGroups)
-  {m_vEmptyGroups = vEmptyGroups; SetDBChanged(true);}
-  const std::vector<StringX> &GetEmptyGroups() {return m_vEmptyGroups;}
+  void SetEmptyGroups(const PathSet &setEmptyGroups)
+  {m_setEmptyGroups = setEmptyGroups; SetDBChanged(true);}
+  const PathSet &GetEmptyGroups() {return m_setEmptyGroups;}
   bool IsEmptyGroup(const StringX &sxEmptyGroup);
+  bool HasEmptySubgroup(const StringX &sxEmptyGroup);
 
 private:
   // Database update routines
@@ -576,7 +577,7 @@ private:
   void AddChangedNodes(StringX path);
 
   // EmptyGroups
-  std::vector<StringX> m_vEmptyGroups;
+  PathSet m_setEmptyGroups;
 
   UnknownFieldList m_UHFL;
   int m_nRecordsWithUnknownFields;

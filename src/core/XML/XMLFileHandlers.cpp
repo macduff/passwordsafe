@@ -246,8 +246,8 @@ void XMLFileHandlers::ProcessEndElement(const int icurrent_element)
       break;
     case XLE_EGNAME:
       if (!m_strElemContent.empty() &&
-          find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), m_strElemContent) == m_vEmptyGroups.end())
-        m_vEmptyGroups.push_back(m_strElemContent);
+          m_setEmptyGroups.find(m_strElemContent) == m_setEmptyGroups.end())
+        m_setEmptyGroups.insert(m_strElemContent);
       break;
     // MUST be in the same order as enum beginning STR_GROUP...
     case XLE_GROUP:
@@ -530,8 +530,8 @@ void XMLFileHandlers::AddXMLEntries()
   }
   
   // Then add any Empty Groups imported that are not already in the database
-  if (!m_vEmptyGroups.empty()) {
-    Command *pcmd = DBEmptyGroupsCommand::Create(m_pXMLcore, m_vEmptyGroups,
+  if (!m_setEmptyGroups.empty()) {
+    Command *pcmd = DBEmptyGroupsCommand::Create(m_pXMLcore, m_setEmptyGroups,
                            DBEmptyGroupsCommand::EG_ADDALL);
     m_pmulticmds->Add(pcmd);
   }

@@ -12,6 +12,8 @@
 
 #include "PasswordSafe.h"
 
+#include "WindowsDefs.h"
+
 #include "ThisMfcApp.h"
 #include "AddEdit_PropertySheet.h"
 #include "DboxMain.h"
@@ -20,9 +22,12 @@
 #include "GeneralMsgBox.h"
 #include "FontsDialog.h"
 #include "Fonts.h"
+#include "Images.h"
 #include "InfoDisplay.h"
 #include "ViewReport.h"
 #include "ExpPWListDlg.h"
+#include "TreeUtils.h"
+#include "DDSupport.h"
 
 #include "VirtualKeyboard/VKeyBoardDlg.h"
 
@@ -51,9 +56,10 @@
 #include <sys/stat.h>
 
 using namespace std;
+using namespace TreeUtils;
 using pws_os::CUUID;
 
-extern const wchar_t *GROUP_SEP2;
+extern StringX sxDot;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -154,19 +160,23 @@ void DboxMain::UpdateGUI(UpdateGUICommand::GUI_Action ga,
         RebuildGUI();
       break;
     case UpdateGUICommand::GUI_REFRESH_TREE:
-      // Rebuid the entire tree view
-      RebuildGUI(iTreeOnly);
+      // Rebuid the entire TREE and EXPLORER views
+      RebuildGUI(iTreeOnly + iExplorerOnly);
       break;
     case UpdateGUICommand::GUI_DB_PREFERENCES_CHANGED:
       // Change any impact on the application due to a database preference change
       // Currently - only Idle Timeout values and potentially whether the
-      // user/password is shown in the Tree view
+      // user/password is shown in the TREE view
       KillTimer(TIMER_LOCKDBONIDLETIMEOUT);
       ResetIdleLockCounter();
       if (prefs->GetPref(PWSprefs::LockDBOnIdleTimeout)) {
         SetTimer(TIMER_LOCKDBONIDLETIMEOUT, IDLE_CHECK_INTERVAL, NULL);
       }
       RebuildGUI(iTreeOnly);
+      break;
+    case UpdateGUICommand::GUI_REFRESH_ALL:
+      // Rebuid all views
+      RebuildGUI();
       break;
     default:
       break;
@@ -210,15 +220,15 @@ void DboxMain::UpdateWizard(const stringT &s)
 * If sorting is by group (title/user), title (username), username (title) 
 * fields in brackets are the secondary fields if the primary fields are identical.
 */
-int CALLBACK DboxMain::CompareFunc(LPARAM lParam1, LPARAM lParam2,
-                                   LPARAM closure)
+int CALLBACK DboxMain::CompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                       LPARAM lParamSort)
 {
-  // closure is "this" of the calling DboxMain, from which we use:
+  // lParamSort is "this" of the calling DboxMain, from which we use:
   // m_iTypeSortColumn to determine which column is getting sorted
   // which is by column data TYPE and NOT by column index!
   // m_bSortAscending to determine the direction of the sort (duh)
 
-  DboxMain *self = (DboxMain *)closure;
+  DboxMain *self = (DboxMain *)lParamSort;
   ASSERT(self != NULL);
 
   const int nTypeSortColumn = self->m_iTypeSortColumn;
@@ -457,94 +467,67 @@ void DboxMain::UpdateToolBarForSelectedItem(const CItemData *pci)
   }
 }
 
-void DboxMain::setupBars()
+void DboxMain::SetupBars()
 {
 #if !defined(POCKET_PC)
   // This code is copied from the DLGCBR32 example that comes with MFC
 
-  // Add the status bar
-  if (m_statusBar.Create(this)) {
-    // Set up DoubleClickAction text - remove Shift+DCA
-    const int dca = int(PWSprefs::GetInstance()->GetPref(PWSprefs::DoubleClickAction));
-    switch (dca) {
-      case PWSprefs::DoubleClickAutoType:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATAUTOTYPE;
-        break;
-      case PWSprefs::DoubleClickBrowse:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATBROWSE;
-        break;
-      case PWSprefs::DoubleClickCopyNotes:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOPYNOTES;
-        break;
-      case PWSprefs::DoubleClickCopyPassword:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOPYPASSWORD;
-        break;
-      case PWSprefs::DoubleClickCopyUsername:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOPYUSERNAME;
-        break;
-      case PWSprefs::DoubleClickViewEdit:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATVIEWEDIT;
-        break;
-      case PWSprefs::DoubleClickCopyPasswordMinimize:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOPYPASSWORDMIN;
-        break;
-      case PWSprefs::DoubleClickBrowsePlus:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATBROWSEPLUS;
-        break;
-      case PWSprefs::DoubleClickRun:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATRUN;
-        break;
-      case PWSprefs::DoubleClickSendEmail:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATSENDEMAIL;
-        break;
-      default:
-        statustext[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOMPANY;
-    }
-
-    statustext[CPWStatusBar::SB_CLIPBOARDACTION] = IDS_BLANK;
-    // Set up Configuration source indicator (debug only)
-#if defined(_DEBUG) || defined(DEBUG)
-    statustext[CPWStatusBar::SB_CONFIG] = PWSprefs::GetInstance()->GetConfigIndicator();
-#endif /* DEBUG */
-    // Set up the rest - all but one empty as pane now re-sized according to contents
-    statustext[CPWStatusBar::SB_MODIFIED] = IDS_BLANK;
-    statustext[CPWStatusBar::SB_NUM_ENT] = IDS_BLANK;
-    statustext[CPWStatusBar::SB_FILTER] = IDS_BLANK;
-    statustext[CPWStatusBar::SB_READONLY] = IDS_READ_ONLY;
-
-    // And show
-    m_statusBar.SetIndicators(statustext, CPWStatusBar::SB_TOTAL);
-
-    UINT uiID, uiStyle;
-    int cxWidth;
-    m_statusBar.GetPaneInfo(CPWStatusBar::SB_FILTER, uiID,
-                            uiStyle, cxWidth);
-    int iBMWidth = m_statusBar.GetBitmapWidth();
-    m_statusBar.SetPaneInfo(CPWStatusBar::SB_FILTER, uiID,
-                            uiStyle | SBT_OWNERDRAW, iBMWidth);
-
-    // Make a sunken or recessed border around the first pane
-    m_statusBar.SetPaneInfo(CPWStatusBar::SB_DBLCLICK, 
-                            m_statusBar.GetItemID(CPWStatusBar::SB_DBLCLICK), 
-                            SBPS_STRETCH, NULL);
-  }
-
-  CDC* pDC = this->GetDC();
+  CDC *pDC = this->GetDC();
   int NumBits = (pDC ? pDC->GetDeviceCaps(12 /*BITSPIXEL*/) : 32);
   m_MainToolBar.Init(NumBits);
   m_FindToolBar.Init(NumBits, this, PWS_MSG_TOOLBAR_FIND,
                      &m_SaveAdvValues[CAdvancedDlg::FIND]);
+  m_ExplorerToolBar0.Init(NumBits, TOP, this);
+  m_ExplorerToolBar1.Init(NumBits, BOTTOM, this);
   ReleaseDC(pDC);
+
+  DWORD dwStyle;
+
+  /*
+    MUST add Explorer Toolbar first as both it and the Main Toolbar specify the
+    position CBRS_TOP (TOP).  The second to be created goes above the first with the
+    same flag.
+  */
+
+  // Add the Top Explorer ToolBar.
+  if (!m_ExplorerToolBar0.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
+                                   WS_CHILD | WS_VISIBLE | CCS_ADJUSTABLE |
+                                   CBRS_TOP | CBRS_FLYBY,
+                                   CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + EXPLORER_TB0)) {
+    pws_os::Trace(L"Failed to create Top Explorer toolbar\n");
+    return;      // fail to create
+  }
+  dwStyle = m_ExplorerToolBar0.GetBarStyle();
+  dwStyle = dwStyle | CBRS_BORDER_BOTTOM | CBRS_BORDER_TOP   |
+                      CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
+                      CBRS_TOOLTIPS      | CBRS_FLYBY;
+  m_ExplorerToolBar0.SetBarStyle(dwStyle);
+  m_ExplorerToolBar0.SetWindowText(L"Top Explorer");
+
+  // Add the Bottom Explorer ToolBar.
+  if (!m_ExplorerToolBar1.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
+                                   WS_CHILD | WS_VISIBLE | CCS_ADJUSTABLE |
+                                   CBRS_BOTTOM | CBRS_FLYBY,
+                                   CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + EXPLORER_TB1)) {
+    pws_os::Trace(L"Failed to create Bottom Explorer toolbar\n");
+    return;      // fail to create
+  }
+  dwStyle = m_ExplorerToolBar1.GetBarStyle();
+  dwStyle = dwStyle | CBRS_BORDER_BOTTOM | CBRS_BORDER_TOP   |
+                      CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
+                      CBRS_TOOLTIPS      | CBRS_FLYBY;
+  m_ExplorerToolBar1.SetBarStyle(dwStyle);
+  m_ExplorerToolBar1.SetWindowText(L"Bottom Explorer");
 
   // Add the Main ToolBar.
   if (!m_MainToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
                               WS_CHILD | WS_VISIBLE | CCS_ADJUSTABLE |
                               CBRS_TOP | CBRS_SIZE_DYNAMIC,
-                              CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + 1)) {
+                              CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + MAIN_TB)) {
     pws_os::Trace(L"Failed to create Main toolbar\n");
     return;      // fail to create
   }
-  DWORD dwStyle = m_MainToolBar.GetBarStyle();
+  dwStyle = m_MainToolBar.GetBarStyle();
   dwStyle = dwStyle | CBRS_BORDER_BOTTOM | CBRS_BORDER_TOP   |
                       CBRS_BORDER_LEFT   | CBRS_BORDER_RIGHT |
                       CBRS_TOOLTIPS      | CBRS_FLYBY;
@@ -555,7 +538,7 @@ void DboxMain::setupBars()
   if (!m_FindToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
                               WS_CHILD    | WS_VISIBLE |
                               CBRS_BOTTOM | CBRS_SIZE_DYNAMIC,
-                              CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + 2)) {
+                              CRect(0, 0, 0, 0), AFX_IDW_RESIZE_BAR + FIND_TB)) {
     pws_os::Trace(L"Failed to create Find toolbar\n");
     return;      // fail to create
   }
@@ -566,6 +549,20 @@ void DboxMain::setupBars()
   m_FindToolBar.SetBarStyle(dwStyle);
   m_FindToolBar.SetWindowText(L"Find");
 
+  m_FindToolBar.ShowFindToolBar(false);
+
+  // Add the status bar
+  if (m_statusBar.Create(this, WS_CHILD | WS_VISIBLE | CBRS_BOTTOM,
+                         AFX_IDW_STATUS_BAR)) {
+    m_bStatusBarCreated = true;
+    SetupStatusBar();
+  }
+
+  // Don't show either Explorer ToolBar now - only if in Explorer View
+  m_ExplorerToolBar0.EnableWindow(FALSE);
+  m_ExplorerToolBar0.ShowWindow(SW_HIDE);
+  m_ExplorerToolBar1.EnableWindow(FALSE);
+  m_ExplorerToolBar1.ShowWindow(SW_HIDE);
 
   // Set dragbar & toolbar according to graphic capabilities, overridable by user choice.
   if (NumBits < 16 || !PWSprefs::GetInstance()->GetPref(PWSprefs::UseNewToolbar))  {
@@ -573,8 +570,6 @@ void DboxMain::setupBars()
   } else {
     SetToolbar(ID_MENUITEM_NEW_TOOLBAR, true);
   }
-
-  m_FindToolBar.ShowFindToolBar(false);
 
   // Set flag - we're done
   m_toolbarsSetup = TRUE;
@@ -603,7 +598,80 @@ void DboxMain::setupBars()
 #endif
 }
 
-void DboxMain::UpdateListItem(const int lindex, const int type, const StringX &newText)
+void DboxMain::SetupStatusBar()
+{
+  if (!m_bStatusBarCreated)
+    return;
+
+  // oldViewType == EXPLORER
+
+  UINT uiID, uiStyle;
+  int cxWidth;
+  const int iBMWidth = m_statusBar.GetBitmapWidth();
+
+  // Set up DoubleClickAction text - remove Shift+DCA
+  const int dca = int(PWSprefs::GetInstance()->GetPref(PWSprefs::DoubleClickAction));
+  switch (dca) {
+    case PWSprefs::DoubleClickAutoType:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATAUTOTYPE;
+      break;
+    case PWSprefs::DoubleClickBrowse:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATBROWSE;
+      break;
+    case PWSprefs::DoubleClickCopyNotes:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOPYNOTES;
+      break;
+    case PWSprefs::DoubleClickCopyPassword:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOPYPASSWORD;
+      break;
+    case PWSprefs::DoubleClickCopyUsername:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOPYUSERNAME;
+      break;
+    case PWSprefs::DoubleClickViewEdit:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATVIEWEDIT;
+      break;
+    case PWSprefs::DoubleClickCopyPasswordMinimize:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOPYPASSWORDMIN;
+      break;
+    case PWSprefs::DoubleClickBrowsePlus:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATBROWSEPLUS;
+      break;
+    case PWSprefs::DoubleClickRun:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATRUN;
+      break;
+    case PWSprefs::DoubleClickSendEmail:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATSENDEMAIL;
+      break;
+    default:
+      m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = IDS_STATCOMPANY;
+  }
+
+  m_StatusBarText[CPWStatusBar::SB_CLIPBOARDACTION] = IDS_BLANK;
+  // Set up Configuration source indicator (debug only)
+#if defined(_DEBUG) || defined(DEBUG)
+  m_StatusBarText[CPWStatusBar::SB_CONFIG] = PWSprefs::GetInstance()->GetConfigIndicator();
+#endif /* DEBUG */
+  // Set up the rest - all but one empty as pane now re-sized according to contents
+  m_StatusBarText[CPWStatusBar::SB_MODIFIED] = IDS_BLANK;
+  m_StatusBarText[CPWStatusBar::SB_NUM_ENT] = IDS_BLANK;
+  m_StatusBarText[CPWStatusBar::SB_FILTER] = IDS_BLANK;
+  m_StatusBarText[CPWStatusBar::SB_READONLY] = IDS_READ_ONLY;
+
+  // And show
+  m_statusBar.SetIndicators(m_StatusBarText, CPWStatusBar::SB_TOTAL);
+
+  m_statusBar.GetPaneInfo(CPWStatusBar::SB_FILTER, uiID,
+                          uiStyle, cxWidth);
+  m_statusBar.SetPaneInfo(CPWStatusBar::SB_FILTER, uiID,
+                          uiStyle | SBT_OWNERDRAW, iBMWidth);
+
+  // Make a sunken or recessed border around the first pane
+  m_statusBar.SetPaneInfo(CPWStatusBar::SB_DBLCLICK, 
+                          m_statusBar.GetItemID(CPWStatusBar::SB_DBLCLICK), 
+                          SBPS_STRETCH, NULL);
+}
+
+void DboxMain::UpdateListItem(const int iIndex, const int type, const StringX &sxNewText)
 {
   int iSubItem = m_nColumnIndexByType[type];
 
@@ -611,22 +679,29 @@ void DboxMain::UpdateListItem(const int lindex, const int type, const StringX &n
   if (iSubItem < 0)
     return;
 
-  BOOL brc = m_ctlItemList.SetItemText(lindex, iSubItem, newText.c_str());
+  BOOL brc = m_ctlItemList.SetItemText(iIndex, iSubItem, sxNewText.c_str());
   ASSERT(brc == TRUE);
   if (m_iTypeSortColumn == type) { // resort if necessary
     m_bSortAscending = PWSprefs::GetInstance()->GetPref(PWSprefs::SortAscending);
-    m_ctlItemList.SortItems(CompareFunc, (LPARAM)this);
+    m_ctlItemList.SortItems(CompareFunction, (LPARAM)this);
     FixListIndexes();
   }
 }
 
-void DboxMain::UpdateTreeItem(const HTREEITEM hItem, const StringX &newText)
+void DboxMain::UpdateTreeItem(const HTREEITEM hItem, const StringX &sxNewText)
 {
   CRect rect;
-  m_ctlItemTree.SetItemText(hItem, newText.c_str());
+  m_ctlItemTree.SetItemText(hItem, sxNewText.c_str());
 
   m_ctlItemTree.GetItemRect(hItem, &rect, FALSE);
   m_ctlItemTree.InvalidateRect(&rect);
+}
+
+void DboxMain::UpdateExplorerItem(const CItemData *pci, const StringX &sxNewText)
+{
+  m_pListView0->SetEntryText(pci, sxNewText);
+  if (m_bSplitView)
+    m_pListView1->SetEntryText(pci, sxNewText);
 }
 
 // Find in m_pwlist entry with same title and user name as the i'th entry in m_ctlItemList
@@ -687,7 +762,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
 
   OrderedItemList orderedItemList;
   OrderedItemList::const_iterator olistPos, olistEnd;
-  if (m_IsListView) {
+  if (m_ViewType == LIST) {
     listPos = m_core.GetEntryIter();
     listEnd = m_core.GetEntryEndIter();
   } else {
@@ -696,8 +771,8 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
     olistEnd = orderedItemList.end();
   }
 
-  while (m_IsListView ? (listPos != listEnd) : (olistPos != olistEnd)) {
-    const CItemData &curitem = m_IsListView ? listPos->second : *olistPos;
+  while (m_ViewType == LIST ? (listPos != listEnd) : (olistPos != olistEnd)) {
+    const CItemData &curitem = m_ViewType == LIST ? listPos->second : *olistPos;
     if (subgroup_bset &&
         !curitem.Matches(std::wstring(subgroup_name),
                          subgroup_object, subgroup_function))
@@ -815,18 +890,18 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
     } // match found in m_pwlist
 
 nextentry:
-    if (m_IsListView)
+    if (m_ViewType == LIST)
       listPos++;
     else
       olistPos++;
   } // while
 
   retval = indices.size();
-  // Sort indices if in List View
-  if (m_IsListView && retval > 1)
+  // Sort indices if in LIST View
+  if (m_ViewType == LIST && retval > 1)
     sort(indices.begin(), indices.end());
 
-  if (!m_IsListView)
+  if (m_ViewType == TREE)
     orderedItemList.clear();
 
   return retval;
@@ -841,44 +916,59 @@ BOOL DboxMain::SelItemOk()
 
 BOOL DboxMain::SelectEntry(const int i, BOOL MakeVisible)
 {
-  BOOL retval;
+  BOOL retval(FALSE);
   ASSERT(i >= 0);
   if (m_ctlItemList.GetItemCount() == 0)
-    return false;
+    return FALSE;
 
-  if (m_ctlItemList.IsWindowVisible()) {
-    retval = m_ctlItemList.SetItemState(i,
-                                        LVIS_FOCUSED | LVIS_SELECTED,
-                                        LVIS_FOCUSED | LVIS_SELECTED);
-    if (MakeVisible) {
-      m_ctlItemList.EnsureVisible(i, FALSE);
-    }
-    m_ctlItemList.Invalidate();
-  } else { //Tree view active
-    CItemData *pci = (CItemData *)m_ctlItemList.GetItemData(i);
-    ASSERT(pci != NULL);
-    DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-    ASSERT(pdi != NULL);
-    ASSERT(pdi->list_index == i);
+  const CItemData *pci = (CItemData *)m_ctlItemList.GetItemData(i);
+  ASSERT(pci != NULL);
 
-    // Was there anything selected before?
-    HTREEITEM hti = m_ctlItemTree.GetSelectedItem();
-    // NULL means nothing was selected.
-    if (hti != NULL) {
-      // Time to remove the old "fake selection" (a.k.a. drop-hilite)
-      // Make sure to undo "MakeVisible" on the previous selection.
-      m_ctlItemTree.SetItemState(hti, 0, TVIS_DROPHILITED);
-    }
+  switch (m_ViewType) {
+    case LIST:
+      retval = m_ctlItemList.SetItemState(i,
+                                          LVIS_FOCUSED | LVIS_SELECTED,
+                                          LVIS_FOCUSED | LVIS_SELECTED);
+      if (MakeVisible) {
+        m_ctlItemList.EnsureVisible(i, FALSE);
+      }
+      m_ctlItemList.Invalidate();
+      break;
+    case TREE:
+    {
+      //TREE view active
+      DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
+      ASSERT(pdi != NULL);
+      ASSERT(pdi->list_index == i);
 
-    retval = m_ctlItemTree.SelectItem(pdi->tree_item);
-    if (MakeVisible) {
-      // Following needed to show selection when Find dbox has focus. Ugh.
-      m_ctlItemTree.SetItemState(pdi->tree_item,
-                                 TVIS_DROPHILITED | TVIS_SELECTED,
-                                 TVIS_DROPHILITED | TVIS_SELECTED);
+      // Was there anything selected before?
+      HTREEITEM hti = m_ctlItemTree.GetSelectedItem();
+      // NULL means nothing was selected.
+      if (hti != NULL) {
+        // Time to remove the old "fake selection" (a.k.a. drop-hilite)
+        // Make sure to undo "MakeVisible" on the previous selection.
+        m_ctlItemTree.SetItemState(hti, 0, TVIS_DROPHILITED);
+      }
+
+      retval = m_ctlItemTree.SelectItem(pdi->tree_item);
+       if (MakeVisible) {
+        // Following needed to show selection when Find dbox has focus. Ugh.
+        m_ctlItemTree.SetItemState(pdi->tree_item,
+                                   TVIS_DROPHILITED | TVIS_SELECTED,
+                                   TVIS_DROPHILITED | TVIS_SELECTED);
+      }
+      m_ctlItemTree.Invalidate();
+      break;
     }
-    m_ctlItemTree.Invalidate();
+    case EXPLORER:
+    {
+      CPWListView *pListView = m_iLEARow == 0 ? m_pListView0 : m_pListView1;
+      retval = pListView->SelectItem(pci->GetUUID(), MakeVisible);
+      pListView->Invalidate();
+      break;
+    }
   }
+
   return retval;
 }
 
@@ -887,17 +977,27 @@ void DboxMain::SelectFirstEntry()
   if (m_core.GetNumEntries() > 0) {
     // Ensure an entry is selected after open
     CItemData *pci(NULL);
-    if (m_ctlItemList.IsWindowVisible()) {
-      m_ctlItemList.SetItemState(0,
-                                 LVIS_FOCUSED | LVIS_SELECTED,
-                                 LVIS_FOCUSED | LVIS_SELECTED);
-      m_ctlItemList.EnsureVisible(0, FALSE);
-      pci = (CItemData *)m_ctlItemList.GetItemData(0);
-    } else {
-      HTREEITEM hitem = m_ctlItemTree.GetFirstVisibleItem();
-      if (hitem != NULL) {
-        m_ctlItemTree.SelectItem(hitem);
-        pci = (CItemData *)m_ctlItemTree.GetItemData(hitem);
+    switch (m_ViewType) {
+      case LIST:
+        m_ctlItemList.SetItemState(0,
+                                   LVIS_FOCUSED | LVIS_SELECTED,
+                                   LVIS_FOCUSED | LVIS_SELECTED);
+        m_ctlItemList.EnsureVisible(0, FALSE);
+        pci = (CItemData *)m_ctlItemList.GetItemData(0);
+        break;
+      case TREE:
+      {
+        HTREEITEM hitem = m_ctlItemTree.GetFirstVisibleItem();
+        if (hitem != NULL) {
+          m_ctlItemTree.SelectItem(hitem);
+          pci = (CItemData *)m_ctlItemTree.GetItemData(hitem);
+        }
+        break;
+      }
+      case EXPLORER:
+      {
+        // TBD
+        break;
       }
     }
     UpdateToolBarForSelectedItem(pci);
@@ -906,38 +1006,66 @@ void DboxMain::SelectFirstEntry()
   }
 }
 
+void DboxMain::SetFoundEntries(std::vector<int> &indices)
+{
+  m_vFoundEntries.clear();
+  for (size_t i = 0; i < indices.size(); i++) {
+    CItemData *pci = (CItemData *)m_ctlItemList.GetItemData(indices[i]);
+    m_vFoundEntries.push_back(pci->GetUUID());
+  }
+
+  if (indices.size() > 0) {
+    CPWListView *pListView = m_iLEARow == 0 ? m_pListView0 : m_pListView1;
+    pListView->DisplayFoundEntries(m_vFoundEntries);
+  }
+}
+
 BOOL DboxMain::SelectFindEntry(const int i, BOOL MakeVisible)
 {
-  BOOL retval;
+  BOOL retval(FALSE);
   if (m_ctlItemList.GetItemCount() == 0)
     return FALSE;
 
   CItemData *pci = (CItemData *)m_ctlItemList.GetItemData(i);
   ASSERT(pci != NULL);
-  if (m_ctlItemList.IsWindowVisible()) {
-    retval = m_ctlItemList.SetItemState(i,
-                                        LVIS_FOCUSED | LVIS_SELECTED,
-                                        LVIS_FOCUSED | LVIS_SELECTED);
-    m_LastFoundListItem = i;
-    if (MakeVisible) {
-      m_ctlItemList.EnsureVisible(i, FALSE);
-    }
-    m_ctlItemList.Invalidate();
-  } else { //Tree view active
-    DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-    ASSERT(pdi != NULL);
-    ASSERT(pdi->list_index == i);
+  switch (m_ViewType) {
+    case LIST:
+      retval = m_ctlItemList.SetItemState(i,
+                                          LVIS_FOCUSED | LVIS_SELECTED,
+                                          LVIS_FOCUSED | LVIS_SELECTED);
+      m_LastFoundListItem = i;
+      if (MakeVisible) {
+        m_ctlItemList.EnsureVisible(i, FALSE);
+      }
+      m_ctlItemList.Invalidate();
+      break;
+    case TREE:
+    {
+      //TREE view active
+      DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
+      ASSERT(pdi != NULL);
+      ASSERT(pdi->list_index == i);
 
-    UnFindItem();
+      UnFindItem();
 
-    retval = m_ctlItemTree.SelectItem(pdi->tree_item);
-    if (MakeVisible) {
-      m_ctlItemTree.SetItemState(pdi->tree_item, TVIS_BOLD, TVIS_BOLD);
-      m_LastFoundTreeItem = pdi->tree_item;
-      m_bBoldItem = true;
+      retval = m_ctlItemTree.SelectItem(pdi->tree_item);
+      if (MakeVisible) {
+        m_ctlItemTree.SetItemState(pdi->tree_item, TVIS_BOLD, TVIS_BOLD);
+        m_LastFoundTreeItem = pdi->tree_item;
+        m_bBoldItem = true;
+      }
+      m_ctlItemTree.Invalidate();
+      break;
     }
-    m_ctlItemTree.Invalidate();
+    case EXPLORER:
+    {
+      CPWListView *pListView = m_iLEARow == 0 ? m_pListView0 : m_pListView1;
+      retval = pListView->SelectItem(pci->GetUUID(), MakeVisible);
+      m_LastFoundExplorerItem = i;
+      break;
+    }
   }
+
   UpdateToolBarForSelectedItem(pci);
   return retval;
 }
@@ -947,6 +1075,8 @@ BOOL DboxMain::SelectFindEntry(const int i, BOOL MakeVisible)
 void DboxMain::RefreshViews(const int iView)
 {
   PWS_LOGIT_ARGS("iView=%d", iView);
+
+  pws_os::Trace(L"RefreshViews: iView=%d\n", iView);
 
   if (!m_bInitDone)
     return;
@@ -972,6 +1102,14 @@ void DboxMain::RefreshViews(const int iView)
       m_ctlItemTree.SetRedraw(TRUE);
       m_ctlItemTree.Invalidate();
     }
+    if (iView & iExplorerOnly) {
+      m_pTreeView0->ClearGroups();
+      m_pListView0->ClearEntries();
+      if (m_bSplitView) {
+        m_pTreeView1->ClearGroups();
+        m_pListView1->ClearEntries();
+      }
+    }
     return;
   }
 
@@ -987,6 +1125,12 @@ void DboxMain::RefreshViews(const int iView)
     m_ctlItemTree.SetRedraw(FALSE);
     m_mapGroupToTreeItem.clear();
     m_ctlItemTree.DeleteAllItems();
+  }
+  if (iView & iExplorerOnly) {
+    m_pTreeView0->ClearGroups();
+    m_pTreeView1->ClearGroups();
+    m_pListView0->ClearEntries();
+    m_pListView1->ClearEntries();
   }
   m_bBoldItem = false;
 
@@ -1005,10 +1149,11 @@ void DboxMain::RefreshViews(const int iView)
     }
 
     // Need to add any empty groups into the view
-    std::vector<StringX> vEmptyGroups = m_core.GetEmptyGroups();
-    for (size_t n = 0; n < vEmptyGroups.size(); n++) {
+    PathSet setEmptyGroups = m_core.GetEmptyGroups();
+    PathSetConstIter citer;
+    for (citer = setEmptyGroups.begin(); citer != setEmptyGroups.end(); citer++) {
       bool bAlreadyExists;
-      m_ctlItemTree.AddGroup(vEmptyGroups[n].c_str(), bAlreadyExists);
+      AddGroup(&m_ctlItemTree, (*citer).c_str(), bAlreadyExists, true);
     }
 
     m_ctlItemTree.SortTree(TVI_ROOT);
@@ -1021,6 +1166,15 @@ void DboxMain::RefreshViews(const int iView)
 
   if (m_bImageInLV) {
     m_ctlItemList.SetColumnWidth(0, LVSCW_AUTOSIZE);
+  }
+
+  if (iView & iExplorerOnly) {
+    StringX sxCurrentPath = m_pTreeView0->GetCurrentPath();
+    m_pTreeView0->CreateTree(sxCurrentPath, false);
+    if (m_bSplitView) {
+      sxCurrentPath = m_pTreeView1->GetCurrentPath();
+      m_pTreeView1->CreateTree(sxCurrentPath, false);
+    }
   }
 
   // re-enable and force redraw!
@@ -1116,7 +1270,12 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
 
   if (nType != SIZE_MINIMIZED) {
     // Position the control bars - don't bother if just been minimized
-    CRect rect, dragrect;
+    m_ExplorerToolBar0.EnableWindow(m_ViewType == EXPLORER ? TRUE : FALSE);
+    m_ExplorerToolBar0.ShowWindow(m_ViewType == EXPLORER ? SW_SHOW : SW_HIDE);
+    m_ExplorerToolBar1.EnableWindow((m_ViewType == EXPLORER && m_bSplitView) ? TRUE : FALSE);
+    m_ExplorerToolBar1.ShowWindow((m_ViewType == EXPLORER && m_bSplitView) ? SW_SHOW : SW_HIDE);
+
+    CRect rect, dragrect, pathrect;
     RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
     RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
     bool bDragBarState = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowDragbar);
@@ -1154,10 +1313,13 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
       m_DDAutotype.GetWindowRect(&dragrect);
       ScreenToClient(&dragrect);
       m_DDAutotype.SetWindowPos(NULL, dragrect.left, j, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+
       rect.top += dragrect.Height() + 2 * i;
     }
+
     m_ctlItemList.MoveWindow(&rect, TRUE);
     m_ctlItemTree.MoveWindow(&rect, TRUE);
+    m_ctlItemView.MoveWindow(&rect, TRUE);
   }
 
   PWSprefs *prefs = PWSprefs::GetInstance();
@@ -1194,6 +1356,7 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
       m_bBoldItem = false;
       m_LastFoundTreeItem = NULL;
       m_LastFoundListItem = -1;
+      m_LastFoundExplorerItem = -1;
 
       if (prefs->GetPref(PWSprefs::ClearClipboardOnMinimize))
         OnClearClipboard();
@@ -1225,7 +1388,7 @@ void DboxMain::OnSize(UINT nType, int cx, int cy)
         if (!RestoreWindowsData(false))
           return;
 
-        m_bIsRestoring = true; // Stop 'sort of list view' hiding FindToolBar
+        m_bIsRestoring = true; // Stop 'sort of LIST view' hiding FindToolBar
         m_ctlItemTree.SetRestoreMode(true);
         RefreshViews();
         m_ctlItemTree.SetRestoreMode(false);
@@ -1333,8 +1496,8 @@ void DboxMain::OnListItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
   *pLResult = 0L;
   CItemData *pci(NULL);
 
-  // More than 2 selected is meaningless in List view
-  //if (m_IsListView && m_ctlItemList.GetSelectedCount() == 2) {
+  // More than 2 selected is meaningless in LIST view
+  //if (m_ViewType == LIST && m_ctlItemList.GetSelectedCount() == 2) {
   //  *pLResult = 1L;
   //  return;
   //}
@@ -1373,6 +1536,7 @@ void DboxMain::OnListItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
 
   m_LastFoundTreeItem = NULL;
   m_LastFoundListItem = -1;
+  m_LastFoundExplorerItem = -1;
 }
 
 void DboxMain::OnTreeItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
@@ -1401,15 +1565,15 @@ void DboxMain::OnTreeItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
       m_ctlItemTree.HitTest(&htinfo);
       hItem = htinfo.hItem;
 
-        // Ignore any clicks not on an item (group or entry)
-        if (hItem == NULL ||
-            htinfo.flags & (TVHT_NOWHERE | TVHT_ONITEMRIGHT | 
-                            TVHT_ABOVE   | TVHT_BELOW | 
-                            TVHT_TORIGHT | TVHT_TOLEFT))
-            return;
+      // Ignore any clicks not on an item (group or entry)
+      if (hItem == NULL ||
+          htinfo.flags & (TVHT_NOWHERE | TVHT_ONITEMRIGHT | 
+                          TVHT_ABOVE   | TVHT_BELOW | 
+                          TVHT_TORIGHT | TVHT_TOLEFT))
+        return;
 
       // If a group
-      if (!m_ctlItemTree.IsLeaf(hItem)) {
+      if (!IsLeaf(&m_ctlItemTree, hItem)) {
         // If on indent or button
         if (htinfo.flags & (TVHT_ONITEMINDENT | TVHT_ONITEMBUTTON)) {
           m_ctlItemTree.Expand(htinfo.hItem, TVE_TOGGLE);
@@ -1429,7 +1593,7 @@ void DboxMain::OnTreeItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
   }    
 
   // Check it was on an item
-  if (hItem != NULL && m_ctlItemTree.IsLeaf(hItem)) {
+  if (hItem != NULL && IsLeaf(&m_ctlItemTree, hItem)) {
     pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
   }
 
@@ -1442,6 +1606,7 @@ void DboxMain::OnTreeItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResult)
 
   m_LastFoundTreeItem = NULL;
   m_LastFoundListItem = -1;
+  m_LastFoundExplorerItem = -1;
 }
 
 void DboxMain::OnKeydownItemlist(NMHDR *pNotifyStruct, LRESULT *pLResult)
@@ -1485,7 +1650,7 @@ void DboxMain::OnKeydownItemlist(NMHDR *pNotifyStruct, LRESULT *pLResult)
 // {kjp} temporary objects created and copied.
 //
 int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex, 
-                                const bool bSort, const int iView)
+                                        const bool bSort, const int iView)
 {
   DisplayInfo *pdi = (DisplayInfo *)ci.GetDisplayInfo();
   if (pdi != NULL && pdi->list_index != -1) {
@@ -1514,7 +1679,7 @@ int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex,
     m_bNumPassedFiltering++;
   }
 
-  int nImage = GetEntryImage(ci);
+  int nImage = ci.GetEntryImage();
   StringX group = ci.GetGroup();
   StringX title = ci.GetTitle();
   StringX username = ci.GetUser();
@@ -1570,7 +1735,14 @@ int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex,
     StringX treeDispString = (LPCWSTR)m_ctlItemTree.MakeTreeDisplayString(ci);
     // get path, create if necessary, add title as last node
     bool bAlreadyExists;
-    ti = m_ctlItemTree.AddGroup(ci.GetGroup().c_str(), bAlreadyExists);
+    PathMapIter iter;
+
+    PathMap mapPaths2TreeItem;
+    ti = AddGroup(&m_ctlItemTree, ci.GetGroup().c_str(), bAlreadyExists, false, &mapPaths2TreeItem);
+    for (iter =  mapPaths2TreeItem.begin(); iter != mapPaths2TreeItem.end(); iter++) {
+      m_mapGroupToTreeItem[iter->first] = iter->second;
+    }
+
     if (!PWSprefs::GetInstance()->GetPref(PWSprefs::ExplorerTypeTree)) {
       ti = m_ctlItemTree.InsertItem(treeDispString.c_str(), ti, TVI_SORT);
       m_ctlItemTree.SetItemData(ti, (DWORD_PTR)&ci);
@@ -1648,30 +1820,73 @@ CItemData *DboxMain::getSelectedItem()
   if (m_core.GetNumEntries() == 0)
     return pci;
 
-  if (m_ctlItemList.IsWindowVisible()) { // list view
-    POSITION p = m_ctlItemList.GetFirstSelectedItemPosition();
-    if (p) {
-      int i = m_ctlItemList.GetNextSelectedItem(p);
-      pci = (CItemData *)m_ctlItemList.GetItemData(i);
-      ASSERT(pci != NULL);
-      DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-      ASSERT(pdi != NULL && pdi->list_index == i);
-    }
-  } else { // tree view; go from HTREEITEM to index
-    HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
-    if (ti != NULL) {
-      pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
-      if (pci != NULL) {
-        // leaf: do some sanity tests
+  switch (m_ViewType) {
+    case LIST:
+    {
+      // LIST view
+      POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
+      if (pos) {
+        int iIndex = m_ctlItemList.GetNextSelectedItem(pos);
+        pci = (CItemData *)m_ctlItemList.GetItemData(iIndex);
+        ASSERT(pci != NULL);
         DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-        ASSERT(pdi != NULL);
-        if (pdi->tree_item != ti) {
-          pws_os::Trace(L"DboxMain::getSelectedItem: fixing pdi->tree_item!\n");
-          pdi->tree_item = ti;
+        ASSERT(pdi != NULL && pdi->list_index == iIndex);
+      }
+      break;
+    }
+    case TREE:
+    {
+      // TREE view; go from HTREEITEM to index
+      HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
+      if (ti != NULL) {
+        pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
+        if (pci != NULL) {
+          // leaf: do some sanity tests
+          DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
+          ASSERT(pdi != NULL);
+          if (pdi->tree_item != ti) {
+            pws_os::Trace(L"DboxMain::getSelectedItem: fixing pdi->tree_item!\n");
+            pdi->tree_item = ti;
+          }
         }
       }
-    } // ti != NULL
-  } // tree view
+      break;
+    }
+    case EXPLORER:
+    {
+      // Find out which pane is active and get the selected entry or group!
+      int nRow(-1), nCol(-1);
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+        return NULL;
+      if ((nRow != 0 && nRow != 1) || (nCol != 0 && nCol != 1))
+        return NULL;
+
+      if (nCol == 0) {
+        // Tree view - ie. group
+        return NULL;
+      } else {
+        // List view = could be either!
+        CListCtrl *pListCtrl;
+        if (nRow == 0)
+          pListCtrl = &m_pListView0->GetListCtrl();
+        else
+          pListCtrl = &m_pListView1->GetListCtrl();
+
+        if (pListCtrl->GetSelectedCount() != 1)
+          return NULL;
+        
+        POSITION pos = pListCtrl->GetFirstSelectedItemPosition();
+        if (pos) {
+          int iIndex = pListCtrl->GetNextSelectedItem(pos);
+          st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+          ASSERT(pLP != NULL);
+          pci = pLP->pci;
+        }
+      }
+      break;
+    }
+  }
+
   return pci;
 }
 
@@ -1692,10 +1907,26 @@ void DboxMain::ClearData(const bool clearMRE)
     m_ctlItemList.LockWindowUpdate();
     m_ctlItemList.DeleteAllItems();
     m_ctlItemList.UnlockWindowUpdate();
+    
     m_ctlItemTree.LockWindowUpdate();
     m_mapGroupToTreeItem.clear();
     m_ctlItemTree.DeleteAllItems();
     m_ctlItemTree.UnlockWindowUpdate();
+    
+    m_pTreeView0->LockWindowUpdate();
+    m_pTreeView0->ClearGroups();
+    m_pTreeView0->UnlockWindowUpdate();
+    m_pTreeView1->LockWindowUpdate();
+    m_pTreeView1->ClearGroups();
+    m_pTreeView1->UnlockWindowUpdate();
+    
+    m_pListView0->LockWindowUpdate();
+    m_pListView0->ClearEntries();
+    m_pListView0->UnlockWindowUpdate();
+    m_pListView1->LockWindowUpdate();
+    m_pListView1->ClearEntries();
+    m_pListView1->UnlockWindowUpdate();
+
     m_bBoldItem = false;
   }
   m_bDBNeedsReading = true;
@@ -1749,7 +1980,7 @@ void DboxMain::SortListView()
   hdi.mask = HDI_FORMAT;
 
   m_bSortAscending = PWSprefs::GetInstance()->GetPref(PWSprefs::SortAscending);
-  m_ctlItemList.SortItems(CompareFunc, (LPARAM)this);
+  m_ctlItemList.SortItems(CompareFunction, (LPARAM)this);
   FixListIndexes();
 
   const int iIndex = m_nColumnIndexByType[m_iTypeSortColumn];
@@ -1853,7 +2084,7 @@ void DboxMain::OnHeaderNotify(NMHDR *pNotifyStruct, LRESULT *pLResult)
 
 void DboxMain::OnToggleView() 
 {
-  if (m_IsListView)
+  if (m_ViewType == LIST)
     OnTreeView();
   else
     OnListView();
@@ -1861,26 +2092,120 @@ void DboxMain::OnToggleView()
 
 void DboxMain::OnListView() 
 {
+  const ViewType oldViewType = m_ViewType;
+
   SetListView();
   if (m_FindToolBar.IsVisible())
     OnHideFindToolBar();
+
+  m_bSplitView = false;
+  
+  if (oldViewType == EXPLORER) {
+    SetupStatusBar();
+    UpdateStatusBar();
+  }
 }
 
 void DboxMain::OnTreeView() 
 {
+  const ViewType oldViewType = m_ViewType;
+
   SetTreeView();
   if (m_FindToolBar.IsVisible())
     OnHideFindToolBar();
+
+  m_bSplitView = false;
+
+  if (oldViewType == EXPLORER) {
+    SetupStatusBar();
+    UpdateStatusBar();
+  }
+}
+
+void DboxMain::OnExplorerView()
+{
+  SetExplorerView();
+  if (m_FindToolBar.IsVisible())
+    OnHideFindToolBar();
+  
+  SetupStatusBar();
+  UpdateStatusBar();
+}
+
+void DboxMain::OnExplorerSplit()
+{
+  if (m_bSplitView) {
+    // Tell bottom Tree and List controls to delete all their entries
+    m_pTreeView1->DeleteEntries();
+    m_pListView1->DeleteEntries();
+    
+    // Now hide it
+    m_ctlItemView.HideRow();
+
+    // Remove history
+    m_vPaths1.clear();
+    m_vPaths1.push_back(L"");
+    m_expl_bwds_iter1 = m_expl_fwds_iter1 = m_vPaths1.end();
+  } else {
+    // Show it
+    m_ctlItemView.ShowRow();
+
+    m_vPaths1 = m_vPaths0;
+    if (m_expl_bwds_iter0 == m_vPaths0.end()) {
+      m_expl_bwds_iter1 = m_vPaths1.end();
+    } else {
+      // Set m_expl_bwds_iter1 to same element in m_vPaths1 as
+      // m_expl_bwds_iter0 is in m_vPaths0
+      m_expl_bwds_iter1 = m_vPaths1.begin() +
+                 distance(m_vPaths0.begin(), m_expl_bwds_iter0);       
+    }
+    
+    if (m_expl_fwds_iter0 == m_vPaths0.end()) {
+      m_expl_fwds_iter1 = m_vPaths1.end();
+    } else {
+      // Set m_expl_fwds_iter1 to same element in m_vPaths1 as
+      // m_expl_fwds_iter0 is in m_vPaths0
+      m_expl_fwds_iter1 = m_vPaths1.begin() +
+                 distance(m_vPaths0.begin(), m_expl_fwds_iter0);
+    }
+
+    m_pTreeView1->PopulateEntries();
+    m_pListView1->PopulateEntries();
+
+    // Tell bottom Tree and List controls to repopulate all their entries
+    m_pTreeView1->SetCurrentPath(m_pTreeView0->GetCurrentPath());
+    m_pListView1->SetCurrentPath(m_pListView0->GetCurrentPath());
+
+    m_pListView1->SetFocus();
+    UpdateCurrentPath(m_pListView1->GetCurrentPath());
+  }
+  m_bSplitView = !m_bSplitView;
+
+  SetToolBarPositions();
 }
 
 void DboxMain::SetListView()
 {
   UnFindItem();
+
+  m_ExplorerToolBar0.EnableWindow(FALSE);
+  m_ExplorerToolBar0.ShowWindow(SW_HIDE);
+  m_ExplorerToolBar1.EnableWindow(FALSE);
+  m_ExplorerToolBar1.ShowWindow(SW_HIDE);
+
   m_ctlItemTree.ShowWindow(SW_HIDE);
   m_ctlItemList.ShowWindow(SW_SHOW);
+  m_ctlItemView.ShowWindow(SW_HIDE);
+
+  // If we were in EXPLORER View and Split present - remove it
+  if (m_ViewType == EXPLORER && m_bSplitView)
+    m_ctlItemView.HideRow();
+
   PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, L"list");
   m_ctlItemList.SetFocus();
-  m_IsListView = true;
+  m_ViewType = LIST;
+  SetToolBarPositions();
+
   // Some items may change on change of view
   UpdateMenuAndToolBar(m_bOpen);
 }
@@ -1888,11 +2213,61 @@ void DboxMain::SetListView()
 void DboxMain::SetTreeView()
 {
   UnFindItem();
+
+  m_ExplorerToolBar0.EnableWindow(FALSE);
+  m_ExplorerToolBar0.ShowWindow(SW_HIDE);
+  m_ExplorerToolBar1.EnableWindow(FALSE);
+  m_ExplorerToolBar1.ShowWindow(SW_HIDE);
+
   m_ctlItemList.ShowWindow(SW_HIDE);
   m_ctlItemTree.ShowWindow(SW_SHOW);
+  m_ctlItemView.ShowWindow(SW_HIDE);
+
+  // If we were in EXPLORER View and Split present - remove it
+  if (m_ViewType == EXPLORER && m_bSplitView)
+    m_ctlItemView.HideRow();
+
   PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, L"tree");
   m_ctlItemTree.SetFocus();
-  m_IsListView = false;
+  m_ViewType = TREE;
+  SetToolBarPositions();
+
+  // Some items may change on change of view
+  UpdateMenuAndToolBar(m_bOpen);
+}
+
+void DboxMain::SetExplorerView()
+{
+  // Need to turn off all form of filters
+  if (m_bExpireDisplayed)
+    OnShowExpireList();
+
+  if (m_bUnsavedDisplayed)
+    OnShowUnsavedEntries();
+
+  if (m_bFilterActive)
+    ApplyFilter();
+
+  UnFindItem();
+
+  ResetExplorerView(true);
+
+  m_ExplorerToolBar0.EnableWindow(TRUE);
+  m_ExplorerToolBar0.ShowWindow(SW_SHOW);
+  m_ExplorerToolBar1.EnableWindow(m_bSplitView ? TRUE : FALSE);
+  m_ExplorerToolBar1.ShowWindow(m_bSplitView ? SW_SHOW : SW_HIDE);
+
+  m_ctlItemList.ShowWindow(SW_HIDE);
+  m_ctlItemTree.ShowWindow(SW_HIDE);
+  m_ctlItemView.ShowWindow(SW_SHOW);
+
+  PWSprefs::GetInstance()->SetPref(PWSprefs::LastView, L"explorer");
+  StringX sxPath = L"";
+  m_pTreeView0->CreateTree(sxPath, false);
+  m_pTreeView0->SetFocus();
+  m_ViewType = EXPLORER;
+  SetToolBarPositions();
+
   // Some items may change on change of view
   UpdateMenuAndToolBar(m_bOpen);
 }
@@ -1957,8 +2332,12 @@ void DboxMain::SetToolbar(const int menuItem, bool bInit)
     } else {
       ASSERT(0);
     }
+
     m_MainToolBar.LoadDefaultToolBar(m_toolbarMode);
     m_FindToolBar.LoadDefaultToolBar(m_toolbarMode);
+    m_ExplorerToolBar0.LoadDefaultToolBar();
+    m_ExplorerToolBar1.LoadDefaultToolBar();
+
     CString csButtonNames = PWSprefs::GetInstance()->
       GetPref(PWSprefs::MainToolBarButtons).c_str();
     m_MainToolBar.CustomizeButtons(csButtonNames);
@@ -1994,18 +2373,44 @@ void DboxMain::SetToolbar(const int menuItem, bool bInit)
 
   m_MainToolBar.Invalidate();
   m_FindToolBar.Invalidate();
+  m_ExplorerToolBar0.Invalidate();
+  m_ExplorerToolBar1.Invalidate();
 
   SetToolBarPositions();
 }
 
 void DboxMain::OnExpandAll()
 {
-  m_ctlItemTree.OnExpandAll();
+  switch (m_ViewType) {
+    case TREE:
+      ExpandAll(&m_ctlItemTree);
+      break;
+    case EXPLORER:
+    {
+      int nRow(-1), nCol(-1);
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) != NULL && nCol == 0) {
+        ExpandAll(nRow == 0 ? &m_pTreeView0->GetTreeCtrl() : &m_pTreeView1->GetTreeCtrl());
+      }
+      break;
+    }
+  }
 }
 
 void DboxMain::OnCollapseAll()
 {
-  m_ctlItemTree.OnCollapseAll();
+  switch (m_ViewType) {
+    case TREE:
+      CollapseAll(&m_ctlItemTree);
+      break;
+    case EXPLORER:
+    {
+      int nRow(-1), nCol(-1);
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) != NULL && nCol == 0) {
+        CollapseAll(nRow == 0 ? &m_pTreeView0->GetTreeCtrl() : &m_pTreeView1->GetTreeCtrl());
+      }
+      break;
+    }
+  }
 }
 
 static void Hider(CWnd *pWnd)
@@ -2169,7 +2574,7 @@ void DboxMain::OnChangeTreeFont()
   LOGFONT lf;
   pOldFontTree->GetLogFont(&lf);
 
-  // Present Tree/List view font and possibly change it
+  // Present TREE/LIST view font and possibly change it
   // Allow user to apply changes to font
   StringX cs_TreeListSampleText = prefs->GetPref(PWSprefs::TreeListSampleText);
 
@@ -2180,7 +2585,7 @@ void DboxMain::OnChangeTreeFont()
   if (fontdlg.DoModal() == IDOK) {
     Fonts::GetInstance()->SetCurrentFont(&lf);
 
-    // Transfer the fonts to the tree and list windows
+    // Transfer the fonts to the TREE and LIST windows
     m_ctlItemTree.SetUpFont();
     m_ctlItemList.SetUpFont();
     m_LVHdrCtrl.SetFont(Fonts::GetInstance()->GetCurrentFont());
@@ -2196,9 +2601,9 @@ void DboxMain::OnChangeTreeFont()
         lf.lfWeight == dfltTreeListFont.lfWeight &&
         lf.lfItalic == dfltTreeListFont.lfItalic && 
         csfn == csdfltfn) {
-      // Delete config Tree/List font
+      // Delete config TREE/LIST font
       prefs->ResetPref(PWSprefs::TreeFont);
-    } else { // Save user's choice of Tree/List font
+    } else { // Save user's choice of TREE/LIST font
       CString treefont_str;
       treefont_str.Format(L"%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%s",
                           lf.lfHeight, lf.lfWidth, lf.lfEscapement, lf.lfOrientation,
@@ -2579,8 +2984,10 @@ void DboxMain::SetColumns(const CString cs_ListColumns)
   int iType= *vi_columns.begin();
   if (iType == CItemData::UUID) {
     m_bImageInLV = true;
-    m_ctlItemList.SetImageList(m_pImageList, LVSIL_NORMAL);
-    m_ctlItemList.SetImageList(m_pImageList, LVSIL_SMALL);
+    Images *pImages = Images::GetInstance();
+  
+    m_ctlItemList.SetImageList(pImages->GetImageList(), LVSIL_NORMAL);
+    m_ctlItemList.SetImageList(pImages->GetImageList(), LVSIL_SMALL);
   }
 
   int icol(0);
@@ -3249,15 +3656,19 @@ void DboxMain::OnHideFindToolBar()
 
   // Select the last found item on closing the FindToolbar (either by pressing
   // close or via Esc key if not used to minimize application).
-  if (m_ctlItemList.IsWindowVisible() && m_LastFoundListItem != -1) {
+  if (m_ViewType == TREE && m_LastFoundListItem != -1) {
     m_ctlItemList.SetFocus();
     m_ctlItemList.SetItemState(m_LastFoundListItem,
                                LVIS_FOCUSED | LVIS_SELECTED,
                                LVIS_FOCUSED | LVIS_SELECTED);
   } else
-  if (m_ctlItemTree.IsWindowVisible() && m_LastFoundTreeItem != NULL) {
+  if (m_ViewType == LIST && m_LastFoundTreeItem != NULL) {
     m_ctlItemTree.SetFocus();
     m_ctlItemTree.Select(m_LastFoundTreeItem, TVGN_CARET);
+  } else
+  if (m_ViewType == EXPLORER && m_LastFoundExplorerItem != -1) {
+    CPWListView *pListView = m_iLEARow == 0 ? m_pListView0 : m_pListView1;
+    pListView->SelectItem(m_vFoundEntries[m_LastFoundExplorerItem], TRUE);
   }
 }
 
@@ -3278,7 +3689,12 @@ void DboxMain::SetToolBarPositions()
   if (m_FindToolBar.GetSafeHwnd() == NULL)
     return;
 
-  CRect rect, dragrect;
+  m_ExplorerToolBar0.EnableWindow(m_ViewType == EXPLORER ? TRUE : FALSE);
+  m_ExplorerToolBar0.ShowWindow(m_ViewType == EXPLORER ? SW_SHOW : SW_HIDE);
+  m_ExplorerToolBar1.EnableWindow((m_ViewType == EXPLORER && m_bSplitView) ? TRUE : FALSE);
+  m_ExplorerToolBar1.ShowWindow((m_ViewType == EXPLORER && m_bSplitView) ? SW_SHOW : SW_HIDE);
+
+  CRect rect, dragrect, pathrect;
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
   RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0, reposQuery, &rect);
   bool bDragBarState = PWSprefs::GetInstance()->GetPref(PWSprefs::ShowDragbar);
@@ -3286,7 +3702,7 @@ void DboxMain::SetToolBarPositions()
                        &m_DDPassword, &m_DDNotes, &m_DDURL, &m_DDemail,
                        &m_DDAutotype};
   if (bDragBarState) {
-    // Get the image states just incase another entry selected
+    // Get the image states just in case another entry selected
     // since last shown
     CItemData *entry = GetLastSelected();
     if (entry == NULL) {
@@ -3320,35 +3736,111 @@ void DboxMain::SetToolBarPositions()
     }
     rect.top += dragrect.Height() + 2 * i;
   } else { // !bDragBarState
-    for (int j = 0; j < sizeof(DDs)/sizeof(DDs[0]); j++) {
+    for (int j = 0; j < sizeof(DDs) / sizeof(DDs[0]); j++) {
       DDs[j]->ShowWindow(SW_HIDE);
       DDs[j]->EnableWindow(FALSE);
     }
   }
+
   m_ctlItemList.MoveWindow(&rect, TRUE);
   m_ctlItemTree.MoveWindow(&rect, TRUE);
+  m_ctlItemView.MoveWindow(&rect, TRUE);
 
-  if (m_FindToolBar.IsVisible()) {
-    // Is visible.  Try to get FindToolBar "above" the StatusBar!
+
+  /*
+    1. In TREE, lIST and unsplit EXPLORER views, if the Find toolbar is visible,
+       it needs to be above the Status bar.
+
+    2. In the split EXPLORER view, if the Find toolbar is not visible, then
+       the bottom Explorer toolbar needs to be above the Status bar.
+    
+    3. If the Find toolbar is visible, it needs to be above the bottom Explorer
+       toolbar which in turn is above the Status bar.
+  */
+
+  if (m_FindToolBar.IsVisible()) { 
+    if (m_ViewType == TREE || m_ViewType == LIST || 
+        (m_ViewType == EXPLORER && !m_bSplitView)) {
+      // Type 1
+      // Find toolbar is visible and not split EXPLORER view
+      // Try to get FindToolBar "above" the StatusBar!
+      ASSERT(m_FindToolBar.GetParent() == m_statusBar.GetParent());
+
+      CRect ftb_rect, stb_rect;
+      m_FindToolBar.GetWindowRect(&ftb_rect);
+      m_statusBar.GetWindowRect(&stb_rect);
+
+      if (ftb_rect.top > stb_rect.top) {
+        // FindToolBar is "below" the StatusBar
+        ScreenToClient(&ftb_rect);
+        ScreenToClient(&stb_rect);
+        // Move FindToolBar up by the height of the Statusbar
+        m_FindToolBar.MoveWindow(ftb_rect.left, ftb_rect.top - stb_rect.Height(),
+                                 ftb_rect.Width(), ftb_rect.Height());
+        // Move Statusbar down by the height of the FindToolBar
+        m_statusBar.MoveWindow(stb_rect.left, stb_rect.top + ftb_rect.Height(),
+                               stb_rect.Width(), stb_rect.Height());
+        m_FindToolBar.Invalidate();
+        m_statusBar.Invalidate();
+      }
+    }
+  } else {
+    if (m_ViewType == EXPLORER && m_bSplitView) {
+      // Type 2
+      // Split Explorer  Try to get bottom Explorer toolbar "above" the StatusBar!
+      ASSERT(m_ExplorerToolBar1.GetParent() == m_statusBar.GetParent());
+
+      CRect exp1_rect, stb_rect;
+      m_ExplorerToolBar1.GetWindowRect(&exp1_rect);
+      m_statusBar.GetWindowRect(&stb_rect);
+
+      if (exp1_rect.top > stb_rect.top) {
+        // ExplorerToolBar1 is "below" the StatusBar
+        ScreenToClient(&exp1_rect);
+        ScreenToClient(&stb_rect);
+        // Move bottom Explorer toolbar up by the height of the Statusbar
+        m_ExplorerToolBar1.MoveWindow(exp1_rect.left, exp1_rect.top - stb_rect.Height(),
+                                      exp1_rect.Width(), exp1_rect.Height());
+        // Move Statusbar down by the height of the bottom Explorer
+        m_statusBar.MoveWindow(stb_rect.left, stb_rect.top + exp1_rect.Height(),
+                               stb_rect.Width(), stb_rect.Height());
+        m_ExplorerToolBar1.Invalidate();
+        m_statusBar.Invalidate();
+      }
+    }
+  }
+  if (m_FindToolBar.IsVisible() && m_ViewType == EXPLORER && m_bSplitView) {
+    // Type 3
+    // Find toolbar is visible and in split EXPLORER view
+    // Try to get bottom Explorer toolbar "above" the Find ToolBar and it "above" the StatusBar!
     ASSERT(m_FindToolBar.GetParent() == m_statusBar.GetParent());
+    ASSERT(m_ExplorerToolBar1.GetParent() == m_statusBar.GetParent());
 
-    CRect ftb_rect, stb_rect;
+    CRect ftb_rect, exp1_rect, stb_rect;
     m_FindToolBar.GetWindowRect(&ftb_rect);
+    m_ExplorerToolBar1.GetWindowRect(&exp1_rect);
     m_statusBar.GetWindowRect(&stb_rect);
 
-    if (ftb_rect.top > stb_rect.top) {
-      // FindToolBar is "below" the StatusBar
-      ScreenToClient(&ftb_rect);
-      ScreenToClient(&stb_rect);
-      // Move FindToolBar up by the height of the Statusbar
-      m_FindToolBar.MoveWindow(ftb_rect.left, ftb_rect.top - stb_rect.Height(),
-                               ftb_rect.Width(), ftb_rect.Height());
-      // Move Statusbar down by the height of the FindToolBar
-      m_statusBar.MoveWindow(stb_rect.left, stb_rect.top + ftb_rect.Height(),
-                             stb_rect.Width(), stb_rect.Height());
-      m_FindToolBar.Invalidate();
-      m_statusBar.Invalidate();
-    }
+    ScreenToClient(&ftb_rect);
+    ScreenToClient(&exp1_rect);
+    ScreenToClient(&stb_rect);
+
+    // Get "the top"
+    int iTop = min(min(ftb_rect.top, exp1_rect.top), stb_rect.top);
+
+    // Move bottom Explorer toolbar to top
+    m_ExplorerToolBar1.MoveWindow(exp1_rect.left, iTop,
+                                  exp1_rect.Width(), exp1_rect.Height());
+    // Move Find toolbar to be below the bottom Explorer toolbar
+    m_FindToolBar.MoveWindow(ftb_rect.left, iTop + exp1_rect.Height(),
+                             ftb_rect.Width(), ftb_rect.Height());
+    // Move Statusbar to below the Find toolbar
+    m_statusBar.MoveWindow(stb_rect.left, iTop + exp1_rect.Height() + ftb_rect.Height(),
+                           stb_rect.Width(), stb_rect.Height());
+
+    m_FindToolBar.Invalidate();
+    m_ExplorerToolBar1.Invalidate();
+    m_statusBar.Invalidate();
   }
 }
 
@@ -3517,70 +4009,6 @@ void DboxMain::OnToolBarFindReport()
   m_FindToolBar.SetStatus(cs_temp);
 }
 
-int DboxMain::GetEntryImage(const CItemData &ci) const
-{
-  int entrytype = ci.GetEntryType();
-  if (entrytype == CItemData::ET_ALIAS) {
-    return CPWTreeCtrl::ALIAS;
-  }
-  if (entrytype == CItemData::ET_SHORTCUT) {
-    return CPWTreeCtrl::SHORTCUT;
-  }
-
-  int nImage;
-  switch (entrytype) {
-    case CItemData::ET_NORMAL:
-      nImage = CPWTreeCtrl::NORMAL;
-      break;
-    case CItemData::ET_ALIASBASE:
-      nImage = CPWTreeCtrl::ALIASBASE;
-      break;
-    case CItemData::ET_SHORTCUTBASE:
-      nImage = CPWTreeCtrl::SHORTCUTBASE;
-      break;
-    default:
-      nImage = CPWTreeCtrl::NORMAL;
-  }
-
-  time_t tttXTime;
-  ci.GetXTime(tttXTime);
-  if (tttXTime > time_t(0) && tttXTime <= time_t(3650)) {
-    time_t tttCPMTime;
-    ci.GetPMTime(tttCPMTime);
-    if ((long)tttCPMTime == 0L)
-      ci.GetCTime(tttCPMTime);
-    tttXTime = (time_t)((long)tttCPMTime + (long)tttXTime * 86400);
-  }
-
-  if (tttXTime != 0) {
-    time_t now, warnexptime((time_t)0);
-    time(&now);
-    if (PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarn)) {
-      int idays = PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarnDays);
-      struct tm st;
-#if (_MSC_VER >= 1400)
-      errno_t err;
-      err = localtime_s(&st, &now);  // secure version
-      ASSERT(err == 0);
-#else
-      st = *localtime(&now);
-      ASSERT(st != NULL); // null means invalid time
-#endif
-      st.tm_mday += idays;
-      warnexptime = mktime(&st);
-
-      if (warnexptime == (time_t)-1)
-        warnexptime = (time_t)0;
-    }
-    if (tttXTime <= now) {
-      nImage += 2;  // Expired
-    } else if (tttXTime < warnexptime) {
-      nImage += 1;  // Warn nearly expired
-    }
-  }
-  return nImage;
-}
-
 void DboxMain::SetEntryImage(const int &index, const int nImage, const bool bOneEntry)
 {
   if (!m_bImageInLV)
@@ -3610,7 +4038,7 @@ void DboxMain::UpdateEntryImages(const CItemData &ci)
 {
   DisplayInfo *pdi = (DisplayInfo *)ci.GetDisplayInfo();
   if (ci.GetStatus() != CItemData::ES_DELETED) {
-    int nImage = GetEntryImage(ci);
+    int nImage = ci.GetEntryImage();
     SetEntryImage(pdi->list_index, nImage, true);
     SetEntryImage(pdi->tree_item, nImage, true);
   } else { // deleted item, remove from display
@@ -3697,37 +4125,37 @@ HICON DboxMain::GetEntryIcon(const int nImage) const
 {
   int nID;
   switch (nImage) {
-    case CPWTreeCtrl::NORMAL:
+    case CItemData::EI_NORMAL:
       nID = IDI_NORMAL;
       break;
-    case CPWTreeCtrl::WARNEXPIRED_NORMAL:
+    case CItemData::EI_WARNEXPIRED_NORMAL:
       nID = IDI_NORMAL_WARNEXPIRED;
       break;
-    case CPWTreeCtrl::EXPIRED_NORMAL:
+    case CItemData::EI_EXPIRED_NORMAL:
       nID = IDI_NORMAL_EXPIRED;
       break;
-    case CPWTreeCtrl::ALIASBASE:
+    case CItemData::EI_ALIASBASE:
       nID = IDI_ABASE;
       break;
-    case CPWTreeCtrl::WARNEXPIRED_ALIASBASE:
+    case CItemData::EI_WARNEXPIRED_ALIASBASE:
       nID = IDI_ABASE_WARNEXPIRED;
       break;
-    case CPWTreeCtrl::EXPIRED_ALIASBASE:
+    case CItemData::EI_EXPIRED_ALIASBASE:
       nID = IDI_ABASE_EXPIRED;
       break;
-    case CPWTreeCtrl::ALIAS:
+    case CItemData::EI_ALIAS:
       nID = IDI_ALIAS;
       break;
-    case CPWTreeCtrl::SHORTCUTBASE:
+    case CItemData::EI_SHORTCUTBASE:
       nID = IDI_SBASE;
       break;
-    case CPWTreeCtrl::WARNEXPIRED_SHORTCUTBASE:
+    case CItemData::EI_WARNEXPIRED_SHORTCUTBASE:
       nID = IDI_SBASE_WARNEXPIRED;
       break;
-    case CPWTreeCtrl::EXPIRED_SHORTCUTBASE:
+    case CItemData::EI_EXPIRED_SHORTCUTBASE:
       nID = IDI_SBASE_EXPIRED;
       break;
-    case CPWTreeCtrl::SHORTCUT:
+    case CItemData::EI_SHORTCUT:
       nID = IDI_SHORTCUT;
       break;
     default:
@@ -3757,19 +4185,25 @@ bool DboxMain::SetNotesWindow(const CPoint ptClient, const bool bVisible)
     return false;
   }
 
-  if (m_ctlItemTree.IsWindowVisible()) {
-    m_ctlItemTree.ClientToScreen(&ptScreen);
-    hItem = m_ctlItemTree.HitTest(ptClient, &nFlags);
-    if (hItem != NULL &&
-        (nFlags & (TVHT_ONITEM | TVHT_ONITEMBUTTON | TVHT_ONITEMINDENT))) {
-      pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
-    }
-  } else {
-    m_ctlItemList.ClientToScreen(&ptScreen);
-    nItem = m_ctlItemList.HitTest(ptClient, &nFlags);
-    if (nItem >= 0) {
-      pci = (CItemData *)m_ctlItemList.GetItemData(nItem);
-    }
+  switch (m_ViewType) {
+    case TREE:
+      m_ctlItemTree.ClientToScreen(&ptScreen);
+      hItem = m_ctlItemTree.HitTest(ptClient, &nFlags);
+      if (hItem != NULL &&
+          (nFlags & (TVHT_ONITEM | TVHT_ONITEMBUTTON | TVHT_ONITEMINDENT))) {
+        pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
+      }
+      break;
+    case LIST:
+      m_ctlItemList.ClientToScreen(&ptScreen);
+      nItem = m_ctlItemList.HitTest(ptClient, &nFlags);
+      if (nItem >= 0) {
+        pci = (CItemData *)m_ctlItemList.GetItemData(nItem);
+      }
+      break;
+    case EXPLORER:
+      // TBD
+      break;
   }
   ptScreen.y += ::GetSystemMetrics(SM_CYCURSOR) / 2; // half-height of cursor
 
@@ -3800,22 +4234,64 @@ bool DboxMain::SetNotesWindow(const CPoint ptClient, const bool bVisible)
   return !sx_notes.empty();
 }
 
-CItemData *DboxMain::GetLastSelected() const
+CItemData *DboxMain::GetLastSelected()
 {
-  CItemData *retval(NULL);
+  CItemData *pci(NULL);
   if (m_core.GetNumEntries() == 0)
-    return retval;
+    return pci;
 
-  if (m_ctlItemTree.IsWindowVisible()) {
-    HTREEITEM hSelected = m_ctlItemTree.GetSelectedItem();
-    if (hSelected != NULL)
-      retval = (CItemData *)m_ctlItemTree.GetItemData(hSelected);
-  } else {
-    POSITION pSelected = m_ctlItemList.GetFirstSelectedItemPosition();
-    if (pSelected != NULL)
-      retval = (CItemData *)m_ctlItemList.GetItemData((int)pSelected - 1);
+  switch (m_ViewType) {
+    case TREE:
+    {
+      HTREEITEM hSelected = m_ctlItemTree.GetSelectedItem();
+      if (hSelected != NULL)
+        pci = (CItemData *)m_ctlItemTree.GetItemData(hSelected);
+      break;
+    }
+    case LIST:
+    {
+      POSITION pSelected = m_ctlItemList.GetFirstSelectedItemPosition();
+      if (pSelected != NULL) {
+        int iIndex = m_ctlItemList.GetNextSelectedItem(pSelected);
+        pci = (CItemData *)m_ctlItemList.GetItemData(iIndex);
+      }
+      break;
+    }
+    case EXPLORER:
+    {
+      // Find out which pane is active and get the selected entry or group!
+      int nRow(-1), nCol(-1);
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+        break;
+      if ((nRow != 0 && nRow != 1) || (nCol != 0 && nCol != 1))
+        break;
+
+      if (nCol == 0) {
+        // Tree view - ie. group
+        break;
+      } else {
+        // List view = could be either!
+        CListCtrl *pListCtrl;
+        if (nRow == 0)
+          pListCtrl = &m_pListView0->GetListCtrl();
+        else
+          pListCtrl = &m_pListView1->GetListCtrl();
+
+        if (pListCtrl->GetSelectedCount() != 1)
+          break;
+        
+        POSITION pos = pListCtrl->GetFirstSelectedItemPosition();
+        if (pos) {
+          int iIndex = pListCtrl->GetNextSelectedItem(pos);
+          st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+          ASSERT(pLP != NULL);
+          pci = pLP->pci;
+        }
+      }
+      break;
+    }
   }
-  return retval;
+  return pci;
 }
 
 StringX DboxMain::GetGroupName() const
@@ -3837,10 +4313,10 @@ void DboxMain::UpdateGroupNamesInMap(const StringX sxOldPath, const StringX sxNe
 {
   // When a group node is renamed, need to update the group to HTREEITEM map
   // We need to build a new map, as we can't erase & add while iterating.
-  std::map<StringX, HTREEITEM> new_map;
+  PathMap new_map;
 
   size_t len = sxOldPath.length();
-  std::map<StringX, HTREEITEM>::iterator iter;
+  PathMapIter iter;
 
   for (iter = m_mapGroupToTreeItem.begin(); 
        iter != m_mapGroupToTreeItem.end(); iter++) {
@@ -3853,7 +4329,7 @@ void DboxMain::UpdateGroupNamesInMap(const StringX sxOldPath, const StringX sxNe
       }
     } else if (iter->first.length() > len) {
       // Need to add group seperator to ensure not affecting another group
-      StringX path = sxOldPath + StringX(GROUP_SEP2);
+      StringX path = sxOldPath + sxDot;
       if (wcsncmp(path.c_str(), iter->first.c_str(), len + 1) == 0) {
         HTREEITEM ti = iter->second;
         StringX sxNewGroup = sxNewPath + iter->first.substr(len);
@@ -4083,15 +4559,20 @@ void DboxMain::RefreshEntryFieldInGUI(CItemData &ci, CItemData::FieldType ft)
         (ft == CItemData::USER && bShowUsernameInTree) ||
         (ft == CItemData::PASSWORD && bShowPasswordInTree) ||
         ft == CItemData::PROTECTED) {
-      StringX treeDispString = ci.GetTitle();
+      StringX treeDispString = ci.GetTitle(), explorerDispString;
 
+      explorerDispString = treeDispString + L" [" + ci.GetUser() + L"]";
       if (bShowUsernameInTree)
         treeDispString += L" [" + ci.GetUser() + L"]";
       if (bShowPasswordInTree)
         treeDispString += L" {" + ci.GetPassword() + L"}";
-      if (ci.IsProtected())
+
+      if (ci.IsProtected()) {
         treeDispString += L" #";
+        explorerDispString += L" #";
+      }
       UpdateTreeItem(pdi->tree_item, treeDispString);
+      UpdateExplorerItem(&ci, explorerDispString);
       if (ft == CItemData::PASSWORD && bShowPasswordInTree) {
         UpdateEntryImages(ci);
       }
@@ -4123,34 +4604,34 @@ void DboxMain::SaveGUIStatusEx(const int iView)
   //pws_os::Trace(L"SaveGUIStatusEx\n");
 
   CItemData *pci(NULL);
-  POSITION p;
+  POSITION pos;
   HTREEITEM ti;
-  int i;
+  int iIndex;
 
-  // Note: User can have different entries selected/visible in Tree & List Views
+  // Note: User can have different entries selected/visible in TREE & LIST Views
   if ((iView & iListOnly) == iListOnly) {
     m_LUUIDSelectedAtMinimize = CUUID::NullUUID();
     m_LUUIDVisibleAtMinimize = CUUID::NullUUID();
 
-    // List view
+    // LIST view
     // Get selected entry in CListCtrl
-    p = m_ctlItemList.GetFirstSelectedItemPosition();
-    if (p) {
-      int i = m_ctlItemList.GetNextSelectedItem(p);
-      pci = (CItemData *)m_ctlItemList.GetItemData(i);
-      ASSERT(pci != NULL);  // No groups in List View
+    pos = m_ctlItemList.GetFirstSelectedItemPosition();
+    if (pos) {
+      iIndex = m_ctlItemList.GetNextSelectedItem(pos);
+      pci = (CItemData *)m_ctlItemList.GetItemData(iIndex);
+      ASSERT(pci != NULL);  // No groups in LIST View
       DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-      ASSERT(pdi != NULL && pdi->list_index == i);
+      ASSERT(pdi != NULL && pdi->list_index == iIndex);
       m_LUUIDSelectedAtMinimize = pci->GetUUID();
-    } // p != 0
+    } // pos != 0
 
     // Get first entry visible in CListCtrl
-    i = m_ctlItemList.GetTopIndex();
-    if (i >= 0) {
-      pci = (CItemData *)m_ctlItemList.GetItemData(i);
-      ASSERT(pci != NULL);  // No groups in List View
+    iIndex = m_ctlItemList.GetTopIndex();
+    if (iIndex >= 0) {
+      pci = (CItemData *)m_ctlItemList.GetItemData(iIndex);
+      ASSERT(pci != NULL);  // No groups in LIST View
       DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
-      ASSERT(pdi != NULL && pdi->list_index == i);
+      ASSERT(pdi != NULL && pdi->list_index == iIndex);
       m_LUUIDVisibleAtMinimize = pci->GetUUID();
     } // i >= 0
   }
@@ -4164,7 +4645,7 @@ void DboxMain::SaveGUIStatusEx(const int iView)
     m_sxSelectedGroup.clear();
     m_sxVisibleGroup.clear();
 
-    // Tree view
+    // TREE view
     // Get selected entry in CTreeCtrl
     ti = m_ctlItemTree.GetSelectedItem();
     if (ti != NULL) {
@@ -4180,7 +4661,7 @@ void DboxMain::SaveGUIStatusEx(const int iView)
         m_TUUIDSelectedAtMinimize = pci->GetUUID();
       } else {
         // Group: save entry text
-        m_sxSelectedGroup = m_ctlItemTree.GetGroup(ti);
+        m_sxSelectedGroup = GetGroupFullPath(&m_ctlItemTree, ti);
       }
     } // ti != NULL
 
@@ -4199,7 +4680,7 @@ void DboxMain::SaveGUIStatusEx(const int iView)
         m_TUUIDVisibleAtMinimize = pci->GetUUID();
       } else {
         // Group: save entry text
-        m_sxVisibleGroup = m_ctlItemTree.GetGroup(ti);
+        m_sxVisibleGroup = GetGroupFullPath(&m_ctlItemTree, ti);
       }
     } // ti != NULL
   }
@@ -4230,7 +4711,7 @@ void DboxMain::RestoreGUIStatusEx()
   HTREEITEM htvis(NULL), htsel(NULL);
   CItemData *pci(NULL);
 
-  // Process Tree - Selected
+  // Process TREE - Selected
   if (m_TUUIDSelectedAtMinimize != CUUID::NullUUID()) {
     // Entry selected
     ItemListIter iter = Find(m_TUUIDSelectedAtMinimize);
@@ -4245,8 +4726,8 @@ void DboxMain::RestoreGUIStatusEx()
   } else {
     // Group selected
     if (!m_sxSelectedGroup.empty()) {
-      // Find corresponding tree item
-      std::map<StringX, HTREEITEM>::iterator iter;
+      // Find corresponding TREE item
+      PathMapIter iter;
       iter = m_mapGroupToTreeItem.find(m_sxSelectedGroup);
       if (iter != m_mapGroupToTreeItem.end()) {
         htsel = iter->second;
@@ -4259,11 +4740,11 @@ void DboxMain::RestoreGUIStatusEx()
     RECT rect;
     m_ctlItemTree.GetItemRect(htsel, &rect, FALSE);
     m_ctlItemTree.InvalidateRect(&rect, TRUE);
-    if (m_ctlItemTree.IsWindowVisible())
+    if (m_ViewType == TREE)
       UpdateToolBarForSelectedItem(pci);
   }
 
-  // Process Tree - Visible
+  // Process TREE - Visible
   if (m_TUUIDVisibleAtMinimize != CUUID::NullUUID()) {
     // Entry topmost visible
     ItemListIter iter = Find(m_TUUIDVisibleAtMinimize);
@@ -4277,8 +4758,8 @@ void DboxMain::RestoreGUIStatusEx()
   } else {
     // Group topmost visible
     if (!m_sxVisibleGroup.empty()) {
-      // Find corresponding tree item
-      std::map<StringX, HTREEITEM>::iterator iter;
+      // Find corresponding TREE item
+      PathMapIter iter;
       iter = m_mapGroupToTreeItem.find(m_sxVisibleGroup);
       if (iter != m_mapGroupToTreeItem.end()) {
         htvis = iter->second;
@@ -4294,7 +4775,7 @@ void DboxMain::RestoreGUIStatusEx()
     m_ctlItemTree.InvalidateRect(&rect, TRUE);
   }
 
-  // Process List - selected
+  // Process LIST - selected
   if (m_LUUIDSelectedAtMinimize != CUUID::NullUUID()) {
     ItemListIter iter = Find(m_LUUIDSelectedAtMinimize);
     if (iter != End()) {
@@ -4306,13 +4787,13 @@ void DboxMain::RestoreGUIStatusEx()
                                    LVIS_FOCUSED | LVIS_SELECTED,
                                    LVIS_FOCUSED | LVIS_SELECTED);
         m_ctlItemList.Update(pdi->list_index);
-        if (m_ctlItemList.IsWindowVisible())
+        if (m_ViewType == LIST)
           UpdateToolBarForSelectedItem(&iter->second);
       }
     }
   }
 
-  // Process List - visible
+  // Process LIST - visible
   if (m_LUUIDVisibleAtMinimize != CUUID::NullUUID()) {
     ItemListIter iter = Find(m_LUUIDVisibleAtMinimize);
     if (iter != End()) {
@@ -4364,7 +4845,7 @@ vector<bool> DboxMain::GetGroupDisplayState()
   if (m_ctlItemTree.GetSafeHwnd() == NULL)
     return v;
 
-  while (NULL != (hItem = m_ctlItemTree.GetNextTreeItem(hItem))) {
+  while (NULL != (hItem = GetNextTreeItem(&m_ctlItemTree, hItem))) {
     if (m_ctlItemTree.ItemHasChildren(hItem)) {
       bool bState = (m_ctlItemTree.GetItemState(hItem, TVIS_EXPANDED) &
                              TVIS_EXPANDED) != 0;
@@ -4382,7 +4863,7 @@ void DboxMain::SetGroupDisplayState(const vector<bool> &displaystatus)
   // SaveGroupDisplayState to be called, updating it
 
   // Could be called from OnSize before anything set up!
-  // Check Tree is valid first
+  // Check TREE is valid first
   if (m_ctlItemTree.GetSafeHwnd() == NULL || displaystatus.empty())
     return;
 
@@ -4393,7 +4874,7 @@ void DboxMain::SetGroupDisplayState(const vector<bool> &displaystatus)
 
   HTREEITEM hItem = NULL;
   size_t i(0);
-  while (NULL != (hItem = m_ctlItemTree.GetNextTreeItem(hItem))) {
+  while (NULL != (hItem = GetNextTreeItem(&m_ctlItemTree, hItem))) {
     if (m_ctlItemTree.ItemHasChildren(hItem)) {
       m_ctlItemTree.Expand(hItem, dstatus[i] ? TVE_EXPAND : TVE_COLLAPSE);
       i++;
@@ -4411,14 +4892,15 @@ void DboxMain::SaveGUIStatus()
   CItemData *pci_list(NULL), *pci_tree(NULL);
 
   // Note: we try and keep the same entry selected when the users
-  // switches between List & Tree views.
-  // But we can't if the user has selected a Group in the Tree view
+  // switches between LIST & TREE views.
+  // But we can't if the user has selected a Group in the TREE view
 
   // Note: Must do this using the entry's UUID as the POSITION & 
   // HTREEITEM values may be different when we come to use it.
   POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
   if (pos != NULL) {
-    pci_list = (CItemData *)m_ctlItemList.GetItemData((int)pos - 1);
+    int iIndex = m_ctlItemList.GetNextSelectedItem(pos);
+    pci_list = (CItemData *)m_ctlItemList.GetItemData(iIndex);
     if (pci_list != NULL) {
       SaveGUIInfo.lSelected = pci_list->GetUUID();
       SaveGUIInfo.blSelectedValid = true;
@@ -4474,7 +4956,7 @@ void DboxMain::RestoreGUIStatus()
   }
 
   if (SaveGUIInfo.btGroupValid) {
-    std::map<StringX, HTREEITEM>::iterator iter;
+    PathMapIter iter;
     iter = m_mapGroupToTreeItem.find(SaveGUIInfo.sxGroupName);
     if (iter != m_mapGroupToTreeItem.end()) {
       m_ctlItemTree.SelectItem(iter->second);
@@ -4486,14 +4968,43 @@ void DboxMain::RestoreGUIStatus()
   m_stkSaveGUIInfo.pop();
 }
 
-void DboxMain::GetAllGroups(std::vector<std::wstring> &vGroups) const
+void DboxMain::GetAllGroups(std::vector<StringX> &vGroups) const
 {
-  std::map<StringX, HTREEITEM>::const_iterator iter;
+  PathMapConstIter iter;
+
+  vGroups.clear();
 
   for (iter = m_mapGroupToTreeItem.begin(); 
        iter != m_mapGroupToTreeItem.end(); iter++) {
     vGroups.push_back(iter->first.c_str());
   }
+}
+
+bool DboxMain::GetGroupEntries(StringX sxPathToRoot,
+                               std::vector<pws_os::CUUID> *pvGroupEntries,
+                               const bool bAll)
+{
+  // Get all entries within a given group (not subgroups unless
+  //    bAll = true [default = false])
+  StringX sxDragPath2 = sxPathToRoot + sxDot;
+  const size_t len2 = sxDragPath2.length();
+  
+  if (pvGroupEntries != NULL)
+    pvGroupEntries->clear();
+
+  size_t num_entries(0);
+  ItemListIter iter;
+  for (iter = m_core.GetEntryIter(); iter != m_core.GetEntryEndIter();
+       iter++) {
+    CItemData &ci = m_core.GetEntry(iter);
+    if (ci.GetGroup() == sxPathToRoot ||
+        (bAll && iter->second.GetGroup().substr(0, len2) == sxDragPath2))
+      if (pvGroupEntries != NULL)
+        pvGroupEntries->push_back(ci.GetUUID());
+      else
+        num_entries++;
+  }
+  return pvGroupEntries != NULL ? pvGroupEntries->size() > 0 : num_entries > 0;
 }
 
 bool DboxMain::LongPPs(CWnd *pWnd)
@@ -4535,4 +5046,396 @@ bool DboxMain::GetShortCut(const unsigned int &uiMenuItem,
   }
 
   return true;
+}
+
+void DboxMain::GetGroupEntriesData(CDDObList &out_oblist, StringX sxDragPath)
+{
+  // Get all D&D data for entries in this group and its subgroups
+  StringX sxDragPath2 = sxDragPath + sxDot;
+  const size_t len2 = sxDragPath2.length();
+
+  ItemListIter iter;
+  for (iter = m_core.GetEntryIter(); iter != m_core.GetEntryEndIter(); iter++) {
+    if (iter->second.GetGroup() == sxDragPath ||
+        iter->second.GetGroup().substr(0, len2) == sxDragPath2) {
+      GetEntryData(out_oblist, &iter->second);
+    }
+  }
+}
+
+void DboxMain::GetEntryData(CDDObList &out_oblist, CItemData *pci)
+{
+  // Get entry data for D&D
+  ASSERT(pci != NULL);
+  CDDObject *pDDObject = new CDDObject;
+
+  pDDObject->FromItem(*pci);
+
+  if (pci->IsDependent()) {
+    // I'm an alias or shortcut; pass on ptr to my base item
+    // to retrieve its group/title/user
+    const CItemData *pbci = GetBaseEntry(pci);
+    ASSERT(pbci != NULL);
+    pDDObject->SetBaseItem(pbci);
+  }
+
+  out_oblist.AddTail(pDDObject);
+}
+
+void DboxMain::GetGroupEntriesData(CDDObList &out_oblist,
+                                   std::vector<pws_os::CUUID> &vDragItems)
+{
+  // Get all required data by UUID (List View where dragging groups, subgoups and entries
+  size_t i;
+  for (i = 0; i < vDragItems.size(); i++) {
+    ItemListIter iter = Find(vDragItems[i]);
+    GetEntryData(out_oblist, &iter->second);
+  }
+}
+
+bool DboxMain::AnyToGoBackwards(const SplitterRow &iRow)
+{
+  bool brc(false);
+  // Note: m_vPaths[0] == the Database - can't go back then
+  switch (iRow) {
+    case TOP:
+      // Not allowed to go back before initial root
+      brc = (m_expl_bwds_iter0 != m_vPaths0.end() && m_expl_bwds_iter0 != m_vPaths0.begin());
+      break;
+    case BOTTOM:
+      // Not allowed to go back before initial root
+      brc = (m_expl_bwds_iter1 != m_vPaths1.end() && m_expl_bwds_iter1 != m_vPaths1.begin());
+      break;
+    case INVALID_ROW:
+      break;
+  }
+  return brc;
+}
+
+bool DboxMain::AnyToGoForwards(const SplitterRow &iRow)
+{
+  bool brc(false);
+  switch (iRow) {
+    case TOP:
+      brc = (m_expl_fwds_iter0 != m_vPaths0.end());
+      break;
+    case BOTTOM:
+      brc = (m_expl_fwds_iter1 != m_vPaths1.end());
+      break;
+    case INVALID_ROW:
+      break;
+  }
+  return brc;
+}
+
+void DboxMain::UpdateBackwardsForwards(SplitterRow sRow, const StringX sxPath)
+{
+  switch (sRow) {
+    case TOP:
+    {
+      if (m_expl_fwds_iter0 != m_vPaths0.end())
+        m_vPaths0.erase(m_expl_fwds_iter0, m_vPaths0.end());
+
+      m_vPaths0.push_back(sxPath);
+      m_expl_bwds_iter0 = m_expl_fwds_iter0 = m_vPaths0.end();
+      m_expl_bwds_iter0--;
+
+      m_ExplorerToolBar0.UpdatePathComboBox(m_vPaths0, distance(m_vPaths0.begin(), m_expl_bwds_iter0));
+      break;
+    }
+    case BOTTOM:
+    {
+      if (m_expl_fwds_iter1 != m_vPaths1.end())
+        m_vPaths1.erase(m_expl_fwds_iter1, m_vPaths1.end());
+
+      m_vPaths1.push_back(sxPath);
+      m_expl_bwds_iter1 = m_expl_fwds_iter1 = m_vPaths1.end();
+      m_expl_bwds_iter1--;
+
+      m_ExplorerToolBar1.UpdatePathComboBox(m_vPaths1, distance(m_vPaths1.begin(), m_expl_bwds_iter1));
+      break;
+    }
+    case INVALID_ROW:
+      break;
+  }
+}
+
+void DboxMain::OnExplorerBackwards(UINT nID)
+{
+  bool bNoUp(false), bDeleteSearch(false);
+  std::vector<StringX>::iterator temp_iter;
+
+  switch (nID) {
+    case ID_TOOLBUTTON_BACKWARDS0:
+    {
+      ASSERT(m_expl_bwds_iter0 != m_vPaths0.end());
+
+      bDeleteSearch = m_pListView0->IsDisplayingFoundEntries();
+
+      temp_iter = m_expl_bwds_iter0;
+      if (temp_iter == m_vPaths0.begin())
+        temp_iter = m_vPaths1.end();
+      else
+        temp_iter--;
+
+      if (!VerifyGroupStillExists(*temp_iter))
+        return;
+
+      m_expl_fwds_iter0 = m_expl_bwds_iter0;
+      m_expl_bwds_iter0 = temp_iter;
+      m_pTreeView0->CreateTree(*m_expl_bwds_iter0, false);
+      bNoUp = m_expl_bwds_iter0->empty() || m_pListView0->IsDisplayingFoundEntries();
+
+      if (bDeleteSearch) {
+        m_vPaths0.pop_back();
+        m_expl_fwds_iter0 = m_vPaths0.end();
+      }
+
+      // Change the displayed entry in ComboBox - back 1
+      m_ExplorerToolBar0.ChangeIndex(-1, bDeleteSearch);
+      break;
+    }
+    case ID_TOOLBUTTON_BACKWARDS1:
+    {
+      ASSERT(m_expl_bwds_iter1 != m_vPaths1.end());
+
+      bDeleteSearch = m_pListView1->IsDisplayingFoundEntries();
+
+      temp_iter = m_expl_bwds_iter1;
+      if (temp_iter == m_vPaths1.begin())
+        temp_iter = m_vPaths1.end();
+      else
+        temp_iter--;
+
+      if (!VerifyGroupStillExists(*temp_iter))
+        return;
+
+      m_expl_fwds_iter1 = m_expl_bwds_iter1;
+      m_expl_bwds_iter1 = temp_iter;
+      m_pTreeView1->CreateTree(*m_expl_bwds_iter1, false);
+      bNoUp = m_expl_bwds_iter1->empty() || m_pListView1->IsDisplayingFoundEntries();
+
+      if (bDeleteSearch) {
+        m_vPaths1.pop_back();
+        m_expl_fwds_iter1 = m_vPaths1.end();
+      }
+
+      // Change the displayed entry in ComboBox - back 1
+      m_ExplorerToolBar1.ChangeIndex(-1, bDeleteSearch);
+      break;
+    }
+  }
+
+  UpdateExplorerToolbar(nID == ID_TOOLBUTTON_BACKWARDS0 ? TOP : BOTTOM, bNoUp);
+}
+
+void DboxMain::OnExplorerForwards(UINT nID)
+{
+  bool bNoUp(false);
+  std::vector<StringX>::iterator temp_iter;
+
+  switch (nID) {
+    case ID_TOOLBUTTON_FORWARDS0:
+    {
+      ASSERT(m_expl_fwds_iter0 != m_vPaths0.end());
+
+      if (!VerifyGroupStillExists(*m_expl_fwds_iter0))
+        return;
+
+      m_expl_bwds_iter0 = m_expl_fwds_iter0;
+
+      m_pTreeView0->CreateTree(*m_expl_fwds_iter0, false);
+      bNoUp = m_expl_fwds_iter0->empty() || m_pListView0->IsDisplayingFoundEntries();
+
+      if (m_expl_fwds_iter0 != m_vPaths0.end())
+        m_expl_fwds_iter0++;
+
+      // Change the displayed entry in ComboBox - forward 1
+      m_ExplorerToolBar0.ChangeIndex(1);
+      break;
+    }
+    case ID_TOOLBUTTON_FORWARDS1:
+    {
+      ASSERT(m_expl_fwds_iter1 != m_vPaths1.end());
+
+      if (!VerifyGroupStillExists(*m_expl_fwds_iter1))
+        return;
+
+      m_expl_bwds_iter1 = m_expl_fwds_iter1;
+
+      m_pTreeView1->CreateTree(*m_expl_fwds_iter1, false);
+      bNoUp = m_expl_fwds_iter1->empty() || m_pListView1->IsDisplayingFoundEntries();
+
+      if (m_expl_fwds_iter1 != m_vPaths1.end())
+        m_expl_fwds_iter1++;
+
+      // Change the displayed entry in ComboBox - forward 1
+      m_ExplorerToolBar1.ChangeIndex(1);
+      break;
+    }
+  }
+
+  UpdateExplorerToolbar(nID == ID_TOOLBUTTON_FORWARDS0 ? TOP : BOTTOM, bNoUp);
+}
+
+void DboxMain::OnExplorerUpwards(UINT nID)
+{
+  if (m_iLEARow == INVALID_ROW)
+    return;
+
+  // Get current path
+  StringX sxPath = (nID == ID_TOOLBUTTON_UPWARDS0) ?
+     m_pListView0->GetCurrentPath() : m_pListView1->GetCurrentPath();
+
+  // Go up a level
+  StringX sxNewPath(L"");
+  size_t found = sxPath.find_last_of(L'.');
+  if (found != StringX::npos)
+    sxNewPath = sxPath.substr(0, found);
+
+  if (!VerifyGroupStillExists(sxNewPath))
+    return;
+
+  bool bNoUp = sxNewPath.empty();
+
+  if (nID == ID_TOOLBUTTON_UPWARDS0) {
+    m_pTreeView0->CreateTree(sxNewPath, true);
+  } else {
+    m_pTreeView1->CreateTree(sxNewPath, true);
+  }
+
+  UpdateExplorerToolbar(m_iLEARow, bNoUp);
+}
+
+void DboxMain::UpdateCurrentPath(StringX sxPath)
+{
+  if (m_iLEARow == INVALID_ROW)
+    return;
+
+  if (m_toolbarsSetup == TRUE) {
+    bool bNoUp = (m_iLEARow == TOP) ?
+       m_pTreeView0->GetCurrentPath().empty() : m_pTreeView1->GetCurrentPath().empty();
+
+    UpdateExplorerToolbar(m_iLEARow, bNoUp);
+  }
+
+  m_FindToolBar.SetCurrentPath(sxPath);
+}
+
+void DboxMain::SetExplorerView(int &index)
+{
+  if (m_iLEARow == INVALID_ROW)
+    return;
+
+  // Called when user selects a path from the Explorer Toolbar ComboBox
+  StringX sxPath = (m_iLEARow == TOP) ? m_vPaths0[index] : m_vPaths1[index];
+
+  bool bNoUp = sxPath.empty();
+
+  if (m_iLEARow == TOP) {
+    m_pTreeView0->CreateTree(sxPath, false);
+  } else {
+    m_pTreeView1->CreateTree(sxPath, false);
+  }
+  UpdateExplorerToolbar(m_iLEARow, bNoUp);
+}
+
+void DboxMain::UpdateExplorerToolbar(const SplitterRow &iRow, const bool bNoUp)
+{
+  switch (iRow) {
+    case TOP:
+    {
+      CToolBarCtrl& TBCtrl = m_ExplorerToolBar0.GetToolBarCtrl();
+      TBCtrl.EnableButton(ID_TOOLBUTTON_BACKWARDS0, AnyToGoBackwards(TOP) ? TRUE : FALSE);
+      TBCtrl.EnableButton(ID_TOOLBUTTON_FORWARDS0, AnyToGoForwards(TOP) ? TRUE : FALSE);
+      TBCtrl.EnableButton(ID_TOOLBUTTON_UPWARDS0, bNoUp ? FALSE : TRUE);
+      break;
+    }
+    case BOTTOM:
+    {
+      CToolBarCtrl& TBCtrl = m_ExplorerToolBar1.GetToolBarCtrl();
+      TBCtrl.EnableButton(ID_TOOLBUTTON_BACKWARDS1, AnyToGoBackwards(BOTTOM) ? TRUE : FALSE);
+      TBCtrl.EnableButton(ID_TOOLBUTTON_FORWARDS1, AnyToGoForwards(BOTTOM) ? TRUE : FALSE);
+      TBCtrl.EnableButton(ID_TOOLBUTTON_UPWARDS1, bNoUp ? FALSE : TRUE);
+      break;
+    }
+    case INVALID_ROW:
+      return;
+  }
+}
+
+StringX DboxMain::GetCurrentPath()
+{
+  return m_iLEARow == 0 ? m_pListView0->GetCurrentPath() : m_pListView1->GetCurrentPath();
+}
+
+StringX DboxMain::GetRoot()
+{
+  StringX sxFile = GetCurFile();
+
+  wchar_t fname[_MAX_FNAME] = {0};
+  wchar_t ext[_MAX_EXT] = {0};
+  _wsplitpath_s(sxFile.c_str(), NULL, 0, NULL, 0, fname, _MAX_FNAME, ext, _MAX_EXT);
+
+  StringX sxDatabase;
+  LoadAString(sxDatabase, IDS_DBNAME);
+  Format(sxFile, L"%s [%s%s]", sxDatabase.c_str(), fname, ext);
+  return sxFile;
+}
+
+void DboxMain::ResetExplorerView(const bool &bInit)
+{
+  m_iLEARow = INVALID_ROW;
+  m_vPaths0.clear();
+  m_vPaths1.clear();
+  m_vPaths0.push_back(L"");
+  m_vPaths1.push_back(L"");
+
+  m_expl_bwds_iter0 = m_expl_fwds_iter0 = m_vPaths0.end();
+  m_expl_bwds_iter1 = m_expl_fwds_iter1 = m_vPaths1.end();
+
+  m_ExplorerToolBar0.UpdatePathComboBox(m_vPaths0, bInit ? 0 : -1);
+  m_ExplorerToolBar1.UpdatePathComboBox(m_vPaths0, bInit ? 0 : -1);
+
+  m_pListView0->SetCurrentPath(L"");
+  m_pListView1->SetCurrentPath(L"");
+  m_pTreeView0->SetCurrentPath(L"");
+  m_pTreeView1->SetCurrentPath(L"");
+}
+
+bool DboxMain::VerifyGroupStillExists(const StringX &sxRealPath)
+{
+  // First check if in Empty group list
+  if (IsEmptyGroup(sxRealPath))
+    return true;
+
+  // Then try if it contains only empty groups
+  if (HasEmptySubgroup(sxRealPath))
+    return true;
+  
+  // Lastly see if it has any entries of its own
+  if (GetGroupEntries(sxRealPath, NULL))
+    return true;
+
+  // No - so doesn't exist
+  StringX sxParents, sxGroup;
+
+  size_t i = sxRealPath.find_last_of(L'.');
+  bool bGroupInRoot = (i == StringX::npos);
+  if (!bGroupInRoot) {
+    sxParents = sxRealPath.substr(0, i);
+    sxGroup = sxRealPath.substr(i + 1);
+  }
+
+  CGeneralMsgBox gmb;
+  CString cs_title(MAKEINTRESOURCE(IDS_GROUP_ERROR)),
+          cs_text(MAKEINTRESOURCE(IDS_MISSING_GROUP0)), cs_errmsg;
+  
+  if (bGroupInRoot)
+    cs_errmsg.Format(IDS_MISSING_GROUP2, sxRealPath.c_str(), cs_text);
+  else
+    cs_errmsg.Format(IDS_MISSING_GROUP1, sxGroup.c_str(), sxParents.c_str(), cs_text);
+
+  gmb.MessageBox(cs_errmsg, cs_title, MB_ICONERROR);
+  return false;
 }

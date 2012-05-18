@@ -173,6 +173,9 @@ BOOL CPWFindToolBar::PreTranslateMessage(MSG *pMsg)
 {
   CWnd *pWnd = FromHandle(pMsg->hwnd);
 
+  if (m_pDbx == NULL)
+    return CToolBar::PreTranslateMessage(pMsg);
+
   // Process User's AutoType shortcut
   if (m_pDbx != NULL && m_pDbx->CheckPreTranslateAutoType(pMsg))
     return TRUE;
@@ -215,7 +218,10 @@ void CPWFindToolBar::Init(const int NumBits, CWnd *pDbx, int iWMSGID,
                           st_SaveAdvValues *pst_SADV)
 {
   ASSERT(pst_SADV != NULL);
-  
+
+  m_pDbx = static_cast<DboxMain *>(pDbx);
+  m_iWMSGID = iWMSGID;
+
   int i, j;
 
   COLORREF crClassicBackground = RGB(192, 192, 192);
@@ -278,9 +284,6 @@ void CPWFindToolBar::Init(const int NumBits, CWnd *pDbx, int iWMSGID,
     if (!bIsSeparator)
       j++;
   }
-
-  m_pDbx = m_pDbx = static_cast<DboxMain *>(pDbx);
-  m_iWMSGID = iWMSGID;
 }
 
 void CPWFindToolBar::LoadDefaultToolBar(const int toolbarMode)
@@ -446,6 +449,7 @@ void CPWFindToolBar::ClearFind()
   m_last_subgroup_object = m_last_subgroup_function = 0;
   m_lastshown = size_t(-1);
   m_indices.clear();
+  m_pDbx->SetFoundEntries(m_indices);
 }
 
 void CPWFindToolBar::Find()
@@ -453,8 +457,9 @@ void CPWFindToolBar::Find()
   if (this->GetSafeHwnd() == NULL)
     return;
 
-  DboxMain* pDbx = static_cast<DboxMain *>(m_pDbx);
-  ASSERT(pDbx != NULL);
+  ASSERT(m_pDbx != NULL);
+  if (m_pDbx == NULL)
+    return;
 
   CString cs_status, cs_temp;
   m_findedit.GetWindowText(m_search_text);
@@ -489,12 +494,12 @@ void CPWFindToolBar::Find()
     m_indices.clear();
 
     if (m_bAdvanced)
-      m_numFound = pDbx->FindAll(m_search_text, m_cs_search, m_indices,
-                                 m_pst_SADV->bsFields, m_pst_SADV->subgroup_bset,
-                                 m_pst_SADV->subgroup_name, m_pst_SADV->subgroup_object, 
-                                 m_pst_SADV->subgroup_function);
+      m_numFound = m_pDbx->FindAll(m_search_text, m_cs_search, m_indices,
+                                   m_pst_SADV->bsFields, m_pst_SADV->subgroup_bset,
+                                   m_pst_SADV->subgroup_name, m_pst_SADV->subgroup_object, 
+                                   m_pst_SADV->subgroup_function);
     else
-      m_numFound = pDbx->FindAll(m_search_text, m_cs_search, m_indices);
+      m_numFound = m_pDbx->FindAll(m_search_text, m_cs_search, m_indices);
 
     switch (m_numFound) {
       case 0:
@@ -507,13 +512,14 @@ void CPWFindToolBar::Find()
         cs_status.Format(IDS_FOUNDMATCHES, 1, m_numFound);
         break;
     }
-    pDbx->ResumeOnDBNotification();
+    m_pDbx->SetFoundEntries(m_indices);
+    m_pDbx->ResumeOnDBNotification();
   } // m_lastshown == size_t(-1)
 
   // OK, so now we have a (possibly empty) list of items to select.
   if (m_numFound > 0) {
     if (m_numFound == 1) {
-      pDbx->SelectFindEntry(m_indices[0], TRUE);
+      m_pDbx->SelectFindEntry(m_indices[0], TRUE);
     } else { // m_numFound > 1
       if (m_iFindDirection == FIND_DOWN) {
         m_lastshown++;
@@ -526,13 +532,14 @@ void CPWFindToolBar::Find()
         cs_status.Format(IDS_SEARCHWRAPPED, cs_temp);
         m_lastshown = 0;
       } else
-        if (m_iFindDirection == FIND_UP && m_lastshown == size_t(-1)) {
+      if (m_iFindDirection == FIND_UP && m_lastshown == size_t(-1)) {
         cs_temp.LoadString(IDS_SEARCHBOTTOM);
         cs_status.Format(IDS_SEARCHWRAPPED, cs_temp);
         m_lastshown = m_numFound - 1;
       } else
         cs_status.Format(IDS_FOUNDMATCHES, m_lastshown + 1, m_numFound);
-      pDbx->SelectFindEntry(m_indices[m_lastshown], TRUE);
+
+      m_pDbx->SelectFindEntry(m_indices[m_lastshown], TRUE);
     }
   }
   if (m_numFound == 0)
@@ -590,6 +597,7 @@ void CPWFindToolBar::ShowFindAdvanced()
         m_numFound = size_t(-1);
         m_lastshown = size_t(-1);
         m_indices.clear();
+        m_pDbx->SetFoundEntries(m_indices);        
       }
     } else {
       bAdvanced = false;
@@ -604,6 +612,7 @@ void CPWFindToolBar::ShowFindAdvanced()
     m_numFound = size_t(-1);
     m_lastshown = size_t(-1);
     m_indices.clear();
+    m_pDbx->SetFoundEntries(m_indices);
   }
   // Set new state
   m_bAdvanced = bAdvanced;

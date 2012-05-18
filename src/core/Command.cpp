@@ -329,12 +329,12 @@ void DBPolicyNamesCommand::Undo()
 // ------------------------------------------------
 
 DBEmptyGroupsCommand::DBEmptyGroupsCommand(CommandInterface *pcomInt,
-                                           std::vector<StringX> &vEmptyGroups,
+                                           PathSet &setEmptyGroups,
                                            Function function)
-  : Command(pcomInt), m_vNewEmptyGroups(vEmptyGroups),
+  : Command(pcomInt), m_setNewEmptyGroups(setEmptyGroups),
   m_function(function), m_bSingleGroup(false)
 {
-  m_vOldEmptyGroups = pcomInt->GetEmptyGroups();
+  m_setOldEmptyGroups = pcomInt->GetEmptyGroups();
   m_bOldState = pcomInt->IsChanged();
 }
 
@@ -344,7 +344,7 @@ DBEmptyGroupsCommand::DBEmptyGroupsCommand(CommandInterface *pcomInt,
   : Command(pcomInt), m_sxEmptyGroup(sxEmptyGroup), m_function(function),
   m_bSingleGroup(true)
 {
-  m_vOldEmptyGroups = pcomInt->GetEmptyGroups();
+  m_setOldEmptyGroups = pcomInt->GetEmptyGroups();
   m_bOldState = pcomInt->IsChanged();
 }
 
@@ -382,12 +382,16 @@ int DBEmptyGroupsCommand::Execute()
       // Multi-Empty Group functions
       switch (m_function) {
         case EG_ADDALL:
-          for (size_t n = 0; n < m_vNewEmptyGroups.size(); n++) {
-            m_pcomInt->AddEmptyGroup(m_vNewEmptyGroups[n]);
+        {
+          PathSetConstIter citer;
+          for (citer = m_setNewEmptyGroups.begin(); citer != m_setNewEmptyGroups.end();
+               citer++) {
+            m_pcomInt->AddEmptyGroup(*citer);
           }
           break;
+        }
         case EG_REPLACEALL:
-          m_pcomInt->SetEmptyGroups(m_vNewEmptyGroups);
+          m_pcomInt->SetEmptyGroups(m_setNewEmptyGroups);
           break;
         default:
           // Ignore single group functions
@@ -431,7 +435,7 @@ void DBEmptyGroupsCommand::Undo()
       switch (m_function) {
         case EG_ADDALL:
         case EG_REPLACEALL:
-          m_pcomInt->SetEmptyGroups(m_vOldEmptyGroups);
+          m_pcomInt->SetEmptyGroups(m_setOldEmptyGroups);
           break;
         default:
           // Ignore single group functions

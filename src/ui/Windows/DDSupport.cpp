@@ -56,7 +56,7 @@ void CDDObList::DDSerialize(CSMemFile &outDDmemfile)
   nCount = (int)GetCount();
 
   outDDmemfile.Write((void *)&nCount, sizeof(nCount));
-  outDDmemfile.Write((void *)&m_bDragNode, sizeof(bool));
+  outDDmemfile.Write((void *)&m_bDraggingGroup, sizeof(bool));
 
   Pos = GetHeadPosition();
   while (Pos != NULL) {
@@ -73,7 +73,7 @@ void CDDObList::DDUnSerialize(CSMemFile &inDDmemfile)
   CDDObject *pDDObject;
 
   inDDmemfile.Read((void *)&nCount, sizeof(nCount));
-  inDDmemfile.Read((void *)&m_bDragNode, sizeof(bool));
+  inDDmemfile.Read((void *)&m_bDraggingGroup, sizeof(bool));
 
   for (n = 0; n < nCount; n++) {
     pDDObject = new CDDObject();

@@ -11,6 +11,8 @@
 
 #include "stdafx.h"
 
+#include "WindowsDefs.h"
+
 #include "ThisMfcApp.h"
 #include "GeneralMsgBox.h"
 #include "DboxMain.h"
@@ -367,7 +369,7 @@ void CCompareResultsDlg::OnShowIdenticalEntries()
     pst_data->listindex = i;
   }
 
-  m_LCResults.SortItems(CRCompareFunc, (LPARAM)this);
+  m_LCResults.SortItems(CRCompareFunction, (LPARAM)this);
   m_LCResults.SetRedraw(TRUE);
   m_LCResults.Invalidate();
 }
@@ -1096,7 +1098,7 @@ void CCompareResultsDlg::OnColumnClick(NMHDR *pNotifyStruct, LRESULT *pLResult)
     m_bSortAscending = true;
   }
 
-  m_LCResults.SortItems(CRCompareFunc, (LPARAM)this);
+  m_LCResults.SortItems(CRCompareFunction, (LPARAM)this);
 
   // Reset item listindex
   for (int i = 0; i < m_LCResults.GetItemCount(); i++) {
@@ -1133,8 +1135,8 @@ void CCompareResultsDlg::OnColumnClick(NMHDR *pNotifyStruct, LRESULT *pLResult)
 * the second, a positive value if the first item should follow the second, or zero if
 * the two items are equivalent."
 */
-int CALLBACK CCompareResultsDlg::CRCompareFunc(LPARAM lParam1, LPARAM lParam2,
-                                               LPARAM lParamSort)
+int CALLBACK CCompareResultsDlg::CRCompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                                   LPARAM lParamSort)
 {
   // m_bSortAscending to determine the direction of the sort (duh)
 

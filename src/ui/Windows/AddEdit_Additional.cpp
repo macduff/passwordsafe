@@ -90,7 +90,6 @@ BEGIN_MESSAGE_MAP(CAddEdit_Additional, CAddEdit_PropertyPage)
   ON_BN_CLICKED(IDC_SAVE_PWHIST, OnCheckedSavePasswordHistory)
   ON_BN_CLICKED(IDC_PWH_COPY_ALL, OnPWHCopyAll)
 
-  ON_NOTIFY(HDN_ITEMCLICKA, 0, OnHeaderClicked)
   ON_NOTIFY(HDN_ITEMCLICKW, 0, OnHeaderClicked)
   ON_NOTIFY(NM_CLICK, IDC_PWHISTORY_LIST, OnHistListClick)
 
@@ -643,7 +642,7 @@ void CAddEdit_Additional::OnHeaderClicked(NMHDR *pNotifyStruct, LRESULT *pLResul
       m_bSortAscending = true;
 
     m_iSortedColumn = phdn->iItem;
-    m_PWHistListCtrl.SortItems(PWHistCompareFunc, (LPARAM)this);
+    m_PWHistListCtrl.SortItems(PWHistCompareFunction, (LPARAM)this);
 
     // Note: WINVER defines the minimum system level for which this is program compiled and
     // NOT the level of system it is running on!
@@ -669,10 +668,10 @@ void CAddEdit_Additional::OnHeaderClicked(NMHDR *pNotifyStruct, LRESULT *pLResul
   *pLResult = 0;
 }
 
-int CALLBACK CAddEdit_Additional::PWHistCompareFunc(LPARAM lParam1, LPARAM lParam2,
-                                                    LPARAM closure)
+int CALLBACK CAddEdit_Additional::PWHistCompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                                        LPARAM lParamSort)
 {
-  CAddEdit_Additional *self = (CAddEdit_Additional *)closure;
+  CAddEdit_Additional *self = (CAddEdit_Additional *)lParamSort;
   int nSortColumn = self->m_iSortedColumn;
   size_t Lpos = (size_t)lParam1;
   size_t Rpos = (size_t)lParam2;

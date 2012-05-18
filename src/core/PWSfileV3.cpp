@@ -673,9 +673,10 @@ int PWSfileV3::WriteHeader()
   }
 
   // Empty Groups
-  if (!m_vEmptyGroups.empty()) {
-    for (size_t n = 0; n < m_vEmptyGroups.size(); n++) {
-      numWritten = WriteCBC(HDR_EMPTYGROUP, m_vEmptyGroups[n]);
+  if (!m_setEmptyGroups.empty()) {
+    PathSetConstIter citer;
+    for (citer = m_setEmptyGroups.begin(); citer != m_setEmptyGroups.end(); citer++) {
+      numWritten = WriteCBC(HDR_EMPTYGROUP, *citer);
       if (numWritten <= 0) { status = FAILURE; goto end; }
     }
   }
@@ -734,7 +735,7 @@ int PWSfileV3::ReadHeader()
   m_fish = new TwoFish(m_key, sizeof(m_key));
 
   unsigned char fieldType;
-  StringX text;
+  StringX szText;
   size_t numRead;
   bool utf8status;
   unsigned char *utf8 = NULL;
@@ -792,8 +793,8 @@ int PWSfileV3::ReadHeader()
 
       case HDR_DISPSTAT: /* Tree Display Status */
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
-        for (StringX::iterator iter = text.begin(); iter != text.end(); iter++) {
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
+        for (StringX::iterator iter = szText.begin(); iter != szText.end(); iter++) {
           const TCHAR v = *iter;
           m_hdr.m_displaystatus.push_back(v == TCHAR('1'));
         }
@@ -806,10 +807,10 @@ int PWSfileV3::ReadHeader()
           // Handle pre-3.09 implementations that mistakenly
           // stored this as a hex value
           if (utf8 != NULL) utf8[utf8Len] = '\0';
-            utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
+            utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
             if (!utf8status)
               pws_os::Trace0(_T("FromUTF8(m_whenlastsaved) failed\n"));
-            iStringXStream is(text);
+            iStringXStream is(szText);
             is >> hex >> m_hdr.m_whenlastsaved;
         } else if (utf8Len == 4) {
           // retrieve time_t
@@ -823,13 +824,13 @@ int PWSfileV3::ReadHeader()
         // DEPRECATED, but we still know how to read this
         if (!found0302UserHost) { // if new fields also found, don't overwrite
           if (utf8 != NULL) utf8[utf8Len] = '\0';
-          utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
+          utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
           if (utf8status) {
-            StringX tlen = text.substr(0, 4);
+            StringX tlen = szText.substr(0, 4);
             iStringXStream is(tlen);
             int ulen = 0;
             is >> hex >> ulen;
-            StringX uh = text.substr(4);
+            StringX uh = szText.substr(4);
             m_hdr.m_lastsavedby = uh.substr(0, ulen);
             m_hdr.m_lastsavedon = uh.substr(ulen);
           } else
@@ -839,36 +840,36 @@ int PWSfileV3::ReadHeader()
 
       case HDR_LASTUPDATEAPPLICATION: /* and by what */
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
-        m_hdr.m_whatlastsaved = text;
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
+        m_hdr.m_whatlastsaved = szText;
         if (!utf8status)
           pws_os::Trace0(_T("FromUTF8(m_whatlastsaved) failed\n"));
         break;
 
       case HDR_LASTUPDATEUSER:
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
         found0302UserHost = true; // so HDR_LASTUPDATEUSERHOST won't override
-        m_hdr.m_lastsavedby = text;
+        m_hdr.m_lastsavedby = szText;
         break;
 
       case HDR_LASTUPDATEHOST:
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
         found0302UserHost = true; // so HDR_LASTUPDATEUSERHOST won't override
-        m_hdr.m_lastsavedon = text;
+        m_hdr.m_lastsavedon = szText;
         break;
 
       case HDR_DBNAME:
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
-        m_hdr.m_dbname = text;
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
+        m_hdr.m_dbname = szText;
         break;
 
       case HDR_DBDESC:
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
-        m_hdr.m_dbdesc = text;
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
+        m_hdr.m_dbdesc = szText;
         break;
 
 #if !defined(USE_XML_LIBRARY) || (!defined(_WIN32) && USE_XML_LIBRARY == MSXML)
@@ -878,7 +879,7 @@ int PWSfileV3::ReadHeader()
 #else
       case HDR_FILTERS:
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
         if (utf8Len > 0) {
           stringT strErrors;
           stringT XSDFilename = PWSdirs::GetXMLDir() + _T("pwsafe_filter.xsd");
@@ -899,7 +900,7 @@ int PWSfileV3::ReadHeader()
             m_UHFL.push_back(unkhfe);
             break;
           }
-          int rc = m_MapFilters.ImportFilterXMLFile(FPOOL_DATABASE, text.c_str(), _T(""),
+          int rc = m_MapFilters.ImportFilterXMLFile(FPOOL_DATABASE, szText.c_str(), _T(""),
                                                     XSDFilename.c_str(),
                                                     strErrors, m_pAsker);
           if (rc != PWScore::SUCCESS) {
@@ -954,14 +955,14 @@ int PWSfileV3::ReadHeader()
       case HDR_PSWDPOLICIES:
       {
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
         if (utf8status) {
-          const size_t recordlength = text.length();
+          const size_t recordlength = szText.length();
           StringX sxBlank(_T(" "));  // Needed in case hex value is all zeroes!
           StringX sxTemp;
 
           // Get number of polices
-          sxTemp = text.substr(0, 2) + sxBlank;
+          sxTemp = szText.substr(0, 2) + sxBlank;
           size_t j = 2;  // Skip over # name entries
           iStringXStream is(sxTemp);
           int num(0);
@@ -973,23 +974,23 @@ int PWSfileV3::ReadHeader()
 
             int namelength, symbollength;
 
-            sxTemp = text.substr(j, 2) + sxBlank;
+            sxTemp = szText.substr(j, 2) + sxBlank;
             iStringXStream is(sxTemp);
             j += 2;  // Skip over name length
 
             is >> hex >> namelength;
             if (j + namelength > recordlength) break;  // Error
             
-            StringX sxPolicyName = text.substr(j, namelength);
+            StringX sxPolicyName = szText.substr(j, namelength);
             j += namelength;  // Skip over name
             if (j + 19 > recordlength) break;  // Error
 
-            StringX cs_pwp(text.substr(j, 19));
+            StringX cs_pwp(szText.substr(j, 19));
             PWPolicy pwp(cs_pwp);
             j += 19;  // Skip over pwp
 
             if (j + 2 > recordlength) break;  // Error
-            sxTemp = text.substr(j, 2) + sxBlank;
+            sxTemp = szText.substr(j, 2) + sxBlank;
             is.str(sxTemp);
             j += 2;  // Skip over symbols length
             is >> hex >> symbollength;
@@ -997,7 +998,7 @@ int PWSfileV3::ReadHeader()
             StringX sxSymbols;
             if (symbollength != 0) {
               if (j + symbollength > recordlength) break;  // Error
-              sxSymbols = text.substr(j, symbollength);
+              sxSymbols = szText.substr(j, symbollength);
               j += symbollength;  // Skip over symbols
             }
             pwp.symbols = sxSymbols;
@@ -1013,9 +1014,9 @@ int PWSfileV3::ReadHeader()
       case HDR_EMPTYGROUP:
       {
         if (utf8 != NULL) utf8[utf8Len] = '\0';
-        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, text);
+        utf8status = m_utf8conv.FromUTF8(utf8, utf8Len, szText);
         if (utf8status) {
-          m_vEmptyGroups.push_back(text);
+          m_setEmptyGroups.insert(szText);
         }
         break;
       }

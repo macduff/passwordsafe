@@ -25,6 +25,8 @@
 #include "ExpPWListDlg.h"
 #include "CompareWithSelectDlg.h"
 #include "ShowCompareDlg.h"
+#include "TreeUtils.h"
+#include "Images.h"
 
 #include "core/pwsprefs.h"
 #include "core/PWSAuxParse.h"
@@ -41,7 +43,11 @@
 #include <vector>
 #include <algorithm>
 
+extern StringX sxDot;
+
 using pws_os::CUUID;
+using namespace TreeUtils;
+using namespace std;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -57,22 +63,10 @@ void DboxMain::OnAdd()
   
   PWSprefs *prefs = PWSprefs::GetInstance();
 
-  // m_TreeViewGroup may be set by OnContextMenu, if not, try to grok it
-  if (m_TreeViewGroup.empty()) {
-    CItemData *pci = NULL;
-    if (m_ctlItemTree.IsWindowVisible()) { // tree view
-      HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
-      if (ti != NULL) { // if anything selected
-        pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
-        if (pci != NULL) { // leaf selected
-          m_TreeViewGroup = pci->GetGroup();
-        } else { // node selected
-          m_TreeViewGroup = m_ctlItemTree.GetGroup(ti);
-        }
-      }
-    } else { // list view
-      // XXX TBD - get group name of currently selected list entry
-    }
+  // m_sxTreeViewGroup may be set by OnContextMenu, if not, try to grok it
+  if (m_sxTreeViewGroup.empty()) {
+    StringX sxCurrentGroup;
+    GetGroupPath(m_sxTreeViewGroup, sxCurrentGroup);
   }
 
   CAddEdit_PropertySheet *pAddEntryPSH(NULL);
@@ -84,7 +78,7 @@ void DboxMain::OnAdd()
     pAddEntryPSH->SetUsername(prefs->GetPref(PWSprefs::DefaultUsername).c_str());
   }
 
-  pAddEntryPSH->SetGroup(m_TreeViewGroup);
+  pAddEntryPSH->SetGroup(m_sxTreeViewGroup);
 
   // Remove Apply button
   pAddEntryPSH->m_psh.dwFlags |= PSH_NOAPPLYNOW;
@@ -100,7 +94,7 @@ void DboxMain::OnAdd()
       pAddEntryPSH->SetUsername(prefs->GetPref(PWSprefs::DefaultUsername).c_str());
     }
 
-    pAddEntryPSH->SetGroup(m_TreeViewGroup);
+    pAddEntryPSH->SetGroup(m_sxTreeViewGroup);
 
     // Remove Apply button
     pAddEntryPSH->m_psh.dwFlags |= PSH_NOAPPLYNOW;
@@ -108,7 +102,7 @@ void DboxMain::OnAdd()
     rc = pAddEntryPSH->DoModal(); 
   }
 
-  m_TreeViewGroup = L""; // for next time
+  m_sxTreeViewGroup = L""; // for next time
 
   if (rc == IDOK) {
     bool bWasEmpty = m_core.GetNumEntries() == 0;
@@ -311,113 +305,212 @@ void DboxMain::CreateShortcutEntry(CItemData *pci, const StringX &cs_group,
   m_RUEList.AddRUEntry(ci_temp.GetUUID());
 }
 
-//Add a group (tree view only)
+//Add a group (TREE and EXPLORER views only)
 void DboxMain::OnAddGroup()
 {
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
 
-  if (m_ctlItemTree.IsWindowVisible()) {
+  if (m_ViewType == LIST)
+    return;
+
+  CString cs_text(MAKEINTRESOURCE(IDS_NEWGROUP));
+
+  if (m_ViewType == TREE) {
     // This can be reached by right clicking over an existing group node
     // or by clicking over "whitespace".
     // If the former, add a child node to the current one
     // If the latter, add to root.
-    CString cmys_text(MAKEINTRESOURCE(IDS_NEWGROUP));
     CItemData *pci = getSelectedItem();
     if (pci != NULL) {
       // On an entry
-      m_TreeViewGroup = pci->GetGroup();
+      m_sxTreeViewGroup = pci->GetGroup();
     } else {
       // Group is selected but need to know if user used the Edit menu, right-clicked on it
       // or right-clicked on whitespace
       // The first 2 create a group under the selected group, the last creates it under root.
       if (m_bWhitespaceRightClick) {
         m_bWhitespaceRightClick = false;
-        m_TreeViewGroup = L"";
+        m_sxTreeViewGroup = L"";
       } else  {
         HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
-        m_TreeViewGroup = m_ctlItemTree.GetGroup(ti);
+        m_sxTreeViewGroup = GetGroupFullPath(&m_ctlItemTree, ti);
       }
     }
 
-    if (m_TreeViewGroup.empty())
-      m_TreeViewGroup = cmys_text;
+    if (m_sxTreeViewGroup.empty())
+      m_sxTreeViewGroup = cs_text;
     else
-      m_TreeViewGroup += L"." + cmys_text;
+      m_sxTreeViewGroup += L"." + cs_text;
 
     // If group is there - make unique
-    StringX s_copy(m_TreeViewGroup);
+    StringX sx_copy(m_sxTreeViewGroup);
     bool bAlreadyExists(true);
-    HTREEITEM newGroup;
+    HTREEITEM hNewGroup;
+    PathMapIter iter;
 
     int i = 1;
     do {
-      newGroup = m_ctlItemTree.AddGroup(s_copy.c_str(), bAlreadyExists);
+      PathMap mapPaths2TreeItem;
+      hNewGroup = AddGroup(&m_ctlItemTree, sx_copy, bAlreadyExists, IsEmptyGroup(sx_copy), &mapPaths2TreeItem);
+      for (iter =  mapPaths2TreeItem.begin(); iter != mapPaths2TreeItem.end(); iter++) {
+        m_mapGroupToTreeItem[iter->first] = iter->second;
+      }
       i++;
       // Format as per Windows Exlorer "New Folder"/"New Folder (n)"
       // where if 'n' present, it starts from 2
-      Format(s_copy, L"%s (%d)", m_TreeViewGroup.c_str(), i);
+      Format(sx_copy, L"%s (%d)", m_sxTreeViewGroup.c_str(), i);
     } while (bAlreadyExists);
 
-    m_ctlItemTree.SelectItem(newGroup);
-    m_TreeViewGroup = L""; // for next time
+    m_ctlItemTree.SelectItem(hNewGroup);
+    m_sxTreeViewGroup = L""; // for next time
 
     // Needed by PWTreeCtrl::OnEndLabelEdit in case user doesn't change the group name
     m_bInAddGroup = true;
-    m_ctlItemTree.EditLabel(newGroup);
+    m_ctlItemTree.EditLabel(hNewGroup);
+  } else {
+    // EXPLORER view
+    StringX sxPath;
+    int nRow(-1), nCol(-1);
+    if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+      return;
+
+    if (nCol == 0) {
+      // Tree view
+      CPWTreeView *pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
+      CTreeCtrl *pTreeCtrl = &pTreeView->GetTreeCtrl();
+      sxPath = pTreeView->GetCurrentPath();
+      
+      if (sxPath.empty())
+        m_sxTreeViewGroup = cs_text;
+      else
+        m_sxTreeViewGroup = sxPath + sxDot + (LPCWSTR)cs_text;
+      
+      StringX sx_copy(m_sxTreeViewGroup);
+      bool bAlreadyExists(true);
+      HTREEITEM hNewGroup;
+      PathMapIter iter;
+
+      int i = 1;
+      do {
+        PathMap mapPaths2TreeItem;
+        hNewGroup = AddGroup(pTreeCtrl, sx_copy, bAlreadyExists, IsEmptyGroup(sx_copy), &mapPaths2TreeItem);
+        for (iter = mapPaths2TreeItem.begin(); iter != mapPaths2TreeItem.end(); iter++) {
+          m_mapGroupToTreeItem[iter->first] = iter->second;
+        }
+        i++;
+        // Format as per Windows Exlorer "New Folder"/"New Folder (n)"
+        // where if 'n' present, it starts from 2
+        Format(sx_copy, L"%s (%d)", m_sxTreeViewGroup.c_str(), i);
+      } while (bAlreadyExists);
+
+      pTreeCtrl->SelectItem(hNewGroup);
+      m_sxTreeViewGroup = L""; // for next time
+
+      // Needed by CTreeCtrl::OnEndLabelEdit in case user doesn't change the group name
+      m_bInAddGroup = true;
+      pTreeCtrl->EditLabel(hNewGroup);
+    } else {
+      // List view
+      CPWListView *pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+      CListCtrl *pListCtrl = &pListView->GetListCtrl();
+      sxPath = pListView->GetCurrentPath();
+
+      StringX sx_copy(cs_text);
+
+      // Get all group items
+      std::vector<StringX> vsxItems;
+      for (int j = 0; j < pListCtrl->GetItemCount(); j++) {
+        st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(j);
+        ASSERT(pLP != NULL);
+
+        if (pLP->pci == NULL)
+          vsxItems.push_back(StringX(pListCtrl->GetItemText(j, 1)));
+      }
+
+      int i = 1;
+      do {
+        if (std::find(vsxItems.begin(), vsxItems.end(), sx_copy) == vsxItems.end())
+          break;
+
+        // Format as per Windows Exlorer "New Folder"/"New Folder (n)"
+        // where if 'n' present, it starts from 2
+        i++;
+        Format(sx_copy, L"%s (%d)", cs_text, i);
+      } while(1);
+
+      int iIndex(0);
+      StringX sxRealPath = sxPath + sxDot + sx_copy;
+      const bool bIsEmpty = IsEmptyGroup(sxRealPath);
+      iIndex = pListCtrl->InsertItem(++iIndex, NULL,
+        bIsEmpty ? CItemData::EI_EMPTY_GROUP : CItemData::EI_GROUP);
+      pListCtrl->SetItemText(iIndex, 1, sx_copy.c_str());
+
+      st_PWLV_lParam *pLP = new st_PWLV_lParam;
+      pLP->hItem = NULL;
+      pLP->pci = NULL;
+      pListCtrl->SetItemData(iIndex, (DWORD_PTR)pLP);
+   
+      m_sxTreeViewGroup = L""; // for next time
+
+      // Needed by CListCtrl::OnEndLabelEdit in case user doesn't change the group name
+      m_bInAddGroup = true;
+      
+      // Select it for Rename edit
+      pListCtrl->SetItemState(iIndex, LVIS_SELECTED, LVIS_SELECTED);
+      pListView->OnRename();
+    }
   }
 }
-
-struct DupGroupFunctor : public CPWTreeCtrl::TreeItemFunctor {
-  DupGroupFunctor(HTREEITEM hBase) : m_hBase(hBase) {}
-  virtual void operator()(HTREEITEM hItem) {
-    if (hItem == m_hBase) // we;re not interested in top
-      return;
-    m_items.push_back(hItem);
-  }
-  std::vector<HTREEITEM> m_items;
-private:
-  HTREEITEM m_hBase;
-};
 
 void DboxMain::OnDuplicateGroup()
 {
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
 
+  StringX sxCurrentFullPath, sxCurrentGroup;
+  bool bState(false);
+
+  std::vector<bool> bVNodeStates; // new group will have old's expanded nodes
+
+  // Get current full path (e.g. 'a.b.c') and current group (e.g. 'c')
+  GetGroupPath(sxCurrentFullPath, sxCurrentGroup);
+
+  // Must be a group
+  ASSERT(!sxCurrentGroup.empty());
+  if (sxCurrentGroup.empty())
+    return;
+
+  if (m_ViewType == TREE) {
+    // Save current group display state
+    HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
+    bState = (m_ctlItemTree.GetItemState(ti, TVIS_EXPANDED) &
+                                     TVIS_EXPANDED) != 0;
+    bVNodeStates.push_back(bState);
+  }
+
   bool bRefresh(true);
-  // Get selected group
-  HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
+  
+  // Current path length
+  const size_t currentfullpathlength = sxCurrentFullPath.length();
 
-  // Verify that it is a group
-  ASSERT((CItemData *)m_ctlItemTree.GetItemData(ti) == NULL);
-
-  // Get complete group name
-  StringX sxCurrentPath = (StringX)m_ctlItemTree.GetGroup(ti); // e.g., a.b.c
-  StringX sxCurrentGroup = (StringX)m_ctlItemTree.GetItemText(ti); // e.g., c
-  size_t grplen = sxCurrentPath.length();
-
-  // Make sxNewGroup a unique name for the duplicate, e.g., "a.b.c Copy #1"
+  // Make sxNewGroup a unique name for the duplicate, e.g., "c Copy #1"
+  // Make sxNewPath using name for the duplicate, e.g., "a.b.c Copy #1"
   size_t i = 0;
   StringX sxNewPath, sxNewGroup, sxCopy;
   do {
     i++;
     Format(sxCopy, IDS_COPYNUMBER, i);
-    sxNewPath = sxCurrentPath + sxCopy;
+    sxNewPath = sxCurrentFullPath + sxCopy;
   } while (m_mapGroupToTreeItem.find(sxNewPath) != m_mapGroupToTreeItem.end());
   sxNewGroup = sxCurrentGroup + sxCopy;
 
   // Have new group - now copy all entries in current group to new group
 
-  std::vector<bool> bVNodeStates; // new group will have old's expanded nodes
-  bool bState = (m_ctlItemTree.GetItemState(ti, TVIS_EXPANDED) &
-                 TVIS_EXPANDED) != 0;
-  bVNodeStates.push_back(bState);
-
   // Get all of the children
-  if (m_ctlItemTree.ItemHasChildren(ti)) {
-    DupGroupFunctor dgf(ti);
-    m_ctlItemTree.Iterate(ti, dgf); // collects children into a handy vector
+  std::vector<CUUID> vGroupEntries;
+  GetGroupEntries(sxCurrentFullPath, &vGroupEntries, true);
+  if (!vGroupEntries.empty()) {
     /*
       Create 2 multi-commands to first add all normal or base entries and then a second
       to add any aliases and shortcuts.
@@ -434,17 +527,60 @@ void DboxMain::OnDuplicateGroup()
     // Process normal & base entries
     bool bDependentsExist(false);
 
-    std::vector<HTREEITEM>::iterator iter;
-    for (iter = dgf.m_items.begin(); iter != dgf.m_items.end(); iter++) {
-      HTREEITEM hNextItem = *iter;
-      CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hNextItem);
-      if (pci != NULL) { // An entry (leaf)
-        if (pci->IsDependent()) {
-          bDependentsExist = true;
-          continue;
-        }
+    std::vector<CUUID>::iterator iter;
+    for (iter = vGroupEntries.begin(); iter != vGroupEntries.end(); iter++) {
+      ItemListIter pos = Find(*iter);
+      
+      // Must be there but don't error if not!
+      if (pos == End())
+        continue;
 
-        TRACE(L"Copying %s.%s\n", pci->GetGroup().c_str(), pci->GetTitle().c_str());
+      CItemData *pci = &pos->second;
+      if (pci->IsDependent()) {
+        bDependentsExist = true;
+        continue;
+      }
+
+      // Set up copy
+      CItemData ci2(*pci);
+      ci2.SetDisplayInfo(NULL);
+      ci2.CreateUUID();
+      ci2.SetStatus(CItemData::ES_ADDED);
+      ci2.SetProtected(false);
+      
+      // Set new group
+      StringX sxEntryCurrentPath = pci->GetGroup();
+      ASSERT(sxEntryCurrentPath.length() >= currentfullpathlength);
+      // Replace leading path by new path
+      ci2.SetGroup(sxNewPath + sxEntryCurrentPath.substr(currentfullpathlength));
+
+      if (pci->IsBase()) {
+        mapOldToNewBaseUUIDs.insert(std::make_pair(pci->GetUUID(),
+                                                   ci2.GetUUID()));
+      } // pci->IsBase()
+
+      // Make copy normal to begin with - if it has dependents then when those
+      // are added then its entry type will automatically be changed
+      ci2.SetNormal();
+      Command *pcmd = AddEntryCommand::Create(&m_core, ci2);
+      pcmd->SetNoGUINotify();
+      pmulti_cmd_base->Add(pcmd);
+    } // for
+
+    // Now process dependents (if any)
+    if (bDependentsExist) {
+      for (iter = vGroupEntries.begin(); iter != vGroupEntries.end(); iter++) {
+        ItemListIter pos = Find(*iter);
+      
+        // Must be there but don't error if not!
+        if (pos == End())
+          continue;
+
+        CItemData *pci = &pos->second;
+        // Ignore if not a dependent
+        if (!pci->IsDependent())
+          continue;
+
         // Set up copy
         CItemData ci2(*pci);
         ci2.SetDisplayInfo(NULL);
@@ -453,89 +589,46 @@ void DboxMain::OnDuplicateGroup()
         ci2.SetProtected(false);
         // Set new group
         StringX subPath =  pci->GetGroup();
-        ASSERT(subPath.length() >= grplen);
-        subPath =  subPath.substr(grplen);
+        ASSERT(subPath.length() >= currentfullpathlength);
+        subPath = subPath.substr(currentfullpathlength);
         const StringX sxThisEntryNewGroup = sxNewPath + subPath;
         ci2.SetGroup(sxThisEntryNewGroup);
 
-        if (pci->IsBase()) {
-          mapOldToNewBaseUUIDs.insert(std::make_pair(pci->GetUUID(),
-                                                     ci2.GetUUID()));
-        } // pci->IsBase()
+        if (pci->IsAlias())
+          ci2.SetAlias();
+        else
+          ci2.SetShortcut();
 
-        // Make copy normal to begin with - if it has dependents then when those
-        // are added then its entry type will automatically be changed
-        ci2.SetNormal();
-        Command *pcmd = AddEntryCommand::Create(&m_core, ci2);
+        Command *pcmd = NULL;
+        const CItemData *pbci = GetBaseEntry(pci);
+        ASSERT(pbci != NULL);
+
+        StringX sxtmp;
+        citer = mapOldToNewBaseUUIDs.find(pbci->GetUUID());
+        if (citer != mapOldToNewBaseUUIDs.end()) {
+          // Base is in duplicated group - use new values
+          StringX subPath2 = pbci->GetGroup();
+          ASSERT(subPath2.length() >= currentfullpathlength);
+          subPath2 = subPath2.substr(currentfullpathlength);
+          sxtmp = L"[" +
+                    sxNewPath + subPath2 + L":" +
+                    pbci->GetTitle() + L":" +
+                    pbci->GetUser()  +
+                  L"]";
+          ci2.SetPassword(sxtmp);
+          pcmd = AddEntryCommand::Create(&m_core, ci2, citer->second);
+        } else {
+          // Base not in duplicated group - use old values
+          sxtmp = L"[" +
+                    pbci->GetGroup() + L":" +
+                    pbci->GetTitle() + L":" +
+                    pbci->GetUser()  +
+                  L"]";
+          ci2.SetPassword(sxtmp);
+          pcmd = AddEntryCommand::Create(&m_core, ci2, pbci->GetUUID());
+        } // where's the base?
         pcmd->SetNoGUINotify();
-        pmulti_cmd_base->Add(pcmd);
-      } else { // pci == NULL -> This is a node: save its expanded/collapsed state
-        bool bState = (m_ctlItemTree.GetItemState(hNextItem, TVIS_EXPANDED) &
-                       TVIS_EXPANDED) != 0;
-        bVNodeStates.push_back(bState);
-      }
-    } // for
-
-    // Now process dependents (if any)
-    if (bDependentsExist) {
-      for (iter = dgf.m_items.begin(); iter != dgf.m_items.end(); iter++) {
-        HTREEITEM hNextItem = *iter;
-        CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hNextItem);
-        if (pci != NULL) {
-          // Not a group but ignore if not a dependent
-          if (!pci->IsDependent()) {
-            continue;
-          }
-
-          // Set up copy
-          CItemData ci2(*pci);
-          ci2.SetDisplayInfo(NULL);
-          ci2.CreateUUID();
-          ci2.SetStatus(CItemData::ES_ADDED);
-          ci2.SetProtected(false);
-          // Set new group
-          StringX subPath =  pci->GetGroup();
-          ASSERT(subPath.length() >= grplen);
-          subPath =  subPath.substr(grplen);
-          const StringX sxThisEntryNewGroup = sxNewPath + subPath;
-          ci2.SetGroup(sxThisEntryNewGroup);
-
-          if (pci->IsAlias())
-            ci2.SetAlias();
-          else
-            ci2.SetShortcut();
-
-          Command *pcmd = NULL;
-          const CItemData *pbci = GetBaseEntry(pci);
-          ASSERT(pbci != NULL);
-
-          StringX sxtmp;
-          citer = mapOldToNewBaseUUIDs.find(pbci->GetUUID());
-          if (citer != mapOldToNewBaseUUIDs.end()) {
-            // Base is in duplicated group - use new values
-            StringX subPath2 =  pbci->GetGroup();
-            ASSERT(subPath2.length() >= grplen);
-            subPath2 =  subPath2.substr(grplen);
-            sxtmp = L"[" +
-                      sxNewPath + subPath2 + L":" +
-                      pbci->GetTitle() + L":" +
-                      pbci->GetUser()  +
-                    L"]";
-            ci2.SetPassword(sxtmp);
-            pcmd = AddEntryCommand::Create(&m_core, ci2, citer->second);
-          } else {
-            // Base not in duplicated group - use old values
-            sxtmp = L"[" +
-                      pbci->GetGroup() + L":" +
-                      pbci->GetTitle() + L":" +
-                      pbci->GetUser()  +
-                    L"]";
-            ci2.SetPassword(sxtmp);
-            pcmd = AddEntryCommand::Create(&m_core, ci2, pbci->GetUUID());
-          } // where's the base?
-          pcmd->SetNoGUINotify();
-          pmulti_cmd_deps->Add(pcmd);
-        } // pci != NULL
+        pmulti_cmd_deps->Add(pcmd);
       } // for
     } // bDependentsExist
 
@@ -583,55 +676,111 @@ void DboxMain::OnDuplicateGroup()
         ASSERT(0);
     }
   } else { // !m_ctlItemTree.ItemHasChildren(ti)
-    // User is duplicating an empty group - just add it
-    HTREEITEM parent = m_ctlItemTree.GetParentItem(ti);
-    HTREEITEM ng_ti = m_ctlItemTree.InsertItem(sxNewGroup.c_str(), parent, TVI_SORT);
+    // User is duplicating an empty group - just add it in TREE view only
+    if (m_ViewType == TREE) {
+      // Get selected group
+      HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
+      HTREEITEM parent = m_ctlItemTree.GetParentItem(ti);
+      HTREEITEM ng_ti = m_ctlItemTree.InsertItem(sxNewGroup.c_str(), parent, TVI_SORT);
 
-    if (IsEmptyGroup(sxNewGroup))
-      m_ctlItemTree.SetItemImage(ng_ti, CPWTreeCtrl::EMPTY_GROUP, CPWTreeCtrl::EMPTY_GROUP);
-    else
-      m_ctlItemTree.SetItemImage(ng_ti, CPWTreeCtrl::GROUP, CPWTreeCtrl::GROUP);
+      const bool bIsEmpty = IsEmptyGroup(sxNewGroup);
+      m_ctlItemTree.SetItemImage(ng_ti, 
+            bIsEmpty ? CItemData::EI_EMPTY_GROUP : CItemData::EI_GROUP,
+            bIsEmpty ? CItemData::EI_EMPTY_GROUP : CItemData::EI_GROUP);
 
-    m_mapGroupToTreeItem[sxNewPath] = ng_ti;
+      m_mapGroupToTreeItem[sxNewPath] = ng_ti;
+    }
     bRefresh = false;
   }
 
   // Must do this to re-populate m_mapGroupToTreeItem
   if (bRefresh) {
     RefreshViews();
-    // Set expand/collapse state of new groups to match old
-    HTREEITEM hNextItem = m_ctlItemTree.FindItem(sxNewPath.c_str(), TVI_ROOT);
-    ASSERT(hNextItem != NULL);
+    
+    if (m_ViewType == TREE) {
+      // Set expand/collapse state of new groups to match old in TREE view only
+      HTREEITEM hNextItem = FindItem(&m_ctlItemTree, sxNewPath.c_str(), TVI_ROOT);
+      ASSERT(hNextItem != NULL);
 
-    m_ctlItemTree.Expand(hNextItem, bVNodeStates[0] ? TVE_EXPAND : TVE_COLLAPSE);
-    for (i = 1, hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
-         hNextItem != NULL && i < bVNodeStates.size();
-         hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem)) {
-      if (m_ctlItemTree.ItemHasChildren(hNextItem)) {
-        // Is node - set its expanded/collapsed state
-        m_ctlItemTree.Expand(hNextItem, bVNodeStates[i] ? TVE_EXPAND : TVE_COLLAPSE);
-        i++;
-      } // ItemHasChildren
-    } // Expand/collapse
+      m_ctlItemTree.Expand(hNextItem, bVNodeStates[0] ? TVE_EXPAND : TVE_COLLAPSE);
+      for (i = 1, hNextItem = GetNextTreeItem(&m_ctlItemTree, hNextItem);
+           hNextItem != NULL && i < bVNodeStates.size();
+           hNextItem = GetNextTreeItem(&m_ctlItemTree, hNextItem)) {
+        if (m_ctlItemTree.ItemHasChildren(hNextItem)) {
+          // Is node - set its expanded/collapsed state
+          m_ctlItemTree.Expand(hNextItem, bVNodeStates[i] ? TVE_EXPAND : TVE_COLLAPSE);
+          i++;
+        } // ItemHasChildren
+      } // Expand/collapse
+    }
   } // bRefresh
-
-  m_ctlItemTree.SelectItem(ti);
 }
 
 void DboxMain::OnProtect(UINT nID)
 {
   CItemData *pci(NULL);
-  if (m_ctlItemTree.IsWindowVisible()) {
-    HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
-    if (hStartItem != NULL) {
-      pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
-    }
-  } else {
-    POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
-    if (pos != NULL) {
-      pci = (CItemData *)m_ctlItemList.GetItemData((int)pos - 1);
+  CPWTreeView *pTreeView(NULL);
+  CPWListView *pListView(NULL);
+  HTREEITEM hItem;
+  POSITION pos;
+  int iIndex;
+  StringX sxPath;
+  bool bGroupSelected(false);
+  
+  switch (m_ViewType) {
+    case TREE:
+      hItem = m_ctlItemTree.GetSelectedItem();
+      if (hItem == NULL)
+        return;
+
+      pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
+      break;
+    case LIST:
+      pos = m_ctlItemList.GetFirstSelectedItemPosition();
+      iIndex = m_ctlItemList.GetNextSelectedItem(pos);
+      if (pos == NULL)
+        return;
+        
+      pci = (CItemData *)m_ctlItemList.GetItemData(iIndex);
+      break;
+    case EXPLORER:
+    {
+      int nRow(-1), nCol(-1);
+      CRect r;
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+        return;
+      if (nCol == 0) {
+        pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
+        hItem = pTreeView->GetTreeCtrl().GetSelectedItem();
+        if (hItem != NULL) {
+          sxPath = (LPCWSTR)GetGroupFullPath(&pTreeView->GetTreeCtrl(), hItem);
+          sxPath += sxDot + (LPCWSTR)pTreeView->GetTreeCtrl().GetItemText(hItem);
+          bGroupSelected = true;
+        }
+      } else {
+        pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+        pos = pListView->GetListCtrl().GetFirstSelectedItemPosition();
+        if (pos != NULL) {
+          int nIndex = pListView->GetListCtrl().GetNextSelectedItem(pos);
+          st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListView->GetListCtrl().GetItemData(nIndex);
+          ASSERT(pLP != NULL);
+
+          pci = (CItemData *)pLP->pci;
+          if (pci == NULL) {
+            // OK - a group. Try to get this from the tree partner
+            hItem = pTreeView->GetTreeCtrl().GetSelectedItem();
+            if (hItem != NULL) {
+              sxPath = (LPCWSTR)GetGroupFullPath(&pTreeView->GetTreeCtrl(), hItem);
+              sxPath += sxDot + (LPCWSTR)pTreeView->GetTreeCtrl().GetItemText(hItem);
+            }
+          }
+        } else
+          return;        
+      }
+      break;
     }
   }
+
   if (pci != NULL) {
     // Entry
     ASSERT(nID == ID_MENUITEM_PROTECT || nID == ID_MENUITEM_UNPROTECT);
@@ -644,7 +793,7 @@ void DboxMain::OnProtect(UINT nID)
   } else {
     // Group
     ASSERT(nID == ID_MENUITEM_PROTECTGROUP || nID == ID_MENUITEM_UNPROTECTGROUP);
-    ChangeSubtreeEntriesProtectStatus(nID);
+    ChangeSubtreeEntriesProtectStatus(sxPath, nID);
   }
   ChangeOkUpdate();
 }
@@ -653,126 +802,217 @@ void DboxMain::OnCompareEntries()
 {
   CItemData *pci(NULL), *pci_other(NULL);
 
-  // Not yet supported in Tree view unless command line flag present.
-  if (!m_IsListView && !m_bCompareEntries)
+  // Not supported in TREE view unless command line flag present.
+  if (m_ViewType == TREE && !m_bCompareEntries)
     return;
 
-  if (m_IsListView) {
-    // Only called if 2 entries selected
-    POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
-    int nItem = m_ctlItemList.GetNextSelectedItem(pos);
-    pci = (CItemData *)m_ctlItemList.GetItemData(nItem);
-    nItem = m_ctlItemList.GetNextSelectedItem(pos);
-    pci_other = (CItemData *)m_ctlItemList.GetItemData(nItem);
-  } else {
-    // Not yet supported in Tree view - get user to select other item
-    HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
-    if (hStartItem != NULL) {
-      pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
-    }
+  switch (m_ViewType) {
+    case LIST:
+    {
+      // Only called if 2 entries selected
+      POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
+      int nItem = m_ctlItemList.GetNextSelectedItem(pos);
+      pci = (CItemData *)m_ctlItemList.GetItemData(nItem);
+      nItem = m_ctlItemList.GetNextSelectedItem(pos);
+      pci_other = (CItemData *)m_ctlItemList.GetItemData(nItem);
+      break;
+    } 
+    case TREE:
+    {
+      // Only supported in TREE view with command flag but user must select other item
+      HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
+      if (hStartItem != NULL) {
+        pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
+      }
 
-    if (pci != NULL) {
-      // Entry - selected - shouldn't be called when group is selected
-      // Now get the other entry
-      CCompareWithSelectDlg dlg(pci, &m_core, this);
+      if (pci != NULL) {
+        // Entry - selected - shouldn't be called when group is selected
+        // Now get the other entry
+        CCompareWithSelectDlg dlg(pci, &m_core, this);
 
-      if (dlg.DoModal() == IDOK) {
-        // Get UUID of the entry
-        CUUID otherUUID = dlg.GetUUID();
-        if (otherUUID == CUUID::NullUUID())
-          return;
+        if (dlg.DoModal() == IDOK) {
+          // Get UUID of the entry
+          CUUID otherUUID = dlg.GetUUID();
+          if (otherUUID == CUUID::NullUUID())
+            return;
 
-        ItemListIter pos = Find(otherUUID);
-        if (pos == End())
-          return;
+          ItemListIter pos = Find(otherUUID);
+          if (pos == End())
+            return;
  
-        pci_other = &pos->second;
-      } else
-        return;
+          pci_other = &pos->second;
+        } else
+          return;
+      }
+      break;
     }
+    case EXPLORER:
+    {
+      // Has to use entries selected in List view = could be either - or both!
+      // Do some checking first
+      CListCtrl *pListCtrl(NULL);
+      POSITION pos(NULL);
+      int iIndex(-1);
+      st_PWLV_lParam *pLP(NULL);
+
+      if (m_bSplitView) {
+        // Still could be either or both
+        int num_selected0 = m_pListView0->GetListCtrl().GetSelectedCount();
+        int num_selected1 = m_pListView1->GetListCtrl().GetSelectedCount();
+
+        // If any view has 2 selected items - use it, otherwise use both
+        int iView(-1);
+        if (num_selected0 == 2)
+          iView = 0;
+        else
+        if (num_selected1 == 2)
+          iView = 2;
+        else
+        if (num_selected0 == 1 && num_selected1 == 2)
+          iView = 1;
+
+        switch (num_selected0) {
+          case 0:
+          case 2:
+            // All in upper (num_selected0 == 2) or lower pane (num_selected0 == 0)
+            pListCtrl = (num_selected0 == 2) ? &m_pListView0->GetListCtrl() :
+                                               &m_pListView1->GetListCtrl();
+            pos = pListCtrl->GetFirstSelectedItemPosition();
+            if (pos == NULL)  // Shouldn't happen - already checked that 2 are selected!
+              return;
+
+            // Get first entry
+            iIndex = pListCtrl->GetNextSelectedItem(pos);
+            pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+            ASSERT(pLP != NULL);
+            pci = pLP->pci;
+            // Get second entry
+            iIndex = pListCtrl->GetNextSelectedItem(pos);
+            pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+            ASSERT(pLP != NULL);
+            pci_other = pLP->pci;
+            break;
+          case 1:
+            // One in each pane
+            pListCtrl = &m_pListView0->GetListCtrl();
+            pos = pListCtrl->GetFirstSelectedItemPosition();
+            if (pos == NULL)  // Shouldn't happen - already checked that 1 is selected!
+              return;
+
+            // Get first entry
+            iIndex = pListCtrl->GetNextSelectedItem(pos);
+            pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+            ASSERT(pLP != NULL);
+            pci = pLP->pci;
+
+            pListCtrl = &m_pListView1->GetListCtrl();
+            pos = pListCtrl->GetFirstSelectedItemPosition();
+            if (pos == NULL)  // Shouldn't happen - already checked that 1 is selected!
+              return;
+
+            // Get second entry
+            iIndex = pListCtrl->GetNextSelectedItem(pos);
+            pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+            ASSERT(pLP != NULL);
+            pci_other = pLP->pci;
+            break;
+          default:
+            return;
+        }
+      } else {
+        // View not split - so only top view
+        // Can only be one of the List views
+        pListCtrl = &m_pListView0->GetListCtrl();
+
+        // Confirm only 2 selected
+        if (pListCtrl->GetSelectedCount() != 2)
+          return;
+      
+        pos = pListCtrl->GetFirstSelectedItemPosition();
+        if (pos == NULL)  // Shouldn't happen - already checked that 2 are selected!
+          return;
+
+        // Get first entry
+        iIndex = pListCtrl->GetNextSelectedItem(pos);
+        pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+        ASSERT(pLP != NULL);
+        pci = pLP->pci;
+        // Get second entry
+        iIndex = pListCtrl->GetNextSelectedItem(pos);
+        pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+        ASSERT(pLP != NULL);
+        pci_other = pLP->pci;
+      }
+      break;
+    }
+    break;
   }
 
   if (pci != NULL && pci_other != NULL) {
-    // Entries - selected - shouldn't be call when group is selected
+    // Entries - selected - shouldn't be called when group is selected
     CShowCompareDlg showdlg(pci, pci_other, this);
     showdlg.DoModal();
   }
 }
 
-void DboxMain::ChangeSubtreeEntriesProtectStatus(const UINT nID)
+void DboxMain::ChangeSubtreeEntriesProtectStatus(const StringX &sxPath, const UINT nID)
 {
-  // Get selected group
-  HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
-  const HTREEITEM nextsibling = m_ctlItemTree.GetNextSiblingItem(ti);
-
-  // Verify that it is a group
-  ASSERT((CItemData *)m_ctlItemTree.GetItemData(ti) == NULL);
+  // sxPath includes the name of the group being searched
+  const StringX sxPath2 = sxPath + sxDot;
+  const size_t len2 = sxPath2.length();
+  ItemListConstIter citer;
 
   // Get all of the children
   MultiCommands *pmulticmds = MultiCommands::Create(&m_core);
 
-  if (m_ctlItemTree.ItemHasChildren(ti)) {
-    HTREEITEM hNextItem;
-    hNextItem = m_ctlItemTree.GetNextTreeItem(ti);
-
-    while (hNextItem != NULL && hNextItem != nextsibling) {
-      CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hNextItem);
-      if (pci != NULL) {
-        if (!pci->IsShortcut()) {
-          if (pci->IsProtected() && nID == ID_MENUITEM_UNPROTECTGROUP) {
-            Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci,
-                                             CItemData::PROTECTED,
-                                             L"0");
+  for (citer = m_core.GetEntryIter(); citer != m_core.GetEntryEndIter(); citer++) {
+    if (citer->second.GetGroup() == sxPath ||
+        citer->second.GetGroup().substr(0, len2) == sxPath2) {
+      if (!citer->second.IsShortcut()) {
+        if (citer->second.IsProtected() && nID == ID_MENUITEM_UNPROTECTGROUP) {
+          Command *pcmd = UpdateEntryCommand::Create(&m_core, citer->second,
+                                             CItemData::PROTECTED, L"0");
+          pmulticmds->Add(pcmd);
+        } else {
+          if (nID == ID_MENUITEM_PROTECTGROUP) {
+            Command *pcmd = UpdateEntryCommand::Create(&m_core, citer->second,
+                                             CItemData::PROTECTED, L"1");
             pmulticmds->Add(pcmd);
-          } else {
-            if (nID == ID_MENUITEM_PROTECTGROUP) {
-              Command *pcmd = UpdateEntryCommand::Create(&m_core, *pci,
-                                               CItemData::PROTECTED,
-                                               L"1");
-              pmulticmds->Add(pcmd);
-            }
           }
         }
       }
-      hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
     }
   }
+  
   if (pmulticmds->GetSize() != 0)
     Execute(pmulticmds);
 }
 
-bool DboxMain::GetSubtreeEntriesProtectedStatus(int &numProtected, int &numUnprotected)
+bool DboxMain::GetSubtreeEntriesProtectedStatus(const StringX &sxPath,
+                                                int &numProtected, int &numUnprotected)
 {
+  // sxPath includes the name of the group being searched
   int numShortcuts(0);
   numProtected = numUnprotected = 0;
 
-  // Get selected group
-  HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
-  const HTREEITEM nextsibling = m_ctlItemTree.GetNextSiblingItem(ti);
+  const StringX sxPath2 = sxPath + sxDot;
+  const size_t len2 = sxPath2.length();
+  ItemListConstIter citer;
 
-  // Verify that it is a group
-  ASSERT((CItemData *)m_ctlItemTree.GetItemData(ti) == NULL);
-
-  // Get all of the children
-  if (m_ctlItemTree.ItemHasChildren(ti)) {
-    HTREEITEM hNextItem;
-    hNextItem = m_ctlItemTree.GetNextTreeItem(ti);
-
-    while (hNextItem != NULL && hNextItem != nextsibling) {
-      CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hNextItem);
-      if (pci != NULL) {
-        if (pci->IsShortcut()) {
-          numShortcuts++;
-        } else {
-          if (pci->IsProtected())
-            numProtected++;
-          else
-            numUnprotected++;
+  for (citer = m_core.GetEntryIter(); citer != m_core.GetEntryEndIter(); citer++) {
+    if (citer->second.GetGroup() == sxPath ||
+        citer->second.GetGroup().substr(0, len2) == sxPath2) {
+      if (citer->second.IsShortcut()) {
+        numShortcuts++;
+      } else {
+        if (citer->second.IsProtected())
+          numProtected++;
+        else
+          numUnprotected++;
         }
-      }
-      hNextItem = m_ctlItemTree.GetNextTreeItem(hNextItem);
     }
   }
+
   // Nothing to do if sub-tree empty or only contains shortcuts
   return !(numShortcuts >= 0 && (numProtected == 0 && numUnprotected == 0));
 }
@@ -784,8 +1024,8 @@ void DboxMain::OnDelete()
   if (m_core.GetNumEntries() == 0) // easiest way to avoid asking stupid questions...
     return;
 
-  // Ignore if more than one selected - List view only
-  if (m_ctlItemList.GetSelectedCount() > 1)
+  // Ignore if more than one selected - LIST view only
+  if (m_ViewType == LIST && m_ctlItemList.GetSelectedCount() > 1)
     return;
 
   bool bAskForDeleteConfirmation = !(PWSprefs::GetInstance()->
@@ -795,23 +1035,23 @@ void DboxMain::OnDelete()
 
   // Find number of child items, ask for confirmation if > 0
   StringX sxGroup(L""), sxTitle(L""), sxUser(L"");
+  StringX sxCurrentFullPath, sxCurrentGroup;
   CItemData *pci(NULL);
-  if (m_ctlItemTree.IsWindowVisible()) {
-    HTREEITEM hStartItem = m_ctlItemTree.GetSelectedItem();
-    if (hStartItem != NULL) {
-      if (m_ctlItemTree.GetItemData(hStartItem) == NULL) {  // group node
-        // ALWAYS ask if deleting a group - unless it is empty!
-        num_children = m_ctlItemTree.CountChildren(hStartItem);
-        bAskForDeleteConfirmation = num_children != 0;
-      } else {
-        pci = (CItemData *)m_ctlItemTree.GetItemData(hStartItem);
-      }
-    }
-  } else {
-    POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
-    if (pos != NULL) {
-      pci = (CItemData *)m_ctlItemList.GetItemData((int)pos - 1);
-    }
+  
+  // Vector for entries in this group and below.
+  std::vector<pws_os::CUUID> vGroupEntries;
+
+  pci = GetGroupPath(sxCurrentFullPath, sxCurrentGroup);
+
+  if (pci == NULL) {
+    // Group - Get all of the children
+    GetGroupEntries(sxCurrentFullPath, &vGroupEntries, true);
+    num_children = (int)vGroupEntries.size();
+    bAskForDeleteConfirmation = num_children != 0;
+  }
+  
+  if (m_ViewType == LIST) {
+    pci = getSelectedItem();
   }
 
   if (pci != NULL) {
@@ -833,7 +1073,7 @@ void DboxMain::OnDelete()
   }
 
   if (dodelete) {
-    Delete();
+    Delete(pci, vGroupEntries);
     // Only refresh views if an entry or a non-empty group was deleted
     // If we refresh when deleting an empty group, the user will lose all
     // other empty groups
@@ -844,30 +1084,36 @@ void DboxMain::OnDelete()
   }
 }
 
-void DboxMain::Delete()
+void DboxMain::Delete(const CItemData *pci,
+                      std::vector<CUUID> &vGroupEntries)
 {
   // "Top level" element delete:
   // 1. Sets up Command mechanism
-  // 2. Calls group or element Delete method, as appropriate
+  // 2. Calls element Delete method, as appropriate
   // 3. Executes, updates UI.
-
-  CItemData *pci = getSelectedItem();
-  Command *pcmd = NULL;
+  MultiCommands *pmulticmds = MultiCommands::Create(&m_core);
 
   if (pci != NULL)
-    pcmd = Delete(pci); // single entry
-  else
-  if (m_ctlItemTree.IsWindowVisible()) {
-    HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
-    // Deleting a Group
-    HTREEITEM parent = m_ctlItemTree.GetParentItem(ti);
-    pcmd = Delete(ti);
-    m_ctlItemTree.SelectItem(parent);
-    m_TreeViewGroup = L"";
+    pmulticmds->Add(Delete(pci)); // single entry
+  else {
+    // Deleting a group
+    if (!vGroupEntries.empty()) {
+      std::vector<CUUID>::iterator vge_iter;
+      for (vge_iter = vGroupEntries.begin(); vge_iter != vGroupEntries.end(); vge_iter++) {
+        ItemListIter iter = Find(*vge_iter);
+      
+        // Must be there but don't error if not!
+        if (iter == End())
+          continue;
+
+        // Delete it
+        pmulticmds->Add(Delete(&iter->second)); // single entry
+      }
+    }
   }
 
-  if (pcmd != NULL) {
-    Execute(pcmd);
+  if (pmulticmds->GetSize() > 0) {
+    Execute(pmulticmds);
   }
 }
 
@@ -888,85 +1134,57 @@ Command *DboxMain::Delete(const CItemData *pci)
     return NULL;
 }
 
-// Functor for find_if to find the group name associated with a HTREEITEM
-struct FindGroupFromHTREEITEM {
-  FindGroupFromHTREEITEM(HTREEITEM& ti) : m_ti(ti) {}
-  bool operator()(std::pair<StringX, HTREEITEM> const & p) const
-  {
-    return (p.second  == m_ti);
-  }
-
-  HTREEITEM m_ti;
-};
-
-Command *DboxMain::Delete(HTREEITEM ti)
-{
-  // Delete a group
-  // Create a multicommand, iterate over tree's children,
-  // throw everything into multicommand and be done with it.
-  // Of course, this may recurse...
-
-  if (ti == NULL)
-    return NULL; // bad bottoming out of recursion?
-
-  if (m_ctlItemTree.IsLeaf(ti)) {
-    CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
-    return Delete(pci); // normal bottom out of recursion
-  }
-
-  // Here if we have a bona fida group
-  ASSERT(ti != NULL && !m_ctlItemTree.IsLeaf(ti));
-  
-  // Check if an Empty Group
-  if (m_ctlItemTree.ItemHasChildren(ti) == 0) {
-    // Should be as it has no children!
-    StringX sxPath = m_ctlItemTree.GetGroup(ti);
-
-    // Check we know about it!
-    if (m_core.IsEmptyGroup(sxPath)) {
-      return DBEmptyGroupsCommand::Create(&m_core, sxPath,
-                      DBEmptyGroupsCommand::EG_DELETE);
-    }
-  }
-  
-  MultiCommands *pmulti_cmd = MultiCommands::Create(&m_core);
-
-  HTREEITEM cti = m_ctlItemTree.GetChildItem(ti);
-
-  while (cti != NULL) {
-    CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(cti);
-    if (pci != NULL)
-      pmulti_cmd->Add(Delete(pci));
-    else
-      pmulti_cmd->Add(Delete(cti)); // subgroup!
-
-    cti = m_ctlItemTree.GetNextItem(cti, TVGN_NEXT);
-  }
-
-  return pmulti_cmd;
-}
-
 void DboxMain::OnRename()
 {
   if (m_core.IsReadOnly()) // disable in read-only mode
     return;
 
-  // Renaming is only allowed while in Tree mode.
-  if (m_ctlItemTree.IsWindowVisible()) {
-    HTREEITEM hItem = m_ctlItemTree.GetSelectedItem();
-    if (hItem != NULL) {
-      if (m_ctlItemTree.IsLeaf(hItem)) {
-        // Do not allow rename of protected entry
-        CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
-        ASSERT(pci != NULL);
-        if (pci->IsProtected())
-          return;
+  // Renaming is only allowed while in TREE and EXPLORER views.
+  switch (m_ViewType) {
+    case TREE:
+    {
+      HTREEITEM hItem = m_ctlItemTree.GetSelectedItem();
+      if (hItem != NULL) {
+        if (IsLeaf(&m_ctlItemTree, hItem)) {
+          // Do not allow rename of protected entry
+          CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
+          ASSERT(pci != NULL);
+          if (pci->IsProtected())
+            return;
+        }
+        m_bInRename = true;
+        m_ctlItemTree.EditLabel(hItem);
+        if (m_bFilterActive && m_ctlItemTree.WasLabelEdited())
+          RefreshViews();
+        m_bInRename = false;
       }
-      m_bInRename = true;
-      m_ctlItemTree.EditLabel(hItem);
-      if (m_bFilterActive && m_ctlItemTree.WasLabelEdited())
-        RefreshViews();
-      m_bInRename = false;
+      break;
+    }
+    case EXPLORER:
+    {
+      int nRow(-1), nCol(-1);
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+        return;
+
+      if (nCol == 0) {
+        // Tree view
+        CPWTreeView *pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
+        CTreeCtrl *pTreeCtrl = &pTreeView->GetTreeCtrl();
+        HTREEITEM hItem = pTreeCtrl->GetSelectedItem();
+  
+        pTreeCtrl->EditLabel(hItem);
+      } else {
+        // List view
+        CPWListView *pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+        CListCtrl *pListCtrl = &pListView->GetListCtrl();
+        POSITION pos = pListCtrl->GetFirstSelectedItemPosition();
+        if (pos) {
+          int iIndex = pListCtrl->GetNextSelectedItem(pos);
+          pListCtrl->SetItemState(iIndex, LVIS_SELECTED, LVIS_SELECTED);
+          pListView->OnRename();
+        }
+      }
+      break;
     }
   }
 }
@@ -989,7 +1207,8 @@ void DboxMain::OnEdit()
     // but it works. If anyone knows how Enter/Return gets mapped to OnEdit,
     // let me know...
     CItemData *pci_node(NULL);
-    if (m_ctlItemTree.IsWindowVisible()) { // tree view
+    if (m_ViewType == TREE) {
+      // TREE view
       HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
       if (ti != NULL) { // if anything selected
         pci_node = (CItemData *)m_ctlItemTree.GetItemData(ti);
@@ -997,6 +1216,9 @@ void DboxMain::OnEdit()
           m_ctlItemTree.Expand(ti, TVE_TOGGLE);
         }
       }
+    } else
+    if (m_ViewType == EXPLORER) {
+      // TBD
     }
   }
 }
@@ -1375,7 +1597,20 @@ void DboxMain::OnDuplicateEntry()
       pcmd = AddEntryCommand::Create(&m_core, ci2);
     }
 
-    Execute(pcmd);
+    MultiCommands *pmulticmds = MultiCommands::Create(&m_core);
+    // We refresh the TREE and EXPLORER views
+    Command *pcmd1 = UpdateGUICommand::Create(&m_core,
+                                              UpdateGUICommand::WN_UNDO,
+                                              UpdateGUICommand::GUI_REFRESH_TREE);
+    // We refresh the view
+    Command *pcmd2 = UpdateGUICommand::Create(&m_core,
+                                              UpdateGUICommand::WN_EXECUTE_REDO,
+                                              UpdateGUICommand::GUI_REFRESH_TREE);
+    // Now do it
+    pmulticmds->Add(pcmd1);
+    pmulticmds->Add(pcmd);
+    pmulticmds->Add(pcmd2);
+    Execute(pmulticmds);
 
     pdi->list_index = -1; // so that InsertItemIntoGUITreeList will set new values
 
@@ -1425,7 +1660,7 @@ void DboxMain::OnCopyPassword()
 void DboxMain::OnCopyPasswordMinimize()
 {
   // Do OnCopyPassword and minimize afterwards.
-   CopyDataToClipBoard(CItemData::PASSWORD, true);
+   CopyDataToClipBoard(CItemData::PASSWORD, NULL, true);
 }
 
 void DboxMain::OnCopyUsername()
@@ -1456,10 +1691,11 @@ void DboxMain::OnCopyRunCommand()
   bool bDoNotExpand = (HIWORD(pMSG->wParam) == 0 && pMSG->lParam == 0) &&
                       (GetKeyState(VK_CONTROL) & 0x8000) != 0;
 
-  CopyDataToClipBoard(CItemData::RUNCMD, bDoNotExpand);
+  CopyDataToClipBoard(CItemData::RUNCMD, NULL, bDoNotExpand);
 }
 
-void DboxMain::CopyDataToClipBoard(const CItemData::FieldType ft, const bool bSpecial)
+void DboxMain::CopyDataToClipBoard(const CItemData::FieldType ft, 
+                                   CItemData *in_pci, const bool bSpecial)
 {
   // Boolean 'bSpecial' flag is CItemData::FieldType 'ft' dependent
   // For example:
@@ -1468,7 +1704,8 @@ void DboxMain::CopyDataToClipBoard(const CItemData::FieldType ft, const bool bSp
   if (SelItemOk() != TRUE)
     return;
 
-  CItemData *pci = getSelectedItem();
+  CItemData *pci = (in_pci != NULL) ? in_pci : getSelectedItem();
+
   ASSERT(pci != NULL);
 
   const pws_os::CUUID uuid = pci->GetUUID();
@@ -1631,7 +1868,8 @@ void DboxMain::OnClearClipboard()
 // be avoided by putting the password into the clipboard when the entry is saved
 // but that would be annoying when generating a new entry.
 
-void DboxMain::MakeRandomPassword(StringX &password, PWPolicy &pwp, bool bIssueMsg)
+void DboxMain::MakeRandomPassword(StringX &password, PWPolicy &pwp,
+                                  bool bIssueMsg)
 {
   password = pwp.MakeRandomPassword();
   SetClipboardData(password);
@@ -1646,24 +1884,33 @@ void DboxMain::MakeRandomPassword(StringX &password, PWPolicy &pwp, bool bIssueM
   }
 }
 
-void DboxMain::PerformAutoType()
-{
-  OnAutoType();
-}
-
 void DboxMain::OnAutoType()
 {
+  PerformAutoType();
+}
+
+void DboxMain::PerformAutoType(CItemData *in_pci)
+{
   CItemData *pci(NULL);
-  if (m_ctlItemTree.IsWindowVisible() && m_LastFoundTreeItem != NULL) {
-    pci = (CItemData *)m_ctlItemTree.GetItemData(m_LastFoundTreeItem);
-    pws_os::Trace(L"OnAutoType: Using Tree found item\n");
-  } else
-  if (m_ctlItemList.IsWindowVisible() && m_LastFoundListItem >= 0) {
-    pci = (CItemData *)m_ctlItemList.GetItemData(m_LastFoundListItem);
-    pws_os::Trace(L"OnAutoType: Using List found item\n");
+  if (in_pci == NULL) {
+    if (m_ViewType == TREE && m_LastFoundTreeItem != NULL) {
+      pci = (CItemData *)m_ctlItemTree.GetItemData(m_LastFoundTreeItem);
+      pws_os::Trace(L"OnAutoType: Using Tree found item\n");
+    } else
+    if (m_ViewType == LIST && m_LastFoundListItem >= 0) {
+      pci = (CItemData *)m_ctlItemList.GetItemData(m_LastFoundListItem);
+      pws_os::Trace(L"OnAutoType: Using List found item\n");
+    } else
+    if (m_ViewType == EXPLORER && m_LastFoundExplorerItem >= 0) {
+      pci = getSelectedItem();
+      pws_os::Trace(L"OnAutoType: Using Explorer found item\n");
+    } else {
+      pci = getSelectedItem();
+      pws_os::Trace(L"OnAutoType: Using Selected item\n");
+    }
   } else {
-    pci = getSelectedItem();
-    pws_os::Trace(L"OnAutoType: Using Selected item\n");
+    pci = in_pci;
+    pws_os::Trace(L"OnAutoType: Using Explorer found item\n");
   }
 
   if (pci == NULL)
@@ -1678,7 +1925,7 @@ void DboxMain::OnAutoType()
 
 void DboxMain::AutoType(const CItemData &ci)
 {
-  // Called from OnAutoType, OnTrayAutoType and OnDragAutoType
+  // Called from OnAutoType, OnTrayAutoType, OnDragAutoType and OnExplorerAutoType
 
   // Rules are ("Minimize on Autotype" takes precedence):
   // 1. If "MinimizeOnAutotype" - minimize PWS during Autotype but do
@@ -1762,10 +2009,15 @@ void DboxMain::OnEditBaseEntry()
 
 void DboxMain::OnRunCommand()
 {
+  DoRunCommand();
+}
+
+void DboxMain::DoRunCommand(CItemData *in_pci)
+{
   if (SelItemOk() != TRUE)
     return;
 
-  CItemData *pci = getSelectedItem();
+  CItemData *pci = (in_pci != NULL) ? in_pci : getSelectedItem();
   ASSERT(pci != NULL);
 
   const pws_os::CUUID uuid = pci->GetUUID();
@@ -1836,7 +2088,8 @@ void DboxMain::OnRunCommand()
   }
 }
 
-void DboxMain::AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup)
+void DboxMain::AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup,
+                            const bool bWithinThisInstance, const bool bCopy)
 {
   // Add Drop entries
   CItemData ci_temp;
@@ -1856,6 +2109,8 @@ void DboxMain::AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup)
   m_core.InitialiseGTU(setGTU);
 
   MultiCommands *pmulticmds = MultiCommands::Create(&m_core);
+  pmulticmds->Add(UpdateGUICommand::Create(&m_core, UpdateGUICommand::WN_UNDO,
+                                   UpdateGUICommand::GUI_REFRESH_ALL));
 
   for (pos = in_oblist.GetHeadPosition(); pos != NULL; in_oblist.GetNext(pos)) {
     CDDObject *pDDObject = (CDDObject *)in_oblist.GetAt(pos);
@@ -1868,170 +2123,195 @@ void DboxMain::AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup)
     ci_temp.Clear();
     // Only set to false if adding a shortcut where the base isn't there (yet)
     bAddToViews = true;
+
     pDDObject->ToItem(ci_temp);
 
-    StringX sxPolicyName = ci_temp.GetPolicyName();
-    if (!sxPolicyName.empty()) {
-      // D&D put the entry's name here and the details in the entry
-      // which we now have to add to this core and remove from the entry
-
-      // Get the source database PWPolicy & symbols for this name
-      PWPolicy st_pp;
-      ci_temp.GetPWPolicy(st_pp);
-      st_pp.symbols = ci_temp.GetSymbols();
-
-      // Get the same info if the policy is in the target database
-      PWPolicy currentDB_st_pp;
-      bool bNPWInCurrentDB = GetPolicyFromName(sxPolicyName, currentDB_st_pp);
-      if (bNPWInCurrentDB) {
-        // It exists in target database
-        if (st_pp != currentDB_st_pp) {
-          // They are not the same - make this policy unique
-          m_core.MakePolicyUnique(mapRenamedPolicies, sxPolicyName, sxDD_DateTime,
-                                  IDS_DRAGPOLICY);
-          ci_temp.SetPolicyName(sxPolicyName);
-          bChangedPolicy = true;
-        }
-      }
-
-      if (!bNPWInCurrentDB || bChangedPolicy) {
-        // Not in target database or has different settings -
-        // Add it if we haven't already
-        if (std::find(vAddedPolicyNames.begin(), vAddedPolicyNames.end(), sxPolicyName) ==
-                      vAddedPolicyNames.end()) {
-          // Doesn't already exist and we haven't already added it - add
-          Command *pcmd = DBPolicyNamesCommand::Create(&m_core, sxPolicyName, st_pp);
-          pmulticmds->Add(pcmd);
-          vAddedPolicyNames.push_back(sxPolicyName);
-        }
-        // No longer need these values
-        ci_temp.SetPWPolicy(L"");
-        ci_temp.SetSymbols(L"");
-      }
-    }
-
-    if (in_oblist.m_bDragNode) {
+    if (!bCopy && bWithinThisInstance) {
+      // Moving entry within me - much less work - just update entry's group
       dot = (!DropGroup.empty() && !ci_temp.GetGroup().empty()) ? L"." : L"";
-      sxgroup = DropGroup + dot + ci_temp.GetGroup();
+      StringX sxNewGroup = DropGroup + dot + ci_temp.GetGroup();
+
+      // Get information from current selected entry
+      StringX sxUser = ci_temp.GetUser();
+      StringX sxTitle0 = ci_temp.GetTitle();
+      StringX sxTitle = GetUniqueTitle(sxNewGroup,
+                                  sxTitle0, sxUser, IDS_DRAGNUMBER);
+
+      Command *pUpdGroupCmd = UpdateEntryCommand::Create(&m_core, ci_temp,
+                                                         CItemData::GROUP, sxNewGroup);
+      pUpdGroupCmd->SetNoGUINotify();
+      pmulticmds->Add(pUpdGroupCmd);
+      if (sxTitle != sxTitle0) {
+        Command *pUpdTitleCmd = UpdateEntryCommand::Create(&m_core, ci_temp,
+                                                           CItemData::TITLE, sxTitle);
+        pUpdTitleCmd->SetNoGUINotify();
+        pmulticmds->Add(pUpdTitleCmd);
+      }
     } else {
-      sxgroup = DropGroup;
-    }
+      // A lot of work!
+      StringX sxPolicyName = ci_temp.GetPolicyName();
+      if (!sxPolicyName.empty()) {
+        // D&D put the entry's name here and the details in the entry
+        // which we now have to add to this core and remove from the entry
 
-    sxuser = ci_temp.GetUser();
-    StringX sxnewtitle(ci_temp.GetTitle());
-    m_core.MakeEntryUnique(setGTU, sxgroup, sxnewtitle, sxuser, IDS_DRAGNUMBER);
+        // Get the source database PWPolicy & symbols for this name
+        PWPolicy st_pp;
+        ci_temp.GetPWPolicy(st_pp);
+        st_pp.symbols = ci_temp.GetSymbols();
 
-    if (m_core.Find(ci_temp.GetUUID()) != End()) {
-      // Already in use - get a new one!
-      ci_temp.CreateUUID();
-    }
+        // Get the same info if the policy is in the target database
+        PWPolicy currentDB_st_pp;
+        bool bNPWInCurrentDB = GetPolicyFromName(sxPolicyName, currentDB_st_pp);
+        if (bNPWInCurrentDB) {
+          // It exists in target database
+          if (st_pp != currentDB_st_pp) {
+            // They are not the same - make this policy unique
+            m_core.MakePolicyUnique(mapRenamedPolicies, sxPolicyName, sxDD_DateTime,
+            IDS_DRAGPOLICY);
+            ci_temp.SetPolicyName(sxPolicyName);
+            bChangedPolicy = true;
+          }
+        }
 
-    if (bChangedPolicy) {
-      StringX sxChanged = L"\r\n\xab" + sxgroup + L"\xbb " +
-	                        L"\xab" + sxnewtitle + L"\xbb " +
-	                        L"\xab" + sxuser + L"\xbb";
-      sxEntriesWithNewNamedPolicies += sxChanged;
-    }
+        if (!bNPWInCurrentDB || bChangedPolicy) {
+          // Not in target database or has different settings -
+          // Add it if we haven't already
+          if (std::find(vAddedPolicyNames.begin(), vAddedPolicyNames.end(), sxPolicyName) ==
+              vAddedPolicyNames.end()) {
+            // Doesn't already exist and we haven't already added it - add
+            Command *pcmd = DBPolicyNamesCommand::Create(&m_core, sxPolicyName, st_pp);
+            pmulticmds->Add(pcmd);
+            vAddedPolicyNames.push_back(sxPolicyName);
+          }
+          // No longer need these values
+          ci_temp.SetPWPolicy(L"");
+          ci_temp.SetSymbols(L"");
+        }
+      }
 
-    ci_temp.SetGroup(sxgroup);
-    ci_temp.SetTitle(sxnewtitle);
+      if (in_oblist.m_bDraggingGroup) {
+        dot = (!DropGroup.empty() && !ci_temp.GetGroup().empty()) ? L"." : L"";
+        sxgroup = DropGroup + dot + ci_temp.GetGroup();
+      } else {
+        sxgroup = DropGroup;
+      }
 
-    StringX cs_tmp = ci_temp.GetPassword();
+      sxuser = ci_temp.GetUser();
+      StringX sxnewtitle(ci_temp.GetTitle());
+      m_core.MakeEntryUnique(setGTU, sxgroup, sxnewtitle, sxuser, IDS_DRAGNUMBER);
 
-    BaseEntryParms pl;
-    pl.InputType = CItemData::ET_NORMAL;
+      if (m_core.Find(ci_temp.GetUUID()) != End()) {
+        // As copying, if UUID is already in use - get a new one!
+        ci_temp.CreateUUID();
+      }
 
-    // Potentially remove outer single square brackets as ParseBaseEntryPWD expects only
-    // one set of square brackets (processing import and user edit of entries)
-    if (cs_tmp.substr(0, 2) == L"[[" &&
-        cs_tmp.substr(cs_tmp.length() - 2) == L"]]") {
-      cs_tmp = cs_tmp.substr(1, cs_tmp.length() - 2);
-      pl.InputType = CItemData::ET_ALIAS;
-    }
+      if (bChangedPolicy) {
+        StringX sxChanged = L"\r\n\xab" + sxgroup + L"\xbb " +
+        L"\xab" + sxnewtitle + L"\xbb " +
+        L"\xab" + sxuser + L"\xbb";
+        sxEntriesWithNewNamedPolicies += sxChanged;
+      }
 
-    // Potentially remove tilde as ParseBaseEntryPWD expects only
-    // one set of square brackets (processing import and user edit of entries)
-    if (cs_tmp.substr(0, 2) == L"[~" &&
-        cs_tmp.substr(cs_tmp.length() - 2) == L"~]") {
-      cs_tmp = L"[" + cs_tmp.substr(2, cs_tmp.length() - 4) + L"]";
-      pl.InputType = CItemData::ET_SHORTCUT;
-    }
+      ci_temp.SetGroup(sxgroup);
+      ci_temp.SetTitle(sxnewtitle);
 
-    m_core.ParseBaseEntryPWD(cs_tmp, pl);
-    if (pl.ibasedata > 0) {
-      CGeneralMsgBox gmb;
-      // Password in alias/shortcut format AND base entry exists
-      if (pl.InputType == CItemData::ET_ALIAS) {
-        ItemListIter iter = m_core.Find(pl.base_uuid);
-        ASSERT(iter != End());
-        if (pl.TargetType == CItemData::ET_ALIAS) {
-          // This base is in fact an alias. ParseBaseEntryPWD already found 'proper base'
-          // So dropped entry will point to the 'proper base' and tell the user.
-          CString cs_msg;
-          cs_msg.Format(IDS_DDBASEISALIAS, sxgroup, sxtitle, sxuser);
-          gmb.AfxMessageBox(cs_msg, NULL, MB_OK);
+      StringX cs_tmp = ci_temp.GetPassword();
+
+      BaseEntryParms pl;
+      pl.InputType = CItemData::ET_NORMAL;
+
+      // Potentially remove outer single square brackets as ParseBaseEntryPWD expects only
+      // one set of square brackets (processing import and user edit of entries)
+      if (cs_tmp.substr(0, 2) == L"[[" &&
+          cs_tmp.substr(cs_tmp.length() - 2) == L"]]") {
+        cs_tmp = cs_tmp.substr(1, cs_tmp.length() - 2);
+        pl.InputType = CItemData::ET_ALIAS;
+      }
+
+      // Potentially remove tilde as ParseBaseEntryPWD expects only
+      // one set of square brackets (processing import and user edit of entries)
+      if (cs_tmp.substr(0, 2) == L"[~" &&
+          cs_tmp.substr(cs_tmp.length() - 2) == L"~]") {
+        cs_tmp = L"[" + cs_tmp.substr(2, cs_tmp.length() - 4) + L"]";
+        pl.InputType = CItemData::ET_SHORTCUT;
+      }
+
+      m_core.ParseBaseEntryPWD(cs_tmp, pl);
+      if (pl.ibasedata > 0) {
+        CGeneralMsgBox gmb;
+        // Password in alias/shortcut format AND base entry exists
+        if (pl.InputType == CItemData::ET_ALIAS) {
+          ItemListIter iter = m_core.Find(pl.base_uuid);
+          ASSERT(iter != End());
+          if (pl.TargetType == CItemData::ET_ALIAS) {
+            // This base is in fact an alias. ParseBaseEntryPWD already found 'proper base'
+            // So dropped entry will point to the 'proper base' and tell the user.
+            CString cs_msg;
+            cs_msg.Format(IDS_DDBASEISALIAS, sxgroup, sxtitle, sxuser);
+            gmb.AfxMessageBox(cs_msg, NULL, MB_OK);
+          } else
+          if (pl.TargetType != CItemData::ET_NORMAL && pl.TargetType != CItemData::ET_ALIASBASE) {
+            // Only normal or alias base allowed as target
+            CString cs_msg;
+            cs_msg.Format(IDS_ABASEINVALID, sxgroup, sxtitle, sxuser);
+            gmb.AfxMessageBox(cs_msg, NULL, MB_OK);
+            continue;
+          }
+          Command *pcmd = AddDependentEntryCommand::Create(&m_core, pl.base_uuid,
+          ci_temp.GetUUID(),
+          CItemData::ET_ALIAS);
+          pmulticmds->Add(pcmd);
+          ci_temp.SetPassword(L"[Alias]");
+          ci_temp.SetAlias();
         } else
-        if (pl.TargetType != CItemData::ET_NORMAL && pl.TargetType != CItemData::ET_ALIASBASE) {
-          // Only normal or alias base allowed as target
-          CString cs_msg;
-          cs_msg.Format(IDS_ABASEINVALID, sxgroup, sxtitle, sxuser);
-          gmb.AfxMessageBox(cs_msg, NULL, MB_OK);
-          continue;
+        if (pl.InputType == CItemData::ET_SHORTCUT) {
+          ItemListIter iter = m_core.Find(pl.base_uuid);
+          ASSERT(iter != End());
+          if (pl.TargetType != CItemData::ET_NORMAL && pl.TargetType != CItemData::ET_SHORTCUTBASE) {
+            // Only normal or shortcut base allowed as target
+            CString cs_msg;
+            cs_msg.Format(IDS_SBASEINVALID, sxgroup, sxtitle, sxuser);
+            gmb.AfxMessageBox(cs_msg, NULL, MB_OK);
+            continue;
+          }
+          Command *pcmd = AddDependentEntryCommand::Create(&m_core,
+          pl.base_uuid,
+          ci_temp.GetUUID(),
+          CItemData::ET_SHORTCUT);
+          pmulticmds->Add(pcmd);
+          ci_temp.SetPassword(L"[Shortcut]");
+          ci_temp.SetShortcut();
         }
-        Command *pcmd = AddDependentEntryCommand::Create(&m_core, pl.base_uuid,
-                                                         ci_temp.GetUUID(),
-                                                         CItemData::ET_ALIAS);
-        pmulticmds->Add(pcmd);
-        ci_temp.SetPassword(L"[Alias]");
-        ci_temp.SetAlias();
       } else
-      if (pl.InputType == CItemData::ET_SHORTCUT) {
-        ItemListIter iter = m_core.Find(pl.base_uuid);
-        ASSERT(iter != End());
-        if (pl.TargetType != CItemData::ET_NORMAL && pl.TargetType != CItemData::ET_SHORTCUTBASE) {
-          // Only normal or shortcut base allowed as target
-          CString cs_msg;
-          cs_msg.Format(IDS_SBASEINVALID, sxgroup, sxtitle, sxuser);
-          gmb.AfxMessageBox(cs_msg, NULL, MB_OK);
-          continue;
+      if (pl.ibasedata == 0) {
+        // Password NOT in alias/shortcut format
+        ci_temp.SetNormal();
+      } else
+      if (pl.ibasedata < 0) {
+        // Password in alias/shortcut format AND base entry does not exist or multiple possible
+        // base entries exit.
+        // Note: As more entries are added, what was "not exist" may become "OK",
+        // "no unique exists" or "multiple exist".
+        // Let the code that processes the possible aliases after all have been added sort this out.
+        if (pl.InputType == CItemData::ET_ALIAS) {
+          Possible_Aliases.push_back(ci_temp.GetUUID());
+        } else
+        if (pl.InputType == CItemData::ET_SHORTCUT) {
+          Possible_Shortcuts.push_back(ci_temp.GetUUID());
+          bAddToViews = false;
         }
-        Command *pcmd = AddDependentEntryCommand::Create(&m_core,
-                                                         pl.base_uuid,
-                                                         ci_temp.GetUUID(),
-                                                         CItemData::ET_SHORTCUT);
-        pmulticmds->Add(pcmd);
-        ci_temp.SetPassword(L"[Shortcut]");
-        ci_temp.SetShortcut();
       }
-    } else
-    if (pl.ibasedata == 0) {
-      // Password NOT in alias/shortcut format
-      ci_temp.SetNormal();
-    } else
-    if (pl.ibasedata < 0) {
-      // Password in alias/shortcut format AND base entry does not exist or multiple possible
-      // base entries exit.
-      // Note: As more entries are added, what was "not exist" may become "OK",
-      // "no unique exists" or "multiple exist".
-      // Let the code that processes the possible aliases after all have been added sort this out.
-      if (pl.InputType == CItemData::ET_ALIAS) {
-        Possible_Aliases.push_back(ci_temp.GetUUID());
-      } else
-      if (pl.InputType == CItemData::ET_SHORTCUT) {
-        Possible_Shortcuts.push_back(ci_temp.GetUUID());
-        bAddToViews = false;
+      ci_temp.SetStatus(CItemData::ES_ADDED);
+      // Add to pwlist
+      Command *pAddCmd = AddEntryCommand::Create(&m_core, ci_temp);
+      if (!bAddToViews) {
+        // ONLY Add to pwlist and NOT to TREE or LIST views
+        // After the call to AddDependentEntries for shortcuts, check if still
+        // in password list and, if so, then add to TREE + LIST views
+        pAddCmd->SetNoGUINotify();
       }
-    }
-    ci_temp.SetStatus(CItemData::ES_ADDED);
-    // Add to pwlist
-    Command *pcmd = AddEntryCommand::Create(&m_core, ci_temp);
-    if (!bAddToViews) {
-      // ONLY Add to pwlist and NOT to Tree or List views
-      // After the call to AddDependentEntries for shortcuts, check if still
-      // in password list and, if so, then add to Tree + List views
-      pcmd->SetNoGUINotify();
-    }
-    pmulticmds->Add(pcmd);
+      pmulticmds->Add(pAddCmd);
+    } // end of Copy code
   } // iteration over in_oblist
 
   // Now try to add aliases/shortcuts we couldn't add in previous processing
@@ -2045,17 +2325,20 @@ void DboxMain::AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup)
                                                       CItemData::ET_SHORTCUT,
                                                       CItemData::PASSWORD);
   pmulticmds->Add(pcmdS);
+  
+  pmulticmds->Add(UpdateGUICommand::Create(&m_core, UpdateGUICommand::WN_EXECUTE_REDO,
+                                   UpdateGUICommand::GUI_REFRESH_ALL));
   Execute(pmulticmds);
 
   // Some shortcuts may have been deleted from the database as base does not exist
-  // Tidy up Tree/List
+  // Tidy up TREE/LIST
   UUIDVectorIter paiter;
   ItemListIter iter;
   for (paiter = Possible_Shortcuts.begin();
        paiter != Possible_Shortcuts.end(); paiter++) {
     iter = m_core.Find(*paiter);
     if (iter != End()) {
-      // Still in pwlist - NOW add to Tree and List views
+      // Still in pwlist - NOW add to TREE and LIST views
       InsertItemIntoGUITreeList(m_core.GetEntry(iter));
     }
   }
@@ -2081,6 +2364,14 @@ void DboxMain::AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup)
 }
 
 LRESULT DboxMain::OnDragAutoType(WPARAM wParam, LPARAM /* lParam */)
+{
+  const CItemData *pci = reinterpret_cast<const CItemData *>(wParam);
+
+  AutoType(*pci);
+  return 0L;
+}
+
+LRESULT DboxMain::OnExplorerAutoType(WPARAM wParam, LPARAM /* lParam */)
 {
   const CItemData *pci = reinterpret_cast<const CItemData *>(wParam);
 
@@ -2117,4 +2408,119 @@ void DboxMain::OnToolBarFindUp()
   // when they press Shift+F3
   m_FindToolBar.SetSearchDirection(FIND_UP);
   m_FindToolBar.Find();
+}
+
+CItemData *DboxMain::GetGroupPath(StringX &sxCurrentFullPath,
+                                  StringX &sxCurrentGroup)
+{
+  CItemData *pci(NULL);
+  sxCurrentFullPath.clear();
+  sxCurrentGroup.clear();
+
+  switch (m_ViewType) {
+    case TREE:
+    {
+      // Get selected group
+      TVHITTESTINFO htinfo = {0};
+      CPoint local = ::GetMessagePos();
+      m_ctlItemTree.ScreenToClient(&local);
+      htinfo.pt = local;
+      m_ctlItemTree.HitTest(&htinfo);
+      HTREEITEM hItem = htinfo.hItem;
+      
+      // Ignore any clicks not on an item (group or entry) - must be root!
+      if (hItem == NULL ||
+          htinfo.flags & (TVHT_NOWHERE | TVHT_ONITEMRIGHT | 
+                          TVHT_ABOVE   | TVHT_BELOW | 
+                          TVHT_TORIGHT | TVHT_TOLEFT)) {
+        return NULL;
+      }
+
+      // Verify that it is a group
+      pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
+      if (pci == NULL) {
+        // It is a group - get complete group name
+        // Get info e.g., 'a.b.c' and 'c'
+        sxCurrentFullPath = (StringX)GetGroupFullPath(&m_ctlItemTree, hItem);
+        sxCurrentGroup = (StringX)m_ctlItemTree.GetItemText(hItem);
+      } else {
+        // It is an entry
+        sxCurrentFullPath = pci->GetGroup();
+        if (!sxCurrentFullPath.empty()) {
+          size_t found = sxCurrentFullPath.find_last_of(L'.');
+          if (found != StringX::npos) {
+            sxCurrentGroup = sxCurrentFullPath.substr(found);
+            sxCurrentFullPath = sxCurrentFullPath.substr(0, found);
+          } else {
+            sxCurrentGroup = sxCurrentFullPath;
+            sxCurrentFullPath.clear();
+          }
+        }
+      }
+      break;
+    }
+    case EXPLORER:
+    {
+      // Get active pane
+      int nRow(-1), nCol(-1);
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+        return NULL;
+      
+      // Now get selected group entry name
+      if (nCol == 0) {
+        // TreeView = could be either!
+        CPWTreeView *pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
+        CTreeCtrl *pTreeCtrl = &pTreeView->GetTreeCtrl();
+        sxCurrentFullPath = pTreeView->GetCurrentPath();
+    
+        HTREEITEM hi = pTreeCtrl->GetSelectedItem();
+        sxCurrentGroup = (StringX)pTreeCtrl->GetItemText(hi);
+      } else {
+        // List view = could be either!
+        CPWListView *pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+        CListCtrl *pListCtrl = &pListView->GetListCtrl();
+        sxCurrentFullPath = (StringX)pListView->GetCurrentPath();
+
+        // Get selected item
+        CPoint local = ::GetMessagePos();
+        pListCtrl->ScreenToClient(&local);
+        UINT uiFlags;
+        int iIndex = pListCtrl->HitTest(local, &uiFlags);
+      
+        // Ignore any clicks not on an item (group or entry) - must be in current path!
+        if (iIndex == -1 ||
+            uiFlags & (LVHT_NOWHERE | 
+                       LVHT_ABOVE   | LVHT_BELOW | 
+                       LVHT_TORIGHT | LVHT_TOLEFT)) {
+          return NULL;
+        }
+
+        st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+        if (pLP->pci == NULL) {
+          // OK - a group
+          sxCurrentGroup = pListCtrl->GetItemText(iIndex, 1);
+        } else {
+          sxCurrentFullPath = pci->GetGroup();
+          if (!sxCurrentFullPath.empty()) {
+            size_t found = sxCurrentFullPath.find_last_of(L'.');
+            if (found != StringX::npos) {
+              sxCurrentGroup = sxCurrentFullPath.substr(found);
+              sxCurrentFullPath = sxCurrentFullPath.substr(0, found);
+            } else {
+              sxCurrentGroup = sxCurrentFullPath;
+              sxCurrentFullPath.clear();
+            }
+          }
+        }
+      }
+      if (sxCurrentFullPath.empty())
+        sxCurrentFullPath = sxCurrentGroup;
+      else
+        sxCurrentFullPath += sxDot + sxCurrentGroup;
+      break;
+    }
+    default:
+      break;
+  }
+  return pci;
 }

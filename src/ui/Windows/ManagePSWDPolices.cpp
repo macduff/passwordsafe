@@ -683,19 +683,19 @@ void CManagePSWDPolices::OnEntryDoubleClicked(NMHDR *, LRESULT *pLResult)
   // Set we have processed the event
   *pLResult = 1L;
 
-  POSITION p = m_PolicyEntries.GetFirstSelectedItemPosition();
-  if (p == NULL)
+  POSITION pos = m_PolicyEntries.GetFirstSelectedItemPosition();
+  if (pos == NULL)
     return;
 
-  int nIndex = m_PolicyEntries.GetNextSelectedItem(p);
+  int iIndex = m_PolicyEntries.GetNextSelectedItem(pos);
 
-  if (nIndex < 0)
+  if (iIndex < 0)
     return;
 
   // Get entry's details
-  StringX sxGroup = m_PolicyEntries.GetItemText(nIndex, 0);
-  StringX sxTitle = m_PolicyEntries.GetItemText(nIndex, 1);
-  StringX sxUser  = m_PolicyEntries.GetItemText(nIndex, 2);
+  StringX sxGroup = m_PolicyEntries.GetItemText(iIndex, 0);
+  StringX sxTitle = m_PolicyEntries.GetItemText(iIndex, 1);
+  StringX sxUser  = m_PolicyEntries.GetItemText(iIndex, 2);
 
   // Go and find it
   ItemListIter iter = m_pDbx->Find(sxGroup, sxTitle, sxUser);

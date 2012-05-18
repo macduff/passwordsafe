@@ -214,7 +214,7 @@ void CPWHistDlg::OnHeaderClicked(NMHDR *pNotifyStruct, LRESULT *pLResult)
       m_bSortAscending = true;
 
     m_iSortedColumn = phdn->iItem;
-    m_PWHistListCtrl.SortItems(PWHistCompareFunc, (LPARAM)this);
+    m_PWHistListCtrl.SortItems(PWHistCompareFunction, (LPARAM)this);
 
     // Note: WINVER defines the minimum system level for which this is program compiled and
     // NOT the level of system it is running on!
@@ -240,10 +240,10 @@ void CPWHistDlg::OnHeaderClicked(NMHDR *pNotifyStruct, LRESULT *pLResult)
   *pLResult = 0;
 }
 
-int CALLBACK CPWHistDlg::PWHistCompareFunc(LPARAM lParam1, LPARAM lParam2,
-                                           LPARAM closure)
+int CALLBACK CPWHistDlg::PWHistCompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                               LPARAM lParamSort)
 {
-  CPWHistDlg *self = (CPWHistDlg*)closure;
+  CPWHistDlg *self = (CPWHistDlg *)lParamSort;
   int nSortColumn = self->m_iSortedColumn;
   size_t Lpos = (size_t)lParam1;
   size_t Rpos = (size_t)lParam2;

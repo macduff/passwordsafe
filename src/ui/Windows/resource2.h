@@ -136,6 +136,9 @@ Do NOT change the value of any resource used in a menu from V3.17 onwards.
 #define ID_MENUITEM_REPORT_IMPORTKP1TXT 32132
 #define ID_MENUITEM_REPORT_IMPORTKP1CSV 32133
 #define ID_MENUITEM_CLEARFILTER         32134
+#define ID_MENUITEM_EXPL_VIEW           32135
+#define ID_MENUITEM_EXPL_ADDSPLIT       32136
+#define ID_MENUITEM_EXPL_REMOVESPLIT    32137
 
 // Manage menu
 #define ID_MANAGEMENU                   32150
@@ -202,6 +205,15 @@ Do NOT change the value of any resource used in a menu from V3.17 onwards.
 #define ID_TOOLBUTTON_FINDADVANCED      32307
 #define ID_TOOLBUTTON_FINDREPORT        32308
 #define ID_TOOLBUTTON_FINDRESULTS       32309
+
+// Explorer Toolbar - also dummy menu for shortcuts
+#define ID_TOOLBUTTON_BACKWARDS0        32475
+#define ID_TOOLBUTTON_BACKWARDS1        32476
+#define ID_TOOLBUTTON_FORWARDS0         32477
+#define ID_TOOLBUTTON_FORWARDS1         32478
+#define ID_TOOLBUTTON_UPWARDS0          32479
+#define ID_TOOLBUTTON_UPWARDS1          32480
+#define ID_TOOLBUTTON_CURRENTPATHCOMBO  32481
 
 #define ID_MENUTOOLBAR_END              32499
 

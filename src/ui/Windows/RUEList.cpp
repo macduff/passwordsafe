@@ -79,7 +79,7 @@ bool CRUEList::GetAllMenuItemStrings(vector<RUEntryData> &ListofAllMenuStrings) 
       ruentrydata.string = L"\xab" + group + L"\xbb " + 
                            L"\xab" + title + L"\xbb " + 
                            L"\xab" + user  + L"\xbb";
-      ruentrydata.image = m_pDbx->GetEntryImage(ci);
+      ruentrydata.image = ci.GetEntryImage();
       ruentrydata.pci = (CItemData *)&ci;
     }
     ListofAllMenuStrings.push_back(ruentrydata);

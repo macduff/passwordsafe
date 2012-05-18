@@ -11,6 +11,9 @@
 //-----------------------------------------------------------------------------
 
 #include "PasswordSafe.h"
+
+#include "WindowsDefs.h"
+
 #include "ThisMfcApp.h"
 #include "GeneralMsgBox.h"
 #include "Shortcut.h"
@@ -324,8 +327,8 @@ void DboxMain::OnOptions()
       default:
         uiMessage = IDS_STATCOMPANY;
     }
-    statustext[CPWStatusBar::SB_DBLCLICK] = uiMessage;
-    m_statusBar.SetIndicators(statustext, CPWStatusBar::SB_TOTAL);
+    m_StatusBarText[CPWStatusBar::SB_DBLCLICK] = uiMessage;
+    m_statusBar.SetIndicators(m_StatusBarText, CPWStatusBar::SB_TOTAL);
     UpdateStatusBar();
     // Make a sunken or recessed border around the first pane
     m_statusBar.SetPaneInfo(CPWStatusBar::SB_DBLCLICK,
@@ -482,10 +485,10 @@ void DboxMain::OnOptions()
     // in this session with this database, until the database is closed.
     if (m_core.GetReadFileVersion() == PWSfile::VCURRENT) {
       if (sxOldDBPrefsString != sxNewDBPrefsString) {
-        // Determine whether Tree needs redisplayng due to change
+        // Determine whether TREE needs redisplayng due to change
         // in what is shown (e.g. usernames/passwords)
         bool bUserDisplayChanged = pOptionsPS->UserDisplayChanged();
-        // Note: passwords are only shown in the Tree if usernames are also shown
+        // Note: passwords are only shown in the TREE if usernames are also shown
         bool bPswdDisplayChanged = pOptionsPS->PswdDisplayChanged();
         bool bNeedGUITreeUpdate = bUserDisplayChanged || 
                  (pOptionsPS->ShowUsernameInTree() && bPswdDisplayChanged);

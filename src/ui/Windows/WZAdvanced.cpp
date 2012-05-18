@@ -544,8 +544,8 @@ BOOL CWZAdvanced::OnInitDialog()
     Set(m_bsFields);
   }
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
 
   if (dialog_lookup[m_iIndex] == IDD_WZADVANCED) {
     // IDC_TREATWHITESPACEASEMPTY is only in the full Wizard dialog
@@ -599,8 +599,8 @@ void CWZAdvanced::OnReset()
   if (m_iIndex != WZAdvanced::MERGE) {
     Set(m_bsDefaultSelectedFields);
 
-    m_pLC_List->SortItems(AdvCompareFunc, NULL);
-    m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+    m_pLC_List->SortItems(AdvCompareFunction, NULL);
+    m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
     m_pLC_List->Invalidate();
     m_pLC_Selected->Invalidate();
   }
@@ -872,8 +872,8 @@ void CWZAdvanced::OnSelectSome()
     m_pLC_Selected->SetItemData(iItem, dw_data);
   }
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
 }
 
 void CWZAdvanced::OnSelectAll()
@@ -894,7 +894,7 @@ void CWZAdvanced::OnSelectAll()
   }
 
   m_pLC_List->DeleteAllItems();
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
 }
 
 void CWZAdvanced::OnDeselectSome()
@@ -926,8 +926,8 @@ void CWZAdvanced::OnDeselectSome()
     m_pLC_List->SetItemData(iItem, dw_data);
   }
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
 }
 
 void CWZAdvanced::OnDeselectAll()
@@ -952,7 +952,7 @@ void CWZAdvanced::OnDeselectAll()
     m_pLC_Selected->DeleteItem(i);
   }
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
 }
 
 void CWZAdvanced::OnSelectedItemChanging(NMHDR *pNotifyStruct, LRESULT *pLResult)
@@ -979,8 +979,8 @@ BOOL CWZAdvanced::PreTranslateMessage(MSG* pMsg)
   return CPropertyPage::PreTranslateMessage(pMsg);
 }
 
-int CALLBACK CWZAdvanced::AdvCompareFunc(LPARAM lParam1, LPARAM lParam2,
-                                         LPARAM /* closure */)
+int CALLBACK CWZAdvanced::AdvCompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                             LPARAM /* lParamSort */)
 {
   return (int)(lParam1 - lParam2);
 }

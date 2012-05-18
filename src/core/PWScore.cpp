@@ -45,6 +45,8 @@ unsigned char PWScore::m_session_initialized = false;
 Asker *PWScore::m_pAsker = NULL;
 Reporter *PWScore::m_pReporter = NULL;
 
+StringX sxDot = L".";
+
 // Following structure used in ReadFile and Validate
 static bool GTUCompareV1(const st_GroupTitleUser &gtu1, const st_GroupTitleUser &gtu2)
 {
@@ -325,7 +327,7 @@ void PWScore::ClearData(void)
   m_MapPSWDPLC.clear();
 
   // Clear out Empty Groups
-  m_vEmptyGroups.clear();
+  m_setEmptyGroups.clear();
 
   // Clear out commands
   ClearCommands();
@@ -432,9 +434,9 @@ int PWScore::WriteFile(const StringX &filename, const bool bUpdateSig,
   PWSfileV3 *out3 = dynamic_cast<PWSfileV3 *>(out);
   if (out3 != NULL) {
     out3->SetUnknownHeaderFields(m_UHFL);
-    out3->SetFilters(m_MapFilters); // Give it the filters to write out
+    out3->SetFilters(m_MapFilters);          // Give it the filters to write out
     out3->SetPasswordPolicies(m_MapPSWDPLC); // Give it the password policies to write out
-    out3->SetEmptyGroups(m_vEmptyGroups); // Give it the Empty Groups to write out
+    out3->SetEmptyGroups(m_setEmptyGroups);  // Give it the Empty Groups to write out
   }
 
   try { // exception thrown on write error
@@ -766,7 +768,7 @@ int PWScore::ReadFile(const StringX &a_filename, const StringX &a_passkey,
   }
 
   if (in3 != NULL && !in3->GetEmptyGroups().empty()) {
-    m_vEmptyGroups = in3->GetEmptyGroups();
+    m_setEmptyGroups = in3->GetEmptyGroups();
   }
 
   m_nRecordsWithUnknownFields = in->GetNumRecordsWithUnknownFields();
@@ -3045,38 +3047,62 @@ void PWScore::AddPolicy(const StringX &sxPolicyName, const PWPolicy &st_pp,
 
 bool PWScore::IsEmptyGroup(const StringX &sxEmptyGroup)
 {
-  return find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), sxEmptyGroup) != 
-                   m_vEmptyGroups.end();
+  // If root and there are no entries - then true by definition
+  if (sxEmptyGroup.empty())
+    return m_pwlist.size() == 0;
+
+  return m_setEmptyGroups.find(sxEmptyGroup) != m_setEmptyGroups.end();
+}
+
+// functor object type for find_if:
+// Check if the supplied path contains an empty group anywhere as a subgroup
+struct CheckHasEmptySubgroup {
+  bool operator()(const StringX &sxPathPlusDot) const {
+    if (sxPathPlusDot.length() < m_len)
+      return false; // Quick exit
+    else
+      return (m_sxPathPlusDot == sxPathPlusDot.substr(0, m_len));
+  }
+
+  CheckHasEmptySubgroup(const StringX &sxPathPlusDot)
+  : m_sxPathPlusDot(sxPathPlusDot)
+  {
+    m_len = sxPathPlusDot.length();
+  }
+
+private:
+  CheckHasEmptySubgroup& operator=(const CheckHasEmptySubgroup&); // Do not implement
+  StringX m_sxPathPlusDot;
+  size_t m_len;
+};
+
+bool PWScore::HasEmptySubgroup(const StringX &sxEmptyGroup)
+{
+  // If root and there are empty groups - then true by definition
+  if (sxEmptyGroup.empty())
+    return m_setEmptyGroups.size() > 0;
+
+  CheckHasEmptySubgroup ChkHasESG(sxEmptyGroup + sxDot);
+  return find_if(m_setEmptyGroups.begin(), m_setEmptyGroups.end(), ChkHasESG) !=
+                      m_setEmptyGroups.end();
 }
 
 bool PWScore::AddEmptyGroup(const StringX &sxEmptyGroup)
 {
-  if (find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), sxEmptyGroup) == 
-           m_vEmptyGroups.end()) {
-    m_vEmptyGroups.push_back(sxEmptyGroup);
-    return true;
-  } else
-    return false;
+  PathSetPair pr = m_setEmptyGroups.insert(sxEmptyGroup);
+  return pr.second;
 }
 
 bool PWScore::RemoveEmptyGroup(const StringX &sxEmptyGroup)
 {
-  std::vector<StringX>::iterator iter;
-  iter = find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), sxEmptyGroup);
-
-  if (iter != m_vEmptyGroups.end()) {
-    m_vEmptyGroups.erase(iter);
-    return true;
-  } else
-    return false;
+  return m_setEmptyGroups.erase(sxEmptyGroup) == 1;
 }
 
 void PWScore::RenameEmptyGroup(const StringX &sxOldPath, const StringX &sxNewPath)
 {
-  std::vector<StringX>::iterator iter;
-  iter = find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), sxOldPath);
-  ASSERT(iter !=  m_vEmptyGroups.end());
+  PathSetConstIter citer = m_setEmptyGroups.find(sxOldPath);
+  ASSERT(citer !=  m_setEmptyGroups.end());
 
-  m_vEmptyGroups.erase(iter);
-  m_vEmptyGroups.push_back(sxNewPath);
+  m_setEmptyGroups.erase(citer);
+  m_setEmptyGroups.insert(sxNewPath);
 }

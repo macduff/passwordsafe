@@ -13,6 +13,8 @@
 // CAdvancedDlg dialog
 
 #include "PWDialog.h"
+#include "WindowsDefs.h"
+
 #include "core/ItemData.h"
 #include "AdvancedValues.h"
 
@@ -69,9 +71,10 @@ protected:
   BOOL PreTranslateMessage(MSG* pMsg);
 
 private:
-  static int CALLBACK AdvCompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
+  static int CALLBACK AdvCompareFunction(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
   void Set(CItemData::FieldBits bsFields);
 
+  ViewType m_ViewType;
   CListCtrl *m_pLC_List, *m_pLC_Selected;
   CToolTipCtrl* m_pToolTipCtrl;
   st_SaveAdvValues *m_pst_SADV;

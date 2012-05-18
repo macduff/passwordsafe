@@ -57,6 +57,7 @@ public:
   CEditExtn m_findedit;
   CStaticExtn m_findresults;
   void SetSearchDirection(int iFindDirection) {m_iFindDirection = iFindDirection;}
+  void SetCurrentPath(const StringX &sxCurrentPath) {m_sxCurrentPath = sxCurrentPath;}
 
 protected:
   BOOL PreTranslateMessage(MSG* pMsg);
@@ -99,4 +100,7 @@ private:
   int m_iCase_Insensitive_BM_offset, m_iAdvanced_BM_offset;
   int m_iCase_Sensitive_BM_offset,m_iAdvancedOn_BM_offset;
   st_SaveAdvValues *m_pst_SADV;
+
+  StringX m_sxCurrentPath;
+  ViewType m_ViewType;
 };

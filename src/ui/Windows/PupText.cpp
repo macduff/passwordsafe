@@ -12,6 +12,9 @@
 // Compiles with Visual Studio .NET on Windows XP. Tab size=3.
 //
 #include "stdafx.h"
+
+#include "WindowsDefs.h"
+
 #include "puptext.h"
 
 #ifdef _DEBUG

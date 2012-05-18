@@ -298,7 +298,7 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release64|x64'">pwsafe</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">pwsafe</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Template64|x64'">pwsafe</TargetName>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='DebugM|Win32'">C:\Program Files\Microsoft SDKs\Windows\v7.0A\Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='DebugM|Win32'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Include;$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='ReleaseM|Win32'">C:\Program Files\Microsoft SDKs\Windows\v7.0A\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -1104,6 +1104,7 @@
     <ClCompile Include="DumpSelect.cpp" />
     <ClCompile Include="EBListCtrl.cpp" />
     <ClCompile Include="EditShortcutDlg.cpp" />
+    <ClCompile Include="ExplorerToolBar.cpp" />
     <ClCompile Include="ExpPswdLC.cpp" />
     <ClCompile Include="ExpPWListDlg.cpp" />
     <ClCompile Include="ExtThread.cpp" />
@@ -1120,10 +1121,12 @@
     <ClCompile Include="Fonts.cpp" />
     <ClCompile Include="FontsDialog.cpp" />
     <ClCompile Include="GeneralMsgBox.cpp" />
+    <ClCompile Include="Images.cpp" />
     <ClCompile Include="ImportTextDlg.cpp" />
     <ClCompile Include="ImportXMLDlg.cpp" />
     <ClCompile Include="InfoDisplay.cpp" />
     <ClCompile Include="InputBox.cpp" />
+    <ClCompile Include="ListView.cpp" />
     <ClCompile Include="LVHdrCtrl.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainEdit.cpp" />
@@ -1187,10 +1190,14 @@
     <ClCompile Include="ShowCompareDlg.cpp" />
     <ClCompile Include="SingleInstance.cpp" />
     <ClCompile Include="SMemFile.cpp" />
+    <ClCompile Include="Splitter.cpp" />
+    <ClCompile Include="StdAfx.cpp" />
     <ClCompile Include="Subclass.cpp" />
     <ClCompile Include="SysColStatic.cpp" />
     <ClCompile Include="SystemTray.cpp" />
     <ClCompile Include="ThisMfcApp.cpp" />
+    <ClCompile Include="TreeUtils.cpp" />
+    <ClCompile Include="TreeView.cpp" />
     <ClCompile Include="TryAgainDlg.cpp" />
     <ClCompile Include="ViewReport.cpp" />
     <ClCompile Include="VirtualKeyboard\VKBButton.cpp" />
@@ -1200,6 +1207,7 @@
     <ClCompile Include="WZPropertyPage.cpp" />
     <ClCompile Include="WZPropertySheet.cpp" />
     <ClCompile Include="WZSelectDB.cpp" />
+    <ClCompile Include="XTFlatComboBox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AboutDlg.h" />
@@ -1233,6 +1241,7 @@
     <ClInclude Include="DumpSelect.h" />
     <ClInclude Include="EBListCtrl.h" />
     <ClInclude Include="EditShortcutDlg.h" />
+    <ClInclude Include="ExplorerToolBar.h" />
     <ClInclude Include="ExpPswdLC.h" />
     <ClInclude Include="ExpPWListDlg.h" />
     <ClInclude Include="ExtThread.h" />
@@ -1248,11 +1257,13 @@
     <ClInclude Include="Fonts.h" />
     <ClInclude Include="FontsDialog.h" />
     <ClInclude Include="GeneralMsgBox.h" />
+    <ClInclude Include="Images.h" />
     <ClInclude Include="ImportTextDlg.h" />
     <ClInclude Include="ImportXMLDlg.h" />
     <ClInclude Include="InfoDisplay.h" />
     <ClInclude Include="InputBox.h" />
     <ClInclude Include="jprdebug.h" />
+    <ClInclude Include="ListView.h" />
     <ClInclude Include="LVHdrCtrl.h" />
     <ClInclude Include="filter\ManageFiltersDlg.h" />
     <ClInclude Include="ManagePSWDPolices.h" />
@@ -1313,11 +1324,14 @@
     <ClInclude Include="ShowCompareDlg.h" />
     <ClInclude Include="SingleInstance.h" />
     <ClInclude Include="SMemFile.h" />
+    <ClInclude Include="Splitter.h" />
     <ClInclude Include="StdAfx.h" />
     <ClInclude Include="Subclass.h" />
     <ClInclude Include="SysColStatic.h" />
     <ClInclude Include="SystemTray.h" />
     <ClInclude Include="ThisMfcApp.h" />
+    <ClInclude Include="TreeUtils.h" />
+    <ClInclude Include="TreeView.h" />
     <ClInclude Include="TryAgainDlg.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="ViewReport.h" />
@@ -1326,12 +1340,14 @@
     <ClInclude Include="VirtualKeyboard\VKresource.h" />
     <ClInclude Include="VirtualKeyboard\VKresource3.h" />
     <ClInclude Include="VirtualKeyboard\VKShiftState.h" />
+    <ClInclude Include="WindowsDefs.h" />
     <ClInclude Include="WZAdvanced.h" />
     <ClInclude Include="WZExecuteThreadParms.h" />
     <ClInclude Include="WZFinish.h" />
     <ClInclude Include="WZPropertyPage.h" />
     <ClInclude Include="WZPropertySheet.h" />
     <ClInclude Include="WZSelectDB.h" />
+    <ClInclude Include="XTFlatComboBox.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="graphics\abase.bmp" />
@@ -1340,11 +1356,16 @@
     <None Include="graphics\abase_exp.ico" />
     <None Include="graphics\abase_warn.bmp" />
     <None Include="graphics\abase_warn.ico" />
+    <None Include="graphics\backwards.bmp" />
+    <None Include="graphics\backwards_disabled.bmp" />
+    <None Include="graphics\database.bmp" />
     <None Include="graphics\dragbar\classic\AutotypeX.bmp" />
     <None Include="graphics\dragbar\new\AutotypeX.bmp" />
     <None Include="graphics\empty_node.bmp" />
     <None Include="graphics\findtoolbar\classic\findadvancedon.bmp" />
     <None Include="graphics\findtoolbar\new\findadvancedon.bmp" />
+    <None Include="graphics\forwards.bmp" />
+    <None Include="graphics\forwards_disabled.bmp" />
     <None Include="graphics\toolbar\classic\addgroup.bmp" />
     <None Include="graphics\toolbar\classic\clearfilter.bmp" />
     <None Include="graphics\toolbar\classic\copytoclipboard.bmp" />
@@ -1527,6 +1548,7 @@
     <None Include="graphics\toolbar\new\passwordchars_disabled.bmp" />
     <None Include="graphics\toolbar\new\passwordpolicy.bmp" />
     <None Include="graphics\toolbar\new\passwordpolicy_disabled.bmp" />
+    <None Include="graphics\up.bmp" />
     <None Include="res\PasswordSafe2.rc2" />
     <None Include="res\PasswordSafe3.rc2" />
     <None Include="graphics\dragbar\classic\PasswordX.bmp" />

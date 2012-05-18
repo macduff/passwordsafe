@@ -9,6 +9,9 @@
 //
 
 #include "stdafx.h"
+
+#include "WindowsDefs.h"
+
 #include "ControlExtns.h"
 
 #include "core/ItemField.h" // for CSecEditExtn
@@ -32,22 +35,6 @@ static char THIS_FILE[] = __FILE__;
 const COLORREF crefInFocus = (RGB(222, 255, 222));  // Light green
 const COLORREF crefNoFocus = (RGB(255, 255, 255));  // White
 const COLORREF crefBlack   = (RGB(  0,   0,   0));  // Black
-
-// timer event numbers used to by ControlExtns for ListBox tooltips. See DboxMain.h
-#define TIMER_LB_HOVER     0x0A
-#define TIMER_LB_SHOWING   0x0B 
-
-/*
-HOVER_TIME_LB       The length of time the pointer must remain stationary
-                    within a tool's bounding rectangle before the tool tip
-                    window appears.
-
-TIMEINT_LB_SHOWING The length of time the tool tip window remains visible
-                   if the pointer is stationary within a tool's bounding
-                   rectangle.
-*/
-#define HOVER_TIME_LB      1000
-#define TIMEINT_LB_SHOWING 5000
 
 /////////////////////////////////////////////////////////////////////////////
 // CStaticExtn
@@ -290,10 +277,12 @@ HBRUSH CEditExtn::CtlColor(CDC* pDC, UINT /*nCtlColor*/)
 // finding menu items in the supplied extra vector based on command message number
 struct equal_cmd {
   equal_cmd(UINT_PTR const& nCmd) : m_nCmd(nCmd) {}
+
   bool operator()(st_context_menu const& context_menu) const
   {
     return (context_menu.message_number == m_nCmd);
   }
+
 private:
   UINT_PTR m_nCmd;
 };

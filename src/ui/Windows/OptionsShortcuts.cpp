@@ -121,7 +121,7 @@ BOOL COptionsShortcuts::OnInitDialog()
   } // foreach m_MapMenuShortcuts
 
   // Now sort via Menu item position
-  brc = m_ShortcutLC.SortItems(CompareFunc, NULL);
+  brc = m_ShortcutLC.SortItems(CompareFunction, NULL);
   ASSERT(brc != 0);
 
   brc = m_ShortcutLC.SetColumnWidth(0, m_iColWidth); // SHCT_SHORTCUTKEYS
@@ -310,13 +310,15 @@ void COptionsShortcuts::InitialSetup(const MapMenuShortcuts MapMenuShortcuts,
 
 // Functor for find_if to see if shortcut is reserved
 struct reserved {
-  reserved(st_MenuShortcut& st_mst) : m_st_mst(st_mst) {}
+  reserved(st_MenuShortcut const& st_mst) : m_st_mst(st_mst) {}
+  
   bool operator()(st_MenuShortcut const& rdata) const
   {
     return (m_st_mst.siVirtKey  == rdata.siVirtKey &&
             m_st_mst.cModifier == rdata.cModifier);
   }
 
+private:
   st_MenuShortcut m_st_mst;
 };
 
@@ -383,8 +385,8 @@ set_warning:
   m_stc_warning.ShowWindow(SW_SHOW);
 }
 
-int CALLBACK COptionsShortcuts::CompareFunc(LPARAM lParam1, LPARAM lParam2,
-                                            LPARAM /* lParamSort */)
+int CALLBACK COptionsShortcuts::CompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                                LPARAM /* lParamSort */)
 {
   // HIWORD is the menu position
   return (int)(HIWORD(lParam1) - HIWORD(lParam2));

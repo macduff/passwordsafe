@@ -85,7 +85,7 @@ CManageFiltersDlg::~CManageFiltersDlg()
 void CManageFiltersDlg::OnDestroy()
 {
   // Tidy up filter ItemData
-  int nCount = m_FilterLC.GetItemCount();
+  const int nCount = m_FilterLC.GetItemCount();
   for (int i = 0; i < nCount; i++) {
     st_FilterItemData *pflt_idata = (st_FilterItemData *)m_FilterLC.GetItemData(0);
     delete pflt_idata;
@@ -774,10 +774,10 @@ void CManageFiltersDlg::DisplayFilterProperties(st_filters *pfilters)
 
 void CManageFiltersDlg::UpdateFilterList()
 {
-  int nCount, iItem, i;
+  int iItem, i;
 
   m_FilterLC.SetRedraw(FALSE);
-  nCount = m_FilterLC.GetItemCount();
+  const int nCount = m_FilterLC.GetItemCount();
   for (i = 0; i < nCount; i++) {
     st_FilterItemData *pflt_idata = (st_FilterItemData *)m_FilterLC.GetItemData(0);
     delete pflt_idata;
@@ -1156,15 +1156,15 @@ CString CManageFiltersDlg::GetFilterPoolName(FilterPool fp)
 /*
 * Compare function used by m_FilterLC.SortItems()
 */
-int CALLBACK CManageFiltersDlg::FLTCompareFunc(LPARAM lParam1,  
-                                               LPARAM lParam2,
-                                               LPARAM pSelf)
+int CALLBACK CManageFiltersDlg::FLTCompareFunction(LPARAM lParam1,  
+                                                   LPARAM lParam2,
+                                                   LPARAM lParamSort)
 {
-  // pSelf is "this" of the calling CManageFiltersDlg, from which we use:
+  // lParamSort is "this" of the calling CManageFiltersDlg, from which we use:
   // m_iSortColumn to determine which column is getting sorted
   // m_bSortAscending to determine the direction of the sort (duh)
 
-  CManageFiltersDlg *self = (CManageFiltersDlg *)pSelf;
+  CManageFiltersDlg *self = (CManageFiltersDlg *)lParamSort;
   const int nSortColumn = self->m_iSortColumn;
   st_FilterItemData *pLHS = (st_FilterItemData *)lParam1;
   st_FilterItemData *pRHS = (st_FilterItemData *)lParam2;
@@ -1247,7 +1247,7 @@ void CManageFiltersDlg::SortFilterView()
   if (m_iSortColumn < 0)
     return;
 
-  m_FilterLC.SortItems(FLTCompareFunc, (LPARAM)this);
+  m_FilterLC.SortItems(FLTCompareFunction, (LPARAM)this);
 
   HDITEM hdi;
   hdi.mask = HDI_FORMAT;

@@ -12,6 +12,8 @@
 
 #include "PasswordSafe.h"
 
+#include "WindowsDefs.h"
+
 #include "ThisMfcApp.h"
 #include "DboxMain.h"
 #include "PasskeySetup.h"
@@ -449,7 +451,7 @@ int DboxMain::NewFile(StringX &newfilename)
   m_bFilterActive = false;
 
   // Clear any saved group information
-  m_TreeViewGroup = L"";
+  m_sxTreeViewGroup = L"";
 
   return PWScore::SUCCESS;
 }
@@ -510,6 +512,8 @@ int DboxMain::Close(const bool bTrySave)
   m_core.ReInit();
 
   // Tidy up filters
+  m_bExpireDisplayed = false;
+  m_bUnsavedDisplayed = false;
   m_currentfilter.Empty();
   m_bFilterActive = false;
   ApplyFilters();
@@ -548,6 +552,8 @@ int DboxMain::Close(const bool bTrySave)
 
   // Update Minidump user streams
   app.SetMinidumpUserStreams(m_bOpen, !IsDBReadOnly());
+
+  ResetExplorerView(false);
 
   return PWScore::SUCCESS;
 }
@@ -917,7 +923,7 @@ void DboxMain::PostOpenProcessing()
   m_bFilterActive = false;
 
   // Clear any saved group information
-  m_TreeViewGroup = L"";
+  m_sxTreeViewGroup = L"";
 
   RefreshViews();
   SetInitialDatabaseDisplay();
@@ -949,6 +955,8 @@ void DboxMain::PostOpenProcessing()
 
   // Update Minidump user streams
   app.SetMinidumpUserStreams(m_bOpen, !IsDBReadOnly());
+
+  ResetExplorerView(true);
 }
 
 int DboxMain::CheckEmergencyBackupFiles(StringX sx_Filename, StringX &passkey)
@@ -1205,7 +1213,7 @@ int DboxMain::SaveIfChanged()
   /*
    * Save silently (without asking user) iff:
    * 1. NOT read-only AND
-   * 2. (timestamp updates OR tree view display vector changed) AND
+   * 2. (timestamp updates OR TREE view display vector changed) AND
    * 3. Database NOT empty
    *
    * Less formally:
@@ -3208,6 +3216,10 @@ void DboxMain::SavePreferencesOnExit()
     cs_columnswidths += L",";
   }
 
+  int icxCur, icxMin;
+  m_ctlItemView.GetColumnInfo(0, icxCur, icxMin);
+  prefs->SetPref(PWSprefs::SplitterPosition, icxCur);
+
   prefs->SetPref(PWSprefs::SortedColumn, m_iTypeSortColumn);
   prefs->SetPref(PWSprefs::SortAscending, m_bSortAscending);
   prefs->SetPref(PWSprefs::ListColumns, LPCWSTR(cs_columns));
@@ -3296,7 +3308,7 @@ int DboxMain::SaveDatabaseOnExit(const SaveType saveType)
     * Save silently (without asking user) iff:
     * 0. User didn't explicitly save OR say that she doesn't want to AND
     * 1. NOT read-only AND
-    * 2. (timestamp updates OR tree view display vector changed) AND
+    * 2. (timestamp updates OR TREE view display vector changed) AND
     * 3. Database NOT empty
     *
     * Less formally:

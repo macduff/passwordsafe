@@ -8,12 +8,13 @@
 #ifndef __COREDEFS_H
 #define __COREDEFS_H
 
+#include "ItemData.h"
+
 #include <map>
 #include <vector>
 #include <set>
 #include <list>
-
-#include "ItemData.h"
+#include <algorithm>
 
 struct st_SaveTypePW {
   CItemData::EntryType et;
@@ -73,6 +74,33 @@ struct st_PWH_status {
   CItemData::EntryStatus es;
 };
 
+/* 
+  The following class is used as a comparitor in the std::map<StringX, ...>
+  and std::set<StringX>, where the key is a path. We need to order paths
+  such that we have an order such as:
+    a.b.c          <---- Subgroup of a.b
+    a.b.c.d        <---- Subgroup of a.b.c
+    a.b.c x        <---- Another subgroup of a.b in its own right
+    a.b.c x.y      <---- And its subgrup
+
+  Instead of the default String collation (as blanks come before periods):
+    a.b.c
+    a.b.c x
+    a.b.c x.y
+    a.b.c.d
+*/
+class Path_Compare
+{
+public:
+		bool operator() (const StringX &s1, const StringX &s2) const
+    {
+      StringX r1(s1), r2(s2);
+      std::replace(r1.begin(), r1.end(), L'.', L'\x01');
+      std::replace(r2.begin(), r2.end(), L'.', L'\x01');
+      return _wcsicmp(r1.c_str(), r2.c_str()) < 0; 
+    }
+};
+
 typedef std::map<pws_os::CUUID, CItemData, std::less<pws_os::CUUID> > ItemList;
 typedef ItemList::iterator ItemListIter;
 typedef ItemList::const_iterator ItemListConstIter;
@@ -109,5 +137,11 @@ typedef std::map<StringX, PWPolicy> PSWDPolicyMap;
 typedef std::map<StringX, PWPolicy>::iterator PSWDPolicyMapIter;
 typedef std::map<StringX, PWPolicy>::const_iterator PSWDPolicyMapCIter;
 typedef std::pair<StringX, PWPolicy> PSWDPolicyMapPair;
+
+// Used for Empty Groups in general but especially for Explorer View
+typedef std::set<StringX, Path_Compare> PathSet;
+typedef PathSet::iterator PathSetIter;
+typedef PathSet::const_iterator PathSetConstIter;
+typedef std::pair<PathSetIter, bool> PathSetPair;
 
 #endif /* __COREDEFS_H */

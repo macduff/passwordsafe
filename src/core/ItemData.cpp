@@ -1023,6 +1023,70 @@ string CItemData::GetXML(unsigned id, const FieldBits &bsExport,
   return oss.str();
 }
 
+int CItemData::GetEntryImage() const
+{
+  int entrytype = GetEntryType();
+  if (entrytype == ET_ALIAS) {
+    return EI_ALIAS;
+  }
+  if (entrytype == ET_SHORTCUT) {
+    return EI_SHORTCUT;
+  }
+
+  int nImage;
+  switch (entrytype) {
+    case ET_NORMAL:
+      nImage = EI_NORMAL;
+      break;
+    case ET_ALIASBASE:
+      nImage = EI_ALIASBASE;
+      break;
+    case ET_SHORTCUTBASE:
+      nImage = EI_SHORTCUTBASE;
+      break;
+    default:
+      nImage = EI_NORMAL;
+  }
+
+  time_t tttXTime;
+  GetXTime(tttXTime);
+  if (tttXTime > time_t(0) && tttXTime <= time_t(3650)) {
+    time_t tttCPMTime;
+    GetPMTime(tttCPMTime);
+    if ((long)tttCPMTime == 0L)
+      GetCTime(tttCPMTime);
+    tttXTime = (time_t)((long)tttCPMTime + (long)tttXTime * 86400);
+  }
+
+  if (tttXTime != 0) {
+    time_t now, warnexptime((time_t)0);
+    time(&now);
+    if (PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarn)) {
+      int idays = PWSprefs::GetInstance()->GetPref(PWSprefs::PreExpiryWarnDays);
+      struct tm st;
+#if (_MSC_VER >= 1400)
+      errno_t err;
+      err = localtime_s(&st, &now);  // secure version
+      ASSERT(err == 0);
+#else
+      st = *localtime(&now);
+      ASSERT(st != NULL); // null means invalid time
+#endif
+      st.tm_mday += idays;
+      warnexptime = mktime(&st);
+
+      if (warnexptime == (time_t)-1)
+        warnexptime = (time_t)0;
+    }
+    if (tttXTime <= now) {
+      nImage += 2;  // Expired
+    } else if (tttXTime < warnexptime) {
+      nImage += 1;  // Warn nearly expired
+    }
+  }
+  return nImage;
+}
+
 void CItemData::SplitName(const StringX &name,
                           StringX &title, StringX &username)
 {

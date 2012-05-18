@@ -12,6 +12,8 @@
 
 #include "PWSclipboard.h"
 
+#include "WindowsDefs.h"
+
 #if defined(POCKET_PC)
 #include "pocketpc/resource.h"
 #include "pocketpc/MyListCtrl.h"
@@ -23,6 +25,9 @@
 
 #include "PWTreeCtrl.h"
 #include "PWListCtrl.h"
+#include "TreeView.h"
+#include "ListView.h"
+#include "Splitter.h"
 #include "RUEList.h"
 #include "CoolMenu.h"
 #include "MenuTipper.h"
@@ -31,6 +36,7 @@
 #include "PWStatusBar.h"
 #include "PWToolBar.h"
 #include "PWFindToolBar.h"
+#include "ExplorerToolBar.h"
 #include "ControlExtns.h"
 #include "DDStatic.h"
 #include "MenuShortcuts.h"
@@ -73,95 +79,6 @@
 #if defined(POCKET_PC) || (_MFC_VER <= 1200)
 DECLARE_HANDLE(HDROP);
 #endif
-
-// Custom message event used for system tray handling
-#define PWS_MSG_ICON_NOTIFY             (WM_APP + 10)
-
-// To catch post Header drag
-#define PWS_MSG_HDR_DRAG_COMPLETE       (WM_APP + 20)
-#define PWS_MSG_CCTOHDR_DD_COMPLETE     (WM_APP + 21)
-#define PWS_MSG_HDRTOCC_DD_COMPLETE     (WM_APP + 22)
-
-// Process Compare Result Dialog click/menu functions
-#define PWS_MSG_COMPARE_RESULT_FUNCTION (WM_APP + 30)
-#define PWS_MSG_COMPARE_RESULT_ALLFNCTN (WM_APP + 31)
-
-// Equivalent one from Expired Password dialog
-#define PWS_MSG_EXPIRED_PASSWORD_EDIT   (WM_APP + 32)
-
-// Edit/Add extra context menu messages
-#define PWS_MSG_CALL_EXTERNAL_EDITOR    (WM_APP + 40)
-#define PWS_MSG_EXTERNAL_EDITOR_ENDED   (WM_APP + 41)
-#define PWS_MSG_EDIT_WORDWRAP           (WM_APP + 42)
-#define PWS_MSG_EDIT_SHOWNOTES          (WM_APP + 43)
-#define PWS_MSG_EDIT_APPLY              (WM_APP + 44)
-#define PWS_MSG_CALL_NOTESZOOMIN        (WM_APP + 45)
-#define PWS_MSG_CALL_NOTESZOOMOUT       (WM_APP + 46)
-
-// Simulate Ctrl+F from Find Toolbar "enter"
-#define PWS_MSG_TOOLBAR_FIND            (WM_APP + 50)
-
-// Perform Drag Autotype
-#define PWS_MSG_DRAGAUTOTYPE            (WM_APP + 55)
-
-// Update current filters whilst SetFilters dialog is open
-#define PWS_MSG_EXECUTE_FILTERS         (WM_APP + 60)
-
-/* Message to get Virtual Keyboard buffer.  Here for doc. only. See VKeyBoardDlg.h
-#define PWS_MSG_INSERTBUFFER            (WM_APP + 70)
-*/
-
-
-/*
-  Timer related values (note - all documented her but some defined only where needed.
-*/
-
-/* Timer event number used to by PupText.  Here for doc. only
-#define TIMER_PUPTEXT             0x03 */
-// Timer event number used to check if the workstation is locked
-#define TIMER_LOCKONWTSLOCK       0x04
-// Timer event number used to support lock on user-defined idle timeout
-#define TIMER_LOCKDBONIDLETIMEOUT 0x05
-// Definition of a minute in milliseconds
-#define MINUTE 60000
-// How ofter should idle timeout timer check:
-#define IDLE_CHECK_RATE 2
-#define IDLE_CHECK_INTERVAL (MINUTE/IDLE_CHECK_RATE)
-// Timer event number used to support Find in PWListCtrl when icons visible
-#define TIMER_FIND                0x06
-// Timer event number used to support display of notes in List & Tree controls
-#define TIMER_ND_HOVER            0x07
-#define TIMER_ND_SHOWING          0x08
-// Timer event number used to support DragBar
-#define TIMER_DRAGBAR             0x09
-/* Timer event numbers used to by ControlExtns for ListBox tooltips.  Here for doc. only
-#define TIMER_LB_HOVER            0x0A
-#define TIMER_LB_SHOWING          0x0B 
-/* Timer event numbers used by StatusBar for tooltips.  Here for doc. only
-#define TIMER_SB_HOVER            0x0C
-#define TIMER_SB_SHOWING          0x0D */
-// Timer event for daily expired entries check
-#define TIMER_EXPENT              0x0E
-
-/*
-HOVER_TIME_ND       The length of time the pointer must remain stationary
-                    within a tool's bounding rectangle before the tool tip
-                    window appears.
-*/
-#define HOVER_TIME_ND      2000
-
-/*
-TIMEINT_ND_SHOWING The length of time the tool tip window remains visible
-                   if the pointer is stationary within a tool's bounding
-                   rectangle.
-*/
-#define TIMEINT_ND_SHOWING 5000
-
-// DragBar time interval 
-#define TIMER_DRAGBAR_TIME 100
-
-// Hotkey value ID
-#define PWS_HOTKEY_ID      5767
 
 // Arbitrary string to mean that the saved DB preferences are empty.
 #define EMPTYSAVEDDBPREFS L"#Empty#"
@@ -244,6 +161,7 @@ public:
                  const CItemData::FieldBits &bsFields, const bool &subgroup_set, 
                  const std::wstring &subgroup_name, const int subgroup_object,
                  const int subgroup_function);
+  void SetFoundEntries(std::vector<int> &indices);
 
   // Used by ListCtrl KeyDown
   bool IsImageVisible() const {return m_bImageInLV;}
@@ -259,42 +177,53 @@ public:
   {return m_core.GetEntry(iter);}
 
   // For InsertItemIntoGUITreeList and RefreshViews (mainly when refreshing views)
-  // Note: iBothViews = iListOnly + iTreeOnly
-  enum {iListOnly = 1, iTreeOnly = 2, iBothViews = 3};
+  // Note: iAllViews = iListOnly + iTreeOnly + iExplorerOnly
+  enum {iListOnly = 1, iTreeOnly = 2, iExplorerOnly = 4, iAllViews = 7};
 
-  void RefreshViews(const int iView = iBothViews);
+  void RefreshViews(const int iView = iAllViews);
 
+  // Set the section to the entry.  MakeVisible will scroll list, if needed.
   // Set the section to the entry.  MakeVisible will scroll list, if needed.
   BOOL SelectEntry(const int i, BOOL MakeVisible = FALSE);
   BOOL SelectFindEntry(const int i, BOOL MakeVisible = FALSE);
   void SelectFirstEntry();
+  CItemData *GetGroupPath(StringX &sxCurrentPath, StringX &sxCurrentGroup);
+  StringX GetCurrentPath();
+  StringX GetRoot();
 
   int CheckPasskey(const StringX &filename, const StringX &passkey, PWScore *pcore = NULL);
   enum ChangeType {Clear, Data, TimeStamp, DBPrefs, ClearDBPrefs};
   void SetChanged(ChangeType changed);
   void ChangeOkUpdate();
 
+  // Get entry data for D&D
+  void GetGroupEntriesData(CDDObList &out_oblist, StringX sxDragPath);
+  void GetGroupEntriesData(CDDObList &out_oblist, std::vector<pws_os::CUUID> &vDragItems);
+  void GetEntryData(CDDObList &out_oblist, CItemData *pci);
+  
   // when Group, Title or User edited in tree
-  void UpdateListItem(const int lindex, const int type, const StringX &sxnewText);
-  void UpdateTreeItem(const HTREEITEM hItem, const StringX &sxnewText);
-  void UpdateListItemGroup(const int lindex, const StringX &sxnewGroup)
-  {UpdateListItem(lindex, CItemData::GROUP, sxnewGroup);}
-  void UpdateListItemTitle(const int lindex, const StringX &sxnewTitle)
-  {UpdateListItem(lindex, CItemData::TITLE, sxnewTitle);}
-  void UpdateListItemUser(const int lindex, const StringX &sxnewUser)
-  {UpdateListItem(lindex, CItemData::USER, sxnewUser);}
-  void UpdateListItemPassword(const int lindex, const StringX &sxnewPassword)
-  {UpdateListItem(lindex, CItemData::PASSWORD, sxnewPassword);}
+  void UpdateListItem(const int iIndex, const int type, const StringX &sxNewText);
+  void UpdateTreeItem(const HTREEITEM hItem, const StringX &sxNewText);
+  void UpdateExplorerItem(const CItemData *pci, const StringX &sxNewText);
+  void UpdateListItemGroup(const int iIndex, const StringX &sxNewGroup)
+  {UpdateListItem(iIndex, CItemData::GROUP, sxNewGroup);}
+  void UpdateListItemTitle(const int iIndex, const StringX &sxNewTitle)
+  {UpdateListItem(iIndex, CItemData::TITLE, sxNewTitle);}
+  void UpdateListItemUser(const int iIndex, const StringX &sxNewUser)
+  {UpdateListItem(iIndex, CItemData::USER, sxNewUser);}
+  void UpdateListItemPassword(const int iIndex, const StringX &sxNewPassword)
+  {UpdateListItem(iIndex, CItemData::PASSWORD, sxNewPassword);}
   void SetHeaderInfo();
   CString GetHeaderText(int iType) const;
   int GetHeaderWidth(int iType) const;
   void CalcHeaderWidths();
   void UnFindItem();
   void SetLocalStrings();
-  void PerformAutoType(); // 'public' version called by Tree/List
+  void PerformAutoType(CItemData *in_pci = NULL); // 'public' version
 
   void UpdateToolBarROStatus(const bool bIsRO);
   void UpdateToolBarForSelectedItem(const CItemData *pci);
+  void UpdateStatusBar();
   void SetToolBarPositions();
   void InvalidateSearch() {m_FindToolBar.InvalidateSearch();}
   void ResumeOnDBNotification() {m_core.ResumeOnDBNotification();}
@@ -316,14 +245,14 @@ public:
   bool ClearClipboardData() {return m_clipboard.ClearData();}
   bool SetClipboardData(const StringX &data)
   {return m_clipboard.SetData(data.c_str());}
-  void AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup);
+  void AddDDEntries(CDDObList &in_oblist, const StringX &DropGroup,
+                    const bool bWithinThisInstance, const bool bAll = false);
   StringX GetUniqueTitle(const StringX &group, const StringX &title,
                          const StringX &user, const int IDS_MESSAGE) const
   {return m_core.GetUniqueTitle(group, title, user, IDS_MESSAGE);}
   void FixListIndexes();
-  void Delete(); // "Top level" delete, calls the following 2 and Execute()
+  void Delete(const CItemData *pci, std::vector<pws_os::CUUID> &vGroupEntries);
   Command *Delete(const CItemData *pci); // create command for deleting a single item
-  Command *Delete(HTREEITEM ti); // For deleting a group
 
   void SaveGroupDisplayState(); // call when tree expansion state changes
   void RestoreGUIStatusEx();
@@ -334,7 +263,6 @@ public:
   CItemData *GetBaseEntry(const CItemData *pAliasOrSC)
   {return m_core.GetBaseEntry(pAliasOrSC);}
 
-  int GetEntryImage(const CItemData &ci) const;
   HICON GetEntryIcon(const int nImage) const;
   void SetEntryImage(const int &index, const int nImage, const bool bOneEntry = false);
   void SetEntryImage(HTREEITEM &ti, const int nImage, const bool bOneEntry = false);
@@ -347,9 +275,14 @@ public:
   bool SetNotesWindow(const CPoint ptClient, const bool bVisible = true);
   bool IsFilterActive() const {return m_bFilterActive;}
   int GetNumPassedFiltering() const {return m_bNumPassedFiltering;}
-  CItemData *GetLastSelected() const;
+  CItemData *GetLastSelected();
   StringX GetGroupName() const;
   void UpdateGroupNamesInMap(const StringX sxOldPath, const StringX sxNewPath);
+  void UpdateBackwardsForwards(SplitterRow sRow, const StringX sxPath);
+  void UpdateCurrentPath(StringX sxPath);
+  void SetCurrentRow(SplitterRow &iActive_Row) {m_iLEARow = iActive_Row;}
+  void SetExplorerView(int &index);
+  ViewType GetCurrentView() {return m_ViewType;}
 
   void SetFilter(FilterPool selectedpool, CString selectedfiltername)
   {m_currentfilterpool = selectedpool; m_selectedfiltername = selectedfiltername;}
@@ -370,6 +303,8 @@ public:
   StringX GetCurFile() const {return m_core.GetCurFile();}
 
   bool EditItem(CItemData *pci, PWScore *pcore = NULL);
+  bool EditShortcut(CItemData *pci, PWScore *pcore = NULL);
+
   bool GetPolicyFromName(const StringX &sxPolicyName, PWPolicy &st_pp)
   {return m_core.GetPolicyFromName(sxPolicyName, st_pp);}
   void GetPolicyNames(std::vector<std::wstring> &vNames)
@@ -379,6 +314,10 @@ public:
 
   bool IsEmptyGroup(const StringX &sxEmptyGroup)
   {return m_core.IsEmptyGroup(sxEmptyGroup);}
+  bool HasEmptySubgroup(const StringX &sxEmptyGroup)
+  {return m_core.HasEmptySubgroup(sxEmptyGroup);}
+  const PathSet &GetEmptyGroups()
+  {return m_core.GetEmptyGroups();}
   
   // Need this to be public
   bool LongPPs(CWnd *pWnd);
@@ -429,17 +368,31 @@ public:
   bool IsInAddGroup() const {return m_bInAddGroup;}
   void ResetInAddGroup() {m_bInAddGroup = false;}
 
+  void DoBrowse(const bool bDoAutotype, const bool bSendEmail,
+                CItemData *in_pci = NULL);
+  void DoRunCommand(CItemData *in_pci = NULL);
+  void CopyDataToClipBoard(const CItemData::FieldType ft, 
+                           CItemData *in_pci = NULL, const bool bSpecial = false);
+
   //{{AFX_DATA(DboxMain)
   enum { IDD = IDD_PASSWORDSAFE_DIALOG };
+
 #if defined(POCKET_PC)
   CMyListCtrl m_ctlItemList;
 #else
   CPWListCtrl m_ctlItemList;
 #endif
-  CPWToolBar m_MainToolBar;   // main toolbar
+  bool m_bSplitView;
   CPWTreeCtrl m_ctlItemTree;
-  CImageList *m_pImageList;
-  CImageList *m_pImageList0;
+  CPWSplitterWnd  m_ctlItemView;
+  CPWTreeView *m_pTreeView0, *m_pTreeView1;
+  CPWListView *m_pListView0, *m_pListView1;
+
+  // Number the toolbars (Note: DragBar is not a ToolBar!)
+  enum {MAIN_TB = 1, FIND_TB, EXPLORER_TB0, EXPLORER_TB1};
+
+  CPWToolBar m_MainToolBar;   // main toolbar
+  CExplorerToolBar m_ExplorerToolBar0, m_ExplorerToolBar1;
   CLVHdrCtrl m_LVHdrCtrl;
   CColumnChooserDlg *m_pCC;
   CPoint m_RCMousePos;
@@ -458,11 +411,15 @@ public:
   // Used in Add & Edit & PasswordPolicyDlg
   PWPolicy m_pwp;
 
-  // Mapping Group to Tree Item to save searching all the time!
-  std::map<StringX, HTREEITEM> m_mapGroupToTreeItem;
-  void GetAllGroups(std::vector<std::wstring> &vGroups) const;
+  // Mapping Group to TREE Item to save searching all the time!
+  PathMap m_mapGroupToTreeItem;
+  void GetAllGroups(std::vector<StringX> &vGroups) const;
 
-  // Process Special Shortcuts for Tree & List controls
+  bool GetGroupEntries(StringX sxPathToRoot,
+                       std::vector<pws_os::CUUID> *pvGroupEntries = NULL,
+                       const bool bAll = false);
+
+  // Process Special Shortcuts for TREE & LIST controls
   bool CheckPreTranslateDelete(MSG* pMsg);
   bool CheckPreTranslateRename(MSG* pMsg);
   bool CheckPreTranslateAutoType(MSG* pMsg);
@@ -508,9 +465,10 @@ protected:
 #else
   CPWFindToolBar m_FindToolBar;  // Find toolbar
   CPWStatusBar m_statusBar;
+  bool m_bStatusBarCreated;
   BOOL m_toolbarsSetup;
   UINT m_toolbarMode;
-  UINT statustext[CPWStatusBar::SB_TOTAL];
+  UINT m_StatusBarText[CPWStatusBar::SB_TOTAL];
   CString m_lastclipboardaction;
 #endif
 
@@ -531,21 +489,23 @@ protected:
 
   HTREEITEM m_LastFoundTreeItem;
   int m_LastFoundListItem;
+  int m_LastFoundExplorerItem;
   bool m_bBoldItem;
 
   WCHAR *m_pwchTip;
   
-  StringX m_TreeViewGroup; // used by OnAdd & OnAddGroup
+  StringX m_sxTreeViewGroup; // used by OnAdd & OnAddGroup
   CCoolMenuManager m_menuManager;
   CMenuTipManager m_menuTipManager;
 
   int InsertItemIntoGUITreeList(CItemData &itemData, int iIndex = -1, 
-                 const bool bSort = true, const int iView = iBothViews);
+                 const bool bSort = true, const int iView = iAllViews);
 
   BOOL SelItemOk();
-  void setupBars();
+  void SetupBars();
   BOOL OpenOnInit();
   void InitPasswordSafe();
+  void SetupStatusBar();
 
   // For UPDATE_UI
   int OnUpdateMenuToolbar(const UINT nID);
@@ -581,6 +541,7 @@ protected:
   LRESULT SynchAllCompareResult(WPARAM wParam);
   LRESULT OnToolBarFindMessage(WPARAM wParam, LPARAM lParam);
   LRESULT OnDragAutoType(WPARAM wParam, LPARAM lParam);
+  LRESULT OnExplorerAutoType(WPARAM wParam, LPARAM lParam);
   LRESULT OnExecuteFilters(WPARAM wParam, LPARAM lParam);
   LRESULT OnApplyEditChanges(WPARAM wParam, LPARAM lParam);
 
@@ -592,12 +553,12 @@ protected:
 
   void SetListView();
   void SetTreeView();
+  void SetExplorerView();
   void SetToolbar(const int menuItem, bool bInit = false);
-  void UpdateStatusBar();
   void UpdateMenuAndToolBar(const bool bOpen);
   void SortListView();
 
-  //Version of message functions with return values
+  // Version of message functions with return values
   int Save(const SaveType savetype = DboxMain::ST_INVALID);
   int SaveAs(void);
   int Open(const UINT uiTitle = IDS_CHOOSEDATABASE);
@@ -614,7 +575,6 @@ protected:
 
   void AutoType(const CItemData &ci);
   void UpdateEntry(CAddEdit_PropertySheet *pentry_psh);
-  bool EditShortcut(CItemData *pci, PWScore *pcore = NULL);
   void SetFindToolBar(bool bShow);
   void ApplyFilters();
 
@@ -711,6 +671,8 @@ protected:
   afx_msg void OnToggleView();
   afx_msg void OnListView();
   afx_msg void OnTreeView();
+  afx_msg void OnExplorerView();
+  afx_msg void OnExplorerSplit();
   afx_msg void OnBackupSafe();
   afx_msg void OnPassphraseChange();
   afx_msg void OnClearClipboard();
@@ -789,6 +751,9 @@ protected:
   afx_msg void OnToolBarFindReport();
   afx_msg void OnToolBarClearFind();
   afx_msg void OnHideFindToolBar();
+  afx_msg void OnExplorerBackwards(UINT nID);
+  afx_msg void OnExplorerForwards(UINT nID);
+  afx_msg void OnExplorerUpwards(UINT nID);
 
   afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
   afx_msg void OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct);
@@ -815,7 +780,7 @@ private:
   virtual void GUIRefreshEntry(const CItemData &ci);
   virtual void UpdateWizard(const stringT &s);
 
-  static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
+  static int CALLBACK CompareFunction(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 
   // Only need these if not on default menus
   static CString CS_SETFILTERS, CS_CLEARFILTERS,  CS_READWRITE, CS_READONLY;
@@ -826,7 +791,6 @@ private:
   bool m_IsStartSilent;
   bool m_IsStartClosed;
   bool m_bStartHiddenAndMinimized;
-  bool m_IsListView;
   bool m_bAlreadyToldUserNoSave;
   bool m_bPasswordColumnShowing;
   bool m_bInRefresh, m_bInRestoreWindows;
@@ -839,12 +803,16 @@ private:
   int m_nColumnHeaderWidthByType[CItemData::LAST];
   int m_iheadermaxwidth;
 
-  pws_os::CUUID m_LUUIDSelectedAtMinimize; // to restore List entry selection upon un-minimize
-  pws_os::CUUID m_TUUIDSelectedAtMinimize; // to restore Tree entry selection upon un-minimize
-  StringX m_sxSelectedGroup;              // to restore Tree group selection upon un-minimize
-  pws_os::CUUID m_LUUIDVisibleAtMinimize;  // to restore List entry position  upon un-minimize
-  pws_os::CUUID m_TUUIDVisibleAtMinimize;  // to restore Tree entry position  upon un-minimize
-  StringX m_sxVisibleGroup;               // to restore Tree group position  upon un-minimize
+  // Used in MainMenu to check the first, second & third items MF_BYPOSITION
+  // Ensure same as View menu
+  ViewType m_ViewType;
+
+  pws_os::CUUID m_LUUIDSelectedAtMinimize; // to restore LIST entry selection upon un-minimize
+  pws_os::CUUID m_TUUIDSelectedAtMinimize; // to restore TREE entry selection upon un-minimize
+  StringX m_sxSelectedGroup;               // to restore TREE group selection upon un-minimize
+  pws_os::CUUID m_LUUIDVisibleAtMinimize;  // to restore LIST entry position  upon un-minimize
+  pws_os::CUUID m_TUUIDVisibleAtMinimize;  // to restore TREE entry position  upon un-minimize
+  StringX m_sxVisibleGroup;                // to restore TREE group position  upon un-minimize
 
   bool m_inExit; // help U3ExitNow
   std::vector<bool> m_vGroupDisplayState; // used to save/restore display state over minimize/restore
@@ -880,15 +848,23 @@ private:
   void DeleteColumn(const int iType);
   void RegistryAnonymity();
   void CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID, const bool bDoShortcuts);
+  void SetupEditMenu(CMenu *pPopupMenu, const CItemData *pci, StringX &sxPath,
+                     CPWListView *pListView,
+                     const bool bReadOnly, const bool bGroupSelected);
+  void SetupViewMenu(CMenu *pPopupMenu);
   void SetUpMenuStrings(CMenu *pPopupMenu);
   void SetUpInitialMenuStrings();
   void UpdateAccelTable();
   void SetupSpecialShortcuts();
   bool ProcessLanguageMenu(CMenu *pPopupMenu);
-  void DoBrowse(const bool bDoAutotype, const bool bSendEmail);
-  bool GetSubtreeEntriesProtectedStatus(int &numProtected, int &numUnprotected);
-  void ChangeSubtreeEntriesProtectStatus(const UINT nID);
-  void CopyDataToClipBoard(const CItemData::FieldType ft, const bool bSpecial = false);
+  bool GetSubtreeEntriesProtectedStatus(const StringX &sxPath, 
+                                        int &numProtected, int &numUnprotected);
+  void ChangeSubtreeEntriesProtectStatus(const StringX &sxPath, const UINT nID);
+
+  bool AnyToGoBackwards(const SplitterRow &iRow);
+  bool AnyToGoForwards(const SplitterRow &iRow);
+  void UpdateExplorerToolbar(const SplitterRow &iRow, const bool bNoUp);
+  
   void UpdateSystemMenu();
   void RestoreWindows(); // extended ShowWindow(SW_RESTORE), sort of
   void CancelPendingPasswordDialog();
@@ -897,11 +873,11 @@ private:
   void AddToGUI(CItemData &ci);
   void RefreshEntryFieldInGUI(CItemData &ci, CItemData::FieldType ft);
   void RefreshEntryPasswordInGUI(CItemData &ci);
-  void RebuildGUI(const int iView = iBothViews);
+  void RebuildGUI(const int iView = iAllViews);
   
   static const struct UICommandTableEntry {
     UINT ID;
-    enum {InOpenRW=0, InOpenRO=1, InEmpty=2, InClosed=3, bOK_LAST};
+    enum {InOpenRW = 0, InOpenRO, InEmpty, InClosed, bOK_LAST};
     bool bOK[bOK_LAST];
   } m_UICommandTable[];
 
@@ -912,7 +888,7 @@ private:
   typedef MapUICommandTable::const_iterator MapUICommandTableConstIter;
   MapUICommandTable m_MapUICommandTable;
 
-  // Images in List View
+  // Images in LIST View
   bool m_bImageInLV;
   CInfoDisplay *m_pNotesDisplay;
 
@@ -994,7 +970,7 @@ private:
   // Flag to tell user there are some expird entries
   bool m_bTellUserExpired;
 
-  // Prevent rename of entries in Tree mode by clicking on entry
+  // Prevent rename of entries in TREE mode by clicking on entry
   bool m_bInRename;
   // When in AddGroup and where AddGroup initiated
   bool m_bInAddGroup, m_bWhitespaceRightClick;
@@ -1003,13 +979,24 @@ private:
   void SetLanguage(LCID lcid);
   int m_ilastaction;  // Last action
   void SetDragbarToolTips();
+  
+  void ResetExplorerView(const bool &bInit);
+  bool VerifyGroupStillExists(const StringX &sxRealPath);
+
+  // Group path displayed list for Backwards/Forwards
+  std::vector<StringX> m_vPaths0, m_vPaths1;
+  std::vector<StringX>::iterator m_expl_bwds_iter0, m_expl_bwds_iter1;
+  std::vector<StringX>::iterator m_expl_fwds_iter0, m_expl_fwds_iter1;
+  SplitterRow m_iLEARow;
+  
+  std::vector<pws_os::CUUID> m_vFoundEntries;
 
   // The following is for saving information over an execute/undo/redo
   // Might need to add more e.g. if filter is active and which one?
   struct st_SaveGUIInfo {
     bool blSelectedValid, btSelectedValid, btGroupValid;
-    pws_os::CUUID lSelected; // List selected item
-    pws_os::CUUID tSelected; // Tree selected item
+    pws_os::CUUID lSelected; // LIST selected item
+    pws_os::CUUID tSelected; // TREE selected item
     StringX sxGroupName;
     std::vector<bool> vGroupDisplayState;
 

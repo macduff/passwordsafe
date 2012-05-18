@@ -8,6 +8,9 @@
 
 #include "stdafx.h"
 #include "passwordsafe.h"
+
+#include "WindowsDefs.h"
+
 #include "ThisMfcApp.h"
 #include "DboxMain.h"
 
@@ -22,8 +25,6 @@
 #include "core/Util.h"
 
 #include "resource3.h"
-
-#define PWS_MSG_WIZARD_EXECUTE_THREAD_ENDED (WM_APP + 65)
 
 IMPLEMENT_DYNAMIC(CWZFinish, CWZPropertyPage)
 

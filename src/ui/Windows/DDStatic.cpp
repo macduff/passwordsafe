@@ -12,6 +12,8 @@
 #include "stdafx.h"
 #include "afxole.h"
 
+#include "WindowsDefs.h"
+
 #include "DDStatic.h"
 #include "DboxMain.h"
 

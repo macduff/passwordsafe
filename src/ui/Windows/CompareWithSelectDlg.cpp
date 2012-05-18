@@ -11,6 +11,8 @@
 #include "stdafx.h"
 
 #include "CompareWithSelectDlg.h"
+#include "Images.h"
+#include "TreeUtils.h"
 
 #include "core/PWScore.h"
 #include "core/ItemData.h"
@@ -23,10 +25,12 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+using namespace TreeUtils;
+
 CCompareWithSelectDlg::CCompareWithSelectDlg(CItemData *pci, PWScore *pcore,
       CWnd *pParent)
   : CPWDialog(CCompareWithSelectDlg::IDD, pParent),
-  m_pci(pci), m_pcore(pcore), m_pSelected(NULL), m_pImageList(NULL)
+  m_pci(pci), m_pcore(pcore), m_pSelected(NULL)
 {
   ASSERT(pci != NULL && m_pcore != NULL);
 
@@ -47,7 +51,6 @@ void CCompareWithSelectDlg::DoDataExchange(CDataExchange *pDX)
 }
 
 BEGIN_MESSAGE_MAP(CCompareWithSelectDlg, CPWDialog)
-  ON_WM_DESTROY()
   ON_NOTIFY(NM_CLICK, IDC_ITEMTREE, OnItemSelected)
   ON_NOTIFY(NM_DBLCLK, IDC_ITEMTREE, OnItemDblClick)
 END_MESSAGE_MAP()
@@ -57,9 +60,6 @@ void CCompareWithSelectDlg::OnDestroy()
   // Remove image list
   m_cwItemTree.SetImageList(NULL, TVSIL_NORMAL);
   m_cwItemTree.SetImageList(NULL, TVSIL_STATE);
-
-  m_pImageList->DeleteImageList();
-  delete m_pImageList;
 }
 
 BOOL CCompareWithSelectDlg::OnInitDialog()
@@ -72,45 +72,12 @@ BOOL CCompareWithSelectDlg::OnInitDialog()
   GetDlgItem(IDC_TITLE)->SetWindowText(m_title);
   GetDlgItem(IDC_USERNAME)->SetWindowText(m_username);
 
- // Init stuff for tree view
-  CBitmap bitmap;
-  BITMAP bm;
+  Images *pImages = Images::GetInstance();
+  
+  m_cwItemTree.SetImageList(pImages->GetImageList(), TVSIL_NORMAL);
+  m_cwItemTree.SetImageList(pImages->GetImageList(), TVSIL_STATE);
 
-  // Change all pixels in this 'grey' to transparent
-  const COLORREF crTransparent = RGB(192, 192, 192);
-
-  bitmap.LoadBitmap(IDB_GROUP);
-  bitmap.GetBitmap(&bm);
-
-  m_pImageList = new CImageList();
-
-  BOOL status = m_pImageList->Create(bm.bmWidth, bm.bmHeight,
-                                     ILC_MASK | ILC_COLORDDB,
-                                     CCWTreeCtrl::NUM_IMAGES, 0);
-  ASSERT(status != 0);
-
-  // Order of LoadBitmap() calls matches CCWTreeCtrl public enum
-  //bitmap.LoadBitmap(IDB_GROUP); - already loaded above to get width
-  m_pImageList->Add(&bitmap, crTransparent);
-  bitmap.DeleteObject();
-  UINT bitmapResIDs[] = {IDB_GROUP,
-    IDB_NORMAL, IDB_NORMAL_WARNEXPIRED, IDB_NORMAL_EXPIRED,
-    IDB_ABASE, IDB_ABASE_WARNEXPIRED, IDB_ABASE_EXPIRED,
-    IDB_ALIAS,
-    IDB_SBASE, IDB_SBASE_WARNEXPIRED, IDB_SBASE_EXPIRED,
-    IDB_SHORTCUT
-  };
-
-  for (int i = 1; i < sizeof(bitmapResIDs) / sizeof(bitmapResIDs[0]); i++) {
-    bitmap.LoadBitmap(bitmapResIDs[i]);
-    m_pImageList->Add(&bitmap, crTransparent);
-    bitmap.DeleteObject();
-  }
-
-  m_cwItemTree.SetImageList(m_pImageList, TVSIL_NORMAL);
-  m_cwItemTree.SetImageList(m_pImageList, TVSIL_STATE);
-
-  // Populate Tree or List views
+  // Populate TREE or LIST views
   ItemListIter listPos;
   for (listPos = m_pcore->GetEntryIter(); listPos != m_pcore->GetEntryEndIter();
        listPos++) {
@@ -171,7 +138,7 @@ void CCompareWithSelectDlg::OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResu
       }
 
       // If a group
-      if (!m_cwItemTree.IsLeaf(hItem)) {
+      if (!IsLeaf(&m_cwItemTree, hItem)) {
         // If on indent or button
         if (htinfo.flags & (TVHT_ONITEMINDENT | TVHT_ONITEMBUTTON)) {
           m_cwItemTree.Expand(htinfo.hItem, TVE_TOGGLE);
@@ -193,7 +160,7 @@ void CCompareWithSelectDlg::OnItemSelected(NMHDR *pNotifyStruct, LRESULT *pLResu
   }
 
   // Check it was on an item
-  if (hItem != NULL && m_cwItemTree.IsLeaf(hItem)) {
+  if (hItem != NULL && IsLeaf(&m_cwItemTree, hItem)) {
     m_pSelected = (CItemData *)m_cwItemTree.GetItemData(hItem);
   }
 
@@ -222,12 +189,13 @@ void CCompareWithSelectDlg::InsertItemIntoGUITree(CItemData &ci)
   HTREEITEM ti;
   StringX treeDispString = (LPCWSTR)m_cwItemTree.MakeTreeDisplayString(ci);
   // get path, create if necessary, add title as last node
-  ti = m_cwItemTree.AddGroup(ci.GetGroup().c_str());
+  bool bAlreadyExists;
+  ti = AddGroup(&m_cwItemTree, ci.GetGroup(), bAlreadyExists);
   ti = m_cwItemTree.InsertItem(treeDispString.c_str(), ti, TVI_SORT);
 
   m_cwItemTree.SetItemData(ti, (DWORD_PTR)&ci);
   
-  int nImage = m_cwItemTree.GetEntryImage(ci);
+  int nImage = ci.GetEntryImage();
   m_cwItemTree.SetItemImage(ti, nImage, nImage);
 }
 

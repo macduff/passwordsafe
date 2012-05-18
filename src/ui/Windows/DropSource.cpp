@@ -31,7 +31,7 @@ DROPEFFECT CDataSource::StartDragging(BYTE *szData, DWORD dwLength, CLIPFORMAT c
   CacheGlobalData(cpfmt, hgData);
 
   DROPEFFECT dropEffect = DoDragDrop(DROPEFFECT_COPY | DROPEFFECT_MOVE,
-    (LPCRECT)rClient);
+                                     (LPCRECT)rClient);
 
   if ((dropEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
     CompleteMove();
@@ -40,8 +40,6 @@ DROPEFFECT CDataSource::StartDragging(BYTE *szData, DWORD dwLength, CLIPFORMAT c
   SendMessage(GetActiveWindow(), WM_LBUTTONUP, 0, lparam);
 
   Empty();
-
-  //InternalRelease();
 
   return dropEffect;
 }

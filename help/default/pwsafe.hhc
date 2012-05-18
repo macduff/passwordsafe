@@ -71,6 +71,10 @@
 			<param name="Local" value="html\password_policies.html">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Named Password Policies">
+			<param name="Local" value="html\named_password_policies.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="Keeping Password History">
 			<param name="Local" value="html\password_history.html">
 			</OBJECT>
@@ -105,6 +109,10 @@
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="Filtering Entries">
 			<param name="Local" value="html\filters.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Explorer View">
+			<param name="Local" value="html\explorer_view.html">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="Command Line Arguments">

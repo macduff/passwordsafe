@@ -73,7 +73,7 @@ protected:
   DECLARE_MESSAGE_MAP()
 
 private:
-  static int CALLBACK AdvCompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
+  static int CALLBACK AdvCompareFunction(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
   void Set(CItemData::FieldBits bsFields);
 
   CListCtrl *m_pLC_List, *m_pLC_Selected;

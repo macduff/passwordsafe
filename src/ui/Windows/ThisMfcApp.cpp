@@ -17,6 +17,8 @@
 
 #include "PasswordSafe.h"
 
+#include "WindowsDefs.h"
+
 #if defined(POCKET_PC)
 #include "pocketpc/PocketPC.h"
 #include "pocketpc/resource.h"
@@ -35,6 +37,7 @@
 #include "GeneralMsgBox.h"
 #include "PWSFaultHandler.h"
 #include "Fonts.h"
+#include "Images.h"
 #include "PWSversion.h"
 
 #include "core/Util.h"
@@ -197,6 +200,7 @@ ThisMfcApp::~ThisMfcApp()
   PWSrand::DeleteInstance();
   PWSversion::DeleteInstance();
   Fonts::DeleteInstance();
+  Images::DeleteInstance();
   PWSLog::DeleteLog();
 
   CoUninitialize(); // Uninitialize COM library
@@ -770,8 +774,8 @@ bool ThisMfcApp::ParseCommandLine(DboxMain &dbox, bool &allDone)
         } else if ((*arg) == L"--cetreeview") {
           /**
            * '--cetreeview' will allow the user to select 2 entries and compare them
-           * TEMPORARY solution until multi-select is coded in the main Tree view
-           * Supported natively in List View
+           * TEMPORARY solution until multi-select is coded in the main TREE view
+           * Supported natively in LIST View
            */
           dbox.AllowCompareEntries();
         } else {
@@ -969,10 +973,12 @@ BOOL ThisMfcApp::InitInstance()
 
   // And the others - even if not referenced here
   Fonts *pFonts = Fonts::GetInstance();
+  Images *pImages = Images::GetInstance();
   PWSversion *pPWSver = PWSversion::GetInstance();
 
   // Stop compiler warnings
   UNREFERENCED_PARAMETER(pFonts);
+  UNREFERENCED_PARAMETER(pImages);
   UNREFERENCED_PARAMETER(pPWSver);
 
   LoadLocalizedStuff();

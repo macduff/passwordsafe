@@ -171,7 +171,7 @@ private:
 
   PSWDPolicyMap m_MapPSWDPLC;
   std::map<StringX, StringX> m_mapRenamedPolicies;
-  std::vector<StringX> m_vEmptyGroups;
+  PathSet m_setEmptyGroups;
   StringX m_sxXML_DateTime;
 };
 

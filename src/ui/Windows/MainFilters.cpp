@@ -17,6 +17,7 @@
 #include "MFCMessages.h"
 #include "GeneralMsgBox.h"
 #include "PWFileDialog.h"
+#include "TreeUtils.h"
 
 #if defined(POCKET_PC)
 #include "pocketpc/resource.h"
@@ -42,6 +43,7 @@
 #include "os/dir.h"
 
 using namespace std;
+using namespace TreeUtils;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -173,14 +175,14 @@ void DboxMain::ApplyFilters()
   m_MainToolBar.GetToolBarCtrl().EnableButton(ID_MENUITEM_APPLYFILTER, 
                                               bFilters ? TRUE : FALSE);
 
-  // Clear Find as old entries might not now be in the List View (which is how
+  // Clear Find as old entries might not now be in the LIST View (which is how
   // Find works).  Also, hide it if visible.
   m_FindToolBar.ClearFind();
   if (m_FindToolBar.IsVisible())
     OnHideFindToolBar();
 
   if (m_bFilterActive)
-    m_ctlItemTree.OnExpandAll();
+    ExpandAll(&m_ctlItemTree);
 
   // Update Status Bar
   UpdateStatusBar();

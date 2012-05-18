@@ -16,8 +16,9 @@
 #include "ItemField.h"
 #include "PWSprefs.h"
 #include "PWPolicy.h"
-#include "os/UUID.h"
 #include "StringX.h"
+
+#include "os/UUID.h"
 
 #include <time.h> // for time_t
 #include <bitset>
@@ -95,6 +96,14 @@ public:
                     ES_MODIFIED     =  2,  // Modified but not yet saved to disk copy
                     ES_DELETED      =  4,  // Deleted  but not yet removed from disk copy
                     ES_LAST};
+
+  enum EntryImages {EI_GROUP = 0,
+    EI_NORMAL, EI_WARNEXPIRED_NORMAL, EI_EXPIRED_NORMAL,
+    EI_ALIASBASE, EI_WARNEXPIRED_ALIASBASE, EI_EXPIRED_ALIASBASE, EI_ALIAS,
+    EI_SHORTCUTBASE, EI_WARNEXPIRED_SHORTCUTBASE, EI_EXPIRED_SHORTCUTBASE, EI_SHORTCUT,
+    EI_EMPTY_GROUP,
+    EI_DATABASE,
+    EI_NUM_IMAGES};
 
   // Flags if error found during validate of the entry
   enum  {VF_OK              =  0,
@@ -206,6 +215,7 @@ public:
   {return m_URFL.clear();}
   UnknownFieldsConstIter GetURFIterBegin() const {return m_URFL.begin();}
   UnknownFieldsConstIter GetURFIterEnd() const {return m_URFL.end();}
+  int GetEntryImage() const;
 
   void CreateUUID(); // V20 - generate UUID for new item
   void SetName(const StringX &name,

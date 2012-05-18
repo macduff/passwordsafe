@@ -113,7 +113,7 @@ public:
   CString GetResults() {return m_results;}
 
 protected:
-  static int CALLBACK CRCompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
+  static int CALLBACK CRCompareFunction(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 
   // Overrides
   // ClassWizard generated virtual function overrides

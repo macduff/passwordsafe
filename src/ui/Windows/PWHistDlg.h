@@ -58,8 +58,8 @@ private:
   DECLARE_MESSAGE_MAP()
 
 private:
-  static int CALLBACK PWHistCompareFunc(LPARAM lParam1, LPARAM lParam2,
-    LPARAM lParamSort);
+  static int CALLBACK PWHistCompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                            LPARAM lParamSort);
 };
 //-----------------------------------------------------------------------------
 // Local variables:

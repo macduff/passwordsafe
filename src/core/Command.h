@@ -95,6 +95,7 @@ public:
     GUI_REFRESH_TREE,
     GUI_DB_PREFERENCES_CHANGED,
     GUI_PWH_CHANGED_IN_DB,
+    GUI_REFRESH_ALL
   };
 
   static UpdateGUICommand *Create(CommandInterface *pcomInt,
@@ -164,9 +165,8 @@ public:
   enum Function {EG_ADD = 0, EG_DELETE, EG_RENAME, EG_ADDALL = 10, EG_REPLACEALL};
 
   static DBEmptyGroupsCommand *Create(CommandInterface *pcomInt,
-                                std::vector<StringX> &vEmptyGroups,
-                                Function function)
-  { return new DBEmptyGroupsCommand(pcomInt, vEmptyGroups, function); }
+                                PathSet &setEmptyGroups, Function function)
+  { return new DBEmptyGroupsCommand(pcomInt, setEmptyGroups, function); }
   static DBEmptyGroupsCommand *Create(CommandInterface *pcomInt,
                                 StringX &sxEmptyGroup, Function function)
   { return new DBEmptyGroupsCommand(pcomInt, sxEmptyGroup, function); }
@@ -177,14 +177,14 @@ public:
   void Undo();
 
 private:
-  DBEmptyGroupsCommand(CommandInterface *pcomInt, std::vector<StringX> &vEmptyGroups,
+  DBEmptyGroupsCommand(CommandInterface *pcomInt, PathSet &setEmptyGroups,
                        Function function);
   DBEmptyGroupsCommand(CommandInterface *pcomInt, StringX &sxEmptyGroup,
                        Function function);
   DBEmptyGroupsCommand(CommandInterface *pcomInt, StringX &sxOldGroup, StringX &sxNewGroup);
 
-  std::vector<StringX> m_vOldEmptyGroups;
-  std::vector<StringX> m_vNewEmptyGroups;
+  PathSet m_setOldEmptyGroups;
+  PathSet m_setNewEmptyGroups;
   StringX m_sxEmptyGroup, m_sxOldGroup, m_sxNewGroup;
   Function m_function;
   bool m_bOldState, m_bSingleGroup;

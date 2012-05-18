@@ -13,6 +13,9 @@
 #include <afxole.h>         // MFC OLE classes
 #include <afxodlgs.h>       // MFC OLE dialog classes
 #include <afxdisp.h >       // MFC OLE automation classes
+
+#include "WindowsDefs.h"
+
 #include "LVHdrCtrl.h"
 #include "DboxMain.h"       // For PWS_MSG_CCTOHDR_DD_COMPLETE and enum FROMCC & FROMHDR
 #include "core/itemdata.h" // For CItemData::UUID
@@ -67,8 +70,7 @@ BOOL CLVHdrCtrl::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
   if (!pDataObject->IsDataAvailable(m_ccddCPFID, NULL))
     return FALSE;
 
-  HGLOBAL hGlobal;
-  hGlobal = pDataObject->GetGlobalData(m_ccddCPFID);
+  HGLOBAL hGlobal = pDataObject->GetGlobalData(m_ccddCPFID);
 
   LPCWSTR pData = (LPCWSTR)GlobalLock(hGlobal);
   ASSERT(pData != NULL);

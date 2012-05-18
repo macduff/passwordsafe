@@ -15,6 +15,9 @@
 */
 
 #include "stdafx.h"
+
+#include "WindowsDefs.h"
+
 #include "PWTreeCtrl.h"
 #include "DboxMain.h"
 #include "DDSupport.h"
@@ -22,15 +25,18 @@
 #include "SecString.h"
 #include "SMemFile.h"
 #include "GeneralMsgBox.h"
+#include "TreeUtils.h"
+#include "Images.h"
 
 #include "core/ItemData.h"
 #include "core/Util.h"
-#include "core/Pwsprefs.h"
+#include "core/PWSprefs.h"
 
 #include "os/debug.h"
 
 #include <algorithm>
 
+using namespace TreeUtils;
 using namespace std;
 
 #ifdef _DEBUG
@@ -42,8 +48,9 @@ static char THIS_FILE[] = __FILE__;
 // Hover time of 1.5 seconds before expanding a group during D&D
 #define HOVERTIME 1500
 
-const wchar_t GROUP_SEP = L'.';
-const wchar_t *GROUP_SEP2 = L".";
+wchar_t GROUP_SEP = L'.';
+
+extern StringX sxDot;
 
 // following header for D&D data passed over OLE:
 // Process ID of sender (to determine if src == tgt)
@@ -67,18 +74,18 @@ class CPWTDropTarget : public COleDropTarget
 public:
   CPWTDropTarget(CPWTreeCtrl *parent) : m_tree(*parent) {}
 
-  DROPEFFECT OnDragEnter(CWnd* pWnd , COleDataObject* pDataObject,
+  DROPEFFECT OnDragEnter(CWnd *pWnd, COleDataObject *pDataObject,
                          DWORD dwKeyState, CPoint point)
   {return m_tree.OnDragEnter(pWnd, pDataObject, dwKeyState, point);}
 
-  DROPEFFECT OnDragOver(CWnd* pWnd , COleDataObject* pDataObject,
+  DROPEFFECT OnDragOver(CWnd *pWnd,  COleDataObject *pDataObject,
                         DWORD dwKeyState, CPoint point)
   {return m_tree.OnDragOver(pWnd, pDataObject, dwKeyState, point);}
 
-  void OnDragLeave(CWnd*)
+  void OnDragLeave(CWnd *)
   {m_tree.OnDragLeave();}
 
-  BOOL OnDrop(CWnd* pWnd, COleDataObject* pDataObject,
+  BOOL OnDrop(CWnd *pWnd, COleDataObject *pDataObject,
               DROPEFFECT dropEffect, CPoint point)
   {return m_tree.OnDrop(pWnd, pDataObject, dropEffect, point);}
 
@@ -166,7 +173,7 @@ public:
     return de;
   }
 
-  virtual BOOL OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL* phGlobal)
+  virtual BOOL OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
   {return m_tree.OnRenderGlobalData(lpFormatEtc, phGlobal);}
 
 private:
@@ -184,7 +191,7 @@ CPWTreeCtrl::CPWTreeCtrl()
   m_hgDataALL(NULL), m_hgDataTXT(NULL), m_hgDataUTXT(NULL),
   m_bFilterActive(false), m_bUseHighLighting(false)
 {
-  // Register a clipboard format for column drag & drop.
+  // Register a clipboard format for drag & drop.
   // Note that it's OK to register same format more than once:
   // "If a registered format with the specified name already exists,
   // a new format is not registered and the return value identifies the existing format."
@@ -251,11 +258,6 @@ void CPWTreeCtrl::ActivateND(const bool bActivate)
 
 void CPWTreeCtrl::OnDestroy()
 {
-  CImageList *pimagelist = GetImageList(TVSIL_NORMAL);
-  if (pimagelist != NULL) {
-    pimagelist->DeleteImageList();
-    delete pimagelist;
-  }
   m_DropTarget->Revoke();
 }
 
@@ -275,7 +277,7 @@ void CPWTreeCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
     m_pDbx->SaveGUIStatusEx(DboxMain::iTreeOnly);
 }
 
-BOOL CPWTreeCtrl::PreTranslateMessage(MSG* pMsg)
+BOOL CPWTreeCtrl::PreTranslateMessage(MSG *pMsg)
 {
   // When an item is being edited make sure the edit control
   // receives certain important key strokes
@@ -313,8 +315,8 @@ SCODE CPWTreeCtrl::GiveFeedback(DROPEFFECT )
   return DRAGDROP_S_USEDEFAULTCURSORS;
 }
 
-DROPEFFECT CPWTreeCtrl::OnDragEnter(CWnd* , COleDataObject* pDataObject,
-                                    DWORD dwKeyState, CPoint )
+DROPEFFECT CPWTreeCtrl::OnDragEnter(CWnd * /*pWnd*/, COleDataObject *pDataObject,
+                                    DWORD dwKeyState, CPoint /*point*/)
 {
   // Is it ours?
   if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL)) 
@@ -322,7 +324,7 @@ DROPEFFECT CPWTreeCtrl::OnDragEnter(CWnd* , COleDataObject* pDataObject,
 
   m_TickCount = GetTickCount();
   POINT p, hs;
-  CImageList* pil = CImageList::GetDragImage(&p, &hs);
+  CImageList *pil = CImageList::GetDragImage(&p, &hs);
   if (pil != NULL) {
     pws_os::Trace(L"CPWTreeCtrl::OnDragEnter() hide cursor\n");
     while (ShowCursor(FALSE) >= 0)
@@ -334,7 +336,7 @@ DROPEFFECT CPWTreeCtrl::OnDragEnter(CWnd* , COleDataObject* pDataObject,
          DROPEFFECT_COPY : DROPEFFECT_MOVE;
 }
 
-DROPEFFECT CPWTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* pDataObject,
+DROPEFFECT CPWTreeCtrl::OnDragOver(CWnd *pWnd, COleDataObject *pDataObject,
                                    DWORD dwKeyState, CPoint point)
 {
   // Is it ours?
@@ -345,7 +347,7 @@ DROPEFFECT CPWTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* pDataObject,
   HTREEITEM hHitItem(NULL);
 
   POINT p, hs;
-  CImageList* pil = CImageList::GetDragImage(&p, &hs);
+  CImageList *pil = CImageList::GetDragImage(&p, &hs);
 
   if (pil != NULL) pil->DragMove(point);
 
@@ -355,7 +357,7 @@ DROPEFFECT CPWTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* pDataObject,
   if (m_TickCount != 0 && (GetTickCount() - m_TickCount >= HOVERTIME)) {
     m_TickCount = GetTickCount();
 
-    if (m_hitemHover != NULL && !pDestTreeCtrl->IsLeaf(m_hitemHover)) {
+    if (m_hitemHover != NULL && !IsLeaf(pDestTreeCtrl, m_hitemHover)) {
       pDestTreeCtrl->SelectItem(m_hitemHover);
       pDestTreeCtrl->Expand(m_hitemHover, TVE_EXPAND);
     }
@@ -383,7 +385,7 @@ DROPEFFECT CPWTreeCtrl::OnDragOver(CWnd* pWnd , COleDataObject* pDataObject,
   pWnd->ClientToScreen(rectClient);
   pWnd->ClientToScreen(&point);
 
-  // Scroll Tree control depending on mouse position
+  // Scroll TREE control depending on mouse position
   int iMaxV = GetScrollLimit(SB_VERT);
   int iPosV = GetScrollPos(SB_VERT);
 
@@ -471,7 +473,7 @@ void CPWTreeCtrl::OnBeginLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
   HTREEITEM ti = ptvinfo->item.hItem;
   PWSprefs *prefs = PWSprefs::GetInstance();
 
-  if (IsLeaf(ti)) {
+  if (IsLeaf(this, ti)) {
     DWORD_PTR itemData = GetItemData(ti);
     ASSERT(itemData != NULL);
     CItemData *pci = (CItemData *)itemData;
@@ -501,114 +503,6 @@ void CPWTreeCtrl::OnBeginLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
   m_eLabel = CSecString(GetItemText(ti));
   // Allow in-place editing
   *pLResult = FALSE;
-}
-
-static bool splitLeafText(const wchar_t *lt, StringX &newTitle, 
-                          StringX &newUser, StringX &newPassword)
-{
-  bool bPasswordSet(false);
-
-  newTitle = newUser = newPassword = L"";
-
-  CString cs_leafText(lt);
-  cs_leafText.Trim();
-  if (cs_leafText.IsEmpty())
-    return false;
-
-  // Check no duplicate braces
-  int OpenSquareBraceIndex = cs_leafText.Find(L'[');
-  if (OpenSquareBraceIndex >= 0)
-    if (cs_leafText.Find(L'[', OpenSquareBraceIndex + 1) != -1)
-      return false;
-
-  int CloseSquareBraceIndex = cs_leafText.Find(L']');
-  if (CloseSquareBraceIndex >= 0)
-    if (cs_leafText.Find(L']', CloseSquareBraceIndex + 1) != -1)
-      return false;
-
-  int OpenCurlyBraceIndex = cs_leafText.Find(L'{');
-  if (OpenCurlyBraceIndex >= 0)
-    if (cs_leafText.Find(L'{', OpenCurlyBraceIndex + 1) != -1)
-      return false;
-
-  int CloseCurlyBraceIndex = cs_leafText.Find(L'}');
-  if (CloseCurlyBraceIndex >= 0)
-    if (cs_leafText.Find(L'}', CloseCurlyBraceIndex + 1) != -1)
-      return false;
-
-  // Check we have both open and close brackets
-  if (OpenSquareBraceIndex >= 0 && CloseSquareBraceIndex == -1)
-    return false;
-  if (OpenSquareBraceIndex == -1 && CloseSquareBraceIndex >= 0)
-    return false;
-  if (OpenCurlyBraceIndex >= 0 && CloseCurlyBraceIndex == -1)
-    return false;
-  if (OpenCurlyBraceIndex == -1 && CloseCurlyBraceIndex >= 0)
-    return false;
-
-  // Check we are in the right order - open before close
-  if (OpenSquareBraceIndex >= 0 && CloseSquareBraceIndex < OpenSquareBraceIndex)
-    return false;
-  if (OpenCurlyBraceIndex >= 0 && CloseCurlyBraceIndex < OpenCurlyBraceIndex)
-    return false;
-
-  // Check we are in the right order - square before curly
-  if (OpenSquareBraceIndex >= 0 && OpenCurlyBraceIndex >= 0 &&
-    OpenCurlyBraceIndex < OpenSquareBraceIndex)
-    return false;
-
-  if (OpenSquareBraceIndex == -1 && OpenCurlyBraceIndex == -1) {
-    // title
-    newTitle = cs_leafText;
-    return true;
-  }
-
-  if (OpenSquareBraceIndex >= 0 && OpenCurlyBraceIndex == -1) {
-    // title [user]
-    newTitle = cs_leafText.Left(OpenSquareBraceIndex);
-    Trim(newTitle);
-    newUser = cs_leafText.Mid(OpenSquareBraceIndex + 1, 
-                              CloseSquareBraceIndex - OpenSquareBraceIndex - 1);
-    Trim(newUser);
-    goto final_check;
-  }
-
-  if (OpenSquareBraceIndex == -1 && OpenCurlyBraceIndex >= 0) {
-    // title {password}
-    newTitle = cs_leafText.Left(OpenCurlyBraceIndex);
-    Trim(newTitle);
-    newPassword = cs_leafText.Mid(OpenCurlyBraceIndex + 1, 
-                                  CloseCurlyBraceIndex - OpenCurlyBraceIndex - 1);
-    Trim(newPassword);
-    bPasswordSet = true;
-    goto final_check;
-  }
-
-  if (OpenSquareBraceIndex >= 0 && OpenCurlyBraceIndex >= 0) {
-    // title [user] {password}
-    newTitle = cs_leafText.Left(OpenSquareBraceIndex);
-    Trim(newTitle);
-    newUser = cs_leafText.Mid(OpenSquareBraceIndex + 1, 
-                              CloseSquareBraceIndex - OpenSquareBraceIndex - 1);
-    Trim(newUser);
-    newPassword = cs_leafText.Mid(OpenCurlyBraceIndex + 1, 
-                                  CloseCurlyBraceIndex - OpenCurlyBraceIndex - 1);
-    Trim(newPassword);
-    bPasswordSet = true;
-    goto final_check;
-  }
-
-  return false; // Should never get here!
-
-final_check:
-  bool bRC(true);
-  if (newTitle.empty())
-    bRC = false;
-
-  if (bPasswordSet && newPassword.empty())
-    bRC = false;
-
-  return bRC;
 }
 
 void CPWTreeCtrl::OnSelectionChanged(NMHDR *pNotifyStruct, LRESULT *pLResult)
@@ -675,7 +569,7 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
     // (Still called "New Group" or the changed name if that already existed)
     if (m_pDbx->IsInAddGroup()) {
       // m_eLabel is the old name but need to get the path
-      StringX sxPath = GetGroup(ti);
+      StringX sxPath = GetGroupFullPath(this, ti);
 
       pmulticmds->Add(DBEmptyGroupsCommand::Create(pcore, sxPath,
                              DBEmptyGroupsCommand::EG_ADD));
@@ -702,14 +596,14 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
   PWSprefs *prefs = PWSprefs::GetInstance();
   bool bShowUsernameInTree = prefs->GetPref(PWSprefs::ShowUsernameInTree);
   bool bShowPasswordInTree = prefs->GetPref(PWSprefs::ShowPasswordInTree);
-  bool bIsLeaf = IsLeaf(ptvinfo->item.hItem);
+  bool bIsLeaf = IsLeaf(this, ptvinfo->item.hItem);
   CItemData *pci(NULL);
 
   if (bIsLeaf) { // Leaf
     pci = (CItemData *)GetItemData(ti);
     ASSERT(pci != NULL);
 
-    if (!splitLeafText(sxNewText.c_str(), sxNewTitle, sxNewUser, sxNewPassword)) {
+    if (!SplitLeafText(sxNewText.c_str(), sxNewTitle, sxNewUser, sxNewPassword)) {
       // errors in user's input - restore text and refresh display
       goto bad_exit;
     }
@@ -753,7 +647,7 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
       }
     }
 
-    // Update corresponding Tree mode text with the new display text (ie: in case 
+    // Update corresponding TREE mode text with the new display text (ie: in case 
     // the username was removed and had to be normalized back in).  Note that
     // we cannot do "SetItemText(ti, treeDispString)" here since Windows will
     // automatically overwrite and update the item text with the contents from 
@@ -762,21 +656,21 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
                      treeDispString.c_str(), ptvinfo->item.cchTextMax);
     ptvinfo->item.pszText[ptvinfo->item.cchTextMax - 1] = L'\0';
 
-    // update corresponding List mode text - but  only those visible in Tree
+    // update corresponding List mode text - but  only those visible in TREE
     DisplayInfo *pdi = (DisplayInfo *)pci->GetDisplayInfo();
     ASSERT(pdi != NULL);
-    int lindex = pdi->list_index;
+    int iIndex = pdi->list_index;
 
     if (sxNewTitle != pci->GetTitle()) {
-      m_pDbx->UpdateListItemTitle(lindex, sxNewTitle);
+      m_pDbx->UpdateListItemTitle(iIndex, sxNewTitle);
     }
 
     if (bShowUsernameInTree) {
-      if(sxNewUser != pci->GetUser()) {
-        m_pDbx->UpdateListItemUser(lindex, sxNewUser);
+      if (sxNewUser != pci->GetUser()) {
+        m_pDbx->UpdateListItemUser(iIndex, sxNewUser);
       }
       if (bShowPasswordInTree && sxNewPassword != pci->GetPassword()) {
-        m_pDbx->UpdateListItemPassword(lindex, sxNewPassword);
+        m_pDbx->UpdateListItemPassword(iIndex, sxNewPassword);
       }
     }
   } else { // Node
@@ -789,7 +683,7 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
     HTREEITEM hParent = GetParentItem(ti);
     HTREEITEM hSibling = GetChildItem(hParent);
     do {
-      if (hSibling != ti && !IsLeaf(hSibling)) {
+      if (hSibling != ti && !IsLeaf(this, hSibling)) {
         CString cs_SiblingText = GetItemText(hSibling);
         if (cs_SiblingText == sxNewText.c_str())
           goto bad_exit;
@@ -828,8 +722,8 @@ void CPWTreeCtrl::OnEndLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
         sxOldPath = (LPCWSTR)m_eLabel;
         sxNewPath = sxNewText;
       } else {
-        sxOldPath = StringX(prefix) + StringX(GROUP_SEP2) + StringX(m_eLabel);
-        sxNewPath = StringX(prefix) + StringX(GROUP_SEP2) + sxNewText;
+        sxOldPath = StringX(prefix) + sxDot + StringX(m_eLabel);
+        sxNewPath = StringX(prefix) + sxDot + sxNewText;
       }
 
       if (m_pDbx->IsEmptyGroup(sxOldPath))
@@ -913,50 +807,12 @@ bad_exit:
   *pLResult = FALSE;
 }
 
-bool CPWTreeCtrl::IsChildNodeOf(HTREEITEM hitemChild, HTREEITEM hitemSuspectedParent) const
-{
-  do {
-    if (hitemChild == hitemSuspectedParent)
-      break;
-  } while ((hitemChild = GetParentItem(hitemChild)) != NULL);
-
-  return (hitemChild != NULL);
-}
-
-bool CPWTreeCtrl::IsLeaf(HTREEITEM hItem) const
-{
-  // ItemHasChildren() won't work in the general case
-  int i, dummy;
-  BOOL status = GetItemImage(hItem, i, dummy);
-  ASSERT(status);
-  return (i != GROUP && i!= EMPTY_GROUP);
-}
-
-// Returns the number of children of this group
-int CPWTreeCtrl::CountChildren(HTREEITEM hStartItem) const
-{
-  // Walk the Tree!
-  int num = 0;
-  if (hStartItem != NULL && ItemHasChildren(hStartItem)) {
-    HTREEITEM hChildItem = GetChildItem(hStartItem);
-    while (hChildItem != NULL) {
-      if (ItemHasChildren(hChildItem)) {
-        num += CountChildren(hChildItem);
-      } else {
-        num++;
-      }
-      hChildItem = GetNextSiblingItem(hChildItem);
-    }
-  }
-  return num;
-}
-
 void CPWTreeCtrl::DeleteWithParents(HTREEITEM hItem)
 {
   // We don't want nodes that have no children to remain
   HTREEITEM parent;
   do {
-    StringX sxPath = (LPCWSTR)GetGroup(hItem);
+    StringX sxPath = (LPCWSTR)GetGroupFullPath(this, hItem);
     parent = GetParentItem(hItem);
     DeleteItem(hItem);
     if (ItemHasChildren(parent))
@@ -964,95 +820,6 @@ void CPWTreeCtrl::DeleteWithParents(HTREEITEM hItem)
     m_pDbx->m_mapGroupToTreeItem.erase(sxPath);
     hItem = parent;
   } while (parent != TVI_ROOT && parent != NULL);
-}
-
-// If passed an entry, return the full path leading up to a given item, but
-// not including the name of the item itself.
-// If passed a Group, return full path including this group.
-CString CPWTreeCtrl::GetGroup(HTREEITEM hItem)
-{
-  CString retval(L""), nodeText;
-  if (hItem == TVI_ROOT)
-    return retval;
-
-  while (hItem != NULL) {
-    nodeText = GetItemText(hItem);
-    if (!retval.IsEmpty())
-      nodeText += GROUP_SEP;
-    retval = nodeText + retval;
-    hItem = GetParentItem(hItem);
-  }
-  return retval;
-}
-
-static CSecString GetPathElem(CSecString &path)
-{
-  // Get first path element and chop it off, i.e., if
-  // path = "a.b.c.d"
-  // will return "a" and path will be "b.c.d"
-  // (assuming GROUP_SEP is '.')
-
-  CSecString retval;
-  int N = path.Find(GROUP_SEP);
-  if (N == -1) {
-    retval = path;
-    path = L"";
-  } else {
-    const int Len = path.GetLength();
-    retval = CSecString(path.Left(N));
-    path = CSecString(path.Right(Len - N - 1));
-  }
-  return retval;
-}
-
-bool CPWTreeCtrl::ExistsInTree(HTREEITEM &node, const CSecString &s, HTREEITEM &si) const
-{
-  // returns true iff s is a direct descendant of node
-  HTREEITEM ti = GetChildItem(node);
-
-  while (ti != NULL) {
-    const CSecString itemText = GetItemText(ti);
-    if (itemText == s)
-      if (!IsLeaf(ti)) { // A non-node doesn't count
-        si = ti;
-        return true;
-      }
-    ti = GetNextItem(ti, TVGN_NEXT);
-  }
-  return false;
-}
-
-HTREEITEM CPWTreeCtrl::AddGroup(const CString &group, bool &bAlreadyExists)
-{
-  // Add a group at the end of path
-  HTREEITEM ti = TVI_ROOT;
-  HTREEITEM si;
-  bAlreadyExists = true;
-
-  if (!group.IsEmpty()) {
-    CSecString path = group;
-    CSecString s;
-    StringX path2root(L""), sxDot(L".");
-    do {
-      s = GetPathElem(path);
-      if (path2root.empty())
-        path2root = (LPCWSTR)s;
-      else
-        path2root += sxDot + StringX(s);
-
-      if (!ExistsInTree(ti, s, si)) {
-        ti = InsertItem(s, ti, TVI_SORT);
-        SetItemImage(ti, CPWTreeCtrl::GROUP, CPWTreeCtrl::GROUP);
-        bAlreadyExists = false;
-      } else
-        ti = si;
-      m_pDbx->m_mapGroupToTreeItem[path2root] = ti;
-    } while (!path.IsEmpty());
-  }
-  if (m_pDbx->IsEmptyGroup(StringX(group)))
-    SetItemImage(ti, CPWTreeCtrl::EMPTY_GROUP, CPWTreeCtrl::EMPTY_GROUP);
-
-  return ti;
 }
 
 bool CPWTreeCtrl::MoveItem(MultiCommands *pmulticmds, HTREEITEM hitemDrag, HTREEITEM hitemDrop)
@@ -1104,7 +871,7 @@ bool CPWTreeCtrl::MoveItem(MultiCommands *pmulticmds, HTREEITEM hitemDrag, HTREE
     CSecString ci_title0 = pci->GetTitle();
     CSecString ci_title = m_pDbx->GetUniqueTitle(path, ci_title0, ci_user, IDS_DRAGNUMBER);
 
-    // Update list field with new group
+    // Update LIST field with new group
     pmulticmds->Add(UpdateEntryCommand::Create(m_pDbx->GetCore(), *pci,
                                                CItemData::GROUP, path));
     m_pDbx->UpdateListItemGroup(pdi->list_index, (LPCWSTR)path);
@@ -1113,9 +880,9 @@ bool CPWTreeCtrl::MoveItem(MultiCommands *pmulticmds, HTREEITEM hitemDrag, HTREE
       pmulticmds->Add(UpdateEntryCommand::Create(m_pDbx->GetCore(), *pci,
                                                  CItemData::TITLE, ci_title));
     }
-    // Update tree label
+    // Update TREE label
     SetItemText(hNewItem, MakeTreeDisplayString(*pci));
-    // Update list field with new title
+    // Update LIST field with new title
     m_pDbx->UpdateListItemTitle(pdi->list_index, (LPCWSTR)ci_title);
 
     // Update DisplayInfo record associated with ItemData
@@ -1222,7 +989,7 @@ bool CPWTreeCtrl::CopyItem(HTREEITEM hitemDrag, HTREEITEM hitemDrop,
   return true;
 }
 
-BOOL CPWTreeCtrl::OnDrop(CWnd * , COleDataObject *pDataObject,
+BOOL CPWTreeCtrl::OnDrop(CWnd *, COleDataObject *pDataObject,
                          DROPEFFECT dropEffect, CPoint point)
 {
   // Is it ours?
@@ -1234,7 +1001,7 @@ BOOL CPWTreeCtrl::OnDrop(CWnd * , COleDataObject *pDataObject,
   while (ShowCursor(TRUE) < 0)
     ;
   POINT p, hs;
-  CImageList* pil = CImageList::GetDragImage(&p, &hs);
+  CImageList *pil = CImageList::GetDragImage(&p, &hs);
   // pil will be NULL if we're the target of inter-process D&D
 
   if (pil != NULL) {
@@ -1315,7 +1082,7 @@ BOOL CPWTreeCtrl::OnDrop(CWnd * , COleDataObject *pDataObject,
   if (iDDType == FROMTREE_R || iDDType == FROMTREE_RSC) {
     CMenu menu;
     if (menu.LoadMenu(IDR_POPRIGHTDRAG)) {
-      CMenu* pPopup = menu.GetSubMenu(0);
+      CMenu *pPopup = menu.GetSubMenu(0);
       ASSERT(pPopup != NULL);
       ClientToScreen(&point);
       pPopup->SetDefaultItem(GetKeyState(VK_CONTROL) < 0 ? 
@@ -1344,8 +1111,8 @@ BOOL CPWTreeCtrl::OnDrop(CWnd * , COleDataObject *pDataObject,
           itemData = GetItemData(m_hitemDrop);
           if (itemData == NULL) {
             // Dropping on a group
-            cs_group = CSecString(GetGroup(m_hitemDrop));
-          } else {
+            cs_group = CSecString(GetGroupFullPath(this, m_hitemDrop));
+          } else {this, 
             // Dropping on an entry
             pci = (CItemData *)itemData;
             cs_group = pci->GetGroup();
@@ -1384,14 +1151,14 @@ BOOL CPWTreeCtrl::OnDrop(CWnd * , COleDataObject *pDataObject,
     goto exit;
   }
 
-  if (IsLeaf(hitemDrop) || bForceRoot)
+  if (IsLeaf(this, hitemDrop) || bForceRoot)
     hitemDrop = GetParentItem(hitemDrop);
 
   if (m_bWithinThisInstance) {
     // from me! - easy
     HTREEITEM parent = GetParentItem(m_hitemDrag);
     if (m_hitemDrag != hitemDrop &&
-        !IsChildNodeOf(hitemDrop, m_hitemDrag) &&
+        !IsChildNodeOf(this, hitemDrop, m_hitemDrag) &&
         parent != hitemDrop) {
       // drag operation allowed
       if (dropEffect == DROPEFFECT_MOVE) {
@@ -1412,7 +1179,7 @@ BOOL CPWTreeCtrl::OnDrop(CWnd * , COleDataObject *pDataObject,
     }
   } else { // from someone else!
     // Now add it
-    CSecString DropGroup = CSecString(GetGroup(hitemDrop));
+    CSecString DropGroup = CSecString(GetGroupFullPath(this, hitemDrop));
     ProcessData((BYTE *)pData, lBufLen, DropGroup);
     SelectItem(hitemDrop);
     retval = TRUE;
@@ -1443,7 +1210,7 @@ void CPWTreeCtrl::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
 
   CPoint ptAction;
 
-  NM_TREEVIEW* pNMTreeView = (NM_TREEVIEW*)pNotifyStruct;
+  NM_TREEVIEW *pNMTreeView = (NM_TREEVIEW*)pNotifyStruct;
   *pLResult = 0L;
 
   GetCursorPos(&ptAction);
@@ -1471,7 +1238,7 @@ void CPWTreeCtrl::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
   RECT rClient;
   GetClientRect(&rClient);
 
-  if (m_DDType == FROMTREE_R && IsLeaf(m_hitemDrag)) {
+  if (m_DDType == FROMTREE_R && IsLeaf(this, m_hitemDrag)) {
     DWORD_PTR itemData = GetItemData(m_hitemDrag);
     CItemData *pci = (CItemData *)itemData;
     if (pci->IsNormal() || pci->IsShortcutBase())
@@ -1486,7 +1253,15 @@ void CPWTreeCtrl::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
   if (m_cfdropped == m_tcddCPFID &&
       (de & DROPEFFECT_MOVE) == DROPEFFECT_MOVE &&
       !m_bWithinThisInstance && !m_pDbx->IsDBReadOnly()) {
-    m_pDbx->Delete(); // XXX assume we've a selected item here!
+    StringX sxCurrentPath;
+    CItemData *pci = (CItemData *)GetItemData(m_hitemDrag);
+
+    // Get complete group name
+    sxCurrentPath = (StringX)GetGroupFullPath(this, m_hitemDrag); // e.g., a.b.c
+
+    std::vector<pws_os::CUUID> vGroupEntries;
+    m_pDbx->GetGroupEntries(sxCurrentPath, &vGroupEntries, true);
+    m_pDbx->Delete(pci, vGroupEntries);
   }
 
   // wrong place to clean up imagelist?
@@ -1619,75 +1394,6 @@ void CPWTreeCtrl::OnExpandCollapse(NMHDR *, LRESULT *)
   }
 }
 
-void CPWTreeCtrl::OnExpandAll() 
-{
-  // Updated to test for zero entries!
-  HTREEITEM hItem = this->GetRootItem();
-  if (hItem == NULL)
-    return;
-  SetRedraw(FALSE);
-  do {
-    Expand(hItem,TVE_EXPAND);
-    hItem = GetNextItem(hItem,TVGN_NEXTVISIBLE);
-  } while (hItem);
-  EnsureVisible(GetSelectedItem());
-  SetRedraw(TRUE);
-
-  m_pDbx->SaveGUIStatusEx(DboxMain::iTreeOnly);
-}
-
-void CPWTreeCtrl::OnCollapseAll() 
-{
-  // Courtesy of Zafir Anjum from www.codeguru.com
-  // Updated to test for zero entries!
-  HTREEITEM hItem = GetRootItem();
-  if (hItem == NULL)
-    return;
-  SetRedraw(FALSE);
-  do {
-    CollapseBranch(hItem);
-  } while((hItem = GetNextSiblingItem(hItem)) != NULL);
-  SetRedraw(TRUE);
-
-  m_pDbx->SaveGUIStatusEx(DboxMain::iTreeOnly);
-}
-
-void CPWTreeCtrl::CollapseBranch(HTREEITEM hItem)
-{
-  // Courtesy of Zafir Anjumfrom www.codeguru.com
-  if (ItemHasChildren(hItem)) {
-    Expand(hItem, TVE_COLLAPSE);
-    hItem = GetChildItem(hItem);
-    do {
-      CollapseBranch(hItem);
-    } while((hItem = GetNextSiblingItem(hItem)) != NULL);
-  }
-}
-
-HTREEITEM CPWTreeCtrl::GetNextTreeItem(HTREEITEM hItem) 
-{
-  if (NULL == hItem)
-    return GetRootItem(); 
-
-  // First, try to go to this item's 1st child 
-  HTREEITEM hReturn = GetChildItem(hItem); 
-
-  // If no more child items... 
-  while (hItem && !hReturn) { 
-    // Get this item's next sibling 
-    hReturn = GetNextSiblingItem(hItem); 
-
-    // If hReturn is NULL, then there are no 
-    // sibling items, and we're on a leaf node. 
-    // Backtrack up the tree one level, and 
-    // we'll look for a sibling on the next 
-    // iteration (or we'll reach the root and 
-    // quit). 
-    hItem = GetParentItem(hItem); 
-  }
-  return hReturn;
-} 
-
 void CPWTreeCtrl::Iterate(HTREEITEM hItem, TreeItemFunctor &functor)
 {
   if (hItem) {
@@ -1706,7 +1412,6 @@ void CPWTreeCtrl::Iterate(HTREEITEM hItem, TreeItemFunctor &functor)
   }
 }
 
-
 bool CPWTreeCtrl::CollectData(BYTE * &out_buffer, long &outLen)
 {
   DWORD_PTR itemData = GetItemData(m_hitemDrag);
@@ -1714,15 +1419,16 @@ bool CPWTreeCtrl::CollectData(BYTE * &out_buffer, long &outLen)
 
   CDDObList out_oblist;
 
-  if (IsLeaf(m_hitemDrag)) {
+  if (IsLeaf(this, m_hitemDrag)) {
     ASSERT(itemData != NULL);
     m_nDragPathLen = 0;
-    out_oblist.m_bDragNode = false;
-    GetEntryData(out_oblist, pci);
+    out_oblist.m_bDraggingGroup = false;
+    m_pDbx->GetEntryData(out_oblist, pci);
   } else {
-    m_nDragPathLen = GetGroup(GetParentItem(m_hitemDrag)).GetLength();
-    out_oblist.m_bDragNode = true;
-    GetGroupEntriesData(out_oblist, m_hitemDrag);
+    StringX sxDragPath = GetGroupFullPath(this, GetParentItem(m_hitemDrag));
+    m_nDragPathLen = sxDragPath.length();
+    out_oblist.m_bDraggingGroup = true;
+    m_pDbx->GetGroupEntriesData(out_oblist, sxDragPath);
   }
 
   CSMemFile outDDmemfile;
@@ -1761,55 +1467,13 @@ bool CPWTreeCtrl::ProcessData(BYTE *in_buffer, const long &inLen,
   inDDmemfile.Detach();
 
   if (!in_oblist.IsEmpty()) {
-    m_pDbx->AddDDEntries(in_oblist, DropGroup);
+    m_pDbx->AddDDEntries(in_oblist, DropGroup, m_bWithinThisInstance);
 
     while (!in_oblist.IsEmpty()) {
       delete (CDDObject *)in_oblist.RemoveHead();
     }
   }
   return (inLen > 0);
-}
-
-void CPWTreeCtrl::GetGroupEntriesData(CDDObList &out_oblist, HTREEITEM hItem)
-{
-  if (IsLeaf(hItem)) {
-    DWORD_PTR itemData = GetItemData(hItem);
-    ASSERT(itemData != NULL);
-    CItemData *pci = (CItemData *)itemData;
-    GetEntryData(out_oblist, pci);
-  } else {
-    HTREEITEM child;
-    for (child = GetChildItem(hItem);
-      child != NULL;
-      child = GetNextSiblingItem(child)) {
-        GetGroupEntriesData(out_oblist, child);
-    }
-  }
-}
-
-void CPWTreeCtrl::GetEntryData(CDDObList &out_oblist, CItemData *pci)
-{
-  ASSERT(pci != NULL);
-  CDDObject *pDDObject = new CDDObject;
-
-  if (out_oblist.m_bDragNode && m_nDragPathLen > 0) {
-    CItemData ci2(*pci); // we need a copy since to modify the group
-    const CSecString cs_Group = pci->GetGroup();
-    ci2.SetGroup(cs_Group.Right(cs_Group.GetLength() - m_nDragPathLen - 1));
-    pDDObject->FromItem(ci2);
-  } else {
-    pDDObject->FromItem(*pci);
-  }
-
-  if (pci->IsDependent()) {
-    // I'm an alias or shortcut; pass on ptr to my base item
-    // to retrieve its group/title/user
-    const CItemData *pbci = m_pDbx->GetBaseEntry(pci);
-    ASSERT(pbci != NULL);
-    pDDObject->SetBaseItem(pbci);
-  }
-
-  out_oblist.AddTail(pDDObject);
 }
 
 CSecString CPWTreeCtrl::GetPrefix(HTREEITEM hItem) const
@@ -1851,23 +1515,23 @@ CSecString CPWTreeCtrl::MakeTreeDisplayString(const CItemData &ci) const
 }
 
 static int CALLBACK ExplorerCompareProc(LPARAM lParam1, LPARAM lParam2,
-                                        LPARAM /* closure */)
+                                        LPARAM /* lParamSort */)
 {
   int iResult;
-  CItemData* pLHS = (CItemData *)lParam1;
-  CItemData* pRHS = (CItemData *)lParam2;
-  if (pLHS == pRHS) { // probably both null, in any case, equal
+  CItemData *pLHS_PCI = (CItemData *)lParam1;
+  CItemData *pRHS_PCI = (CItemData *)lParam2;
+  if (pLHS_PCI == pRHS_PCI) { // probably both null, in any case, equal
     iResult = 0;
-  } else if (pLHS == NULL) {
+  } else if (pLHS_PCI == NULL) {
     iResult = -1;
-  } else if (pRHS == NULL) {
+  } else if (pRHS_PCI == NULL) {
     iResult = 1;
   } else {
-    iResult = CompareNoCase(pLHS->GetGroup(), pRHS->GetGroup());
+    iResult = CompareNoCase(pLHS_PCI->GetGroup(), pRHS_PCI->GetGroup());
     if (iResult == 0) {
-      iResult = CompareNoCase(pLHS->GetTitle(), pRHS->GetTitle());
+      iResult = CompareNoCase(pLHS_PCI->GetTitle(), pRHS_PCI->GetTitle());
       if (iResult == 0) {
-        iResult = CompareNoCase(pLHS->GetUser(), pRHS->GetUser());
+        iResult = CompareNoCase(pLHS_PCI->GetUser(), pRHS_PCI->GetUser());
       }
     }
   }
@@ -1887,15 +1551,13 @@ void CPWTreeCtrl::SortTree(const HTREEITEM htreeitem)
     return;
   }
 
-  // here iff user prefers "explorer type view", that is,
+  // Here iff user prefers "explorer type view", that is,
   // groups first.
-
-
-  // unbelievable, but we have to recurse ourselves!
+  // Unbelievable, but we have to recurse ourselves!
   // foreach child of hti
   //  if !IsLeaf
   //   SortTree(child)
-  if (hti == TVI_ROOT || !IsLeaf(hti)) {
+  if (hti == TVI_ROOT || !IsLeaf(this, hti)) {
     HTREEITEM hChildItem = GetChildItem(hti);
 
     while (hChildItem != NULL) {
@@ -1920,7 +1582,7 @@ void CPWTreeCtrl::SetFilterState(bool bState)
   SetTextColor(m_bFilterActive ? RGB(168, 0, 0) : RGB(0, 0, 0));
 }
 
-BOOL CPWTreeCtrl::OnEraseBkgnd(CDC* pDC)
+BOOL CPWTreeCtrl::OnEraseBkgnd(CDC *pDC)
 {
   if (m_bFilterActive && m_pDbx->GetNumPassedFiltering() == 0) {
     int nSavedDC = pDC->SaveDC(); //save the current DC state
@@ -1960,7 +1622,7 @@ BOOL CPWTreeCtrl::OnEraseBkgnd(CDC* pDC)
   return TRUE;
 }
 
-BOOL CPWTreeCtrl::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL* phGlobal)
+BOOL CPWTreeCtrl::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
 {
   if (m_hgDataALL != NULL) {
     pws_os::Trace(L"CPWTreeCtrl::OnRenderGlobalData - Unlock/Free m_hgDataALL\n");
@@ -2011,9 +1673,9 @@ BOOL CPWTreeCtrl::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL* phGlobal)
   return retval;
 }
     
-BOOL CPWTreeCtrl::RenderTextData(CLIPFORMAT &cfFormat, HGLOBAL* phGlobal)
+BOOL CPWTreeCtrl::RenderTextData(CLIPFORMAT &cfFormat, HGLOBAL *phGlobal)
 {
-  if (!IsLeaf(m_hitemDrag)) {
+  if (!IsLeaf(this, m_hitemDrag)) {
     pws_os::Trace(L"CPWTreeCtrl::RenderTextData - not a leaf!\n");
     return FALSE;
   }
@@ -2156,7 +1818,7 @@ bad_return:
     return retval;
 }
 
-BOOL CPWTreeCtrl::RenderAllData(HGLOBAL* phGlobal)
+BOOL CPWTreeCtrl::RenderAllData(HGLOBAL *phGlobal)
 {
   long lBufLen;
   BYTE *buffer = NULL;
@@ -2266,7 +1928,7 @@ CFont *CPWTreeCtrl::GetFontBasedOnStatus(HTREEITEM &hItem, CItemData *pci, COLOR
 {
   Fonts *pFonts = Fonts::GetInstance();
   if (pci == NULL) {
-    StringX path = GetGroup(hItem);
+    StringX path = GetGroupFullPath(this, hItem);
     if (m_pDbx->IsNodeModified(path)) {
       cf = pFonts->GetModified_Color();
       return pFonts->GetModifiedFont();
@@ -2341,28 +2003,4 @@ void CPWTreeCtrl::OnCustomDraw(NMHDR *pNotifyStruct, LRESULT *pLResult)
     default:
       break;
   }
-}
-
-HTREEITEM CPWTreeCtrl::FindItem(const CString &path, HTREEITEM hRoot)
-{
-  // check whether the current item is the searched one
-  CString cs_thispath = GetGroup(hRoot);// + GROUP_SEP2 + GetItemText(hRoot);
-  if (cs_thispath.Compare(path) == 0)
-    return hRoot; 
-
-  // get a handle to the first child item
-  HTREEITEM hSub = GetChildItem(hRoot);
-  // iterate as long a new item is found
-  while (hSub) {
-    // check the children of the current item
-    HTREEITEM hFound = FindItem(path, hSub);
-    if (hFound)
-      return hFound; 
-
-    // get the next sibling of the current item
-    hSub = GetNextSiblingItem(hSub);
-  } 
-
-  // return NULL if nothing was found
-  return NULL;
 }

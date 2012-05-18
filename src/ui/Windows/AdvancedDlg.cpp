@@ -314,8 +314,8 @@ BOOL CAdvancedDlg::OnInitDialog()
     Set(m_bsFields);
   }
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
 
   if (m_iIndex == FIND) {
     GetDlgItem(IDC_TREATWHITESPACEASEMPTY)->EnableWindow(FALSE);
@@ -393,8 +393,8 @@ void CAdvancedDlg::OnReset()
 {
   Set(m_bsDefaultSelectedFields);
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
   m_pLC_List->Invalidate();
   m_pLC_Selected->Invalidate();
 
@@ -561,8 +561,8 @@ void CAdvancedDlg::OnSelectSome()
     m_pLC_Selected->SetItemData(iItem, dw_data);
   }
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
 }
 
 void CAdvancedDlg::OnSelectAll()
@@ -583,7 +583,7 @@ void CAdvancedDlg::OnSelectAll()
   }
 
   m_pLC_List->DeleteAllItems();
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
 }
 
 void CAdvancedDlg::OnDeselectSome()
@@ -615,8 +615,8 @@ void CAdvancedDlg::OnDeselectSome()
     m_pLC_List->SetItemData(iItem, dw_data);
   }
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
-  m_pLC_Selected->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
+  m_pLC_Selected->SortItems(AdvCompareFunction, NULL);
 }
 
 void CAdvancedDlg::OnDeselectAll()
@@ -641,7 +641,7 @@ void CAdvancedDlg::OnDeselectAll()
     m_pLC_Selected->DeleteItem(i);
   }
 
-  m_pLC_List->SortItems(AdvCompareFunc, NULL);
+  m_pLC_List->SortItems(AdvCompareFunction, NULL);
 }
 
 void CAdvancedDlg::OnSelectedItemChanging(NMHDR *pNotifyStruct, LRESULT *pLResult)
@@ -668,8 +668,8 @@ BOOL CAdvancedDlg::PreTranslateMessage(MSG* pMsg)
   return CPWDialog::PreTranslateMessage(pMsg);
 }
 
-int CALLBACK CAdvancedDlg::AdvCompareFunc(LPARAM lParam1, LPARAM lParam2,
-                                          LPARAM /* closure */)
+int CALLBACK CAdvancedDlg::AdvCompareFunction(LPARAM lParam1, LPARAM lParam2,
+                                              LPARAM /* lParamSort */)
 {
   return (int)(lParam1 - lParam2);
 }

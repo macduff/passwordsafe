@@ -549,12 +549,13 @@ int PWScore::WriteXMLFile(const StringX &filename,
     ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
   }
 
-  if (!m_vEmptyGroups.empty()) {
+  if (!m_setEmptyGroups.empty()) {
     // Write out empty groups stored in database
     ostringstreamT os;
     os << "\t<EmptyGroups>" << endl;
-    for (size_t n = 0; n < m_vEmptyGroups.size(); n++) {
-      stringT sTemp = PWSUtil::GetSafeXMLString(m_vEmptyGroups[n]);
+    PathSetConstIter citer;
+    for (citer = m_setEmptyGroups.begin(); citer != m_setEmptyGroups.end(); citer++) {
+      stringT sTemp = PWSUtil::GetSafeXMLString(*citer);
       os << "\t\t<EGName>" << sTemp << "</EGName>" << endl;
     }
     os << "\t</EmptyGroups>" << endl << endl;

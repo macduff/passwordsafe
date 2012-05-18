@@ -16,6 +16,8 @@
 #define NUM_KEYS (IDC_VKBBTN_KBD51 - IDC_VKBBTN_KBD01 + 1)
 #define NUM_DIGITS (IDC_VKBBTN_N9 - IDC_VKBBTN_N0 + 1)
 
+#include "../WindowsDefs.h"
+
 #include "../ThisMfcApp.h"
 #include "../PWDialog.h"
 #include "../resource.h"
@@ -31,9 +33,6 @@ typedef OSK_API BOOL (* LP_OSK_GetKeyboardData) (UINT uiKLID, st_KBImpl &stKBImp
 typedef OSK_API int  (* LP_OSK_GetVersion) ();
 
 enum {USER_FONT, ARIALMS_FONT, ARIAL_FONT, LUCIDA_FONT};
-
-// See DboxMain.h as well, since all PWS messages are either defined or documented there
-#define PWS_MSG_INSERTBUFFER (WM_APP + 70)
 
 enum eJapanese {ENGLISH = 0, JAPANESE};    // Used for m_Kana
 enum eHK       {HIRAGANA = 0, KATAKANA};   // Used for m_Hiragana

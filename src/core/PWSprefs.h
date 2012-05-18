@@ -108,7 +108,7 @@ public:
     NumPWHistoryDefault, BackupSuffix, BackupMaxIncremented,
     PreExpiryWarnDays, ClosedTrayIconColour, PWDigitMinLength,
     PWLowercaseMinLength, PWSymbolMinLength, PWUppercaseMinLength,
-    OptShortcutColumnWidth, ShiftDoubleClickAction,
+    OptShortcutColumnWidth, ShiftDoubleClickAction, SplitterPosition,
     NumIntPrefs};
 
   enum StringPrefs {CurrentBackup, CurrentFile, LastView, DefaultUsername,

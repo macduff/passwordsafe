@@ -68,8 +68,7 @@ BOOL CColumnChooserLC::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
   if (!pDataObject->IsDataAvailable(m_ccddCPFID, NULL))
     return FALSE;
 
-  HGLOBAL hGlobal;
-  hGlobal = pDataObject->GetGlobalData(m_ccddCPFID);
+  HGLOBAL hGlobal = pDataObject->GetGlobalData(m_ccddCPFID);
 
   LPCWSTR pData = (LPCWSTR)GlobalLock(hGlobal);
   ASSERT(pData != NULL);
@@ -85,7 +84,7 @@ BOOL CColumnChooserLC::OnDrop(CWnd* /* pWnd */, COleDataObject* pDataObject,
 
   // Check if it is ours?
   // - we don't accept drop from other instances of PWS
-  // Check if it is from List View HeaderCtrl?
+  // Check if it is from LIST View HeaderCtrl?
   // - we don't accept drop from anything else
   if ((procID != GetCurrentProcessId()) || (iDDType != FROMHDR)) {
     GlobalUnlock(hGlobal);
@@ -167,7 +166,7 @@ void CColumnChooserLC::OnDestroy()
 int CALLBACK CColumnChooserLC::CCLCCompareProc(LPARAM lParam1, LPARAM lParam2,
                                                LPARAM /* lParamSort */)
 {
-  // lParamSort contains a pointer to the list view control.
+  // lParamSort contains a pointer to the LIST view control.
   // The lParam of an item is its type.
   if (lParam1 < lParam2)
     return -1;

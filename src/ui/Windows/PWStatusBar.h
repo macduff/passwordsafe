@@ -16,7 +16,7 @@ class CPWStatusBar : public CStatusBar
 {
   DECLARE_DYNAMIC(CPWStatusBar)
 
-  enum {SB_DBLCLICK = 0, SB_CLIPBOARDACTION,
+  enum {SB_DBLCLICK, SB_CLIPBOARDACTION,
 #if defined(_DEBUG) || defined(DEBUG)
         SB_CONFIG,
 #endif
@@ -47,11 +47,12 @@ protected:
 
 private:
   bool ShowToolTip(int nPane, const bool bVisible);
+  void CreateBitmapMask(CBitmap &bmColour, CBitmap *pbmMask, COLORREF crTransparent);
 
   CInfoDisplay *m_pSBToolTips;
   bool m_bFilterStatus;
   int m_bmHeight, m_bmWidth;
-  CBitmap m_FilterBitmap;
+  CBitmap m_bmFilter;
 
   UINT_PTR m_nHoverSBTimerID, m_nShowSBTimerID;
   CPoint m_HoverSBPoint;

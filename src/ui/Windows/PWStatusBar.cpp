@@ -10,6 +10,9 @@
 //
 
 #include "stdafx.h"
+
+#include "WindowsDefs.h"
+
 #include "PWStatusBar.h"
 
 #include "os/debug.h"
@@ -19,39 +22,23 @@
 
 // CPWStatusBar
 
-// Timer event numbers used by StatusBar for tooltips. See DboxMain.h
-#define TIMER_SB_HOVER     0x0C
-#define TIMER_SB_SHOWING   0x0D 
-
-/*
-HOVER_TIME_SB       The length of time the pointer must remain stationary
-                    within a tool's bounding rectangle before the tool tip
-                    window appears.
-
-TIMEINT_SB_SHOWING The length of time the tool tip window remains visible
-                   if the pointer is stationary within a tool's bounding
-                   rectangle.
-*/
-#define HOVER_TIME_SB      1000
-#define TIMEINT_SB_SHOWING 5000
-
 IMPLEMENT_DYNAMIC(CPWStatusBar, CStatusBar)
 
 CPWStatusBar::CPWStatusBar()
   : m_bFilterStatus(false), m_pSBToolTips(NULL), m_bUseToolTips(false),
   m_bMouseInWindow(false)
 {
-  m_FilterBitmap.LoadBitmap(IDB_FILTER_ACTIVE);
+  m_bmFilter.LoadBitmap(IDB_FILTER_ACTIVE);
   BITMAP bm;
 
-  m_FilterBitmap.GetBitmap(&bm);
+  m_bmFilter.GetBitmap(&bm);
   m_bmWidth = bm.bmWidth;
   m_bmHeight = bm.bmHeight;
 }
 
 CPWStatusBar::~CPWStatusBar()
 {
-  m_FilterBitmap.DeleteObject();
+  m_bmFilter.DeleteObject();
 }
 
 BEGIN_MESSAGE_MAP(CPWStatusBar, CStatusBar)
@@ -80,39 +67,41 @@ int CPWStatusBar::OnCreate(LPCREATESTRUCT pCreateStruct)
     m_bUseToolTips = true;
   }
 
+  // Set minimum height to take bitmaps (add 12.5% for space around it!)
+  GetStatusBarCtrl().SetMinHeight(m_bmHeight + (m_bmHeight / 4));
+
   return 0;
 }
 
 void CPWStatusBar::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
-  switch (lpDrawItemStruct->itemID) {
-    case SB_FILTER:
-      // Attach to a CDC object
-      CDC dc;
-      dc.Attach(lpDrawItemStruct->hDC);
+  if (lpDrawItemStruct->itemID == SB_FILTER) {
+    // Attach to a CDC object
+    CDC dc;
+    dc.Attach(lpDrawItemStruct->hDC);
+    
+    // Get the pane rectangle and calculate text coordinates
+    CRect rect(&lpDrawItemStruct->rcItem);
+    if (m_bFilterStatus) {
+      // Centre bitmap in pane.
+      int ileft = rect.left + rect.Width() / 2 - m_bmWidth / 2;
+      int itop = rect.top + rect.Height() / 2 - m_bmHeight / 2;
 
-      // Get the pane rectangle and calculate text coordinates
-      CRect rect(&lpDrawItemStruct->rcItem);
-      if (m_bFilterStatus) {
-        // Centre bitmap in pane.
-        int ileft = rect.left + rect.Width() / 2 - m_bmWidth / 2;
-        int itop = rect.top + rect.Height() / 2 - m_bmHeight / 2;
+      CBitmap *pBitmap = &m_bmFilter;
+      CDC srcDC; // select current bitmap into a compatible CDC
+      srcDC.CreateCompatibleDC(NULL);
+      CBitmap* pOldBitmap = srcDC.SelectObject(pBitmap);
+      dc.BitBlt(ileft, itop, m_bmWidth, m_bmHeight,
+                &srcDC, 0, 0, SRCCOPY); // BitBlt to pane rect
+      srcDC.SelectObject(pOldBitmap);
+    } else {
+      dc.FillSolidRect(&rect, ::GetSysColor(COLOR_BTNFACE));
+    }
+    // Detach from the CDC object, otherwise the hDC will be
+    // destroyed when the CDC object goes out of scope
+    dc.Detach();
 
-        CBitmap *pBitmap = &m_FilterBitmap;
-        CDC srcDC; // select current bitmap into a compatible CDC
-        srcDC.CreateCompatibleDC(NULL);
-        CBitmap* pOldBitmap = srcDC.SelectObject(pBitmap);
-        dc.BitBlt(ileft, itop, m_bmWidth, m_bmHeight,
-                  &srcDC, 0, 0, SRCCOPY); // BitBlt to pane rect
-        srcDC.SelectObject(pOldBitmap);
-      } else {
-        dc.FillSolidRect(&rect, ::GetSysColor(COLOR_BTNFACE));
-      }
-      // Detach from the CDC object, otherwise the hDC will be
-      // destroyed when the CDC object goes out of scope
-      dc.Detach();
-
-      return;
+    return;
   }
 
   CStatusBar::DrawItem(lpDrawItemStruct);
@@ -120,25 +109,20 @@ void CPWStatusBar::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 BOOL CPWStatusBar::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT *pResult)
 {
-  switch(message) {
-    case WM_NOTIFY:
-		{
-      NMHDR *pNMHDR = (NMHDR *)lParam;
-      if (NM_DBLCLK == pNMHDR->code) {
-        NMMOUSE* pNMMouse = (NMMOUSE *)lParam;
-        if (pNMMouse->dwItemSpec >= 0 &&
-            pNMMouse->dwItemSpec < (unsigned int)m_nCount) {
-          UINT uCommandId = GetItemID(pNMMouse->dwItemSpec);
-          // Only Interested in double-click on R-O or R/W indicator or filter bitmap
-          if (uCommandId == IDS_READ_ONLY || uCommandId == IDB_FILTER_ACTIVE)
-            GetParent()->SendMessage(WM_COMMAND, uCommandId, 0);
-        }
+  if (message== WM_NOTIFY) {
+    NMMOUSE *pNMMouse = reinterpret_cast<NMMOUSE *>(lParam);
+    if (pNMMouse->dwItemSpec >= 0 &&
+        pNMMouse->dwItemSpec < (unsigned int)m_nCount) {
+      UINT uCommandId;
+      if (pNMMouse->hdr.code== NM_DBLCLK) {
+        uCommandId = GetItemID(pNMMouse->dwItemSpec);
+        // Only interested in double-click on R-O or R/W indicator or filter bitmap
+        if (uCommandId == IDS_READ_ONLY || uCommandId == IDB_FILTER_ACTIVE)
+          GetParent()->SendMessage(WM_COMMAND, uCommandId, 0);
       }
-      break;
     }
-    default:
-      break;
   }
+
   return CStatusBar::OnChildNotify(message, wParam, lParam, pResult);
 }
 
@@ -153,15 +137,15 @@ bool CPWStatusBar::ShowToolTip(int nPane, const bool bVisible)
   }
 
   const UINT uiMsg[SB_TOTAL] =  {
-    IDS_SB_TT_DBCLICK    /* SB_DBLCLICK        */,
-    IDS_SB_TT_CBACTION   /* SB_CLIPBOARDACTION */,
+    IDS_SB_TT_DBCLICK      /* SB_DBLCLICK        */,
+    IDS_SB_TT_CBACTION     /* SB_CLIPBOARDACTION */,
 #if defined(_DEBUG) || defined(DEBUG)
-    IDS_SB_TT_CONFIG     /* SB_CONFIG          */,
+    IDS_SB_TT_CONFIG       /* SB_CONFIG          */,
 #endif
-    IDS_SB_TT_MODIFIED   /* SB_MODIFIED        */,
-    IDS_SB_TT_MODE       /* SB_READONLY        */,
-    IDS_SB_TT_NUMENTRIES /* SB_NUM_ENT         */,
-    IDS_SB_TT_FILTER     /* SB_FILTER          */};
+    IDS_SB_TT_MODIFIED     /* SB_MODIFIED        */,
+    IDS_SB_TT_MODE         /* SB_READONLY        */,
+    IDS_SB_TT_NUMENTRIES   /* SB_NUM_ENT         */,
+    IDS_SB_TT_FILTER       /* SB_FILTER          */};
 
   CString cs_ToolTip;
   cs_ToolTip.LoadString(uiMsg[nPane]);
@@ -281,4 +265,35 @@ LRESULT CPWStatusBar::OnMouseLeave(WPARAM, LPARAM)
   }
 
   return 0L;
+}
+
+void CPWStatusBar::CreateBitmapMask(CBitmap &bmImage, CBitmap *pbmMask, COLORREF crTransparent)
+{
+	CDC dcMem, dcMem2;
+
+  // Create a mask image of same size as original
+	pbmMask->CreateBitmap(m_bmWidth, m_bmHeight, 1, 1, NULL);
+
+  // Create Device Contexts
+	dcMem.CreateCompatibleDC(NULL);
+	dcMem2.CreateCompatibleDC(NULL);
+
+  // Select the images
+	CBitmap *pOldImage = dcMem.SelectObject(&bmImage);
+	CBitmap *pOldMask = dcMem2.SelectObject(pbmMask);
+
+  // Set the background colour
+	dcMem.SetBkColor(crTransparent);
+
+  // Create mask by selecting the image and then inverting it
+	dcMem2.BitBlt(0, 0, m_bmWidth, m_bmHeight, &dcMem, 0, 0, SRCCOPY);
+	dcMem.BitBlt(0, 0, m_bmWidth, m_bmHeight, &dcMem2, 0, 0, SRCINVERT);
+
+  // Put old bitmaps back into Device Contexts
+	dcMem.SelectObject(pOldImage);
+	dcMem2.SelectObject(pOldMask);
+
+  // Delete Device Contexts
+	dcMem.DeleteDC();
+	dcMem2.DeleteDC();
 }

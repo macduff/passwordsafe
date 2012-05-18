@@ -132,12 +132,12 @@ const PWSprefs::boolPref PWSprefs::m_bool_prefs[NumBoolPrefs] = {
 // Default value = -1 means set at runtime
 // Extra two values for Integer - min and max acceptable values (ignored if = -1)
 const PWSprefs::intPref PWSprefs::m_int_prefs[NumIntPrefs] = {
-  {_T("column1width"), static_cast<unsigned int>(-1), ptApplication, -1, -1},    // application
-  {_T("column2width"), static_cast<unsigned int>(-1), ptApplication, -1, -1},    // application
-  {_T("column3width"), static_cast<unsigned int>(-1), ptApplication, -1, -1},    // application
-  {_T("column4width"), static_cast<unsigned int>(-1), ptApplication, -1, -1},    // application
+  {_T("column1width"), static_cast<unsigned int>(-1), ptApplication, -1, -1}, // application
+  {_T("column2width"), static_cast<unsigned int>(-1), ptApplication, -1, -1}, // application
+  {_T("column3width"), static_cast<unsigned int>(-1), ptApplication, -1, -1}, // application
+  {_T("column4width"), static_cast<unsigned int>(-1), ptApplication, -1, -1}, // application
   {_T("sortedcolumn"), 0, ptApplication, 0, 15},                    // application
-  {_T("PWDefaultLength"), 12, ptDatabase, 4, 1024},                  // database
+  {_T("PWDefaultLength"), 12, ptDatabase, 4, 1024},                 // database
   // maxmruitems maximum = (ID_FILE_MRU_ENTRYMAX - ID_FILE_MRU_ENTRY1 + 1)
   {_T("maxmruitems"), 4, ptApplication, 0, 20},                     // application
   {_T("IdleTimeout"), 5, ptDatabase, 1, 120},                       // database
@@ -162,6 +162,8 @@ const PWSprefs::intPref PWSprefs::m_int_prefs[NumIntPrefs] = {
   {_T("OptShortcutColumnWidth"), 92, ptApplication, 10, 512},       // application
   {_T("ShiftDoubleClickAction"), DoubleClickCopyUsername, ptApplication,
                             minDCA, maxDCA},                        // application
+  {_T("SplitterPosition"), static_cast<unsigned int>(-1), ptApplication,
+                            -1, -1},                                // application
 };
 
 const PWSprefs::stringPref PWSprefs::m_string_prefs[NumStringPrefs] = {
@@ -1275,8 +1277,8 @@ bool PWSprefs::LoadProfileFromFile()
   // Defensive programming, if not "0", then "TRUE", all other values = FALSE
   for (i = 0; i < NumBoolPrefs; i++) {
     m_boolValues[i] = m_pXML_Config->Get(m_csHKCU_PREF,
-                                        m_bool_prefs[i].name,
-                                        m_bool_prefs[i].defVal) != 0;
+                                         m_bool_prefs[i].name,
+                                         m_bool_prefs[i].defVal) != 0;
   }
 
   { // encapsulate in braces to avoid compiler issues w.r.t.
@@ -1314,8 +1316,8 @@ bool PWSprefs::LoadProfileFromFile()
   // Defensive programming, if outside the permitted range, then set to default
   for (i = 0; i < NumIntPrefs; i++) {
     const int iVal = m_pXML_Config->Get(m_csHKCU_PREF,
-                                       m_int_prefs[i].name,
-                                       m_int_prefs[i].defVal);
+                                        m_int_prefs[i].name,
+                                        m_int_prefs[i].defVal);
 
     if (m_int_prefs[i].minVal != -1 && iVal < m_int_prefs[i].minVal)
       m_intValues[i] = m_int_prefs[i].defVal;
@@ -1324,12 +1326,19 @@ bool PWSprefs::LoadProfileFromFile()
     else m_intValues[i] = iVal;
   }
 
-  // Defensive programming not applicable.
+  // Defensive programming not applicable here
   for (i = 0; i < NumStringPrefs; i++) {
     m_stringValues[i] = m_pXML_Config->Get(m_csHKCU_PREF.c_str(),
-                                          m_string_prefs[i].name,
-                                          m_string_prefs[i].defVal).c_str();
+                                           m_string_prefs[i].name,
+                                           m_string_prefs[i].defVal).c_str();
   }
+
+  // But....this one has only 3 valid values
+  if (m_stringValues[LastView] != _T("tree") &&
+      m_stringValues[LastView] != _T("list") &&
+      m_stringValues[LastView] != _T("explorer"))
+    m_stringValues[LastView] = _T("tree");
+
 
   // Load last main window size & pos:
   m_rect.top = m_pXML_Config->Get(m_csHKCU_POS, _T("top"), -1);
