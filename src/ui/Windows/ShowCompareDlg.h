@@ -21,17 +21,21 @@
 
 class DboxMain;
 class PWScore;
+class CInfoDisplay;
 
 class CShowCompareDlg : public CPWDialog
 {
 
 public:
   // default constructor
-  CShowCompareDlg(CItemData *pci, CItemData *pci_other, CWnd *pParent);
+  CShowCompareDlg(CItemData *pci, CItemData *pci_other, CWnd *pParent,
+                  const bool bDifferentDBs);
   virtual ~CShowCompareDlg();
 
   pws_os::CUUID GetUUID();
   enum { IDD = IDD_SHOW_COMPARE };
+
+  bool SetNotesWindow(const CPoint ptClient, const bool bVisible = true);
 
 protected:
   virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
@@ -51,6 +55,9 @@ private:
   CSCWListCtrl m_ListCtrl;
   DboxMain *m_pDbx;
   CItemData *m_pci, *m_pci_other;
+  CInfoDisplay *m_pNotesDisplay;
+
+  bool m_bDifferentDB;
 
   std::vector<UINT> m_DCA;
 };

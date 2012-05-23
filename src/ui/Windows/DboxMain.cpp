@@ -797,7 +797,7 @@ void DboxMain::InitPasswordSafe()
   // Change all pixels in this 'grey' to transparent
   const COLORREF crTransparent = RGB(192, 192, 192);
 
-  bitmap.LoadBitmap(IDB_NODE);
+  bitmap.LoadBitmap(IDB_GROUP);
   bitmap.GetBitmap(&bm);
   
   m_pImageList = new CImageList();
@@ -814,7 +814,7 @@ void DboxMain::InitPasswordSafe()
 
   // Order of LoadBitmap() calls matches CPWTreeCtrl public enum
   // Also now used by CListCtrl!
-  //bitmap.LoadBitmap(IDB_NODE); - already loaded above to get width
+  //bitmap.LoadBitmap(IDB_GROUP); - already loaded above to get width
   m_pImageList->Add(&bitmap, crTransparent);
   bitmap.DeleteObject();
   UINT bitmapResIDs[] = {
@@ -823,6 +823,7 @@ void DboxMain::InitPasswordSafe()
     IDB_ALIAS,
     IDB_SBASE, IDB_SBASE_WARNEXPIRED, IDB_SBASE_EXPIRED,
     IDB_SHORTCUT,
+    IDB_EMPTY_GROUP
   };
 
   // Note shortcuts can not have attachments

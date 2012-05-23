@@ -229,19 +229,20 @@ public:
                const bool &bTreatWhiteSpaceasEmpty, const stringT &subgroup_name,
                const int &subgroup_object, const int &subgroup_function,
                CompareData &list_OnlyInCurrent, CompareData &list_OnlyInComp,
-               CompareData &list_Conflicts, CompareData &list_Identical);
+               CompareData &list_Conflicts, CompareData &list_Identical,
+               bool *pbCancel = NULL);
 
   stringT Merge(PWScore *pothercore,
                 const bool &subgroup_bset,
                 const stringT &subgroup_name,
                 const int &subgroup_object, const int &subgroup_function,
-                CReport *pRpt);
+                CReport *pRpt, bool *pbCancel = NULL);
 
   void Synchronize(PWScore *pothercore, 
                    const CItemData::FieldBits &bsFields, const bool &subgroup_bset,
                    const stringT &subgroup_name,
                    const int &subgroup_object, const int &subgroup_function,
-                   int &numUpdated, CReport *pRpt);
+                   int &numUpdated, CReport *pRpt, bool *pbCancel = NULL);
 
   // Export databases
   int WritePlaintextFile(const StringX &filename,
@@ -316,10 +317,17 @@ public:
                          const StringX &user, const int IDS_MESSAGE);
   // Get all password policy names
   void GetPolicyNames(std::vector<stringT> &vNames) const;
-  bool GetPolicyFromName(StringX sxPolicyName, st_PSWDPolicy &st_pp);
+  bool GetPolicyFromName(const StringX &sxPolicyName, PWPolicy &st_pp) const;
+  Command *ProcessPolicyName(PWScore *pothercore, CItemData &updtEntry,
+                             std::map<StringX, StringX> &mapRenamedPolicies,
+                             std::vector<StringX> &vs_PoliciesAdded,
+                             StringX &sxOtherPolicyName, bool &bUpdated,
+                             const StringX &sxDateTime, const UINT &IDS_MESSAGE);
+
+  // This routine should only be directly called from XML import
   void MakePolicyUnique(std::map<StringX, StringX> &mapRenamedPolicies,
-                        StringX &sxPolicyName, const StringX &sxMerge_DateTime,
-                        const int IDS_MESSAGE);
+                        StringX &sxPolicyName, const StringX &sxDateTime,
+                        const UINT IDS_MESSAGE);
 
   // Populate setGTU & setUUID from m_pwlist. Returns false & empty set if
   // m_pwlist had one or more entries with same GTU/UUID respectively.
@@ -459,12 +467,20 @@ public:
   // Password Policies
   bool IncrementPasswordPolicy(const StringX &sxPolicyName);
   bool DecrementPasswordPolicy(const StringX &sxPolicyName);
+
   const PSWDPolicyMap &GetPasswordPolicies()
   {return m_MapPSWDPLC;}
   void SetPasswordPolicies(const PSWDPolicyMap &MapPSWDPLC)
   {m_MapPSWDPLC = MapPSWDPLC; SetDBChanged(true);}
-  void AddPolicy(const StringX &sxPolicyName, const st_PSWDPolicy &st_pp,
+
+  void AddPolicy(const StringX &sxPolicyName, const PWPolicy &st_pp,
                  const bool bAllowReplace = false);
+
+  // Empty Groups
+  void SetEmptyGroups(const std::vector<StringX> &vEmptyGroups)
+  {m_vEmptyGroups = vEmptyGroups; SetDBChanged(true);}
+  const std::vector<StringX> &GetEmptyGroups() {return m_vEmptyGroups;}
+  bool IsEmptyGroup(const StringX &sxEmptyGroup);
 
 private:
   // Database update routines
@@ -509,6 +525,10 @@ private:
   virtual bool UnMarkAttachmentForDeletion(const ATRecord &atr);
   virtual void MarkAllAttachmentsForDeletion(const CUUID &entry_uuid);
   virtual void UnMarkAllAttachmentsForDeletion(const CUUID &entry_uuid);
+
+  virtual bool AddEmptyGroup(const StringX &sxEmptyGroup);
+  virtual bool RemoveEmptyGroup(const StringX &sxEmptyGroup);
+  virtual void RenameEmptyGroup(const StringX &sxOldPath, const StringX &sxNewPath);
 
   // End of Command Interface implementations
 
@@ -589,6 +609,9 @@ private:
   virtual void SetVnodesModified(const std::vector<StringX> &vnm)
   {m_vnodes_modified = vnm;}
   void AddChangedNodes(StringX path);
+
+  // EmptyGroups
+  std::vector<StringX> m_vEmptyGroups;
 
   UnknownFieldList m_UHFL;
   int m_nRecordsWithUnknownFields;

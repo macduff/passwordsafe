@@ -883,7 +883,7 @@ int PWScore::WriteAttachmentFile(const bool bCleanup, PWSAttfile::VERSION versio
 
   // Generate temporary name
   time(&time_now);
-  timestamp = PWSUtil::ConvertToDateTimeString(time_now, TMC_FILE).c_str();
+  timestamp = PWSUtil::ConvertToDateTimeString(time_now, PWSUtil::TMC_FILE).c_str();
   pws_os::splitpath(m_currfile.c_str(), sDrive, sDir, sName, sExt);
 
   tempfilename = sDrive + sDir + sName + timestamp +
@@ -1453,7 +1453,7 @@ int PWScore::DuplicateAttachments(const CUUID &old_entry_uuid,
 
   // Generate temporary names
   time(&time_now);
-  timestamp = PWSUtil::ConvertToDateTimeString(time_now, TMC_FILE).c_str();
+  timestamp = PWSUtil::ConvertToDateTimeString(time_now, PWSUtil::TMC_FILE).c_str();
   pws_os::splitpath(m_currfile.c_str(), sDrive, sDir, sName, sExt);
 
   tempfilename = sDrive + sDir + sName + timestamp +
@@ -1937,7 +1937,7 @@ int PWScore::SaveAttachmentFile(const stringT &tempfilename)
   time_t now;
 
   time(&now);
-  timestamp = PWSUtil::ConvertToDateTimeString(now, TMC_FILE).c_str();
+  timestamp = PWSUtil::ConvertToDateTimeString(now, PWSUtil::TMC_FILE).c_str();
 
   pws_os::splitpath(m_currfile.c_str(), sDrive, sDir, sName, sExt);
 
@@ -2091,7 +2091,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
   StringX tmp, temp;
 
   time(&time_now);
-  const StringX now = PWSUtil::ConvertToDateTimeString(time_now, TMC_XML);
+  const StringX now = PWSUtil::ConvertToDateTimeString(time_now, PWSUtil::TMC_XML);
 
   ofs << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   ofs << "<?xml-stylesheet type=\"text/xsl\" href=\"pwsafe.xsl\"?>" << endl;
@@ -2131,7 +2131,7 @@ int PWScore::WriteXMLAttachmentFile(const StringX &filename, ATFVector &vatf,
   }
   if (m_hdr.m_whenlastsaved != 0) {
     StringX wls = PWSUtil::ConvertToDateTimeString(m_hdr.m_whenlastsaved,
-                                                   TMC_XML);
+                                                   PWSUtil::TMC_XML);
     utf8conv.ToUTF8(wls, utf8, utf8Len);
     ofs << "WhenLastSaved=\"";
     ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
@@ -2436,7 +2436,7 @@ PWSAttfile *PWScore::CreateImportFile(stringT &impfilename, PWSAttfile::VERSION 
   int status;
 
   time(&time_now);
-  timestamp = PWSUtil::ConvertToDateTimeString(time_now, TMC_FILE).c_str();
+  timestamp = PWSUtil::ConvertToDateTimeString(time_now, PWSUtil::TMC_FILE).c_str();
   pws_os::splitpath(m_currfile.c_str(), sDrive, sDir, sName, sExt);
 
   impfilename = sDrive + sDir + sName + timestamp +
@@ -2476,7 +2476,7 @@ int PWScore::CompleteImportFile(const stringT &impfilename, PWSAttfile::VERSION 
 
   // Generate temporary names
   time(&time_now);
-  timestamp = PWSUtil::ConvertToDateTimeString(time_now, TMC_FILE).c_str();
+  timestamp = PWSUtil::ConvertToDateTimeString(time_now, PWSUtil::TMC_FILE).c_str();
   pws_os::splitpath(m_currfile.c_str(), sDrive, sDir, sName, sExt);
 
   tempfilename = sDrive + sDir + sName + timestamp +

@@ -27,7 +27,7 @@ CAddEdit_PropertySheet::CAddEdit_PropertySheet(UINT nID, CWnd* pParent,
                                                CItemData *pci_original, CItemData *pci,
                                                const bool bLongPPs,
                                                const StringX currentDB)
-  : CPWPropertySheet(nID, pParent), m_bIsModified(false), m_bChanged(false),
+  : CPWPropertySheet(nID, pParent, bLongPPs), m_bIsModified(false), m_bChanged(false),
   m_bNotesChanged(false), m_bSymbolsChanged(false),
 	m_bAttachmentsChanged(false), m_pp_basic(NULL),
   m_pp_additional(NULL), m_pp_datetimes(NULL), m_pp_pwpolicy(NULL), m_pp_attachments(NULL)
@@ -48,28 +48,7 @@ CAddEdit_PropertySheet::CAddEdit_PropertySheet(UINT nID, CWnd* pParent,
 
   PWSprefs *prefs = PWSprefs::GetInstance();
 
-  m_AEMD.default_pwp.Empty();
-  if (prefs->GetPref(PWSprefs::PWUseLowercase))
-    m_AEMD.default_pwp.flags |= PWSprefs::PWPolicyUseLowercase;
-  if (prefs->GetPref(PWSprefs::PWUseUppercase))
-    m_AEMD.default_pwp.flags |= PWSprefs::PWPolicyUseUppercase;
-  if (prefs->GetPref(PWSprefs::PWUseDigits))
-    m_AEMD.default_pwp.flags |= PWSprefs::PWPolicyUseDigits;
-  if (prefs->GetPref(PWSprefs::PWUseSymbols))
-    m_AEMD.default_pwp.flags |= PWSprefs::PWPolicyUseSymbols;
-  if (prefs->GetPref(PWSprefs::PWUseHexDigits))
-    m_AEMD.default_pwp.flags |= PWSprefs::PWPolicyUseHexDigits;
-  if (prefs->GetPref(PWSprefs::PWUseEasyVision))
-    m_AEMD.default_pwp.flags |= PWSprefs::PWPolicyUseEasyVision;
-  if (prefs->GetPref(PWSprefs::PWMakePronounceable))
-    m_AEMD.default_pwp.flags |= PWSprefs::PWPolicyMakePronounceable;
-
-  m_AEMD.default_pwp.length = prefs->GetPref(PWSprefs::PWDefaultLength);
-  m_AEMD.default_pwp.digitminlength = prefs->GetPref(PWSprefs::PWDigitMinLength);
-  m_AEMD.default_pwp.lowerminlength = prefs->GetPref(PWSprefs::PWLowercaseMinLength);
-  m_AEMD.default_pwp.symbolminlength = prefs->GetPref(PWSprefs::PWSymbolMinLength);
-  m_AEMD.default_pwp.upperminlength = prefs->GetPref(PWSprefs::PWUppercaseMinLength);
-  
+  m_AEMD.default_pwp = prefs->GetDefaultPolicy();
   m_AEMD.default_symbols = prefs->GetPref(PWSprefs::DefaultSymbols);
 
   // Set up data used by all Property Pages, as appropriate
@@ -616,7 +595,7 @@ void CAddEdit_PropertySheet::SetupInitialValues()
                                         m_AEMD.MaxPWHistory,
                                         num_err,
                                         m_AEMD.pwhistlist,
-                                        TMC_EXPORT_IMPORT) ? TRUE : FALSE;
+                                        PWSUtil::TMC_EXPORT_IMPORT) ? TRUE : FALSE;
   m_AEMD.oldNumPWHistory = m_AEMD.NumPWHistory = m_AEMD.pwhistlist.size();
   m_AEMD.oldSavePWHistory = m_AEMD.SavePWHistory = HasHistory;
 

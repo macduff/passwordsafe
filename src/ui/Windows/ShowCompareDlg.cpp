@@ -13,6 +13,7 @@
 #include "ShowCompareDlg.h"
 #include "PWHistDlg.h"
 #include "DboxMain.h"
+#include "InfoDisplay.h"
 
 #include "core/ItemData.h"
 #include "core/Util.h"
@@ -24,9 +25,11 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-CShowCompareDlg::CShowCompareDlg(CItemData *pci, CItemData *pci_other, CWnd *pParent)
+CShowCompareDlg::CShowCompareDlg(CItemData *pci, CItemData *pci_other, CWnd *pParent,
+                                 const bool bDifferentDB)
   : CPWDialog(CShowCompareDlg::IDD, pParent),
-  m_pci(pci), m_pci_other(pci_other), m_ShowIdenticalFields(BST_UNCHECKED)
+  m_pci(pci), m_pci_other(pci_other), m_ShowIdenticalFields(BST_UNCHECKED),
+  m_pNotesDisplay(NULL), m_bDifferentDB(bDifferentDB)
 {
   ASSERT(m_pci != NULL && m_pci_other != NULL && pParent != NULL);
   
@@ -66,6 +69,8 @@ BOOL CShowCompareDlg::OnInitDialog()
 {
   CPWDialog::OnInitDialog();
 
+  m_ListCtrl.Initialize();
+
   // Add grid lines
   m_ListCtrl.SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT |
                               m_ListCtrl.GetExtendedStyle());
@@ -80,6 +85,13 @@ BOOL CShowCompareDlg::OnInitDialog()
   m_ListCtrl.InsertColumn(2, cs_text);
 
   PopulateResults(false);
+
+  m_pNotesDisplay = new CInfoDisplay;
+  if (!m_pNotesDisplay->Create(0, 0, L"", this)) {
+    // failed
+    delete m_pNotesDisplay;
+    m_pNotesDisplay = NULL;
+  }
 
   return TRUE;
 }
@@ -100,6 +112,9 @@ void CShowCompareDlg::PopulateResults(const bool bShowAll)
     CItemData::CTIME, CItemData::PMTIME, CItemData::ATIME, CItemData::XTIME,
     CItemData::RMTIME, CItemData::XTIME_INT, CItemData::PWHIST, CItemData::NOTES
   };
+
+  StringX sxDefPolicyStr;
+  LoadAString(sxDefPolicyStr, IDSC_DEFAULT_POLICY);
 
   // Clear out contents
   m_ListCtrl.SetRedraw(FALSE);
@@ -281,6 +296,16 @@ void CShowCompareDlg::PopulateResults(const bool bShowAll)
     else
       sxValue2 = pci_other->GetFieldValue((CItemData::FieldType)i);
 
+    if (i == CItemData::POLICY && m_bDifferentDB) {
+      // If different databases and both policies are their respective defaults
+      // If these are not the same, force the difference to be shown by making one different
+      if (sxValue1.empty() && sxValue2.empty() && 
+          PWSprefs::GetInstance()->GetDefaultPolicy() !=
+          PWSprefs::GetInstance()->GetDefaultPolicy(m_bDifferentDB)) {
+        sxValue1 = L"-";
+      }
+    }
+
     // Always add group/title/user fields - otherwise only if different values
     // Unless user wants all fields
     if (bShowAll || sxValue1 != sxValue2) {
@@ -334,13 +359,43 @@ void CShowCompareDlg::PopulateResults(const bool bShowAll)
         if (i == CItemData::CTIME  || i == CItemData::ATIME || i == CItemData::XTIME ||
             i == CItemData::PMTIME || i == CItemData::RMTIME) {
           if (t1 != 0)
-            sxValue1 = PWSUtil::ConvertToDateTimeString(t1, TMC_EXPORT_IMPORT);
+            sxValue1 = PWSUtil::ConvertToDateTimeString(t1, PWSUtil::TMC_EXPORT_IMPORT);
           if (t2 != 0)
-            sxValue2 = PWSUtil::ConvertToDateTimeString(t2, TMC_EXPORT_IMPORT);
+            sxValue2 = PWSUtil::ConvertToDateTimeString(t2, PWSUtil::TMC_EXPORT_IMPORT);
         }
         if (i == CItemData::PROTECTED) {
           sxValue1 = sxValue1.empty() ? sxNo : sxYes;
           sxValue2 = sxValue2.empty() ? sxNo : sxYes;
+        }
+      }
+      if (i == CItemData::POLICY) {
+        PWPolicy pwp1, pwp2;
+        StringX sxPolicy1 = pci->GetPWPolicy();
+        StringX sxPolicy2 = pci_other->GetPWPolicy();
+
+        if (pci->GetPolicyName().empty()) {
+          if (sxPolicy1.empty()) {
+            pwp1 = PWSprefs::GetInstance()->GetDefaultPolicy();
+          }  else {
+            pci->GetPWPolicy(pwp1);
+          }
+          StringX sxTemp1 = pwp1.GetDisplayString();
+          if (sxPolicy1.empty())
+            Format(sxValue1, IDS_FORMAT_CMP_POLICY, sxTemp1.c_str(), sxDefPolicyStr.c_str());
+          else
+            sxValue1 = sxTemp1;
+        }
+        if (pci_other->GetPolicyName().empty()) {
+          if (sxPolicy2.empty()) {
+            pwp2 = PWSprefs::GetInstance()->GetDefaultPolicy(m_bDifferentDB);
+          }  else {
+            pci_other->GetPWPolicy(pwp2);
+          }   
+          StringX sxTemp2 = pwp2.GetDisplayString();
+          if (sxPolicy2.empty())
+            Format(sxValue2, IDS_FORMAT_CMP_POLICY, sxTemp2.c_str(), sxDefPolicyStr.c_str());
+          else
+            sxValue2 = sxTemp2;
         }
       }
       if (i == CItemData::PWHIST) {
@@ -350,12 +405,12 @@ void CShowCompareDlg::PopulateResults(const bool bShowAll)
                                       MaxPWHistory1,
                                       num_err1,
                                       pwhistlist1,
-                                      TMC_EXPORT_IMPORT);
+                                      PWSUtil::TMC_EXPORT_IMPORT);
         bool status2 = CreatePWHistoryList(sxValue2,
                                       MaxPWHistory2,
                                       num_err2,
                                       pwhistlist2,
-                                      TMC_EXPORT_IMPORT);
+                                      PWSUtil::TMC_EXPORT_IMPORT);
 
         // If any password history value is different - it must be red
         if (sxValue1 != sxValue2)
@@ -444,6 +499,8 @@ void CShowCompareDlg::PopulateResults(const bool bShowAll)
           dw |= CSCWListCtrl::REDTEXT;
         if (i == CItemData::PASSWORD)
           dw |= CSCWListCtrl::PASSWORDFONT;
+        if (i == CItemData::NOTES)
+          dw |= CSCWListCtrl::NOTES;
         m_ListCtrl.SetItemData(iPos, dw);
       }
     }
@@ -511,4 +568,57 @@ CString CShowCompareDlg::GetEntryTypeString(CItemData::EntryType et)
   }
   CString cs(MAKEINTRESOURCE(ui));
   return cs;
+}
+
+bool CShowCompareDlg::SetNotesWindow(const CPoint ptClient, const bool bVisible)
+{
+  CPoint ptScreen(ptClient);
+  StringX sx_notes(L"");
+
+  if (m_pNotesDisplay == NULL)
+    return false;
+
+  if (!bVisible) {
+    m_pNotesDisplay->SetWindowText(sx_notes.c_str());
+    m_pNotesDisplay->ShowWindow(SW_HIDE);
+    return false;
+  }
+
+  m_ListCtrl.ClientToScreen(&ptScreen);
+
+  LVHITTESTINFO lvhti;
+  lvhti.pt = ptClient;
+  int nItem = m_ListCtrl.SubItemHitTest(&lvhti);
+  
+  if (nItem == -1 ||
+      (m_ListCtrl.GetItemData(nItem) & CSCWListCtrl::NOTES) != CSCWListCtrl::NOTES)
+    return false;
+
+  switch (lvhti.iSubItem) {
+    case 1:
+    case 2:
+      sx_notes = m_ListCtrl.GetItemText(nItem, lvhti.iSubItem);
+      break;
+    default:
+      return false;
+  }
+
+  ptScreen.y += ::GetSystemMetrics(SM_CYCURSOR) / 2; // half-height of cursor
+
+  if (!sx_notes.empty()) {
+    Replace(sx_notes, StringX(L"\r\n"), StringX(L"\n"));
+    Remove(sx_notes, L'\r');
+  }
+
+  // move window
+  CString cs_oldnotes;
+  m_pNotesDisplay->GetWindowText(cs_oldnotes);
+  if (LPCWSTR(cs_oldnotes) != sx_notes)
+    m_pNotesDisplay->SetWindowText(sx_notes.c_str());
+
+  m_pNotesDisplay->SetWindowPos(NULL, ptScreen.x, ptScreen.y, 0, 0,
+                                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+  m_pNotesDisplay->ShowWindow(!sx_notes.empty() ? SW_SHOWNA : SW_HIDE);
+
+  return !sx_notes.empty();
 }

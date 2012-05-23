@@ -1087,6 +1087,7 @@
     <ClCompile Include="XML\MSXML\MAttSAX2Handlers.cpp" />
     <ClCompile Include="XML\MSXML\MAttValidator.cpp" />
     <ClCompile Include="XML\MSXML\MAttXMLProcessor.cpp" />
+    <ClCompile Include="pugixml\pugixml.cpp" />
     <ClCompile Include="PWSLog.cpp" />
     <ClCompile Include="XML\MSXML\MFileSAX2Handlers.cpp" />
     <ClCompile Include="XML\MSXML\MFileValidator.cpp" />
@@ -1110,9 +1111,6 @@
     <ClCompile Include="sha256.cpp" />
     <ClCompile Include="StringX.cpp" />
     <ClCompile Include="SysInfo.cpp" />
-    <ClCompile Include="tinyxml\tinyxml.cpp" />
-    <ClCompile Include="tinyxml\tinyxmlerror.cpp" />
-    <ClCompile Include="tinyxml\tinyxmlparser.cpp" />
     <ClCompile Include="TwoFish.cpp" />
     <ClCompile Include="UnknownField.cpp" />
     <ClCompile Include="UTF8Conv.cpp" />
@@ -1155,6 +1153,8 @@
     <ClInclude Include="XML\MSXML\MAttSAX2Handlers.h" />
     <ClInclude Include="XML\MSXML\MAttValidator.h" />
     <ClInclude Include="XML\MSXML\MAttXMLProcessor.h" />
+    <ClInclude Include="pugixml\pugiconfig.hpp" />
+    <ClInclude Include="pugixml\pugixml.hpp" />
     <ClInclude Include="PWSLog.h" />
     <ClInclude Include="XML\MSXML\MFileSAX2Handlers.h" />
     <ClInclude Include="XML\MSXML\MFileValidator.h" />
@@ -1181,8 +1181,6 @@
     <ClInclude Include="StringX.h" />
     <ClInclude Include="StringXStream.h" />
     <ClInclude Include="SysInfo.h" />
-    <ClInclude Include="tinyxml\tinystr.h" />
-    <ClInclude Include="tinyxml\tinyxml.h" />
     <ClInclude Include="trigram.h" />
     <ClInclude Include="TwoFish.h" />
     <ClInclude Include="UIinterface.h" />

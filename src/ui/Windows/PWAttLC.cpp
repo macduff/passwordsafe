@@ -500,16 +500,16 @@ void CPWAttLC::OnRButtonDown(UINT nFlags, CPoint point)
     wcscat_s(wcbuffer, sizeof(wcbuffer) / sizeof(wchar_t), L" KB");
     st_prop.usize =  wcbuffer;
     if (m_lct != NEW) {
-      sx_text = PWSUtil::ConvertToDateTimeString(pATR->dtime, TMC_LOCALE);
+      sx_text = PWSUtil::ConvertToDateTimeString(pATR->dtime, PWSUtil::TMC_LOCALE);
       st_prop.ddate = sx_text.c_str();
     } else {
       st_prop.ddate = L"n/a";
     }
-    sx_text = PWSUtil::ConvertToDateTimeString(pATR->mtime, TMC_LOCALE);
+    sx_text = PWSUtil::ConvertToDateTimeString(pATR->mtime, PWSUtil::TMC_LOCALE);
     st_prop.mdate = sx_text.c_str();
-    sx_text = PWSUtil::ConvertToDateTimeString(pATR->atime, TMC_LOCALE);
+    sx_text = PWSUtil::ConvertToDateTimeString(pATR->atime, PWSUtil::TMC_LOCALE);
     st_prop.adate = sx_text.c_str();
-    sx_text = PWSUtil::ConvertToDateTimeString(pATR->ctime, TMC_LOCALE);
+    sx_text = PWSUtil::ConvertToDateTimeString(pATR->ctime, PWSUtil::TMC_LOCALE);
     st_prop.cdate = sx_text.c_str();
     if (m_lct != NEW) {
       cs_text.Format(L"%08x", pATR->CRC);
@@ -964,7 +964,7 @@ void CPWAttLC::AddAttachment(const size_t &num, ATRecord &atr,
   SetItemText(newID, ncol, atr.path.c_str()); ncol++;
 
   if (m_lct == VIEW) {
-    sx_text = PWSUtil::ConvertToDateTimeString(atr.dtime, TMC_LOCALE);
+    sx_text = PWSUtil::ConvertToDateTimeString(atr.dtime, PWSUtil::TMC_LOCALE);
     SetItemText(newID, ncol, sx_text.c_str()); ncol++;
   }
 

@@ -400,7 +400,7 @@ void XMLAttHandlers::ValidateImportData(att_entry * &cur_entry)
         StringX str;
         time_t time_now;
         time(&time_now);
-        const StringX sx_now = PWSUtil::ConvertToDateTimeString(time_now, TMC_LOCALE);
+        const StringX sx_now = PWSUtil::ConvertToDateTimeString(time_now, PWSUtil::TMC_LOCALE);
         Format(str, IDSC_IMPORTTIMESTAMP, sx_now.c_str());
         cur_entry->atr.description += str;
         break;

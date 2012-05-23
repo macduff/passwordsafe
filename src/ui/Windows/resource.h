@@ -99,7 +99,7 @@
 #define IDB_ABASE                       231
 #define IDB_ABASE_EXPIRED               232
 #define IDB_ABASE_WARNEXPIRED           233
-#define IDB_NODE                        234
+#define IDB_GROUP                       234
 #define IDB_NORMAL                      235
 #define IDB_NORMAL_EXPIRED              236
 #define IDB_NORMAL_WARNEXPIRED          237
@@ -362,33 +362,34 @@
 #define IDR_POPCOMPAREENTRIES           521
 #define IDD_SHOW_COMPARE                522
 #define IDD_COMPARE_WITH                523
-#define IDD_ADDEDIT_ATTACHMENTS         524
-#define IDD_EXTRACT_ATTACHMENT          525
-#define IDD_VIEW_ATTACHMENTS            526
-#define IDB_UNCHECKEDA                  527
-#define IDB_VIEW_ATTACHMENTS_CLASSIC    528
-#define IDB_VIEW_ATTACHMENTS_NEW        529
-#define IDB_VIEW_ATTACHMENTS_NEW_D      530
-#define IDD_ATT_PROPERTIES              531
-#define IDR_POPATTACHMENTS              532
-#define IDD_ANIMATE                     533
-#define IDD_ADD_DESCRIPTION             534
-#define IDD_EXPORT_ATTACHMENT           535
-#define IDD_ADVANCED_ATT                536
-#define IDB_ATT_NORMAL                  537
-#define IDB_ATT_NORMAL_WARNEXPIRED      538
-#define IDB_ATT_NORMAL_EXPIRED          539
-#define IDB_ATT_ABASE                   540
-#define IDB_ATT_ABASE_WARNEXPIRED       541
-#define IDB_ATT_ABASE_EXPIRED           542
-#define IDB_ATT_ALIAS                   543
-#define IDB_ATT_SBASE                   544
-#define IDB_ATT_SBASE_WARNEXPIRED       545
-#define IDB_ATT_SBASE_EXPIRED           546
-#define IDB_UNCHECKEDA_D                547
-#define IDB_CHECKED_D                   548
-#define IDD_ATTPROGRESS                 549
-#define IDD_CONFIRMDELETE_DIALOGGRP     550
+#define IDB_EMPTY_GROUP                 524
+#define IDD_ADDEDIT_ATTACHMENTS         525
+#define IDD_EXTRACT_ATTACHMENT          526
+#define IDD_VIEW_ATTACHMENTS            527
+#define IDB_UNCHECKEDA                  528
+#define IDB_VIEW_ATTACHMENTS_CLASSIC    529
+#define IDB_VIEW_ATTACHMENTS_NEW        530
+#define IDB_VIEW_ATTACHMENTS_NEW_D      531
+#define IDD_ATT_PROPERTIES              532
+#define IDR_POPATTACHMENTS              533
+#define IDD_ANIMATE                     534
+#define IDD_ADD_DESCRIPTION             535
+#define IDD_EXPORT_ATTACHMENT           536
+#define IDD_ADVANCED_ATT                537
+#define IDB_ATT_NORMAL                  538
+#define IDB_ATT_NORMAL_WARNEXPIRED      539
+#define IDB_ATT_NORMAL_EXPIRED          540
+#define IDB_ATT_ABASE                   541
+#define IDB_ATT_ABASE_WARNEXPIRED       542
+#define IDB_ATT_ABASE_EXPIRED           543
+#define IDB_ATT_ALIAS                   544
+#define IDB_ATT_SBASE                   545
+#define IDB_ATT_SBASE_WARNEXPIRED       546
+#define IDB_ATT_SBASE_EXPIRED           547
+#define IDB_UNCHECKEDA_D                548
+#define IDB_CHECKED_D                   549
+#define IDD_ATTPROGRESS                 550
+#define IDD_CONFIRMDELETE_DIALOGGRP     551
 #define IDC_APPVERSION                  1000
 #define IDC_VERSION                     1001
 #define IDC_CREATE_DB                   1003
@@ -790,6 +791,7 @@
 #define IDC_CLEARPWHISTORY              1477
 #define IDC_UPDATEPROTECTEDPWH          1478
 #define IDC_SHOW_IDENTICAL_FIELDS       1479
+#define IDC_ABORT                       1480
 
 #define IDC_ADD_ATTACHMENT              7000
 #define IDC_DELETE_ATTACHMENT           7001
@@ -869,9 +871,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        551
+#define _APS_NEXT_RESOURCE_VALUE        552
 #define _APS_NEXT_COMMAND_VALUE         30001
-#define _APS_NEXT_CONTROL_VALUE         1480
+#define _APS_NEXT_CONTROL_VALUE         1481
 #define _APS_NEXT_SYMED_VALUE           166
 #endif
 #endif

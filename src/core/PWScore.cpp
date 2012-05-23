@@ -321,6 +321,9 @@ void PWScore::ClearData(void)
   // Clear out policies
   m_MapPSWDPLC.clear();
 
+  // Clear out Empty Groups
+  m_vEmptyGroups.clear();
+
   // Clear out commands
   ClearCommands();
 }
@@ -431,6 +434,7 @@ int PWScore::WriteFile(const StringX &filename, const bool bUpdateSig,
     out3->SetUnknownHeaderFields(m_UHFL);
     out3->SetFilters(m_MapFilters); // Give it the filters to write out
     out3->SetPasswordPolicies(m_MapPSWDPLC); // Give it the password policies to write out
+    out3->SetEmptyGroups(m_vEmptyGroups); // Give it the Empty Groups to write out
   }
 
   try { // exception thrown on write error
@@ -763,6 +767,10 @@ int PWScore::ReadFile(const StringX &a_filename, const StringX &a_passkey,
     m_MapPSWDPLC = in3->GetPasswordPolicies();
   }
 
+  if (in3 != NULL && !in3->GetEmptyGroups().empty()) {
+    m_vEmptyGroups = in3->GetEmptyGroups();
+  }
+
   m_nRecordsWithUnknownFields = in->GetNumRecordsWithUnknownFields();
   in->GetUnknownHeaderFields(m_UHFL);
   int closeStatus = in->Close(); // in V3 this checks integrity
@@ -941,7 +949,7 @@ bool PWScore::BackupCurFile(int maxNumIncBackups, int backupSuffix,
         time_t now;
         time(&now);
         StringX cs_datetime = PWSUtil::ConvertToDateTimeString(now,
-                                                               TMC_EXPORT_IMPORT);
+                                                               PWSUtil::TMC_EXPORT_IMPORT);
         cs_temp += _T("_");
         StringX nf = cs_temp.c_str() + 
                      cs_datetime.substr( 0, 4) +  // YYYY
@@ -1237,15 +1245,27 @@ void PWScore::GetPolicyNames(vector<stringT> &vNames) const
   }
 }
 
-bool PWScore::GetPolicyFromName(StringX sxPolicyName, st_PSWDPolicy &st_pp)
+bool PWScore::GetPolicyFromName(const StringX &sxPolicyName, PWPolicy &st_pp) const
 {
-  PSWDPolicyMapIter iter = m_MapPSWDPLC.find(sxPolicyName);
-  if (iter != m_MapPSWDPLC.end()) {
-    st_pp = iter->second;
+  // - An empty policy name is never valid.
+  ASSERT(!sxPolicyName.empty());
+
+  // - The default policy is not stored in the map (but read from preferences)
+  StringX sxDefPolicyStr;
+  LoadAString(sxDefPolicyStr, IDSC_DEFAULT_POLICY);
+
+  if (sxPolicyName == sxDefPolicyStr) {
+    st_pp = PWSprefs::GetInstance()->GetDefaultPolicy();
     return true;
   } else {
-    st_pp.Empty();
-    return false;
+    PSWDPolicyMapCIter iter = m_MapPSWDPLC.find(sxPolicyName);
+    if (iter != m_MapPSWDPLC.end()) {
+      st_pp = iter->second;
+      return true;
+    } else {
+      st_pp.Empty();
+      return false;
+    }
   }
 }
 
@@ -1265,7 +1285,7 @@ private:
 
 void PWScore::MakePolicyUnique(std::map<StringX, StringX> &mapRenamedPolicies,
                                StringX &sxPolicyName, const StringX &sxDateTime,
-                               const int IDS_MESSAGE)
+                               const UINT IDS_MESSAGE)
 {
   // 'mapRenamedPolicies' contains those policies already renamed. It will be
   // updated with any new name generated.
@@ -2847,7 +2867,7 @@ void PWScore::GetDBProperties(st_DBProperties &st_dbp)
   if (twls == 0) {
     LoadAString(st_dbp.whenlastsaved, IDSC_UNKNOWN);
   } else {
-    st_dbp.whenlastsaved = PWSUtil::ConvertToDateTimeString(twls, TMC_EXPORT_IMPORT);
+    st_dbp.whenlastsaved = PWSUtil::ConvertToDateTimeString(twls, PWSUtil::TMC_EXPORT_IMPORT);
   }
 
   if (m_hdr.m_lastsavedby.empty() && m_hdr.m_lastsavedon.empty()) {
@@ -3055,7 +3075,7 @@ bool PWScore::DecrementPasswordPolicy(const StringX &sxPolicyName)
   }
 }
 
-void PWScore::AddPolicy(const StringX &sxPolicyName, const st_PSWDPolicy &st_pp,
+void PWScore::AddPolicy(const StringX &sxPolicyName, const PWPolicy &st_pp,
                         const bool bAllowReplace)
 {
   bool bDoIt(false);
@@ -3071,4 +3091,42 @@ void PWScore::AddPolicy(const StringX &sxPolicyName, const st_PSWDPolicy &st_pp,
     m_MapPSWDPLC[sxPolicyName] = st_pp;
     SetDBChanged(true);
   }
+}
+
+bool PWScore::IsEmptyGroup(const StringX &sxEmptyGroup)
+{
+  return find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), sxEmptyGroup) != 
+                   m_vEmptyGroups.end();
+}
+
+bool PWScore::AddEmptyGroup(const StringX &sxEmptyGroup)
+{
+  if (find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), sxEmptyGroup) == 
+           m_vEmptyGroups.end()) {
+    m_vEmptyGroups.push_back(sxEmptyGroup);
+    return true;
+  } else
+    return false;
+}
+
+bool PWScore::RemoveEmptyGroup(const StringX &sxEmptyGroup)
+{
+  std::vector<StringX>::iterator iter;
+  iter = find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), sxEmptyGroup);
+
+  if (iter != m_vEmptyGroups.end()) {
+    m_vEmptyGroups.erase(iter);
+    return true;
+  } else
+    return false;
+}
+
+void PWScore::RenameEmptyGroup(const StringX &sxOldPath, const StringX &sxNewPath)
+{
+  std::vector<StringX>::iterator iter;
+  iter = find(m_vEmptyGroups.begin(), m_vEmptyGroups.end(), sxOldPath);
+  ASSERT(iter !=  m_vEmptyGroups.end());
+
+  m_vEmptyGroups.erase(iter);
+  m_vEmptyGroups.push_back(sxNewPath);
 }

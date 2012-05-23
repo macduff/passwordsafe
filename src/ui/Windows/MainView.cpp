@@ -223,109 +223,124 @@ int CALLBACK DboxMain::CompareFunc(LPARAM lParam1, LPARAM lParam2,
   ASSERT(self != NULL);
 
   const int nTypeSortColumn = self->m_iTypeSortColumn;
-  CItemData* pLHS = (CItemData *)lParam1;
-  CItemData* pRHS = (CItemData *)lParam2;
+  CItemData* pLHS_PCI = (CItemData *)lParam1;
+  CItemData* pRHS_PCI = (CItemData *)lParam2;
   StringX group1, group2;
   time_t t1, t2;
   int xint1, xint2;
 
-  int iResult;
+  int iResult(0);
   switch (nTypeSortColumn) {
     case CItemData::UUID:  // Image
-      iResult = (pLHS->GetEntryType() < pRHS->GetEntryType()) ? -1 : 1;
+      if (pLHS_PCI->GetEntryType() != pRHS_PCI->GetEntryType())
+        iResult = (pLHS_PCI->GetEntryType() < pRHS_PCI->GetEntryType()) ? -1 : 1;
       break;
     case CItemData::GROUP:
-      group1 = pLHS->GetGroup();
-      group2 = pRHS->GetGroup();
+      group1 = pLHS_PCI->GetGroup();
+      group2 = pRHS_PCI->GetGroup();
       if (group1.empty())  // root?
         group1 = L"\xff";
       if (group2.empty())  // root?
         group2 = L"\xff";
       iResult = CompareNoCase(group1, group2);
       if (iResult == 0) {
-        iResult = CompareNoCase(pLHS->GetTitle(), pRHS->GetTitle());
+        iResult = CompareNoCase(pLHS_PCI->GetTitle(), pRHS_PCI->GetTitle());
         if (iResult == 0) {
-          iResult = CompareNoCase(pLHS->GetUser(), pRHS->GetUser());
+          iResult = CompareNoCase(pLHS_PCI->GetUser(), pRHS_PCI->GetUser());
         }
       }
       break;
     case CItemData::TITLE:
-      iResult = CompareNoCase(pLHS->GetTitle(), pRHS->GetTitle());
+      iResult = CompareNoCase(pLHS_PCI->GetTitle(), pRHS_PCI->GetTitle());
       if (iResult == 0) {
-        iResult = CompareNoCase(pLHS->GetUser(), pRHS->GetUser());
+        iResult = CompareNoCase(pLHS_PCI->GetUser(), pRHS_PCI->GetUser());
       }
       break;
     case CItemData::USER:
-      iResult = CompareNoCase(pLHS->GetUser(), pRHS->GetUser());
+      iResult = CompareNoCase(pLHS_PCI->GetUser(), pRHS_PCI->GetUser());
       if (iResult == 0) {
-        iResult = CompareNoCase(pLHS->GetTitle(), pRHS->GetTitle());
+        iResult = CompareNoCase(pLHS_PCI->GetTitle(), pRHS_PCI->GetTitle());
       }
       break;
     case CItemData::NOTES:
-      iResult = CompareNoCase(pLHS->GetNotes(), pRHS->GetNotes());
+      iResult = CompareNoCase(pLHS_PCI->GetNotes(), pRHS_PCI->GetNotes());
       break;
     case CItemData::PASSWORD:
-      iResult = CompareNoCase(pLHS->GetPassword(), pRHS->GetPassword());
+      iResult = CompareNoCase(pLHS_PCI->GetPassword(), pRHS_PCI->GetPassword());
       break;
     case CItemData::URL:
-      iResult = CompareNoCase(pLHS->GetURL(), pRHS->GetURL());
+      iResult = CompareNoCase(pLHS_PCI->GetURL(), pRHS_PCI->GetURL());
       break;
     case CItemData::EMAIL:
-      iResult = CompareNoCase(pLHS->GetEmail(), pRHS->GetEmail());
+      iResult = CompareNoCase(pLHS_PCI->GetEmail(), pRHS_PCI->GetEmail());
       break;
     case CItemData::SYMBOLS:
-      iResult = CompareNoCase(pLHS->GetSymbols(), pRHS->GetSymbols());
+      iResult = CompareNoCase(pLHS_PCI->GetSymbols(), pRHS_PCI->GetSymbols());
       break;
     case CItemData::RUNCMD:
-      iResult = CompareNoCase(pLHS->GetRunCommand(), pRHS->GetRunCommand());
+      iResult = CompareNoCase(pLHS_PCI->GetRunCommand(), pRHS_PCI->GetRunCommand());
       break;
     case CItemData::AUTOTYPE:
-      iResult = CompareNoCase(pLHS->GetAutoType(), pRHS->GetAutoType());
+      iResult = CompareNoCase(pLHS_PCI->GetAutoType(), pRHS_PCI->GetAutoType());
       break;
     case CItemData::CTIME:
-      pLHS->GetCTime(t1);
-      pRHS->GetCTime(t2);
-      iResult = ((long) t1 < (long) t2) ? -1 : 1;
+      pLHS_PCI->GetCTime(t1);
+      pRHS_PCI->GetCTime(t2);
+      if (t1 != t2)
+        iResult = ((long)t1 < (long)t2) ? -1 : 1;
       break;
     case CItemData::PMTIME:
-      pLHS->GetPMTime(t1);
-      pRHS->GetPMTime(t2);
-      iResult = ((long) t1 < (long) t2) ? -1 : 1;
+      pLHS_PCI->GetPMTime(t1);
+      if (t1 == 0)
+        pLHS_PCI->GetCTime(t1);
+      pRHS_PCI->GetPMTime(t2);
+      if (t2 == 0)
+        pRHS_PCI->GetCTime(t2);
+      if (t1 != t2)
+        iResult = ((long)t1 < (long)t2) ? -1 : 1;
       break;
     case CItemData::ATIME:
-      pLHS->GetATime(t1);
-      pRHS->GetATime(t2);
-      iResult = ((long) t1 < (long) t2) ? -1 : 1;
+      pLHS_PCI->GetATime(t1);
+      pRHS_PCI->GetATime(t2);
+      if (t1 != t2)
+        iResult = ((long)t1 < (long)t2) ? -1 : 1;
       break;
     case CItemData::XTIME:
-      pLHS->GetXTime(t1);
-      pRHS->GetXTime(t2);
-      iResult = ((long) t1 < (long) t2) ? -1 : 1;
+      pLHS_PCI->GetXTime(t1);
+      pRHS_PCI->GetXTime(t2);
+      if (t1 != t2)
+        iResult = ((long)t1 < (long)t2) ? -1 : 1;
       break;
     case CItemData::XTIME_INT:
-      pLHS->GetXTimeInt(xint1);
-      pRHS->GetXTimeInt(xint2);
-      iResult = (xint1 < xint2) ? -1 : 1;
+      pLHS_PCI->GetXTimeInt(xint1);
+      pRHS_PCI->GetXTimeInt(xint2);
+      if (xint1 != xint2)
+        iResult = (xint1 < xint2) ? -1 : 1;
       break;
     case CItemData::RMTIME:
-      pLHS->GetRMTime(t1);
-      pRHS->GetRMTime(t2);
-      iResult = ((long) t1 < (long) t2) ? -1 : 1;
+      pLHS_PCI->GetRMTime(t1);
+      if (t1 == 0)
+        pLHS_PCI->GetCTime(t1);
+      pRHS_PCI->GetRMTime(t2);
+      if (t2 == 0)
+        pRHS_PCI->GetCTime(t2);
+      if (t1 != t2)
+        iResult = ((long)t1 < (long)t2) ? -1 : 1;
       break;
     case CItemData::POLICY:
-      iResult = CompareNoCase(pLHS->GetPWPolicy(), pRHS->GetPWPolicy());
+      iResult = CompareNoCase(pLHS_PCI->GetPWPolicy(), pRHS_PCI->GetPWPolicy());
       break;
     case CItemData::POLICYNAME:
-      iResult = CompareCase(pLHS->GetPolicyName(), pRHS->GetPolicyName());
+      iResult = CompareCase(pLHS_PCI->GetPolicyName(), pRHS_PCI->GetPolicyName());
       break;
     case CItemData::PROTECTED:
-      iResult = pLHS->IsProtected() ? 1 : (pRHS->IsProtected() ? -1 : 1);
+      if (pLHS_PCI->IsProtected() != pRHS_PCI->IsProtected())
+        iResult = pLHS_PCI->IsProtected() ? 1 : -1;
       break;
     default:
-      iResult = 0; // should never happen - just keep compiler happy
       ASSERT(FALSE);
   }
-  if (!self->m_bSortAscending) {
+  if (!self->m_bSortAscending && iResult != 0) {
     iResult *= -1;
   }
   return iResult;
@@ -768,7 +783,7 @@ size_t DboxMain::FindAll(const CString &str, BOOL CaseSensitive,
         size_t pwh_max, err_num;
         PWHistList pwhistlist;
         CreatePWHistoryList(curitem.GetPWHistory(), pwh_max, err_num,
-                            pwhistlist, TMC_XML);
+                            pwhistlist, PWSUtil::TMC_XML);
         PWHistList::iterator iter;
         for (iter = pwhistlist.begin(); iter != pwhistlist.end();
              iter++) {
@@ -988,6 +1003,13 @@ void DboxMain::RefreshViews(const int iView)
       if (pdi != NULL)
         pdi->list_index = -1; // easier, but less efficient, to delete pdi
       InsertItemIntoGUITreeList(ci, -1, false, iView);
+    }
+
+    // Need to add any empty groups into the view
+    std::vector<StringX> vEmptyGroups = m_core.GetEmptyGroups();
+    for (size_t n = 0; n < vEmptyGroups.size(); n++) {
+      bool bAlreadyExists;
+      m_ctlItemTree.AddGroup(vEmptyGroups[n].c_str(), bAlreadyExists);
     }
 
     m_ctlItemTree.SortTree(TVI_ROOT);
@@ -1504,16 +1526,39 @@ int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex,
     StringX strTemp = strNotes.substr(0, iEOL);
     strNotes = strTemp;
   }
-  StringX cs_fielddata;
+  StringX sx_fielddata;
 
   if (iView & iListOnly) {
     // Insert the first column data
     if (m_bImageInLV)
-      cs_fielddata = L"";
-    else
-      cs_fielddata = ci.GetFieldValue((CItemData::FieldType)m_nColumnTypeByIndex[0]);
+      sx_fielddata = L"";
+    else {
+      time_t t;
+      const CItemData::FieldType ft = (CItemData::FieldType)m_nColumnTypeByIndex[0];
+      switch (ft) {
+        case CItemData::PMTIME:
+          ci.GetPMTime(t);
+          if ((long)t == 0)
+            sx_fielddata = ci.GetCTimeL();
+          break;
+        case CItemData::RMTIME:
+          ci.GetPMTime(t);
+          if ((long)t == 0)
+            sx_fielddata = ci.GetCTimeL();
+          break;
+        case CItemData::POLICY:
+        {
+          PWPolicy pwp;
+          ci.GetPWPolicy(pwp);
+          sx_fielddata = pwp.GetDisplayString();
+          break;
+        }
+        default:
+          sx_fielddata = ci.GetFieldValue(ft);
+      }
+    }
 
-    iResult = m_ctlItemList.InsertItem(iResult, cs_fielddata.c_str());
+    iResult = m_ctlItemList.InsertItem(iResult, sx_fielddata.c_str());
 
     if (iResult < 0) {
       // TODO: issue error here...
@@ -1567,13 +1612,38 @@ int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex,
         line1 += L"[>>>]";
     }
 
+    time_t t;
+    const StringX sxUnknown = PWSUtil::UNKNOWN_ASC_TIME_STR;
     for (int i = 1; i < m_nColumns; i++) {
-      if ((CItemData::FieldType)m_nColumnTypeByIndex[i] == CItemData::NOTES)
-        cs_fielddata = line1;
-      else
-        cs_fielddata = ci.GetFieldValue((CItemData::FieldType)m_nColumnTypeByIndex[i]);
+      const CItemData::FieldType ft = (CItemData::FieldType)m_nColumnTypeByIndex[i];
+      switch (ft) {
+        case CItemData::NOTES:
+          sx_fielddata = line1;
+          break;
+        case CItemData::CTIME:
+          ci.GetCTime(t);
+          sx_fielddata = ((long)t == 0) ? sxUnknown : ci.GetCTimeL();
+          break;
+        case CItemData::PMTIME:
+          ci.GetPMTime(t);
+          sx_fielddata = ((long)t == 0) ? ci.GetCTimeL() : ci.GetPMTimeL();
+          break;
+        case CItemData::RMTIME:
+          ci.GetRMTime(t);
+          sx_fielddata = ((long)t == 0) ? ci.GetCTimeL() : ci.GetRMTimeL();
+          break;
+        case CItemData::POLICY:
+        {
+          PWPolicy pwp;
+          ci.GetPWPolicy(pwp);
+          sx_fielddata = pwp.GetDisplayString();
+          break;
+        }
+        default:
+          sx_fielddata = ci.GetFieldValue(ft);
+      }
 
-      m_ctlItemList.SetItemText(iResult, i, cs_fielddata.c_str());
+      m_ctlItemList.SetItemText(iResult, i, sx_fielddata.c_str());
     }
 
     m_ctlItemList.SetItemData(iResult, (DWORD_PTR)&ci);
@@ -2422,11 +2492,11 @@ void DboxMain::SetColumns()
   CRect rect;
   m_ctlItemList.GetClientRect(&rect);
   int i1stWidth = prefs->GetPref(PWSprefs::Column1Width,
-                                 (rect.Width() / 3 + rect.Width() % 3));
+                                 (rect.Width() / 3 + rect.Width() % 3), false);
   int i2ndWidth = prefs->GetPref(PWSprefs::Column2Width,
-                                 rect.Width() / 3);
+                                 rect.Width() / 3, false);
   int i3rdWidth = prefs->GetPref(PWSprefs::Column3Width,
-                                 rect.Width() / 3);
+                                 rect.Width() / 3, false);
 
   cs_header = GetHeaderText(CItemData::TITLE);
   m_ctlItemList.InsertColumn(0, cs_header);
@@ -2453,7 +2523,7 @@ void DboxMain::SetColumns()
     m_LVHdrCtrl.SetItem(3, &hdi);
     m_ctlItemList.SetColumnWidth(3,
                                  PWSprefs::GetInstance()->GetPref(PWSprefs::Column4Width,
-                                 rect.Width() / 4));
+                                 rect.Width() / 4, false));
   }
 
   int ioff = 3;
@@ -3689,11 +3759,11 @@ HICON DboxMain::GetEntryIcon(const int nImage) const
   return hIcon;
 }
 
-bool DboxMain::SetNotesWindow(const CPoint point, const bool bVisible)
+bool DboxMain::SetNotesWindow(const CPoint ptClient, const bool bVisible)
 {
   const CItemData *pci(NULL);
-  CPoint target(point);
-  StringX cs_notes(L"");
+  CPoint ptScreen(ptClient);
+  StringX sx_notes(L"");
   UINT nFlags;
   HTREEITEM hItem(NULL);
   int nItem(-1);
@@ -3702,52 +3772,52 @@ bool DboxMain::SetNotesWindow(const CPoint point, const bool bVisible)
     return false;
 
   if (!bVisible) {
-    m_pNotesDisplay->SetWindowText(cs_notes.c_str());
+    m_pNotesDisplay->SetWindowText(sx_notes.c_str());
     m_pNotesDisplay->ShowWindow(SW_HIDE);
     return false;
   }
 
   if (m_ctlItemTree.IsWindowVisible()) {
-    m_ctlItemTree.ClientToScreen(&target);
-    hItem = m_ctlItemTree.HitTest(point, &nFlags);
+    m_ctlItemTree.ClientToScreen(&ptScreen);
+    hItem = m_ctlItemTree.HitTest(ptClient, &nFlags);
     if (hItem != NULL &&
         (nFlags & (TVHT_ONITEM | TVHT_ONITEMBUTTON | TVHT_ONITEMINDENT))) {
       pci = (CItemData *)m_ctlItemTree.GetItemData(hItem);
     }
   } else {
-    m_ctlItemList.ClientToScreen(&target);
-    nItem = m_ctlItemList.HitTest(point, &nFlags);
+    m_ctlItemList.ClientToScreen(&ptScreen);
+    nItem = m_ctlItemList.HitTest(ptClient, &nFlags);
     if (nItem >= 0) {
       pci = (CItemData *)m_ctlItemList.GetItemData(nItem);
     }
   }
-  target.y += ::GetSystemMetrics(SM_CYCURSOR) / 2; // half-height of cursor
+  ptScreen.y += ::GetSystemMetrics(SM_CYCURSOR) / 2; // half-height of cursor
 
   if (pci != NULL) {
     if (pci->IsShortcut())
       pci = GetBaseEntry(pci);
-    cs_notes = pci->GetNotes();
+    sx_notes = pci->GetNotes();
   }
 
-  if (!cs_notes.empty()) {
-    Replace(cs_notes, StringX(L"\r\n"), StringX(L"\n"));
-    Remove(cs_notes, L'\r');
+  if (!sx_notes.empty()) {
+    Replace(sx_notes, StringX(L"\r\n"), StringX(L"\n"));
+    Remove(sx_notes, L'\r');
 
-    if (cs_notes.length() > 256)
-      cs_notes = cs_notes.substr(0, 250) + L"[...]";
+    if (sx_notes.length() > 256)
+      sx_notes = sx_notes.substr(0, 250) + L"[...]";
   }
 
   // move window
   CString cs_oldnotes;
   m_pNotesDisplay->GetWindowText(cs_oldnotes);
-  if (LPCWSTR(cs_oldnotes) != cs_notes)
-    m_pNotesDisplay->SetWindowText(cs_notes.c_str());
+  if (LPCWSTR(cs_oldnotes) != sx_notes)
+    m_pNotesDisplay->SetWindowText(sx_notes.c_str());
 
-  m_pNotesDisplay->SetWindowPos(NULL, target.x, target.y, 0, 0,
+  m_pNotesDisplay->SetWindowPos(NULL, ptScreen.x, ptScreen.y, 0, 0,
                                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-  m_pNotesDisplay->ShowWindow(!cs_notes.empty() ? SW_SHOWNA : SW_HIDE);
+  m_pNotesDisplay->ShowWindow(!sx_notes.empty() ? SW_SHOWNA : SW_HIDE);
 
-  return !cs_notes.empty();
+  return !sx_notes.empty();
 }
 
 CItemData *DboxMain::GetLastSelected() const
@@ -3976,7 +4046,56 @@ void DboxMain::RefreshEntryFieldInGUI(CItemData &ci, CItemData::FieldType ft)
   // For when any field is updated
   DisplayInfo *pdi = (DisplayInfo *)ci.GetDisplayInfo();
 
-  UpdateListItem(pdi->list_index, ft, ci.GetFieldValue(ft));
+  StringX sx_fielddata;
+  const StringX sxUnknown = PWSUtil::UNKNOWN_ASC_TIME_STR;
+  time_t t;
+
+  switch (ft) {
+    case CItemData::NOTES:
+    {
+      StringX sxnotes, line1(L"");
+      sxnotes = ci.GetNotes();
+      if (!sxnotes.empty()) {
+        StringX::size_type end;
+        const StringX delim = L"\r\n";
+        end = sxnotes.find(delim, 0);
+        line1 = sxnotes.substr(0, 
+                      (end == StringX::npos) ? StringX::npos : end);
+
+        // If more than one line, add '[>>>]' to end of this line
+        // Note CHeaderStrl adds the normal ellipsis '...' (without square
+        // brackets) if the text doesn't fit in the cell.  Use this to show
+        // more lines rather than more text in the first line.
+        if (end != StringX::npos)
+          line1 += L"[>>>]";
+      }
+      sx_fielddata = line1;
+      break;
+    }
+    case CItemData::CTIME:
+      ci.GetCTime(t);
+      sx_fielddata = ((long)t == 0) ? sxUnknown : ci.GetCTimeL();
+      break;
+    case CItemData::PMTIME:
+      ci.GetPMTime(t);
+      sx_fielddata = ((long)t == 0) ? ci.GetCTimeL() : ci.GetPMTimeL();
+      break;
+    case CItemData::RMTIME:
+      ci.GetRMTime(t);
+      sx_fielddata = ((long)t == 0) ? ci.GetCTimeL() : ci.GetRMTimeL();
+      break;
+    case CItemData::POLICY:
+    {
+      PWPolicy pwp;
+      ci.GetPWPolicy(pwp);
+      sx_fielddata = pwp.GetDisplayString();
+      break;
+    }
+    default:
+      sx_fielddata = ci.GetFieldValue(ft);
+  }
+
+  UpdateListItem(pdi->list_index, ft, sx_fielddata);
 
   if (ft == CItemData::GROUP || m_bFilterActive) {
     RefreshViews();
@@ -4401,16 +4520,21 @@ void DboxMain::GetAllGroups(std::vector<std::wstring> &vGroups) const
   }
 }
 
-bool DboxMain::LongPPs()
+bool DboxMain::LongPPs(CWnd *pWnd)
 {
   // Based on current screen height, decide if we want to display.
   // The normal "tall/long" page, or the "wide/short" version (for netbooks)
   MONITORINFO mi;
   mi.cbSize = sizeof(mi);
   GetMonitorInfo(MonitorFromWindow(GetSafeHwnd(), MONITOR_DEFAULTTONEAREST), &mi);
-  const int Y = abs(mi.rcWork.bottom - mi.rcWork.top);
+  const int YM = abs(mi.rcWork.bottom - mi.rcWork.top);
 
-  return (Y > 600); // THRESHOLD = 600 - pixels or virtual-screen coordinates?
+  // This is the main dialog - not the one we need to ask about!
+  CRect rect;
+  pWnd->GetWindowRect(&rect);
+  const int YD = abs(rect.bottom - rect.top);
+
+  return (YM > YD);
 }
 
 bool DboxMain::GetShortCut(const unsigned int &uiMenuItem,
@@ -4436,4 +4560,3 @@ bool DboxMain::GetShortCut(const unsigned int &uiMenuItem,
 
   return true;
 }
- 

@@ -427,7 +427,8 @@ int PWScore::WriteXMLFile(const StringX &filename,
                           const CItemData::FieldBits &bsFields,
                           const stringT &subgroup_name,
                           const int &subgroup_object, const int &subgroup_function,
-                          const TCHAR &delimiter, int &numExported, const OrderedItemList *il,
+                          const TCHAR &delimiter, int &numExported,
+                          const OrderedItemList *il,
                           const bool &bFilterActive, CReport *pRpt)
 {
   numExported = 0;
@@ -454,7 +455,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
   time_t time_now;
 
   time(&time_now);
-  const StringX now = PWSUtil::ConvertToDateTimeString(time_now, TMC_XML);
+  const StringX now = PWSUtil::ConvertToDateTimeString(time_now, PWSUtil::TMC_XML);
 
   ofs << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   ofs << "<?xml-stylesheet type=\"text/xsl\" href=\"pwsafe.xsl\"?>" << endl;
@@ -500,7 +501,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
   }
   if (m_hdr.m_whenlastsaved != 0) {
     StringX wls = PWSUtil::ConvertToDateTimeString(m_hdr.m_whenlastsaved,
-                                                   TMC_XML);
+                                                   PWSUtil::TMC_XML);
     conv.ToUTF8(wls, utf8, utf8Len);
     ofs << "WhenLastSaved=\"";
     ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
@@ -523,7 +524,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
   fwrite(ofs.str().c_str(), 1, ofs.str().length(), xmlfile);
   ofs.str("");
 
-  // write out preferences stored in database
+  // Write out preferences stored in database
   LoadAString(cs_temp, IDSC_XMLEXP_PREFERENCES);
   oss_xml << _T(" <!-- ") << cs_temp << _T(" --> ");
   conv.ToUTF8(oss_xml.str(), utf8, utf8Len);
@@ -537,7 +538,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
 
   stringT pwpolicies = GetXMLPWPolicies();
   if (!pwpolicies.empty()) {
-    // write out password policies stored in database
+    // Write out password policies stored in database
     LoadAString(cs_temp, IDSC_XMLEXP_POLICIES);
     oss_xml << _T(" <!-- ") << cs_temp << _T(" --> ");
     conv.ToUTF8(oss_xml.str(), utf8, utf8Len);
@@ -546,6 +547,19 @@ int PWScore::WriteXMLFile(const StringX &filename,
     oss_xml.str(_T(""));  // Clear buffer for next user
 
     conv.ToUTF8(pwpolicies.c_str(), utf8, utf8Len);
+    ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
+  }
+
+  if (!m_vEmptyGroups.empty()) {
+    // Write out empty groups stored in database
+    ostringstreamT os;
+    os << "\t<EmptyGroups>" << endl;
+    for (size_t n = 0; n < m_vEmptyGroups.size(); n++) {
+      stringT sTemp = PWSUtil::GetSafeXMLString(m_vEmptyGroups[n]);
+      os << "\t\t<EGName>" << sTemp << "</EGName>" << endl;
+    }
+    os << "\t</EmptyGroups>" << endl << endl;
+    conv.ToUTF8(os.str().c_str(), utf8, utf8Len);
     ofs.write(reinterpret_cast<const char *>(utf8), utf8Len);
   }
 
@@ -2232,28 +2246,28 @@ stringT PWScore::GetXMLPWPolicies()
     stringT sTemp = PWSUtil::GetSafeXMLString(iter->first);
     os << "\t\t\t<PWName>" << sTemp << "</PWName>" << endl;
 
-    os << "\t\t\t<PWDefaultLength>" << iter->second.pwp.length <<
+    os << "\t\t\t<PWDefaultLength>" << iter->second.length <<
           "</PWDefaultLength>" << endl;
 
-    if (iter->second.pwp.flags & PWSprefs::PWPolicyUseLowercase)
+    if (iter->second.flags & PWPolicy::UseLowercase)
       os << "\t\t\t<PWUseLowercase>1</PWUseLowercase>" << endl;
 
-    if (iter->second.pwp.flags & PWSprefs::PWPolicyUseUppercase)
+    if (iter->second.flags & PWPolicy::UseUppercase)
       os << "\t\t\t<PWUseUppercase>1</PWUseUppercase>" << endl;
 
-    if (iter->second.pwp.flags & PWSprefs::PWPolicyUseDigits)
+    if (iter->second.flags & PWPolicy::UseDigits)
       os << "\t\t\t<PWUseDigits>1</PWUseDigits>" << endl;
 
-    if (iter->second.pwp.flags & PWSprefs::PWPolicyUseSymbols)
+    if (iter->second.flags & PWPolicy::UseSymbols)
       os << "\t\t\t<PWUseSymbols>1</PWUseSymbols>" << endl;
 
-    if (iter->second.pwp.flags & PWSprefs::PWPolicyUseHexDigits)
+    if (iter->second.flags & PWPolicy::UseHexDigits)
       os << "\t\t\t<PWUseHexDigits>1</PWUseHexDigits>" << endl;
 
-    if (iter->second.pwp.flags & PWSprefs::PWPolicyUseEasyVision)
+    if (iter->second.flags & PWPolicy::UseEasyVision)
       os << "\t\t\t<PWUseEasyVision>1</PWUseEasyVision>" << endl;
 
-    if (iter->second.pwp.flags & PWSprefs::PWPolicyMakePronounceable)
+    if (iter->second.flags & PWPolicy::MakePronounceable)
       os << "\t\t\t<PWMakePronounceable>1</PWMakePronounceable>" << endl;
 
     if (!iter->second.symbols.empty()) {

@@ -52,6 +52,7 @@ using namespace std;
 #endif
 #include <wx/snglinst.h>
 #include "../../core/PWSLog.h"
+#include "./pwsmenushortcuts.h"
 
 #ifdef __WXMSW__
 #include <wx/msw/msvcrt.h>
@@ -391,6 +392,10 @@ int PwsafeApp::OnExit()
     prefs->SetPref(PWSprefs::CurrentFile, m_core.GetCurFile());
   // Save Application related preferences
   prefs->SaveApplicationPreferences();
+  // Save shortcuts, if changed
+  PWSMenuShortcuts::GetShortcutsManager()->SaveUserShortcuts();
+
+  PWSMenuShortcuts::DestroyShortcutsManager();
   m_activityTimer->Stop();
 ////@begin PwsafeApp cleanup
   return wxApp::OnExit();
@@ -404,15 +409,19 @@ void PwsafeApp::OnActivate(wxActivateEvent& actEvent)
   }
   else {
     m_activityTimer->Stop();
-    m_activityTimer->Start(PWSprefs::GetInstance()->GetPref(PWSprefs::IdleTimeout)*60*1000, true);
+    int timeout = PWSprefs::GetInstance()->GetPref(PWSprefs::IdleTimeout);
+    if (timeout != 0)
+      m_activityTimer->Start(timeout*60*1000, true);
   }
   actEvent.Skip();
 }
 
-void PwsafeApp::OnActivityTimer(wxTimerEvent& /* timerEvent */)
+void PwsafeApp::OnActivityTimer(wxTimerEvent &evt)
 {
-  if (!m_frame->GetCurrentSafe().IsEmpty())
-    m_frame->HideUI(true);  //true => lock
+  if (evt.GetId() == ACTIVITY_TIMER_ID) {
+    if (!m_frame->GetCurrentSafe().IsEmpty())
+      m_frame->HideUI(true);  //true => lock
+  }
 }
 
 void PwsafeApp::OnDBGUIPrefsChange(wxEvent& evt)
@@ -420,7 +429,9 @@ void PwsafeApp::OnDBGUIPrefsChange(wxEvent& evt)
   UNREFERENCED_PARAMETER(evt);
   if (m_activityTimer->IsRunning()) {
     m_activityTimer->Stop();
-    m_activityTimer->Start(PWSprefs::GetInstance()->GetPref(PWSprefs::IdleTimeout)*60*1000, true);
+    int timeout = PWSprefs::GetInstance()->GetPref(PWSprefs::IdleTimeout);
+    if (timeout != 0)
+      m_activityTimer->Start(timeout*60*1000, true);
   }
 }
 

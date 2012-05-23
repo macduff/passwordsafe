@@ -312,8 +312,7 @@ public:
   bool IsDBReadOnly() const {return m_core.IsReadOnly();}
   void SetStartSilent(bool state);
   void SetStartClosed(bool state) {m_IsStartClosed = state;}
-  void MakeRandomPassword(StringX &password, PWPolicy &pwp, stringT st_symbols,
-                          bool bIssueMsg = false);
+  void MakeRandomPassword(StringX &password, PWPolicy &pwp, bool bIssueMsg = false);
   BOOL LaunchBrowser(const CString &csURL, const StringX &sxAutotype,
                      const std::vector<size_t> &vactionverboffsets,
                      const bool &bDoAutotype);
@@ -355,7 +354,7 @@ public:
   void CreateShortcutEntry(CItemData *pci, const StringX &cs_group,
                            const StringX &cs_title, const StringX &cs_user,
                            StringX &sxNewDBPrefsString);
-  bool SetNotesWindow(const CPoint point, const bool bVisible = true);
+  bool SetNotesWindow(const CPoint ptClient, const bool bVisible = true);
   bool IsFilterActive() const {return m_bFilterActive;}
   int GetNumPassedFiltering() const {return m_bNumPassedFiltering;}
   CItemData *GetLastSelected() const;
@@ -381,15 +380,19 @@ public:
   StringX GetCurFile() const {return m_core.GetCurFile();}
 
   bool EditItem(CItemData *pci, PWScore *pcore = NULL);
-  bool GetPolicyFromName(StringX sxPolicyName, st_PSWDPolicy &st_pp)
+  bool GetPolicyFromName(const StringX &sxPolicyName, PWPolicy &st_pp)
   {return m_core.GetPolicyFromName(sxPolicyName, st_pp);}
   void GetPolicyNames(std::vector<std::wstring> &vNames)
   {m_core.GetPolicyNames(vNames);}
   const PSWDPolicyMap &GetPasswordPolicies()
   {return m_core.GetPasswordPolicies();}
+
+  bool IsEmptyGroup(const StringX &sxEmptyGroup)
+  {return m_core.IsEmptyGroup(sxEmptyGroup);}
   
   // Need this to be public
-  bool LongPPs();
+  bool LongPPs(CWnd *pWnd);
+
   bool GetShortCut(const unsigned int &uiMenuItem, unsigned short int &siVirtKey,
                    unsigned char &cModifier);
 
@@ -403,18 +406,20 @@ public:
   void ViewReport(CReport &rpt) const;
   void SetUpdateWizardWindow(CWnd *pWnd)
   {m_pWZWnd = pWnd;}
+
   stringT DoMerge(PWScore *pothercore,
-                  const bool bAdvanced, CReport *prpt);
+                  const bool bAdvanced, CReport *prpt, bool *pbCancel);
   bool DoCompare(PWScore *pothercore,
-                 const bool bAdvanced, CReport *prpt);
+                 const bool bAdvanced, CReport *prpt, bool *pbCancel);
   void DoSynchronize(PWScore *pothercore,
-                     const bool bAdvanced, int &numUpdated, CReport *prpt);
+                     const bool bAdvanced, int &numUpdated, CReport *prpt, bool *pbCancel);
   int DoExportText(const StringX &sx_Filename, const bool bAll,
                    const wchar_t &delimiter, const bool bAdvanced,
                    int &numExported, CReport *prpt);
   int DoExportXML(const StringX &sx_Filename, const bool bAll,
                   const wchar_t &delimiter, const bool bAdvanced,
                   int &numExported, CReport *prpt);
+
   int TestSelection(const bool bAdvanced,
                     const stringT &subgroup_name,
                     const int &subgroup_object,
@@ -422,6 +427,7 @@ public:
                     const OrderedItemList *il) const
   {return m_core.TestSelection(bAdvanced, subgroup_name,
                                subgroup_object, subgroup_function, il);}
+
   void MakeOrderedItemList(OrderedItemList &il) const;
   bool MakeMatchingGTUSet(GTUSet &setGTU, const StringX &sxPolicyName) const
   {return m_core.InitialiseGTU(setGTU, sxPolicyName);}
@@ -594,6 +600,7 @@ protected:
                              const pws_os::CUUID &fromuuid, const pws_os::CUUID &touuid);
   LRESULT CopyAllCompareResult(WPARAM wParam);
   LRESULT SynchAllCompareResult(WPARAM wParam);
+  
   LRESULT OnToolBarFindMessage(WPARAM wParam, LPARAM lParam);
   LRESULT OnDragAutoType(WPARAM wParam, LPARAM lParam);
   LRESULT OnExecuteFilters(WPARAM wParam, LPARAM lParam);

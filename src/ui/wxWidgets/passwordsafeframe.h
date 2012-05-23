@@ -36,11 +36,11 @@
 ////@begin forward declarations
 class PWSGrid;
 class PWSTreeCtrl;
+////@end forward declarations
 class SystemTray;
 class GUIInfo;
 struct SelectionCriteria;
 class PWSDragBar;
-////@end forward declarations
 class PasswordSafeSearch;
 
 /*!
@@ -98,6 +98,7 @@ class PasswordSafeSearch;
 #define ID_BACKUP 10057
 #define ID_RESTORE 10058
 #define ID_OPTIONS_M 10059
+#define ID_PWDPOLSM 10215
 #define ID_MENUITEM 10012
 #define SYMBOL_PASSWORDSAFEFRAME_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxCLOSE_BOX
 #define SYMBOL_PASSWORDSAFEFRAME_TITLE _("PasswordSafe")
@@ -190,7 +191,7 @@ public:
   void OnSaveClick( wxCommandEvent& evt);
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_SAVEAS
-  void OnSaveAsClick(wxCommandEvent& evt);
+  void OnSaveAsClick( wxCommandEvent& evt);
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_PROPERTIES
   void OnPropertiesClick( wxCommandEvent& evt);
@@ -222,9 +223,6 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_COPYURL
   void OnCopyurlClick( wxCommandEvent& evt);
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_COPYEMAIL
-  void OnCopyEmailClick( wxCommandEvent& evt);
-
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_LIST_VIEW
   void OnListViewClick( wxCommandEvent& evt);
 
@@ -236,6 +234,9 @@ public:
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_OPTIONS_M
   void OnOptionsMClick( wxCommandEvent& evt);
+
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_PWDPOLSM
+  void OnPwdPolsMClick( wxCommandEvent& evt);
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_ABOUT
   void OnAboutClick( wxCommandEvent& evt);
@@ -301,6 +302,9 @@ public:
   /// called when one of the MRU db's is selected from File menu
   void OnOpenRecentDB(wxCommandEvent& evt);
   
+  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_COPYEMAIL
+  void OnCopyEmailClick( wxCommandEvent& evt);
+
   /// wxEVT_UPDATE_UI event handler for all command ids
   void OnUpdateUI(wxUpdateUIEvent& evt);
   
