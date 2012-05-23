@@ -15,6 +15,7 @@
 #include "VerifyFormat.h"
 #include "StringXStream.h"
 #include "UTF8Conv.h"
+#include "PWPolicy.h"
 
 #include "os/typedefs.h"
 #include "os/debug.h"
@@ -243,19 +244,19 @@ bool PWSprefs::CheckRegistryExists() const
   return pws_os::RegCheckExists();
 }
 
-bool PWSprefs::GetPref(BoolPrefs pref_enum) const
+bool PWSprefs::GetPref(BoolPrefs pref_enum, const bool bUseCopy) const
 {
-  return m_boolValues[pref_enum];
+  return bUseCopy ? m_boolCopyValues[pref_enum] : m_boolValues[pref_enum];
 }
 
-unsigned int PWSprefs::GetPref(IntPrefs pref_enum) const
+unsigned int PWSprefs::GetPref(IntPrefs pref_enum, const bool bUseCopy) const
 {
-  return m_intValues[pref_enum];
+  return bUseCopy ? m_intCopyValues[pref_enum] : m_intValues[pref_enum];
 }
 
-StringX PWSprefs::GetPref(StringPrefs pref_enum) const
+StringX PWSprefs::GetPref(StringPrefs pref_enum, const bool bUseCopy) const
 {
-  return m_stringValues[pref_enum];
+  return bUseCopy ? m_stringCopyValues[pref_enum] : m_stringValues[pref_enum];
 }
 
 bool PWSprefs::GetPrefDefVal(BoolPrefs pref_enum) const
@@ -273,7 +274,7 @@ StringX PWSprefs::GetPrefDefVal(StringPrefs pref_enum) const
   return m_string_prefs[pref_enum].defVal;
 }
 
-StringX PWSprefs::GetAllBoolPrefs()
+StringX PWSprefs::GetAllBoolPrefs(const bool bUseCopy)
 {
   PWS_LOGIT;
 
@@ -281,12 +282,13 @@ StringX PWSprefs::GetAllBoolPrefs()
   for (int i = 0; i < NumBoolPrefs; i++) {
     osxs << setw(1) << i << _T(' ')
          << setw(1) << m_bool_prefs[i].ptype << _T(' ')
-         << setw(1) << (m_boolValues[i] ? 1 : 0) << _T(' ');
+         << setw(1) <<
+         ((bUseCopy ? m_boolCopyValues[i] : m_boolValues[i]) ? 1 : 0) << _T(' ');
   }
   return osxs.str();
 }  
 
-StringX PWSprefs::GetAllIntPrefs()
+StringX PWSprefs::GetAllIntPrefs(const bool bUseCopy)
 {
   PWS_LOGIT;
 
@@ -294,12 +296,13 @@ StringX PWSprefs::GetAllIntPrefs()
   for (int i = 0; i < NumIntPrefs; i++) {
     osxs << setw(1) << i << _T(' ')
          << setw(1) << m_int_prefs[i].ptype << _T(' ')
-         << setw(4) << setfill(_T('0')) << hex << m_intValues[i] << dec << _T(' ');
+         << setw(4) << setfill(_T('0')) << hex <<
+         (bUseCopy ? m_intCopyValues[i] : m_intValues[i]) << dec << _T(' ');
   }
   return osxs.str();
 }  
 
-StringX PWSprefs::GetAllStringPrefs()
+StringX PWSprefs::GetAllStringPrefs(const bool bUseCopy)
 {
   PWS_LOGIT;
 
@@ -320,9 +323,16 @@ StringX PWSprefs::GetAllStringPrefs()
     const int k = SafeStringPrefs[i];
     delim = _T(' ');
     for (size_t j = 0; j < NumDelimiters; j++) {
-      if (m_stringValues[k].find(Delimiters[j]) == StringX::npos) {
-        delim = Delimiters[j];
-        break;
+      if (bUseCopy) {
+        if (m_stringCopyValues[k].find(Delimiters[j]) == StringX::npos) {
+          delim = Delimiters[j];
+          break;
+        }
+      } else {
+        if (m_stringValues[k].find(Delimiters[j]) == StringX::npos) {
+          delim = Delimiters[j];
+          break;
+        }
       }
     }
     if (delim == _T(' '))
@@ -330,15 +340,19 @@ StringX PWSprefs::GetAllStringPrefs()
  
     osxs << setw(1) << k << _T(' ')
          << setw(1) << m_string_prefs[k].ptype << _T(' ')
-         << delim << m_stringValues[k].c_str() << delim << _T(' ');
+         << delim <<
+         (bUseCopy ? m_stringCopyValues[k].c_str() : m_stringValues[k].c_str()) <<
+         delim << _T(' ');
   }
   return osxs.str();
 }  
   
 // Following for case where default value is determined at runtime
-unsigned int PWSprefs::GetPref(IntPrefs pref_enum, unsigned int defVal) const
+unsigned int PWSprefs::GetPref(IntPrefs pref_enum, unsigned int defVal,
+                               const bool bUseCopy) const
 {
-  return m_intValues[pref_enum] == static_cast<unsigned int>(-1) ? defVal : m_intValues[pref_enum];
+  return m_intValues[pref_enum] == static_cast<unsigned int>(-1) ? defVal :
+      (bUseCopy ? m_intCopyValues[pref_enum] : m_intValues[pref_enum]);
 }
 
 void PWSprefs::GetPrefRect(long &top, long &bottom,
@@ -359,7 +373,7 @@ void PWSprefs::GetPrefPSSRect(long &top, long &bottom,
   right = m_PSSrect.right;
 }
 
-int PWSprefs::GetMRUList(stringT *MRUFiles)
+int PWSprefs::GetMRUList(stringT *MRUFiles) const
 {
   ASSERT(MRUFiles != NULL);
 
@@ -408,6 +422,62 @@ int PWSprefs::SetMRUList(const stringT *MRUFiles, int n, int max_MRU)
   if (changed)
     m_prefs_changed[APP_PREF] = true;
   return n;
+}
+
+PWPolicy PWSprefs::GetDefaultPolicy(const bool bUseCopy) const
+{
+  PWPolicy pwp;
+  if (GetPref(PWUseLowercase, bUseCopy))
+    pwp.flags |= PWPolicy::UseLowercase;
+  if (GetPref(PWUseUppercase, bUseCopy))
+    pwp.flags |= PWPolicy::UseUppercase;
+  if (GetPref(PWUseDigits, bUseCopy))
+    pwp.flags |= PWPolicy::UseDigits;
+  if (GetPref(PWUseSymbols, bUseCopy))
+    pwp.flags |= PWPolicy::UseSymbols;
+  if (GetPref(PWUseHexDigits, bUseCopy))
+    pwp.flags |= PWPolicy::UseHexDigits;
+  if (GetPref(PWUseEasyVision, bUseCopy))
+    pwp.flags |= PWPolicy::UseEasyVision;
+  if (GetPref(PWMakePronounceable, bUseCopy))
+    pwp.flags |= PWPolicy::MakePronounceable;
+
+  pwp.length = GetPref(PWDefaultLength, bUseCopy);
+  pwp.digitminlength = GetPref(PWDigitMinLength, bUseCopy);
+  pwp.lowerminlength = GetPref(PWLowercaseMinLength, bUseCopy);
+  pwp.symbolminlength = GetPref(PWSymbolMinLength, bUseCopy);
+  pwp.upperminlength = GetPref(PWUppercaseMinLength, bUseCopy);
+  pwp.symbols = GetPref(DefaultSymbols, bUseCopy);
+  pwp.Normalize();
+  return pwp;
+}
+
+void PWSprefs::SetDefaultPolicy(const PWPolicy &pol, const bool bUseCopy)
+{
+  PWPolicy nc_pol(pol); // non-const copy that we can Normalize;
+  nc_pol.Normalize();
+
+  SetPref(PWUseLowercase,
+          (nc_pol.flags & PWPolicy::UseLowercase) != 0, bUseCopy);
+  SetPref(PWUseUppercase,
+          (nc_pol.flags & PWPolicy::UseUppercase) != 0, bUseCopy);
+  SetPref(PWUseDigits,
+          (nc_pol.flags & PWPolicy::UseDigits) != 0, bUseCopy);
+  SetPref(PWUseSymbols,
+          (nc_pol.flags & PWPolicy::UseSymbols) != 0, bUseCopy);
+  SetPref(PWUseHexDigits,
+          (nc_pol.flags & PWPolicy::UseHexDigits) != 0, bUseCopy);
+  SetPref(PWUseEasyVision,
+          (nc_pol.flags & PWPolicy::UseEasyVision) != 0, bUseCopy);
+  SetPref(PWMakePronounceable,
+          (nc_pol.flags & PWPolicy::MakePronounceable) != 0, bUseCopy);
+
+  SetPref(PWDefaultLength, nc_pol.length, bUseCopy);
+  SetPref(PWDigitMinLength, nc_pol.digitminlength, bUseCopy);
+  SetPref(PWLowercaseMinLength, nc_pol.lowerminlength, bUseCopy);
+  SetPref(PWSymbolMinLength, nc_pol.symbolminlength, bUseCopy);
+  SetPref(PWUppercaseMinLength, nc_pol.upperminlength, bUseCopy);
+  SetPref(DefaultSymbols, nc_pol.symbols, bUseCopy);
 }
 
 void PWSprefs::SetupCopyPrefs()

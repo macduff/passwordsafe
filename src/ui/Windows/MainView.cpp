@@ -1711,8 +1711,12 @@ int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex,
             sx_fielddata = ci.GetCTimeL();
           break;
         case CItemData::POLICY:
-          sx_fielddata = ci.GetPWPolicyDisplayString();
+        {
+          PWPolicy pwp;
+          ci.GetPWPolicy(pwp);
+          sx_fielddata = pwp.GetDisplayString();
           break;
+        }
         default:
           sx_fielddata = ci.GetFieldValue(ft);
       }
@@ -1800,8 +1804,12 @@ int DboxMain::InsertItemIntoGUITreeList(CItemData &ci, int iIndex,
           sx_fielddata = ((long)t == 0) ? ci.GetCTimeL() : ci.GetRMTimeL();
           break;
         case CItemData::POLICY:
-          sx_fielddata = ci.GetPWPolicyDisplayString();
+        {
+          PWPolicy pwp;
+          ci.GetPWPolicy(pwp);
+          sx_fielddata = pwp.GetDisplayString();
           break;
+        }
         default:
           sx_fielddata = ci.GetFieldValue(ft);
       }
@@ -2888,11 +2896,11 @@ void DboxMain::SetColumns()
   CRect rect;
   m_ctlItemList.GetClientRect(&rect);
   int i1stWidth = prefs->GetPref(PWSprefs::Column1Width,
-                                 (rect.Width() / 3 + rect.Width() % 3));
+                                 (rect.Width() / 3 + rect.Width() % 3), false);
   int i2ndWidth = prefs->GetPref(PWSprefs::Column2Width,
-                                 rect.Width() / 3);
+                                 rect.Width() / 3, false);
   int i3rdWidth = prefs->GetPref(PWSprefs::Column3Width,
-                                 rect.Width() / 3);
+                                 rect.Width() / 3, false);
 
   cs_header = GetHeaderText(CItemData::TITLE);
   m_ctlItemList.InsertColumn(0, cs_header);
@@ -2919,7 +2927,7 @@ void DboxMain::SetColumns()
     m_LVHdrCtrl.SetItem(3, &hdi);
     m_ctlItemList.SetColumnWidth(3,
                                  PWSprefs::GetInstance()->GetPref(PWSprefs::Column4Width,
-                                 rect.Width() / 4));
+                                 rect.Width() / 4, false));
   }
 
   int ioff = 3;
@@ -4541,8 +4549,12 @@ void DboxMain::RefreshEntryFieldInGUI(CItemData &ci, CItemData::FieldType ft)
       sx_fielddata = ((long)t == 0) ? ci.GetCTimeL() : ci.GetRMTimeL();
       break;
     case CItemData::POLICY:
-      sx_fielddata = ci.GetPWPolicyDisplayString();
+    {
+      PWPolicy pwp;
+      ci.GetPWPolicy(pwp);
+      sx_fielddata = pwp.GetDisplayString();
       break;
+    }
     default:
       sx_fielddata = ci.GetFieldValue(ft);
   }

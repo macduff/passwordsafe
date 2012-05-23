@@ -99,11 +99,14 @@ struct PWPolicy {
   // preference-defined policy if this->flags == 0
   StringX MakeRandomPassword() const;
 
-  void SetToDefaults(); // from Prefs
-  void UpdateDefaults(bool bUseCopy = false) const; // to prefs
+  // "User friendly" Display of a policy
+  StringX GetDisplayString();
+
   typedef void (*RowPutter)(int row, const stringT &name, const stringT &value, void *table);
   void Policy2Table(RowPutter rp, void *table);
+
 private:
+  friend class PWSprefs; // PWSprefs is the only one who can call Normalize()
   void Normalize(); // make policy internally consistent
 };
 

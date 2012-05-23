@@ -1251,11 +1251,11 @@ bool PWScore::GetPolicyFromName(const StringX &sxPolicyName, PWPolicy &st_pp) co
   ASSERT(!sxPolicyName.empty());
 
   // - The default policy is not stored in the map (but read from preferences)
-  StringX defpolStr;
-  LoadAString(defpolStr, IDSC_DEFAULT_POLICY);
+  StringX sxDefPolicyStr;
+  LoadAString(sxDefPolicyStr, IDSC_DEFAULT_POLICY);
 
-  if (sxPolicyName == defpolStr) {
-    st_pp.SetToDefaults();
+  if (sxPolicyName == sxDefPolicyStr) {
+    st_pp = PWSprefs::GetInstance()->GetDefaultPolicy();
     return true;
   } else {
     PSWDPolicyMapCIter iter = m_MapPSWDPLC.find(sxPolicyName);
@@ -1285,7 +1285,7 @@ private:
 
 void PWScore::MakePolicyUnique(std::map<StringX, StringX> &mapRenamedPolicies,
                                StringX &sxPolicyName, const StringX &sxDateTime,
-                               const int IDS_MESSAGE)
+                               const UINT IDS_MESSAGE)
 {
   // 'mapRenamedPolicies' contains those policies already renamed. It will be
   // updated with any new name generated.

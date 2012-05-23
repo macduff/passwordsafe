@@ -1165,7 +1165,7 @@ BOOL DboxMain::OnInitDialog()
   m_pListView1->SetOtherView(BOTTOM, m_pListView0);
 
   int iSplitterPosition = PWSprefs::GetInstance()->GetPref(PWSprefs::SplitterPosition,
-                                 rect.Width() / 4);
+                                 rect.Width() / 4, false);
   int icxCur, icxMin;
   m_ctlItemView.GetColumnInfo(0, icxCur, icxMin);
   if (iSplitterPosition >= icxMin)

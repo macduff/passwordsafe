@@ -76,13 +76,10 @@ class UIInterFace;
 #define ID_PANEL_DTIME 10086
 #define ID_RADIOBUTTON 10107
 #define ID_DATECTRL 10108
-#define ID_SPINCTRL1 10109
-#define ID_SPINCTRL4 10010
 #define ID_RADIOBUTTON1 10110
 #define ID_SPINCTRL2 10111
 #define ID_CHECKBOX2 10112
-#define ID_BUTTON5 10113
-#define ID_BUTTON6 10114
+#define ID_RADIOBUTTON4 10001
 #define ID_PANEL_PPOLICY 10087
 #define ID_RADIOBUTTON2 10115
 #define ID_POLICYLIST 10063
@@ -173,11 +170,11 @@ public:
   /// wxEVT_COMMAND_RADIOBUTTON_SELECTED event handler for ID_RADIOBUTTON
   void OnRadiobuttonSelected( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON5
-  void OnSetXTime( wxCommandEvent& event );
+  /// wxEVT_DATE_CHANGED event handler for ID_DATECTRL
+  void OnExpDateChanged( wxDateEvent& event );
 
-  /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON6
-  void OnClearXTime( wxCommandEvent& event );
+  /// wxEVT_COMMAND_SPINCTRL_UPDATED event handler for ID_SPINCTRL2
+  void OnExpIntervalChanged( wxSpinEvent& event );
 
   /// wxEVT_COMMAND_RADIOBUTTON_SELECTED event handler for ID_RADIOBUTTON2
   void OnPWPRBSelected( wxCommandEvent& event );
@@ -292,11 +289,10 @@ public:
   wxGrid* m_PWHgrid;
   wxRadioButton* m_OnRB;
   wxDatePickerCtrl* m_ExpDate;
-  wxSpinCtrl* m_ExpTimeH;
-  wxSpinCtrl* m_ExpTimeM;
   wxRadioButton* m_InRB;
   wxSpinCtrl* m_ExpTimeCtrl;
   wxCheckBox* m_RecurringCtrl;
+  wxRadioButton* m_NeverRB;
   wxRadioButton* m_defPWPRB;
   wxComboBox* m_cbxPolicyNames;
   wxRadioButton* m_ourPWPRB;
@@ -353,6 +349,7 @@ private:
   CItemData m_item;
   void ItemFieldsToPropSheet();
   void SetupDCAComboBoxes(wxComboBox *pcbox, short &iDCA, bool isShift);
+  void SetXTime(wxObject *src);
   void UpdatePWPolicyControls(const PWPolicy& pwp);
   void EnablePWPolicyControls(bool enable);
   PWPolicy GetPWPolicyFromUI() const;
