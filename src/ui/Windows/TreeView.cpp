@@ -10,7 +10,6 @@
 //
 
 #include "stdafx.h"
-#include "afxole.h"
 
 #include "TreeView.h"
 #include "ListView.h"
@@ -35,7 +34,8 @@ using namespace std;
 extern wchar_t GROUP_SEP;
 extern StringX sxDot;
 
-// following header for D&D data passed over OLE:
+#ifdef EXPLORER_DRAG_DROP
+// Following header for D&D data passed over OLE:
 // Process ID of sender (to determine if src == tgt)
 // Type of data
 // Length of actual payload, in bytes.
@@ -155,6 +155,7 @@ private:
   CPWTreeView &m_TreeView;
   COleDropSource *m_pDropSource;
 };
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // CPWTreeView
@@ -174,11 +175,13 @@ BEGIN_MESSAGE_MAP(CPWTreeView, CTreeView)
   ON_NOTIFY_REFLECT(NM_CLICK, OnItemClick)
   ON_NOTIFY_REFLECT(NM_DBLCLK, OnItemDoubleClick)
 
+#ifdef EXPLORER_DRAG_DROP
   // Drag & Drop
   ON_WM_MOUSEMOVE()
   ON_NOTIFY_REFLECT(TVN_BEGINDRAG, OnBeginDrag)
   ON_NOTIFY_REFLECT(TVN_BEGINRDRAG, OnBeginDrag)
   ON_MESSAGE(WM_MOUSELEAVE, OnMouseLeave)
+#endif
   //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -188,10 +191,14 @@ END_MESSAGE_MAP()
 CPWTreeView::CPWTreeView()
  : m_pParent(NULL), m_pTreeCtrl(NULL), m_pListView(NULL),
  m_pOtherTreeView(NULL), m_pOtherTreeCtrl(NULL), m_pDbx(NULL),
- m_hgDataALL(NULL), m_hgDataTXT(NULL), m_hgDataUTXT(NULL),
  m_bInitDone(false), m_bAccEn(false), m_bInRename(false),
- m_pDragImage(NULL), m_bDragging(false), m_this_row(INVALID_ROW)
+#ifdef EXPLORER_DRAG_DROP
+ m_hgDataALL(NULL), m_hgDataTXT(NULL), m_hgDataUTXT(NULL),
+ m_pDragImage(NULL), m_bDragging(false),
+#endif
+ m_this_row(INVALID_ROW)
 {
+#ifdef EXPLORER_DRAG_DROP
   // Register a clipboard format for drag & drop.
   // Note that it's OK to register same format more than once:
   // "If a registered format with the specified name already exists,
@@ -209,15 +216,18 @@ CPWTreeView::CPWTreeView()
   m_DropTarget = new CTVDropTarget(this);
   m_DropSource = new CTVDropSource(this);
   m_DataSource = new CTVDataSource(this, m_DropSource);
+#endif
 }
 
 CPWTreeView::~CPWTreeView()
 {
+#ifdef EXPLORER_DRAG_DROP
   // see comment in constructor re these member variables
   delete m_pDragImage;
   delete m_DropTarget;
   delete m_DropSource;
   delete m_DataSource;
+#endif
 }
 
 BOOL CPWTreeView::PreCreateWindow(CREATESTRUCT &cs)
@@ -276,7 +286,9 @@ void CPWTreeView::Initialize()
   m_pTreeCtrl->SetImageList(pImages->GetImageList(), TVSIL_NORMAL);
   m_pTreeCtrl->SetImageList(pImages->GetImageList(), TVSIL_STATE);
 
+#ifdef EXPLORER_DRAG_DROP
   m_DropTarget->Register(this);
+#endif
   
   m_bInitDone = true;
 }
@@ -288,7 +300,6 @@ void CPWTreeView::SetOtherView(const SplitterRow &i_this_row, CPWTreeView *pOthe
 
  m_pOtherTreeView = pOtherTreeView;
  m_pOtherTreeCtrl = &pOtherTreeView->GetTreeCtrl();
-
 }
 
 // CPWTreeView message handlers
@@ -310,8 +321,10 @@ void CPWTreeView::OnDestroy()
   // Remove image list
   m_pTreeCtrl->SetImageList(NULL, TVSIL_NORMAL);
   m_pTreeCtrl->SetImageList(NULL, TVSIL_STATE);
-  
+
+#ifdef EXPLORER_DRAG_DROP  
   m_DropTarget->Revoke();
+#endif
 }
 
 void CPWTreeView::OnContextMenu(CWnd *pWnd, CPoint screen)
@@ -589,7 +602,7 @@ void CPWTreeView::DisplayFolder(HTREEITEM &hSelected)
 
   StringX sxDBName = m_pDbx->GetRoot();
   if (sxRealPath == sxDBName)
-    sxRealPath.clear();
+    sxRealPath = L"";
   else
     sxRealPath = sxRealPath.substr(sxDBName.length() + 1);
 
@@ -645,7 +658,7 @@ void CPWTreeView::OnListViewFolderSelected(StringX sxPath, UINT index,
 
     StringX sxDBName = m_pDbx->GetRoot();
     if (sxSelected == sxDBName)
-      sxSelected.clear();
+      sxSelected = L"";
     else
       sxSelected = sxSelected.substr(sxDBName.length() + 1);
 
@@ -855,6 +868,35 @@ bad_exit:
   *pLResult = FALSE;
 }
 
+// Functor for find_if to get path for a tree item
+struct get_path {
+  get_path(HTREEITEM const& hItem) : m_hItem(hItem) {}
+
+  bool operator()(std::pair<StringX, HTREEITEM> const & p) const
+  {
+    return (p.second  == m_hItem);
+  }
+
+private:
+  HTREEITEM m_hItem;
+};
+
+bool CPWTreeView::FindGroup(HTREEITEM hItem, StringX &sxPath)
+{
+  get_path gp(hItem);
+
+  PathMapIter iter;
+  iter = std::find_if(m_mapGroup2Item.begin(), m_mapGroup2Item.end(), get_path(hItem));
+  if (iter != m_mapGroup2Item.end()) {
+    sxPath = iter->first;
+    return true;
+  } else {
+    sxPath = L"";
+    return false;
+  }
+}
+
+#ifdef EXPLORER_DRAG_DROP
 void CPWTreeView::OnMouseMove(UINT nFlags, CPoint point)
 {
   if (!m_bMouseInWindow) {
@@ -885,7 +927,6 @@ SCODE CPWTreeView::GiveFeedback(DROPEFFECT /*dropEffect*/)
 DROPEFFECT CPWTreeView::OnDragEnter(CWnd * /*pWnd*/, COleDataObject *pDataObject,
                                     DWORD dwKeyState, CPoint /*point*/)
 {
- #if EXPLORER_DRAG_DROP
   // Is it ours?
   if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
     return DROPEFFECT_NONE;
@@ -901,17 +942,11 @@ DROPEFFECT CPWTreeView::OnDragEnter(CWnd * /*pWnd*/, COleDataObject *pDataObject
   m_bWithinThisInstance = true;
   return ((dwKeyState & MK_CONTROL) == MK_CONTROL) ?
          DROPEFFECT_COPY : DROPEFFECT_MOVE;
-#else
-  UNREFERENCED_PARAMETER(pDataObject);
-  UNREFERENCED_PARAMETER(dwKeyState);
-  return DROPEFFECT_NONE;
-#endif
 }
 
 DROPEFFECT CPWTreeView::OnDragOver(CWnd *pWnd, COleDataObject *pDataObject,
                                    DWORD dwKeyState, CPoint point)
 {
- #if EXPLORER_DRAG_DROP
   // Is it ours?
   if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
     return DROPEFFECT_NONE;
@@ -984,57 +1019,19 @@ DROPEFFECT CPWTreeView::OnDragOver(CWnd *pWnd, COleDataObject *pDataObject,
                     DROPEFFECT_COPY : DROPEFFECT_MOVE;
 
   return dropeffectRet;
-#else
-  UNREFERENCED_PARAMETER(pWnd);
-  UNREFERENCED_PARAMETER(pDataObject);
-  UNREFERENCED_PARAMETER(dwKeyState);
-  UNREFERENCED_PARAMETER(point);
-  return DROPEFFECT_NONE;
-#endif
 }
 
 void CPWTreeView::OnDragLeave()
 {
-#if EXPLORER_DRAG_DROP
   m_bWithinThisInstance = false;
   // ShowCursor's semantics are VERY odd - RTFM
   pws_os::Trace(L"CPWTreeView::OnDragLeave() show cursor\n");
   while (ShowCursor(TRUE) < 0)
     ;
-#endif
-}
-
-// Functor for find_if to get path for a tree item
-struct get_path {
-  get_path(HTREEITEM const& hItem) : m_hItem(hItem) {}
-
-  bool operator()(std::pair<StringX, HTREEITEM> const & p) const
-  {
-    return (p.second  == m_hItem);
-  }
-
-private:
-  HTREEITEM m_hItem;
-};
-
-bool CPWTreeView::FindGroup(HTREEITEM hItem, StringX &sxPath)
-{
-  get_path gp(hItem);
-
-  PathMapIter iter;
-  iter = std::find_if(m_mapGroup2Item.begin(), m_mapGroup2Item.end(), get_path(hItem));
-  if (iter != m_mapGroup2Item.end()) {
-    sxPath = iter->first;
-    return true;
-  } else {
-    sxPath = L"";
-    return false;
-  }
 }
 
 bool CPWTreeView::CollectData(BYTE * &out_buffer, long &outLen)
 {
-#if EXPLORER_DRAG_DROP
   CDDObList out_oblist;
 
   // Only nodes to drag in Tree view
@@ -1055,18 +1052,11 @@ bool CPWTreeView::CollectData(BYTE * &out_buffer, long &outLen)
   }
 
   return (outLen > 0);
-#else
-  UNREFERENCED_PARAMETER(out_buffer);
-  UNREFERENCED_PARAMETER(outLen);
-  return false;
-#endif
 }
 
 bool CPWTreeView::ProcessData(BYTE *in_buffer, const long &inLen,
                               const CSecString &DropGroup, const bool bCopy)
 {
-#if EXPLORER_DRAG_DROP
-
 #ifdef DUMP_DATA
   std:wstring stimestamp;
   PWSUtil::GetTimeStamp(stimestamp);
@@ -1095,19 +1085,11 @@ bool CPWTreeView::ProcessData(BYTE *in_buffer, const long &inLen,
     }
   }
   return (inLen > 0);
-#else
-  UNREFERENCED_PARAMETER(in_buffer);
-  UNREFERENCED_PARAMETER(inLen);
-  UNREFERENCED_PARAMETER(DropGroup);
-  UNREFERENCED_PARAMETER(bCopy);
-  return false;
-#endif
 }
 
 BOOL CPWTreeView::OnDrop(CWnd *, COleDataObject *pDataObject,
                          DROPEFFECT dropEffect, CPoint point)
 {
-#if EXPLORER_DRAG_DROP
   // Is it ours?
   if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
     return FALSE;
@@ -1314,17 +1296,10 @@ exit:
       m_pDbx->RefreshViews();
   }
   return retval;
-#else
-  UNREFERENCED_PARAMETER(pDataObject);
-  UNREFERENCED_PARAMETER(dropEffect);
-  UNREFERENCED_PARAMETER(point);
-  return FALSE;
-#endif
 }
 
 void CPWTreeView::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-#if EXPLORER_DRAG_DROP
   // This sets the whole D&D mechanism in motion...
   if (pNotifyStruct->code == TVN_BEGINDRAG)
     m_DDType = FROMTREE_L; // Left  mouse D&D
@@ -1435,16 +1410,9 @@ void CPWTreeView::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
 
   // We did call SetCapture - do we release it here?  If not, where else?
   //ReleaseCapture();
-#else
-  UNREFERENCED_PARAMETER(pNotifyStruct);
-  *pLResult = 0L;
-  return;
-#endif
-}
 
 BOOL CPWTreeView::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
 {
-#if EXPLORER_DRAG_DROP
   if (m_hgDataALL != NULL) {
     pws_os::Trace(L"CPWTreeView::OnRenderGlobalData - Unlock/Free m_hgDataALL\n");
     LPVOID lpData = GlobalLock(m_hgDataALL);
@@ -1489,17 +1457,10 @@ BOOL CPWTreeView::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
     return FALSE;
 
   return retval;
-#else
-  UNREFERENCED_PARAMETER(lpFormatEtc);
-  UNREFERENCED_PARAMETER(phGlobal);
-  return false;
-#endif
 }
 
 BOOL CPWTreeView::RenderAllData(HGLOBAL *phGlobal)
 {
-#if EXPLORER_DRAG_DROP
-
   long lBufLen;
   BYTE *buffer = NULL;
 
@@ -1602,8 +1563,5 @@ bad_return:
     GlobalUnlock(m_hgDataALL);
 
   return retval;
-#else
-  UNREFERENCED_PARAMETER(phGlobal);
-  return false;
-#endif
 }
+#endif

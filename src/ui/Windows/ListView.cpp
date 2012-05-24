@@ -45,7 +45,8 @@ using namespace std;
 extern wchar_t GROUP_SEP;
 extern StringX sxDot;
 
-// following header for D&D data passed over OLE:
+#ifdef EXPLORER_DRAG_DROP
+// Following header for D&D data passed over OLE:
 // Process ID of sender (to determine if src == tgt)
 // Type of data
 // Length of actual payload, in bytes.
@@ -165,6 +166,7 @@ private:
   CPWListView &m_ListView;
   COleDropSource *m_pDropSource;
 };
+#endif
 
 BEGIN_MESSAGE_MAP(CLVEdit, CEdit)
   //{{AFX_MSG_MAP(CLVEdit)
@@ -305,12 +307,14 @@ BEGIN_MESSAGE_MAP(CPWListView, CListView)
   ON_NOTIFY_REFLECT(NM_CLICK, OnItemClick)
   ON_COMMAND(ID_MENUITEM_RENAME, OnRename)
 
+#ifdef EXPLORER_DRAG_DROP
   // Drag & Drop
   ON_WM_MOUSEMOVE()
   ON_WM_LBUTTONDOWN()
   ON_NOTIFY_REFLECT(LVN_BEGINDRAG, OnBeginDrag)
   ON_NOTIFY_REFLECT(LVN_BEGINRDRAG, OnBeginDrag)
   ON_MESSAGE(WM_MOUSELEAVE, OnMouseLeave)
+#endif
   //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -320,11 +324,15 @@ END_MESSAGE_MAP()
 CPWListView::CPWListView()
   : m_pParent(NULL), m_pListCtrl(NULL), m_pTreeView(NULL), m_pDbx(NULL),
   m_pOtherListView(NULL), m_pOtherListCtrl(NULL),
-  m_hgDataALL(NULL), m_hgDataTXT(NULL), m_hgDataUTXT(NULL),
   m_iSortedColumn(1), m_bSortAscending(true), m_bInitDone(false),
   m_bAccEn(false), m_bInRename(false), m_this_row(INVALID_ROW),
-  m_pDragImage(NULL), m_bDragging(false), m_bDisplayingFoundEntries(false)
+#ifdef EXPLORER_DRAG_DROP
+  m_hgDataALL(NULL), m_hgDataTXT(NULL), m_hgDataUTXT(NULL),
+  m_pDragImage(NULL), m_bDragging(false),
+#endif
+  m_bDisplayingFoundEntries(false)
 {
+#ifdef EXPLORER_DRAG_DROP
   // Register a clipboard format for drag & drop.
   // Note that it's OK to register same format more than once:
   // "If a registered format with the specified name already exists,
@@ -342,6 +350,7 @@ CPWListView::CPWListView()
   m_DropTarget = new CLVDropTarget(this);
   m_DropSource = new CLVDropSource(this);
   m_DataSource = new CLVDataSource(this, m_DropSource);
+#endif
 
   // m_sxCurrentPath must not be empty at start-up - otherwise root not added to history
   m_sxCurrentPath = L"\xff";
@@ -349,11 +358,13 @@ CPWListView::CPWListView()
 
 CPWListView::~CPWListView()
 {
+#ifdef EXPLORER_DRAG_DROP
   // see comment in constructor re these member variables
   delete m_pDragImage;
   delete m_DropTarget;
   delete m_DropSource;
   delete m_DataSource;
+#endif
 }
 
 BOOL CPWListView::PreCreateWindow(CREATESTRUCT &cs)
@@ -432,7 +443,9 @@ void CPWListView::Initialize()
 
   SetUpHeader();
 
+#ifdef EXPLORER_DRAG_DROP
   m_DropTarget->Register(this);
+#endif
 
   m_bInitDone = true;
 }
@@ -530,7 +543,9 @@ void CPWListView::OnDestroy()
   m_pListCtrl->SetImageList(NULL, LVSIL_NORMAL);
   m_pListCtrl->SetImageList(NULL, LVSIL_SMALL);
 
+#ifdef EXPLORER_DRAG_DROP
   m_DropTarget->Revoke();
+#endif
 }
 
 void CPWListView::OnContextMenu(CWnd *pWnd, CPoint screen)
@@ -1199,7 +1214,7 @@ void CPWListView::PopulateEntries()
 CItemData *CPWListView::GetFullPath(const int iItem, StringX &sx_FullPath)
 {
   pws_os::Trace(L"CPWListView::GetFullPath: sx_FullPath=%s\n", sx_FullPath.c_str());
-  sx_FullPath.clear();
+  sx_FullPath = L"";
 
   if (iItem < 0 || iItem > m_pListCtrl->GetItemCount() - 1) {
     return NULL;
@@ -1456,6 +1471,7 @@ void CPWListView::SetEntryText(const CItemData *pci, const StringX &sxnewText)
   }
 }
 
+#ifdef EXPLORER_DRAG_DROP
 void CPWListView::OnLButtonDown(UINT nFlags, CPoint point)
 {
   LVHITTESTINFO  lvhit;
@@ -1506,7 +1522,6 @@ SCODE CPWListView::GiveFeedback(DROPEFFECT /*dropEffect*/)
 DROPEFFECT CPWListView::OnDragEnter(CWnd * /*pWnd*/, COleDataObject *pDataObject,
                                     DWORD dwKeyState, CPoint /*point*/)
 {
-#if EXPLORER_DRAG_DROP
   // Is it ours?
   if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
     return DROPEFFECT_NONE;
@@ -1522,18 +1537,11 @@ DROPEFFECT CPWListView::OnDragEnter(CWnd * /*pWnd*/, COleDataObject *pDataObject
   m_bWithinThisInstance = true;
   return ((dwKeyState & MK_CONTROL) == MK_CONTROL) ?
          DROPEFFECT_COPY : DROPEFFECT_MOVE;
-#else
-  // D&D Not supported
-  UNREFERENCED_PARAMETER(pDataObject);
-  UNREFERENCED_PARAMETER(dwKeyState);
-  return DROPEFFECT_NONE;
-#endif
 }
 
 DROPEFFECT CPWListView::OnDragOver(CWnd *pWnd, COleDataObject *pDataObject,
                                    DWORD dwKeyState, CPoint point)
 {
-#if EXPLORER_DRAG_DROP
   // Is it ours?
   if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
     return DROPEFFECT_NONE;
@@ -1603,31 +1611,20 @@ DROPEFFECT CPWListView::OnDragOver(CWnd *pWnd, COleDataObject *pDataObject,
                     DROPEFFECT_COPY : DROPEFFECT_MOVE;
 
   return dropeffectRet;
-#else
-  // D&D Not supported
-  UNREFERENCED_PARAMETER(pWnd);
-  UNREFERENCED_PARAMETER(pDataObject);
-  UNREFERENCED_PARAMETER(dwKeyState);
-  UNREFERENCED_PARAMETER(point);
-  return DROPEFFECT_NONE;
-#endif
 }
 
 void CPWListView::OnDragLeave()
 {
-#if EXPLORER_DRAG_DROP
   m_bWithinThisInstance = false;
   // ShowCursor's semantics are VERY odd - RTFM
   pws_os::Trace(L"CPWListView::OnDragLeave() show cursor\n");
   while (ShowCursor(TRUE) < 0)
     ;
-#endif
 }
 
 // Highlight drop targets sort of like CTreeCtrl
 BOOL CPWListView::SelectDropTarget(int iItem)
 {
-#if EXPLORER_DRAG_DROP
   static int prevHighlight(-1);
   if (iItem >= 0 && iItem < m_pListCtrl->GetItemCount()) {
     if (iItem != prevHighlight) {
@@ -1649,17 +1646,11 @@ BOOL CPWListView::SelectDropTarget(int iItem)
     prevHighlight = -1;
   }
   return FALSE;
-#else
-  UNREFERENCED_PARAMETER(iItem);
-  return FALSE;
-#endif
 }
 
 bool CPWListView::ProcessData(BYTE *in_buffer, const long &inLen,
                               const CSecString &DropGroup, const bool bCopy)
 {
-#if EXPLORER_DRAG_DROP
-
 #ifdef DUMP_DATA
   std:wstring stimestamp;
   PWSUtil::GetTimeStamp(stimestamp);
@@ -1688,18 +1679,10 @@ bool CPWListView::ProcessData(BYTE *in_buffer, const long &inLen,
     }
   }
   return (inLen > 0);
-#else
-  UNREFERENCED_PARAMETER(in_buffer);
-  UNREFERENCED_PARAMETER(inLen);
-  UNREFERENCED_PARAMETER(DropGroup);
-  UNREFERENCED_PARAMETER(bCopy);
-  return false;
-#endif
 }
 
 bool CPWListView::CollectData(BYTE * &out_buffer, long &outLen)
 {
-#if EXPLORER_DRAG_DROP
   CDDObList out_oblist;
 
   // Groups and entries allowed to drag in List view
@@ -1716,18 +1699,11 @@ bool CPWListView::CollectData(BYTE * &out_buffer, long &outLen)
   }
 
   return (outLen > 0);
-#else
-  UNREFERENCED_PARAMETER(out_buffer);
-  UNREFERENCED_PARAMETER(outLen);
-  return false;
-#endif
 }
 
 BOOL CPWListView::OnDrop(CWnd * /*pWnd*/, COleDataObject *pDataObject,
                          DROPEFFECT dropEffect, CPoint point)
 {
-
-#if EXPLORER_DRAG_DROP
   // Is it ours?
   if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
     return FALSE;
@@ -1926,17 +1902,10 @@ exit:
       m_pDbx->RefreshViews();
   }
   return retval;
-#else
-  UNREFERENCED_PARAMETER(pDataObject);
-  UNREFERENCED_PARAMETER(dropEffect);
-  UNREFERENCED_PARAMETER(point);
-  return FALSE;
-#endif
 }
 
 void CPWListView::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
 {
-#if EXPLORER_DRAG_DROP
   // This sets the whole D&D mechanism in motion...
   if (pNotifyStruct->code == LVN_BEGINDRAG)
     m_DDType = FROMTREE_L; // Left  mouse D&D
@@ -2074,18 +2043,10 @@ void CPWListView::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
 
   // We did call SetCapture - do we release it here?  If not, where else?
   //ReleaseCapture();
-#else
-  // D&D Not supported
-  UNREFERENCED_PARAMETER(pNotifyStruct);
-  *pLResult = 0L;
-  return;
-#endif
 }
-
 
 BOOL CPWListView::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
 {
-#if EXPLORER_DRAG_DROP
   if (m_hgDataALL != NULL) {
     pws_os::Trace(L"CPWListView::OnRenderGlobalData - Unlock/Free m_hgDataALL\n");
     LPVOID lpData = GlobalLock(m_hgDataALL);
@@ -2130,16 +2091,10 @@ BOOL CPWListView::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
     return FALSE;
 
   return retval;
-#else
-  UNREFERENCED_PARAMETER(lpFormatEtc);
-  UNREFERENCED_PARAMETER(phGlobal);
-  return FALSE;
-#endif
 }
 
 BOOL CPWListView::RenderAllData(HGLOBAL *phGlobal)
 {
-#if EXPLORER_DRAG_DROP
   long lBufLen;
   BYTE *buffer = NULL;
 
@@ -2242,15 +2197,10 @@ bad_return:
     GlobalUnlock(m_hgDataALL);
 
   return retval;
-#else
-  UNREFERENCED_PARAMETER(phGlobal);
-  return FALSE;
-#endif
 }
 
 CImageList *CPWListView::CreateDragImageEx(LPPOINT lpPoint)
 {
-#if EXPLORER_DRAG_DROP
   if (m_pListCtrl->GetSelectedCount() <= 0)
     return NULL; // no row selected
 
@@ -2330,8 +2280,5 @@ CImageList *CPWListView::CreateDragImageEx(LPPOINT lpPoint)
   }
 
   return pCompleteImageList;
-#else
-  UNREFERENCED_PARAMETER(lpPoint);
-  return NULL;
-#endif
 }
+#endif

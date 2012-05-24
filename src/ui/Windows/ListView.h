@@ -12,7 +12,10 @@
 #pragma once
 
 #include "afxcview.h"  // For CTreeView and CListView
-#include "afxole.h"
+
+#ifdef EXPLORER_DRAG_DROP
+#include "afxole.h"    // Drag & Drop
+#endif
 
 #include "WindowsDefs.h"
 
@@ -23,10 +26,12 @@
 
 #include "os/UUID.h"
 
+#ifdef EXPLORER_DRAG_DROP
 class CDDObList;
 class CLVDropTarget;
 class CLVDropSource;
 class CLVDataSource;
+#endif
 
 class CPWListView;
 class DboxMain;
@@ -103,11 +108,13 @@ protected:
   afx_msg void OnRename();
   afx_msg void OnSetFocus(CWnd *pOldWnd);
 
+#ifdef EXPLORER_DRAG_DROP
   // Drag & Drop
   afx_msg void OnMouseMove(UINT nFlags, CPoint point);
   afx_msg LRESULT OnMouseLeave(WPARAM, LPARAM);
   afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
   afx_msg void OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult);
+#endif
   //}}AFX_MSG
 
   DECLARE_MESSAGE_MAP()
@@ -176,6 +183,7 @@ private:
   // Our current path
   StringX m_sxCurrentPath;
 
+#ifdef EXPLORER_DRAG_DROP
   // Drag-n-Drop interface - called indirectly via src/tgt member functions
   // Source methods
   SCODE GiveFeedback(DROPEFFECT dropEffect);
@@ -228,4 +236,5 @@ private:
   CImageList* m_pDragImage;
 
   bool m_bMouseInWindow;
+#endif
 };
