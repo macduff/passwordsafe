@@ -687,8 +687,7 @@ void CManagePSWDPolices::OnEntryDoubleClicked(NMHDR *, LRESULT *pLResult)
   if (pos == NULL)
     return;
 
-  int iIndex = m_PolicyEntries.GetNextSelectedItem(pos);
-
+  const int iIndex = m_PolicyEntries.GetNextSelectedItem(pos);
   if (iIndex < 0)
     return;
 

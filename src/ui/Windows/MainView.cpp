@@ -1028,8 +1028,17 @@ BOOL DboxMain::SelectFindEntry(const int i, BOOL MakeVisible)
 
   CItemData *pci = (CItemData *)m_ctlItemList.GetItemData(i);
   ASSERT(pci != NULL);
+
   switch (m_ViewType) {
     case LIST:
+    {
+      // Unselect previously selected items
+      POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
+      while (pos) {
+        int iIndex = m_ctlItemList.GetNextSelectedItem(pos);
+        m_ctlItemList.SetItemState(iIndex, 0, LVIS_FOCUSED | LVIS_SELECTED);
+      }
+      // Now select found item
       retval = m_ctlItemList.SetItemState(i,
                                           LVIS_FOCUSED | LVIS_SELECTED,
                                           LVIS_FOCUSED | LVIS_SELECTED);
@@ -1039,6 +1048,7 @@ BOOL DboxMain::SelectFindEntry(const int i, BOOL MakeVisible)
       }
       m_ctlItemList.Invalidate();
       break;
+    }
     case TREE:
     {
       //TREE view active
@@ -1060,6 +1070,12 @@ BOOL DboxMain::SelectFindEntry(const int i, BOOL MakeVisible)
     case EXPLORER:
     {
       CPWListView *pListView = m_iLEARow == 0 ? m_pListView0 : m_pListView1;
+      POSITION pos = pListView->GetListCtrl().GetFirstSelectedItemPosition();
+      while (pos) {
+        int iIndex =  pListView->GetListCtrl().GetNextSelectedItem(pos);
+        pListView->GetListCtrl().SetItemState(iIndex, 0, LVIS_FOCUSED | LVIS_SELECTED);
+      }
+      // Now select found item
       retval = pListView->SelectItem(pci->GetUUID(), MakeVisible);
       m_LastFoundExplorerItem = i;
       break;
@@ -4249,20 +4265,20 @@ CItemData *DboxMain::GetLastSelected()
     return pci;
 
   switch (m_ViewType) {
+    case LIST:
+    {
+      POSITION pos = m_ctlItemList.GetFirstSelectedItemPosition();
+      if (pos != NULL) {
+        int iIndex = m_ctlItemList.GetNextSelectedItem(pos);
+        pci = (CItemData *)m_ctlItemList.GetItemData(iIndex);
+      }
+      break;
+    }
     case TREE:
     {
       HTREEITEM hSelected = m_ctlItemTree.GetSelectedItem();
       if (hSelected != NULL)
         pci = (CItemData *)m_ctlItemTree.GetItemData(hSelected);
-      break;
-    }
-    case LIST:
-    {
-      POSITION pSelected = m_ctlItemList.GetFirstSelectedItemPosition();
-      if (pSelected != NULL) {
-        int iIndex = m_ctlItemList.GetNextSelectedItem(pSelected);
-        pci = (CItemData *)m_ctlItemList.GetItemData(iIndex);
-      }
       break;
     }
     case EXPLORER:
