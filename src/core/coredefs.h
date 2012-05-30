@@ -101,6 +101,7 @@ public:
     }
 };
 
+// Main database
 typedef std::map<pws_os::CUUID, CItemData, std::less<pws_os::CUUID> > ItemList;
 typedef ItemList::iterator ItemListIter;
 typedef ItemList::const_iterator ItemListConstIter;
@@ -138,10 +139,16 @@ typedef std::map<StringX, PWPolicy>::iterator PSWDPolicyMapIter;
 typedef std::map<StringX, PWPolicy>::const_iterator PSWDPolicyMapCIter;
 typedef std::pair<StringX, PWPolicy> PSWDPolicyMapPair;
 
+// Used for quick access to entries via their group value
+typedef std::multimap<StringX, pws_os::CUUID, Path_Compare> PathMMap;
+typedef PathMMap::iterator PathMMapIter;
+typedef PathMMap::const_iterator PathMMapCIter;
+typedef std::pair<StringX, pws_os::CUUID> PathMMapPair;
+
 // Used for Empty Groups in general but especially for Explorer View
 typedef std::set<StringX, Path_Compare> PathSet;
 typedef PathSet::iterator PathSetIter;
-typedef PathSet::const_iterator PathSetConstIter;
+typedef PathSet::const_iterator PathSetCIter;
 typedef std::pair<PathSetIter, bool> PathSetPair;
 
 #endif /* __COREDEFS_H */

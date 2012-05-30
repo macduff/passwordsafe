@@ -674,7 +674,7 @@ int PWSfileV3::WriteHeader()
 
   // Empty Groups
   if (!m_setEmptyGroups.empty()) {
-    PathSetConstIter citer;
+    PathSetCIter citer;
     for (citer = m_setEmptyGroups.begin(); citer != m_setEmptyGroups.end(); citer++) {
       numWritten = WriteCBC(HDR_EMPTYGROUP, *citer);
       if (numWritten <= 0) { status = FAILURE; goto end; }

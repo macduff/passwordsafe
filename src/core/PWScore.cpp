@@ -32,6 +32,7 @@
 #include <iomanip>
 #include <string>
 #include <vector>
+#include <functional>
 #include <algorithm>
 #include <set>
 #include <iterator>
@@ -169,6 +170,7 @@ void PWScore::DoAddEntry(const CItemData &item)
   // Also "UndoDeleteEntry" !
   ASSERT(m_pwlist.find(item.GetUUID()) == m_pwlist.end());
   m_pwlist[item.GetUUID()] = item;
+  m_pwmmap.insert(PathMMapPair(item.GetGroup(), item.GetUUID()));
 
   if (item.NumberUnknownFields() > 0)
     IncrementNumRecordsWithUnknownFields();
@@ -253,6 +255,9 @@ void PWScore::DoDeleteEntry(const CItemData &item)
     }
 
     m_bDBChanged = true;
+    // Delete from the group multimap *first* - must be there and only once!
+    DeleteEntryFromGroupMMap(&pos->second);
+
     m_pwlist.erase(pos); // at last!
 
     if (item.NumberUnknownFields() > 0)
@@ -271,6 +276,13 @@ void PWScore::DoReplaceEntry(const CItemData &old_ci, const CItemData &new_ci)
   // Assumes that old_uuid == new_uuid
   ASSERT(old_ci.GetUUID() == new_ci.GetUUID());
   m_pwlist[old_ci.GetUUID()] = new_ci;
+  
+  if (old_ci.GetGroup() != new_ci.GetGroup()) {
+    DeleteEntryFromGroupMMap(&old_ci);
+    // Now add it again under new group
+    m_pwmmap.insert(PathMMapPair(new_ci.GetGroup(), new_ci.GetUUID()));
+  }
+  
   if (old_ci.GetEntryType() != new_ci.GetEntryType() || old_ci.IsProtected() != new_ci.IsProtected())
     GUIRefreshEntry(new_ci);
 
@@ -308,8 +320,9 @@ void PWScore::ClearData(void)
   }
   m_passkey = NULL;
 
-  //Composed of ciphertext, so doesn't need to be overwritten
+  // Composed of ciphertext, so doesn't need to be overwritten
   m_pwlist.clear();
+  m_pwmmap.clear();
 
   // Clear out out dependents mappings
   m_base2aliases_mmap.clear();
@@ -738,12 +751,14 @@ int PWScore::ReadFile(const StringX &a_filename, const StringX &a_passkey,
 
 #ifdef DEMO
          if (m_pwlist.size() < MAXDEMO) {
-           m_pwlist.insert(make_pair(CUUID(uuid), ci_temp));
+           m_pwlist.insert(make_pair(ci_temp.GetUUID(), ci_temp));
+           m_pwmmap.insert(PathMMapPair(ci_temp.GetGroup(), ci_temp.GetUUID()));
          } else {
            limited = true;
          }
 #else
          m_pwlist.insert(make_pair(ci_temp.GetUUID(), ci_temp));
+         m_pwmmap.insert(PathMMapPair(ci_temp.GetGroup(), ci_temp.GetUUID()));
 #endif
          time_t tttXTime;
          ci_temp.GetXTime(tttXTime);
@@ -1558,7 +1573,8 @@ bool PWScore::Validate(const size_t iMAXCHARS, const bool bInReadfile,
       }
     }
   } // iteration over m_pwlist
-#if 0 // XXX We've separated alias/shortcut processing from Validate - reconsider this!
+#if 0
+  // XXX We've separated alias/shortcut processing from Validate - reconsider this!
   // See if we have any entries with passwords that imply they are an alias
   // but there is no equivalent base entry
   for (size_t ipa = 0; ipa < Possible_Aliases.size(); ipa++) {
@@ -2104,6 +2120,10 @@ int PWScore::DoAddDependentEntries(UUIDVector &dependentlist, CReport *pRpt,
             // Invalid - delete!
             if (pmapDeletedItems != NULL)
               pmapDeletedItems->insert(ItemList_Pair(*paiter, *pci_curitem));
+
+            // Delete from the group multimap *first* - must be there and only once!
+            DeleteEntryFromGroupMMap(&iter->second);
+            // Now delete entry
             m_pwlist.erase(iter);
             continue;
           } 
@@ -2128,6 +2148,10 @@ int PWScore::DoAddDependentEntries(UUIDVector &dependentlist, CReport *pRpt,
             // Invalid - delete!
             if (pmapDeletedItems != NULL)
               pmapDeletedItems->insert(ItemList_Pair(*paiter, *pci_curitem));
+
+            // Delete from the group multimap *first* - must be there and only once!
+            DeleteEntryFromGroupMMap(&iter->second);
+            // Now delete entry
             m_pwlist.erase(iter);
             continue;
           }
@@ -2238,6 +2262,7 @@ void PWScore::UndoAddDependentEntries(ItemList *pmapDeletedItems,
        add_iter != pmapDeletedItems->end(); 
        add_iter++) {
     m_pwlist[add_iter->first] = add_iter->second;
+    m_pwmmap.insert(PathMMapPair(add_iter->second.GetGroup(), add_iter->first));
   }
 
   for (restore_iter = pmapSaveTypePW->begin();
@@ -3100,9 +3125,27 @@ bool PWScore::RemoveEmptyGroup(const StringX &sxEmptyGroup)
 
 void PWScore::RenameEmptyGroup(const StringX &sxOldPath, const StringX &sxNewPath)
 {
-  PathSetConstIter citer = m_setEmptyGroups.find(sxOldPath);
+  PathSetCIter citer = m_setEmptyGroups.find(sxOldPath);
   ASSERT(citer !=  m_setEmptyGroups.end());
 
   m_setEmptyGroups.erase(citer);
   m_setEmptyGroups.insert(sxNewPath);
+}
+
+void PWScore::DeleteEntryFromGroupMMap(const CItemData *pci)
+{
+  // Now delete from the group multimap - must be there and only once!
+  std::pair<PathMMapIter, PathMMapIter> mmiterpair;
+  mmiterpair = m_pwmmap.equal_range(pci->GetGroup());
+  if (mmiterpair.first != m_pwmmap.end()) {
+    for (PathMMapIter mmiter = mmiterpair.first; mmiter != mmiterpair.second; mmiter++) {
+      if (mmiter->second == pci->GetUUID()) {
+        m_pwmmap.erase(mmiter);
+        return;
+      }
+    }
+  } else {
+    // Must be here!
+    ASSERT(0);
+  }
 }

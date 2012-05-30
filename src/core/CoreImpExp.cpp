@@ -553,7 +553,7 @@ int PWScore::WriteXMLFile(const StringX &filename,
     // Write out empty groups stored in database
     ostringstreamT os;
     os << "\t<EmptyGroups>" << endl;
-    PathSetConstIter citer;
+    PathSetCIter citer;
     for (citer = m_setEmptyGroups.begin(); citer != m_setEmptyGroups.end(); citer++) {
       stringT sTemp = PWSUtil::GetSafeXMLString(*citer);
       os << "\t\t<EGName>" << sTemp << "</EGName>" << endl;
@@ -1246,7 +1246,8 @@ int PWScore::ImportPlaintextFile(const StringX &ImportedPrefix,
     if (i_Offset[EMAIL] >= 0 && tokens.size() > static_cast<size_t>(i_Offset[EMAIL]))
       ci_temp.SetEmail(tokens[i_Offset[EMAIL]].c_str());
     if (i_Offset[PROTECTED] >= 0 && tokens.size() > static_cast<size_t>(i_Offset[PROTECTED]))
-      if (tokens[i_Offset[PROTECTED]].compare(_T("Y")) == 0 || tokens[i_Offset[PROTECTED]].compare(_T("1")) == 0)
+      if (tokens[i_Offset[PROTECTED]].compare(_T("Y")) == 0 ||
+          tokens[i_Offset[PROTECTED]].compare(_T("1")) == 0)
         ci_temp.SetProtected(true);
     if (i_Offset[SYMBOLS] >= 0 && tokens.size() > static_cast<size_t>(i_Offset[SYMBOLS]))
       ci_temp.SetSymbols(tokens[i_Offset[SYMBOLS]].c_str());

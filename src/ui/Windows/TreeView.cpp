@@ -34,129 +34,6 @@ using namespace std;
 extern wchar_t GROUP_SEP;
 extern StringX sxDot;
 
-#ifdef EXPLORER_DRAG_DROP
-// Following header for D&D data passed over OLE:
-// Process ID of sender (to determine if src == tgt)
-// Type of data
-// Length of actual payload, in bytes.
-static const char *OLE_HDR_FMT = "%08x%02x%08x";
-static const int OLE_HDR_LEN = 18;
-
-class CTVDropTarget : public COleDropTarget
-{
-public:
-  CTVDropTarget(CPWTreeView *parent)
-    : m_TreeView(*parent) {}
-
-  DROPEFFECT OnDragEnter(CWnd *pWnd, COleDataObject *pDataObject,
-                         DWORD dwKeyState, CPoint point)
-  {return m_TreeView.OnDragEnter(pWnd, pDataObject, dwKeyState, point);}
-
-  DROPEFFECT OnDragOver(CWnd * pWnd, COleDataObject *pDataObject,
-                        DWORD dwKeyState, CPoint point)
-  {return m_TreeView.OnDragOver(pWnd, pDataObject, dwKeyState, point);}
-
-  void OnDragLeave(CWnd * /*pWnd*/)
-  {m_TreeView.OnDragLeave();}
-
-  BOOL OnDrop(CWnd *pWnd, COleDataObject *pDataObject,
-              DROPEFFECT dropEffect, CPoint point)
-  {return m_TreeView.OnDrop(pWnd, pDataObject, dropEffect, point);}
-
-private:
-  CPWTreeView &m_TreeView;
-};
-
-class CTVDropSource : public COleDropSource
-{
-public:
-  CTVDropSource(CPWTreeView *parent)
-    : m_TreeView(*parent) {}
-
-  virtual SCODE QueryContinueDrag(BOOL bEscapePressed, DWORD dwKeyState)
-  {
-    // To prevent processing in multiple calls to CStaticDataSource::OnRenderGlobalData
-    //  Only process the request if data has been dropped.
-    SCODE sCode = COleDropSource::QueryContinueDrag(bEscapePressed, dwKeyState);
-    if (sCode == DRAGDROP_S_DROP) {
-      pws_os::Trace(L"CTVDropSource::QueryContinueDrag - dropped\n");
-      m_TreeView.EndDrop();
-    }
-    return sCode;
-  }
-
-  virtual SCODE GiveFeedback(DROPEFFECT dropEffect)
-  {return m_TreeView.GiveFeedback(dropEffect);}
-
-private:
-  CPWTreeView &m_TreeView;
-};
-
-class CTVDataSource : public COleDataSource
-{
-public:
-  CTVDataSource(CPWTreeView *parent, COleDropSource *ds)
-    : m_TreeView(*parent), m_pDropSource(ds) {}
-
-  DROPEFFECT StartDragging(CLIPFORMAT cpfmt, LPCRECT rClient)
-  {
-    DelayRenderData(cpfmt);
-    DelayRenderData(CF_UNICODETEXT);
-    DelayRenderData(CF_TEXT);
-
-    m_TreeView.m_cfdropped = 0;
-    //pws_os::Trace(L"CTVDataSource::StartDragging - calling DoDragDrop\n");
-    DROPEFFECT de = DoDragDrop(DROPEFFECT_COPY | DROPEFFECT_MOVE,
-                               rClient, m_pDropSource);
-    // Cleanup:
-    // Standard processing is for the recipient to do this!!!
-    if (de == DROPEFFECT_NONE) {
-      if (m_TreeView.m_hgDataALL != NULL) {
-        //pws_os::Trace(L"CTVDataSource::StartDragging - Unlock/Free m_hgDataALL\n");
-        LPVOID lpData = GlobalLock(m_TreeView.m_hgDataALL);
-        SIZE_T memsize = GlobalSize(m_TreeView.m_hgDataALL);
-        if (lpData != NULL && memsize > 0) {
-          trashMemory(lpData, memsize);
-        }
-        GlobalUnlock(m_TreeView.m_hgDataALL);
-        GlobalFree(m_TreeView.m_hgDataALL);
-        m_TreeView.m_hgDataALL = NULL;
-      }
-      if (m_TreeView.m_hgDataTXT != NULL) {
-        //pws_os::Trace(L"CTVDataSource::StartDragging - Unlock/Free m_hgDataTXT\n");
-        LPVOID lpData = GlobalLock(m_TreeView.m_hgDataTXT);
-        SIZE_T memsize = GlobalSize(m_TreeView.m_hgDataTXT);
-        if (lpData != NULL && memsize > 0) {
-          trashMemory(lpData, memsize);
-        }
-        GlobalUnlock(m_TreeView.m_hgDataTXT);
-        GlobalFree(m_TreeView.m_hgDataTXT);
-        m_TreeView.m_hgDataTXT = NULL;
-      }
-      if (m_TreeView.m_hgDataUTXT != NULL) {
-        //pws_os::Trace(L"CTVDataSource::StartDragging - Unlock/Free m_hgDataUTXT\n");
-        LPVOID lpData = GlobalLock(m_TreeView.m_hgDataUTXT);
-        SIZE_T memsize = GlobalSize(m_TreeView.m_hgDataUTXT);
-        if (lpData != NULL && memsize > 0) {
-          trashMemory(lpData, memsize);
-        }
-        GlobalUnlock(m_TreeView.m_hgDataUTXT);
-        GlobalFree(m_TreeView.m_hgDataUTXT);
-        m_TreeView.m_hgDataUTXT = NULL;
-      }
-    }
-    return de;
-  }
-
-  BOOL OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
-  {return m_TreeView.OnRenderGlobalData(lpFormatEtc, phGlobal);}
-
-private:
-  CPWTreeView &m_TreeView;
-  COleDropSource *m_pDropSource;
-};
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 // CPWTreeView
 
@@ -174,14 +51,6 @@ BEGIN_MESSAGE_MAP(CPWTreeView, CTreeView)
   ON_COMMAND(ID_MENUITEM_RENAME, OnRename)
   ON_NOTIFY_REFLECT(NM_CLICK, OnItemClick)
   ON_NOTIFY_REFLECT(NM_DBLCLK, OnItemDoubleClick)
-
-#ifdef EXPLORER_DRAG_DROP
-  // Drag & Drop
-  ON_WM_MOUSEMOVE()
-  ON_NOTIFY_REFLECT(TVN_BEGINDRAG, OnBeginDrag)
-  ON_NOTIFY_REFLECT(TVN_BEGINRDRAG, OnBeginDrag)
-  ON_MESSAGE(WM_MOUSELEAVE, OnMouseLeave)
-#endif
   //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -192,42 +61,12 @@ CPWTreeView::CPWTreeView()
  : m_pParent(NULL), m_pTreeCtrl(NULL), m_pListView(NULL),
  m_pOtherTreeView(NULL), m_pOtherTreeCtrl(NULL), m_pDbx(NULL),
  m_bInitDone(false), m_bAccEn(false), m_bInRename(false),
-#ifdef EXPLORER_DRAG_DROP
- m_hgDataALL(NULL), m_hgDataTXT(NULL), m_hgDataUTXT(NULL),
- m_pDragImage(NULL), m_bDragging(false),
-#endif
  m_this_row(INVALID_ROW)
 {
-#ifdef EXPLORER_DRAG_DROP
-  // Register a clipboard format for drag & drop.
-  // Note that it's OK to register same format more than once:
-  // "If a registered format with the specified name already exists,
-  // a new format is not registered and the return value identifies the existing format."
-
-  CString cs_CPF(MAKEINTRESOURCE(IDS_CPF_TVDD));
-  m_tcddCPFID = (CLIPFORMAT)RegisterClipboardFormat(cs_CPF);
-  ASSERT(m_tcddCPFID != 0);
-
-  // Instantiate "proxy" objects for D&D.
-  // The members are currently pointers mainly to hide
-  // their implementation from the header file. If this changes,
-  // e.g., if we make them nested classes, then they should
-  // be non-pointers.
-  m_DropTarget = new CTVDropTarget(this);
-  m_DropSource = new CTVDropSource(this);
-  m_DataSource = new CTVDataSource(this, m_DropSource);
-#endif
 }
 
 CPWTreeView::~CPWTreeView()
 {
-#ifdef EXPLORER_DRAG_DROP
-  // see comment in constructor re these member variables
-  delete m_pDragImage;
-  delete m_DropTarget;
-  delete m_DropSource;
-  delete m_DataSource;
-#endif
 }
 
 BOOL CPWTreeView::PreCreateWindow(CREATESTRUCT &cs)
@@ -286,10 +125,6 @@ void CPWTreeView::Initialize()
   m_pTreeCtrl->SetImageList(pImages->GetImageList(), TVSIL_NORMAL);
   m_pTreeCtrl->SetImageList(pImages->GetImageList(), TVSIL_STATE);
 
-#ifdef EXPLORER_DRAG_DROP
-  m_DropTarget->Register(this);
-#endif
-  
   m_bInitDone = true;
 }
 
@@ -321,10 +156,6 @@ void CPWTreeView::OnDestroy()
   // Remove image list
   m_pTreeCtrl->SetImageList(NULL, TVSIL_NORMAL);
   m_pTreeCtrl->SetImageList(NULL, TVSIL_STATE);
-
-#ifdef EXPLORER_DRAG_DROP  
-  m_DropTarget->Revoke();
-#endif
 }
 
 void CPWTreeView::OnContextMenu(CWnd *pWnd, CPoint screen)
@@ -339,7 +170,7 @@ void CPWTreeView::OnRename()
     return;
 
   HTREEITEM hItem = m_pTreeCtrl->GetSelectedItem();
-  if (hItem != NULL) {
+  if (hItem != NULL && hItem != m_pTreeCtrl->GetRootItem()) {
     m_bInRename = true;
     m_pTreeCtrl->EditLabel(hItem);
     m_bInRename = false;
@@ -360,7 +191,7 @@ void CPWTreeView::GetGroupMap(StringX sxRealPath,
                               PathMap &mapGroup2Item)
 {
   pws_os::Trace(L"CPWTreeView::GetGroupMap: sxRealPath=%s\n", sxRealPath.c_str());
-  PathMapConstIter lb_iter, ub_iter, iter;
+  PathMapCIter lb_iter, ub_iter, iter;
   mapGroup2Item.clear();
 
   StringX sxRoot = m_pDbx->GetRoot();
@@ -410,7 +241,7 @@ void CPWTreeView::CreateTree(StringX &sxCurrentPath, const bool &bUpdateHistory)
   m_pDbx->GetAllGroups(vGroups);
   sort(vGroups.begin(), vGroups.end());
 
-  // Get empty grops (unsorted)
+  // Get empty groups (unsorted)
   PathSet setEmptyGroups;
   setEmptyGroups = m_pDbx->GetEmptyGroups();
 
@@ -423,7 +254,7 @@ void CPWTreeView::CreateTree(StringX &sxCurrentPath, const bool &bUpdateHistory)
     PlaceInTree(sxPRGPath, len);
   }
 
-  PathSetConstIter citer;
+  PathSetCIter citer;
   for (citer = setEmptyGroups.begin(); citer != setEmptyGroups.end(); citer++) {
     StringX sxPRGPath = sxRoot + sxDot + *citer;
     PlaceInTree(sxPRGPath, len, true);
@@ -532,10 +363,10 @@ void CPWTreeView::OnItemClick(NMHDR * /*pNMHDR*/, LRESULT *pResult)
   // Find out what item is selected in the tree
   CPoint mp = ::GetMessagePos();
   ScreenToClient(&mp);
-  UINT Flags(0);
-  HTREEITEM hSelected = m_pTreeCtrl->HitTest(mp, &Flags);
+  UINT uiFlags(0);
+  HTREEITEM hSelected = m_pTreeCtrl->HitTest(mp, &uiFlags);
 
-  if (hSelected != NULL || (Flags & TVHT_ONITEM))
+  if (hSelected != NULL && (uiFlags & (TVHT_ONITEM | TVHT_ONITEMBUTTON | TVHT_ONITEMINDENT)))
     m_pTreeCtrl->SelectItem(hSelected);
   else
     return;
@@ -741,6 +572,10 @@ void CPWTreeView::OnBeginLabelEdit(NMHDR *pNotifyStruct, LRESULT *pLResult)
 
   m_bEditLabelCompleted = false;
   HTREEITEM ti = ptvinfo->item.hItem;
+  
+  // Don't allow rename/edit of Database name
+  if (ti == m_pTreeCtrl->GetRootItem())
+    return;
 
   // In case we have to revert:
   m_sxOldText = StringX(m_pTreeCtrl->GetItemText(ti));
@@ -895,673 +730,3 @@ bool CPWTreeView::FindGroup(HTREEITEM hItem, StringX &sxPath)
     return false;
   }
 }
-
-#ifdef EXPLORER_DRAG_DROP
-void CPWTreeView::OnMouseMove(UINT nFlags, CPoint point)
-{
-  if (!m_bMouseInWindow) {
-    m_bMouseInWindow = true;
-    TRACKMOUSEEVENT tme = {sizeof(TRACKMOUSEEVENT), TME_LEAVE, m_hWnd, 0};
-    VERIFY(TrackMouseEvent(&tme));
-  }
-
-  if (m_bDragging) {
-    //
-  }
-
-  CTreeView::OnMouseMove(nFlags, point);
-}
-
-LRESULT CPWTreeView::OnMouseLeave(WPARAM /*wParam*/, LPARAM /*lParam*/)
-{
-  m_bMouseInWindow = false;
-  return 0L;
-}
-
-SCODE CPWTreeView::GiveFeedback(DROPEFFECT /*dropEffect*/)
-{
-  m_pDbx->ResetIdleLockCounter();
-  return DRAGDROP_S_USEDEFAULTCURSORS;
-}
-
-DROPEFFECT CPWTreeView::OnDragEnter(CWnd * /*pWnd*/, COleDataObject *pDataObject,
-                                    DWORD dwKeyState, CPoint /*point*/)
-{
-  // Is it ours?
-  if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
-    return DROPEFFECT_NONE;
-
-  POINT pt, hs;
-  CImageList *pil = CImageList::GetDragImage(&pt, &hs);
-  if (pil != NULL) {
-    pws_os::Trace(L"CPWTreeView::OnDragEnter() hide cursor\n");
-    while (ShowCursor(FALSE) >= 0)
-      ;
-  }
-
-  m_bWithinThisInstance = true;
-  return ((dwKeyState & MK_CONTROL) == MK_CONTROL) ?
-         DROPEFFECT_COPY : DROPEFFECT_MOVE;
-}
-
-DROPEFFECT CPWTreeView::OnDragOver(CWnd *pWnd, COleDataObject *pDataObject,
-                                   DWORD dwKeyState, CPoint point)
-{
-  // Is it ours?
-  if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
-    return DROPEFFECT_NONE;
-
-  CTreeCtrl *pDestTreeCtrl = &((CTreeView *)pWnd)->GetTreeCtrl();
-  HTREEITEM hHitItem(NULL);
-
-  POINT pt, hs;
-  CImageList *pil = CImageList::GetDragImage(&pt, &hs);
-
-  if (pil != NULL) pil->DragMove(point);
-
-  hHitItem = pDestTreeCtrl->HitTest(point);
-
-  if (hHitItem != NULL) {
-    // Highlight the item under the mouse anyway
-    if (pil != NULL) pil->DragLeave(this);
-    pDestTreeCtrl->SelectDropTarget(hHitItem);
-    m_hitemDrop = hHitItem;
-    if (pil != NULL) pil->DragEnter(this, point);
-  }
-
-  CRect rectClient;
-  pWnd->GetClientRect(&rectClient);
-  pWnd->ClientToScreen(rectClient);
-  pWnd->ClientToScreen(&point);
-
-  // Scroll TREE control depending on mouse position
-  int iMaxV = GetScrollLimit(SB_VERT);
-  int iPosV = GetScrollPos(SB_VERT);
-
-  const int SCROLL_BORDER = 10;
-  int nScrollDir = -1;
-  if ((point.y > rectClient.bottom - SCROLL_BORDER) && (iPosV != iMaxV))
-    nScrollDir = SB_LINEDOWN;
-  else if ((point.y < rectClient.top + SCROLL_BORDER) && (iPosV != 0))
-    nScrollDir = SB_LINEUP;
-
-  if (nScrollDir != -1) {
-    int nScrollPos = pWnd->GetScrollPos(SB_VERT);
-    WPARAM wParam = MAKELONG(nScrollDir, nScrollPos);
-    pWnd->SendMessage(WM_VSCROLL, wParam);
-  }
-
-  int iPosH = GetScrollPos(SB_HORZ);
-  int iMaxH = GetScrollLimit(SB_HORZ);
-
-  nScrollDir = -1;
-  if ((point.x < rectClient.left + SCROLL_BORDER) && (iPosH != 0))
-    nScrollDir = SB_LINELEFT;
-  else if ((point.x > rectClient.right - SCROLL_BORDER) && (iPosH != iMaxH))
-    nScrollDir = SB_LINERIGHT;
-
-  if (nScrollDir != -1) {
-    int nScrollPos = pWnd->GetScrollPos(SB_VERT);
-    WPARAM wParam = MAKELONG(nScrollDir, nScrollPos);
-    pWnd->SendMessage(WM_HSCROLL, wParam);
-  }
-
-  DROPEFFECT dropeffectRet;
-  // If we're dragging between processes, default is to COPY, Ctrl key
-  // changes this to MOVE.
-  // If we're dragging in the same process, default is to MOVE, Ctrl
-  // key changes this to COPY
-  if (pil == NULL)
-    dropeffectRet = ((dwKeyState & MK_CONTROL) == MK_CONTROL) ?
-                    DROPEFFECT_MOVE : DROPEFFECT_COPY;
-  else
-    dropeffectRet = ((dwKeyState & MK_CONTROL) == MK_CONTROL) ?
-                    DROPEFFECT_COPY : DROPEFFECT_MOVE;
-
-  return dropeffectRet;
-}
-
-void CPWTreeView::OnDragLeave()
-{
-  m_bWithinThisInstance = false;
-  // ShowCursor's semantics are VERY odd - RTFM
-  pws_os::Trace(L"CPWTreeView::OnDragLeave() show cursor\n");
-  while (ShowCursor(TRUE) < 0)
-    ;
-}
-
-bool CPWTreeView::CollectData(BYTE * &out_buffer, long &outLen)
-{
-  CDDObList out_oblist;
-
-  // Only nodes to drag in Tree view
-  StringX sxDragPath = GetGroupFullPath(m_pTreeCtrl, m_pTreeCtrl->GetParentItem(m_hitemDrag));
-  m_nDragPathLen = sxDragPath.length();
-  out_oblist.m_bDraggingGroup = true;
-
-  m_pDbx->GetGroupEntriesData(out_oblist, sxDragPath);
-
-  CSMemFile outDDmemfile;
-  out_oblist.DDSerialize(outDDmemfile);
-
-  outLen = (long)outDDmemfile.GetLength();
-  out_buffer = (BYTE *)outDDmemfile.Detach();
-
-  while (!out_oblist.IsEmpty()) {
-    delete (CDDObject *)out_oblist.RemoveHead();
-  }
-
-  return (outLen > 0);
-}
-
-bool CPWTreeView::ProcessData(BYTE *in_buffer, const long &inLen,
-                              const CSecString &DropGroup, const bool bCopy)
-{
-#ifdef DUMP_DATA
-  std:wstring stimestamp;
-  PWSUtil::GetTimeStamp(stimestamp);
-  pws_os::Trace(L"Drop data: length %d/0x%04x, value:\n", inLen, inLen);
-  pws_os::HexDump(in_buffer, inLen, stimestamp);
-#endif /* DUMP_DATA */
-
-  if (inLen <= 0)
-    return false;
-
-  CDDObList in_oblist;
-  CSMemFile inDDmemfile;
-
-  inDDmemfile.Attach((BYTE *)in_buffer, inLen);
-
-  in_oblist.DDUnSerialize(inDDmemfile);
-
-  inDDmemfile.Detach();
-
-  if (!in_oblist.IsEmpty()) {
-    m_pDbx->AddDDEntries(in_oblist, DropGroup, m_bWithinThisInstance, bCopy);
-
-    // Finished with them - delete and remove from object list
-    while (!in_oblist.IsEmpty()) {
-      delete (CDDObject *)in_oblist.RemoveHead();
-    }
-  }
-  return (inLen > 0);
-}
-
-BOOL CPWTreeView::OnDrop(CWnd *, COleDataObject *pDataObject,
-                         DROPEFFECT dropEffect, CPoint point)
-{
-  // Is it ours?
-  if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
-    return FALSE;
-
-  m_bDragging = false;
-  pws_os::Trace(L"CPWTreeView::OnDrop() show cursor\n");
-  while (ShowCursor(TRUE) < 0)
-    ;
-
-  POINT pt, hs;
-  CImageList *pil = CImageList::GetDragImage(&pt, &hs);
-  // pil will be NULL if we're the target of inter-process D&D
-
-  if (pil != NULL) {
-    pil->DragLeave(this);
-    pil->EndDrag();
-    pil->DeleteImageList();
-  }
-
-  if (m_pDbx->IsDBReadOnly())
-    return FALSE; // don't drop in read-only mode
-
-  if (!pDataObject->IsDataAvailable(m_tcddCPFID, NULL))
-    return FALSE;
-
-  UINT uFlags;
-  HTREEITEM hitemDrop = m_pTreeCtrl->HitTest(point, &uFlags);
-
-  bool bForceRoot(false);
-  switch (uFlags) {
-    case TVHT_ABOVE: case TVHT_BELOW: case TVHT_TOLEFT: case TVHT_TORIGHT:
-      return FALSE;
-    case TVHT_NOWHERE:
-      if (hitemDrop == NULL) {
-        // Treat as drop in root
-        hitemDrop = m_pTreeCtrl->GetRootItem();
-        bForceRoot = true;
-      } else
-        return FALSE;
-      break;
-    case TVHT_ONITEM: case TVHT_ONITEMBUTTON: case TVHT_ONITEMICON:
-    case TVHT_ONITEMINDENT: case TVHT_ONITEMLABEL: case TVHT_ONITEMRIGHT:
-    case TVHT_ONITEMSTATEICON:
-      if (hitemDrop == NULL)
-        return FALSE;
-      break;
-    default:
-      return FALSE;
-  }
-
-  BOOL retval(FALSE);
-
-  // On Drop of data from one tree to another
-  HGLOBAL hGlobal = pDataObject->GetGlobalData(m_tcddCPFID);
-  BYTE *pData = (BYTE *)GlobalLock(hGlobal);
-  ASSERT(pData != NULL);
-
-  SIZE_T memsize = GlobalSize(hGlobal);
-
-  if (memsize <= OLE_HDR_LEN) // OLE_HDR_FMT
-    goto exit;
-
-  // iDDType = D&D type FROMTREE_L/FROMTREE_R or
-  //    for column D&D only FROMCC, FROMHDR
-  // lBufLen = Length of D&D data appended to this data
-  unsigned long lPid;
-  int iDDType;
-  long lBufLen;
-
-#if (_MSC_VER >= 1400)
-  sscanf_s((char *)pData, OLE_HDR_FMT, &lPid, &iDDType, &lBufLen);
-#else
-  sscanf((char *)pData, OLE_HDR_FMT, &lPid, &iDDType, &lBufLen);
-#endif
-  pData += OLE_HDR_LEN; // so ProcessData won't sweat
-
-  // NULL-ness of pil is also a good indicator of intra/inter-ness
-  // alternately, we can also raise an m_flag in OnBeginDrag.
-  // However, plugging the process ID in the header
-  // is the most direct and straightforward way to do this,
-  // and probably the most robust...
-  m_bWithinThisInstance = (lPid == GetCurrentProcessId());
-
-  // Check if it is from another TreeCtrl or Explorer view (left or right mouse drag)?
-  // - we don't accept drop from anything else
-  if (iDDType == FROMCC || iDDType == FROMHDR)
-    goto exit;
-
-  if (iDDType == FROMTREE_R || iDDType == FROMTREE_RSC) {
-    CMenu menu;
-    if (menu.LoadMenu(IDR_POPRIGHTDRAG)) {
-      CMenu *pPopup = menu.GetSubMenu(0);
-      ASSERT(pPopup != NULL);
-      ClientToScreen(&point);
-      pPopup->SetDefaultItem(GetKeyState(VK_CONTROL) < 0 ?
-                             ID_MENUITEM_COPYHERE : ID_MENUITEM_MOVEHERE);
-      if (!m_bWithinThisInstance || iDDType != FROMTREE_RSC)
-        pPopup->EnableMenuItem(ID_MENUITEM_RCREATESHORTCUT, MF_BYCOMMAND | MF_GRAYED);
-
-      DWORD dwcode = pPopup->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON |
-                                            TPM_NONOTIFY | TPM_RETURNCMD,
-                                            point.x, point.y, this);
-      pPopup->DestroyMenu();
-      switch (dwcode) {
-        case ID_MENUITEM_COPYHERE:
-          dropEffect = DROPEFFECT_COPY;
-          break;
-        case ID_MENUITEM_MOVEHERE:
-          dropEffect = DROPEFFECT_MOVE;
-          break;
-        case ID_MENUITEM_RCREATESHORTCUT:
-        {
-          // Shortcut group from drop point, title & user from drag entry
-          // This is only allowed if one entry is dragged
-          // Dropping on a group is only possible in a TreeView
-
-          // Get the entry's data (really "ProcessData" without the call to AddEntries)
-          CDDObList in_oblist;
-          CSMemFile inDDmemfile;
-          inDDmemfile.Attach((BYTE *)pData, lBufLen);
-          in_oblist.DDUnSerialize(inDDmemfile);
-          inDDmemfile.Detach();
-          
-          ASSERT(in_oblist.GetSize() == 1);
-          POSITION pos = in_oblist.GetHeadPosition();
-          CDDObject *pin_obj = (CDDObject *)in_oblist.GetAt(pos);
-          CItemData ci;
-          pin_obj->ToItem(ci);
-
-          // No longer need object
-          delete (CDDObject *)in_oblist.RemoveHead();
-
-          CSecString cs_group, cs_title, cs_user;
-          cs_group = CSecString(GetGroupFullPath(m_pTreeCtrl, m_hitemDrop));
-          cs_title.Format(IDS_SCTARGET, ci.GetTitle().c_str());
-          cs_user = ci.GetUser();
-
-          // If there is a matching entry in our list, generate unique one
-          if (m_pDbx->Find(cs_group, cs_title, cs_user) != m_pDbx->End()) {
-            cs_title = m_pDbx->GetUniqueTitle(cs_group, cs_title, cs_user, IDS_DRAGNUMBER);
-          }
-          StringX sxNewDBPrefsString(L"");
-          m_pDbx->CreateShortcutEntry(&ci, cs_group, cs_title, cs_user, sxNewDBPrefsString);
-          retval = TRUE;
-          m_pTreeCtrl->SelectItem(NULL);  // Deselect
-          goto exit;
-        }
-        case ID_MENUITEM_CANCEL:
-        default:
-          m_pTreeCtrl->SelectItem(NULL);  // Deselect
-          goto exit;
-      }
-    }
-  }
-
-  // Can't use "m_pTreeCtrl->GetCount() == 0" to check empty database as in the
-  // normal TreeCtrl since we only have groups and it may not have any but will
-  // still have the database name as root
-  if (hitemDrop == NULL && m_pDbx->GetNumEntries() == 0) {
-    // Dropping on to an empty database
-    CSecString DropGroup (L"");
-    ProcessData(pData, lBufLen, DropGroup);
-    m_pTreeCtrl->SelectItem(m_pTreeCtrl->GetRootItem());
-    retval = TRUE;
-    goto exit;
-  }
-
-  if (IsLeaf(m_pTreeCtrl, hitemDrop) || bForceRoot)
-    hitemDrop = m_pTreeCtrl->GetParentItem(hitemDrop);
-
-  if (m_bWithinThisInstance) {
-    // From me! - easy
-    HTREEITEM parent = m_pTreeCtrl->GetParentItem(m_hitemDrag);
-    if (m_hitemDrag != hitemDrop &&
-        //!IsChildNodeOf(m_pTreeCtrl, hitemDrop, m_hitemDrag) &&
-        parent != hitemDrop) {
-      // Drag operation allowed
-      //ProcessData((BYTE *)pData, lBufLen, DropGroup, dropEffect == DROPEFFECT_COPY);
-      retval = TRUE;
-    } else {
-      // drag failed or cancelled, revert to last selected
-      m_pTreeCtrl->SelectItem(m_hitemDrag);
-      goto exit;
-    }
-  } else { // from someone else!
-    // Now add it
-    CSecString DropGroup = CSecString(GetGroupFullPath(m_pTreeCtrl, hitemDrop));
-    ProcessData((BYTE *)pData, lBufLen, DropGroup);
-    m_pTreeCtrl->SelectItem(hitemDrop);
-    retval = TRUE;
-  }
-
-  m_pTreeCtrl->SortChildren(TVI_ROOT);
-  m_pDbx->FixListIndexes();
-  GetParent()->SetFocus();
-
-exit:
-  GlobalUnlock(hGlobal);
-
-  if (retval == TRUE) {
-    m_pDbx->SetChanged(DboxMain::Data);
-    m_pDbx->ChangeOkUpdate();
-    if (m_pDbx->IsFilterActive())
-      m_pDbx->RefreshViews();
-  }
-  return retval;
-}
-
-void CPWTreeView::OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult)
-{
-  // This sets the whole D&D mechanism in motion...
-  if (pNotifyStruct->code == TVN_BEGINDRAG)
-    m_DDType = FROMTREE_L; // Left  mouse D&D
-  else
-    m_DDType = FROMTREE_R; // Right mouse D&D
-
-  m_DDType |= (m_this_row == TOP) ? FROMROW0 : FROMROW1;
-
-  CPoint ptAction;
-
-  NM_TREEVIEW *pNMTreeView = reinterpret_cast<NM_TREEVIEW *>(pNotifyStruct);
-  *pLResult = 0L;
-
-  m_vDragItems.clear();
- 
-  GetCursorPos(&ptAction);
-  ScreenToClient(&ptAction);
-  m_hitemDrag = pNMTreeView->itemNew.hItem;
-  m_hitemDrop = NULL;
-  m_pTreeCtrl->SelectItem(m_hitemDrag);
-
-  delete m_pDragImage;
-  // Bug in MS TreeCtrl and CreateDragImage.  During Drag, it doesn't show
-  // the entry's text as well as the drag image if the font is not MS Sans Serif !!!!
-  SetFont(Fonts::GetInstance()->GetDragFixFont(), false);
-  m_pDragImage = m_pTreeCtrl->CreateDragImage(m_hitemDrag);
-  ASSERT(m_pDragImage);
-  SetFont(Fonts::GetInstance()->GetCurrentFont(), false);
-
-  m_pDragImage->SetDragCursorImage(0, CPoint(0, 0));
-  m_pDragImage->BeginDrag(0, CPoint(0,0));
-  m_pDragImage->DragMove(ptAction);
-  m_pDragImage->DragEnter(GetDesktopWindow(), pNMTreeView->ptDrag);
-  m_bDragging = true;
-
-  pws_os::Trace(L"CPWTreeView::OnBeginDrag() hide cursor\n");
-  while (ShowCursor(FALSE) >= 0)
-    ;
-  //SetCapture();
-
-  RECT rClient;
-  GetClientRect(&rClient);
-
-  // Tree View does NOT have Entries - only Groups
-  // Get all the UUIDs affected - this includes specific entries and all entries
-  // within the selected group and its sub-groups.
-
-  // Start dragging
-  m_bDropped = false;
-  DROPEFFECT de = m_DataSource->StartDragging(m_tcddCPFID, &rClient);
-
-  // If inter-process Move, we need to delete original
-  if (m_cfdropped == m_tcddCPFID &&
-      (de & DROPEFFECT_MOVE) == DROPEFFECT_MOVE &&
-      !m_bWithinThisInstance && !m_pDbx->IsDBReadOnly()) {
-    StringX sxCurrentPath;
-    CItemData *pci = (CItemData *)m_pTreeCtrl->GetItemData(m_hitemDrag);
-
-    // Get complete group name
-    sxCurrentPath = (StringX)GetGroupFullPath(m_pTreeCtrl, m_hitemDrag); // e.g., a.b.c
-
-    std::vector<pws_os::CUUID> vGroupEntries;
-    m_pDbx->GetGroupEntries(sxCurrentPath, &vGroupEntries, true);
-    m_pDbx->Delete(pci, vGroupEntries);
-  }
-
-  m_pDragImage->DragLeave(GetDesktopWindow());
-  m_pDragImage->EndDrag();
-
-  if (de == DROPEFFECT_NONE) {
-    pws_os::Trace(L"m_DataSource->StartDragging() failed\n");
-    // Do cleanup - otherwise this is the responsibility of the recipient!
-    if (m_hgDataALL != NULL) {
-      LPVOID lpData = GlobalLock(m_hgDataALL);
-      SIZE_T memsize = GlobalSize(m_hgDataALL);
-      if (lpData != NULL && memsize > 0) {
-        trashMemory(lpData, memsize);
-      }
-      GlobalUnlock(m_hgDataALL);
-      GlobalFree(m_hgDataALL);
-      m_hgDataALL = NULL;
-    }
-    if (m_hgDataTXT != NULL) {
-      LPVOID lpData = GlobalLock(m_hgDataTXT);
-      SIZE_T memsize = GlobalSize(m_hgDataTXT);
-      if (lpData != NULL && memsize > 0) {
-        trashMemory(lpData, memsize);
-      }
-      GlobalUnlock(m_hgDataTXT);
-      GlobalFree(m_hgDataTXT);
-      m_hgDataTXT = NULL;
-    }
-    if (m_hgDataUTXT != NULL) {
-      LPVOID lpData = GlobalLock(m_hgDataUTXT);
-      SIZE_T memsize = GlobalSize(m_hgDataUTXT);
-      if (lpData != NULL && memsize > 0) {
-        trashMemory(lpData, memsize);
-      }
-      GlobalUnlock(m_hgDataUTXT);
-      GlobalFree(m_hgDataUTXT);
-      m_hgDataUTXT = NULL;
-    }
-  }
-
-  pws_os::Trace(L"CPWTreeView::OnBeginDrag() show cursor\n");
-  while (ShowCursor(TRUE) < 0)
-    ;
-
-  // We did call SetCapture - do we release it here?  If not, where else?
-  //ReleaseCapture();
-
-BOOL CPWTreeView::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
-{
-  if (m_hgDataALL != NULL) {
-    pws_os::Trace(L"CPWTreeView::OnRenderGlobalData - Unlock/Free m_hgDataALL\n");
-    LPVOID lpData = GlobalLock(m_hgDataALL);
-    SIZE_T memsize = GlobalSize(m_hgDataALL);
-    if (lpData != NULL && memsize > 0) {
-      trashMemory(lpData, memsize);
-    }
-    GlobalUnlock(m_hgDataALL);
-    GlobalFree(m_hgDataALL);
-    m_hgDataALL = NULL;
-  }
-
-  if (m_hgDataTXT != NULL) {
-    pws_os::Trace(L"CPWTreeView::OnRenderGlobalData - Unlock/Free m_hgDataTXT\n");
-    LPVOID lpData = GlobalLock(m_hgDataTXT);
-    SIZE_T memsize = GlobalSize(m_hgDataTXT);
-    if (lpData != NULL && memsize > 0) {
-      trashMemory(lpData, memsize);
-    }
-    GlobalUnlock(m_hgDataTXT);
-    GlobalFree(m_hgDataTXT);
-    m_hgDataTXT = NULL;
-  }
-
-  if (m_hgDataUTXT != NULL) {
-    pws_os::Trace(L"CPWTreeView::OnRenderGlobalData - Unlock/Free m_hgDataUTXT\n");
-    LPVOID lpData = GlobalLock(m_hgDataUTXT);
-    SIZE_T memsize = GlobalSize(m_hgDataUTXT);
-    if (lpData != NULL && memsize > 0) {
-      trashMemory(lpData, memsize);
-    }
-    GlobalUnlock(m_hgDataUTXT);
-    GlobalFree(m_hgDataUTXT);
-    m_hgDataUTXT = NULL;
-  }
-
-  BOOL retval;
-  if (lpFormatEtc->cfFormat == m_tcddCPFID) {
-    m_cfdropped = m_tcddCPFID;
-    retval = RenderAllData(phGlobal);
-  } else
-    return FALSE;
-
-  return retval;
-}
-
-BOOL CPWTreeView::RenderAllData(HGLOBAL *phGlobal)
-{
-  long lBufLen;
-  BYTE *buffer = NULL;
-
-  ASSERT(m_hgDataALL == NULL);
-
-  // CollectData allocates buffer - need to free later
-  if (!CollectData(buffer, lBufLen))
-    return FALSE;
-
-  char header[OLE_HDR_LEN + 1];
-  // Note: GetDDType will return any except FROMCC and FROMHDR
-#if (_MSC_VER >= 1400)
-  sprintf_s(header, sizeof(header),
-            OLE_HDR_FMT, GetCurrentProcessId(), GetDDType(), lBufLen);
-#else
-  sprintf(header, OLE_HDR_FMT, GetCurrentProcessId(), GetDDType(), lBufLen);
-#endif
-  CMemFile mf;
-  mf.Write(header, OLE_HDR_LEN);
-  mf.Write(buffer, lBufLen);
-
-  // Finished with buffer - trash it and free it
-  trashMemory((void *)buffer, lBufLen);
-  free(buffer);
-
-  LPVOID lpData(NULL);
-  LPVOID lpDataBuffer;
-  DWORD dwBufLen = (DWORD)mf.GetLength();
-  lpDataBuffer = (LPVOID)(mf.Detach());
-
-#ifdef DUMP_DATA
-  std::wstring stimestamp;
-  PWSUtil::GetTimeStamp(stimestamp);
-  pws_os::Trace(L"Drag data: length %d/0x%04x, value:\n", dwBufLen, dwBufLen);
-  pws_os::HexDump(lpDataBuffer, dwBufLen, stimestamp);
-#endif /* DUMP_DATA */
-
-  BOOL retval(FALSE);
-  if (*phGlobal == NULL) {
-    pws_os::Trace(L"CPWTreeView::OnRenderAllData - Alloc global memory\n");
-    m_hgDataALL = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, dwBufLen);
-    ASSERT(m_hgDataALL != NULL);
-    if (m_hgDataALL == NULL)
-      goto bad_return;
-
-    lpData = GlobalLock(m_hgDataALL);
-    ASSERT(lpData != NULL);
-    if (lpData == NULL)
-      goto bad_return;
-
-    // Copy data
-    memcpy(lpData, lpDataBuffer, dwBufLen);
-    *phGlobal = m_hgDataALL;
-    retval = TRUE;
-  } else {
-    pws_os::Trace(L"CPWTreeView::OnRenderAllData - *phGlobal NOT NULL!\n");
-    SIZE_T inSize = GlobalSize(*phGlobal);
-    SIZE_T ourSize = GlobalSize(m_hgDataALL);
-    if (inSize < ourSize) {
-      // Pre-allocated space too small.  Not allowed to increase it - FAIL
-      pws_os::Trace(L"CPWTreeView::OnRenderAllData - NOT enough room - FAIL\n");
-    } else {
-      // Enough room - copy our data into supplied area
-      pws_os::Trace(L"CPWTreeView::OnRenderAllData - enough room - copy our data\n");
-      LPVOID pInGlobalLock = GlobalLock(*phGlobal);
-      ASSERT(pInGlobalLock != NULL);
-      if (pInGlobalLock == NULL)
-        goto bad_return;
-
-      memcpy(pInGlobalLock, lpDataBuffer, ourSize);
-      GlobalUnlock(*phGlobal);
-      retval = TRUE;
-    }
-  }
-
-bad_return:
-  if (dwBufLen != 0 && lpDataBuffer != NULL) {
-    trashMemory(lpDataBuffer, dwBufLen);
-    free(lpDataBuffer);
-    lpDataBuffer = NULL;
-  }
-
-  // If retval == TRUE, recipient is responsible for freeing the global memory
-  // if D&D succeeds
-  if (retval == FALSE) {
-    pws_os::Trace(L"CPWTreeView::RenderAllData - returning FALSE!\n");
-    if (m_hgDataALL != NULL) {
-      LPVOID lpData = GlobalLock(m_hgDataALL);
-      SIZE_T memsize = GlobalSize(m_hgDataALL);
-      if (lpData != NULL && memsize > 0) {
-        trashMemory(lpData, memsize);
-      }
-      GlobalUnlock(m_hgDataALL);
-      GlobalFree(m_hgDataALL);
-      m_hgDataALL = NULL;
-    }
-  }
-
-  if (lpData != NULL)
-    GlobalUnlock(m_hgDataALL);
-
-  return retval;
-}
-#endif

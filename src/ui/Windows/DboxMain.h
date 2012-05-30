@@ -187,7 +187,7 @@ public:
   BOOL SelectEntry(const int i, BOOL MakeVisible = FALSE);
   BOOL SelectFindEntry(const int i, BOOL MakeVisible = FALSE);
   void SelectFirstEntry();
-  CItemData *GetGroupPath(StringX &sxCurrentPath, StringX &sxCurrentGroup);
+  CItemData *GetGroupPath(StringX &sxCurrentPath, StringX &sxCurrentGroup, bool &bOnItem);
   StringX GetCurrentPath();
   StringX GetRoot();
 

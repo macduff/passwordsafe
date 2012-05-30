@@ -553,17 +553,20 @@ private:
   std::vector<bool> m_OrigDisplayStatus;
 
   // THE password database
-  //  Key = entry's uuid; Value = entry's CItemData
+  //  Key = entry's UUID; Value = entry's CItemData
   ItemList m_pwlist;
+  //  And its 'other' index for quick finds via an entry's group
+  //  Key = entry's group; Value = entry's UUID
+  PathMMap m_pwmmap;
 
   // Alias/Shortcut structures
   // Permanent Multimap: since potentially more than one alias/shortcut per base
-  //  Key = base uuid; Value = multiple alias/shortcut uuids
+  //  Key = base UUID; Value = multiple alias/shortcut uuids
   ItemMMap m_base2aliases_mmap;
   ItemMMap m_base2shortcuts_mmap;
 
   // Permanent Map: since an alias only has one base
-  //  Key = alias/shortcut uuid; Value = base uuid
+  //  Key = alias/shortcut UUID; Value = base UUID
   ItemMap m_alias2base_map;
   ItemMap m_shortcut2base_map;
   // Following are private in PWScore, public in CommandInterface:
@@ -587,6 +590,9 @@ private:
 
   // EmptyGroups
   PathSet m_setEmptyGroups;
+  
+  // Delete entry from the group multimap
+  void DeleteEntryFromGroupMMap(const CItemData *pci);
 
   UnknownFieldList m_UHFL;
   int m_nRecordsWithUnknownFields;

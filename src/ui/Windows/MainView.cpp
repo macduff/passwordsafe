@@ -996,7 +996,14 @@ void DboxMain::SelectFirstEntry()
       }
       case EXPLORER:
       {
-        // TBD
+        CListCtrl *pListCtrl = &m_pListView0->GetListCtrl();
+        pListCtrl->SetItemState(0,
+                                LVIS_FOCUSED | LVIS_SELECTED,
+                                LVIS_FOCUSED | LVIS_SELECTED);
+        pListCtrl->EnsureVisible(0, FALSE);
+        st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(0);
+        ASSERT(pLP != NULL);
+        pci = pLP->pci;
         break;
       }
     }
@@ -1164,9 +1171,9 @@ void DboxMain::RefreshViews(const int iView)
       InsertItemIntoGUITreeList(ci, -1, false, iView);
     }
 
-    // Need to add any empty groups into the view
+    // Need to add any empty groups into the Tree view (Explorer view done via CreateTree)
     PathSet setEmptyGroups = m_core.GetEmptyGroups();
-    PathSetConstIter citer;
+    PathSetCIter citer;
     for (citer = setEmptyGroups.begin(); citer != setEmptyGroups.end(); citer++) {
       bool bAlreadyExists;
       AddGroup(&m_ctlItemTree, (*citer).c_str(), bAlreadyExists, true);
@@ -4198,7 +4205,7 @@ bool DboxMain::SetNotesWindow(const CPoint ptClient, const bool bVisible)
   StringX sx_notes(L"");
   UINT nFlags;
   HTREEITEM hItem(NULL);
-  int nItem(-1);
+  int iIndex(-1);
 
   if (m_pNotesDisplay == NULL)
     return false;
@@ -4220,14 +4227,32 @@ bool DboxMain::SetNotesWindow(const CPoint ptClient, const bool bVisible)
       break;
     case LIST:
       m_ctlItemList.ClientToScreen(&ptScreen);
-      nItem = m_ctlItemList.HitTest(ptClient, &nFlags);
-      if (nItem >= 0) {
-        pci = (CItemData *)m_ctlItemList.GetItemData(nItem);
+      iIndex = m_ctlItemList.HitTest(ptClient, &nFlags);
+      if (iIndex >= 0) {
+        pci = (CItemData *)m_ctlItemList.GetItemData(iIndex);
       }
       break;
     case EXPLORER:
-      // TBD
+    {
+      int nRow(-1), nCol(-1);
+      CRect r;
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+        return false;
+
+      if (nCol == 1) {
+        // ListView
+        CPWListView *pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+        pListView->ClientToScreen(&ptScreen);
+        CListCtrl *pListCtrl = &pListView->GetListCtrl();
+        iIndex = pListView->GetListCtrl().HitTest(ptClient, &nFlags);
+        if (iIndex >= 0) {
+          st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+          ASSERT(pLP != NULL);
+          pci = pLP->pci;
+        }
+      }
       break;
+    }
   }
   ptScreen.y += ::GetSystemMetrics(SM_CYCURSOR) / 2; // half-height of cursor
 
@@ -4998,7 +5023,7 @@ void DboxMain::RestoreGUIStatus()
 
 void DboxMain::GetAllGroups(std::vector<StringX> &vGroups) const
 {
-  PathMapConstIter iter;
+  PathMapCIter iter;
 
   vGroups.clear();
 

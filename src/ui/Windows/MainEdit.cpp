@@ -66,7 +66,8 @@ void DboxMain::OnAdd()
   // m_sxTreeViewGroup may be set by OnContextMenu, if not, try to grok it
   if (m_sxTreeViewGroup.empty()) {
     StringX sxCurrentGroup;
-    GetGroupPath(m_sxTreeViewGroup, sxCurrentGroup);
+    bool bOnEntry;
+    GetGroupPath(m_sxTreeViewGroup, sxCurrentGroup, bOnEntry);
   }
 
   CAddEdit_PropertySheet *pAddEntryPSH(NULL);
@@ -474,7 +475,8 @@ void DboxMain::OnDuplicateGroup()
   std::vector<bool> bVNodeStates; // new group will have old's expanded nodes
 
   // Get current full path (e.g. 'a.b.c') and current group (e.g. 'c')
-  GetGroupPath(sxCurrentFullPath, sxCurrentGroup);
+  bool bOnEntry(false);
+  GetGroupPath(sxCurrentFullPath, sxCurrentGroup, bOnEntry);
 
   // Must be a group
   ASSERT(!sxCurrentGroup.empty());
@@ -648,15 +650,21 @@ void DboxMain::OnDuplicateGroup()
       case 0:
         // Do nothing
         bRefresh = false;
+        delete pmulti_cmd_base;
+        delete pmulti_cmd_deps;
         break;
       case 1:
         // Only normal/base entries
+        delete pmulti_cmd_deps;
+
         pmulti_cmd_base->Insert(pcmd1);
         pmulti_cmd_base->Add(pcmd2);
         Execute(pmulti_cmd_base);
         break;
       case 2:
         // Only dependents
+        delete pmulti_cmd_base;
+
         pmulti_cmd_deps->Insert(pcmd1);
         pmulti_cmd_deps->Add(pcmd2);
         Execute(pmulti_cmd_deps);
@@ -1031,7 +1039,7 @@ void DboxMain::OnDelete()
 
   bool bAskForDeleteConfirmation = !(PWSprefs::GetInstance()->
                                      GetPref(PWSprefs::DeleteQuestion));
-  bool dodelete = true;
+  bool bDoDelete = true;
   int num_children = 0;
 
   // Find number of child items, ask for confirmation if > 0
@@ -1041,8 +1049,11 @@ void DboxMain::OnDelete()
   
   // Vector for entries in this group and below.
   std::vector<pws_os::CUUID> vGroupEntries;
+  bool bOnEntry;
 
-  pci = GetGroupPath(sxCurrentFullPath, sxCurrentGroup);
+  pci = GetGroupPath(sxCurrentFullPath, sxCurrentGroup, bOnEntry);
+  if (!bOnEntry)
+    return;
 
   if (pci == NULL) {
     // Group - Get all of the children
@@ -1069,11 +1080,11 @@ void DboxMain::OnDelete()
     CConfirmDeleteDlg deleteDlg(this, num_children, sxGroup, sxTitle, sxUser);
     INT_PTR rc = deleteDlg.DoModal();
     if (rc == IDCANCEL) {
-      dodelete = false;
+      bDoDelete = false;
     }
   }
 
-  if (dodelete) {
+  if (bDoDelete) {
     Delete(pci, vGroupEntries);
     // Only refresh views if an entry or a non-empty group was deleted
     // If we refresh when deleting an empty group, the user will lose all
@@ -1207,19 +1218,50 @@ void DboxMain::OnEdit()
     // perhaps not the most elegant solution to improving non-mouse use,
     // but it works. If anyone knows how Enter/Return gets mapped to OnEdit,
     // let me know...
-    CItemData *pci_node(NULL);
     if (m_ViewType == TREE) {
       // TREE view
       HTREEITEM ti = m_ctlItemTree.GetSelectedItem();
       if (ti != NULL) { // if anything selected
-        pci_node = (CItemData *)m_ctlItemTree.GetItemData(ti);
-        if (pci_node == NULL) { // node selected
+        CItemData *pci = (CItemData *)m_ctlItemTree.GetItemData(ti);
+        if (pci == NULL) { // node selected
           m_ctlItemTree.Expand(ti, TVE_TOGGLE);
         }
       }
     } else
     if (m_ViewType == EXPLORER) {
-      // TBD
+      int nRow(-1), nCol(-1);
+      CRect r;
+      if (m_ctlItemView.GetActivePane(&nRow, &nCol) == NULL)
+        return;
+
+      CPWTreeView *pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
+      CPWListView *pListView = nRow == 0 ? m_pListView0 : m_pListView1;
+      if (nCol == 0) {
+        // TreeView
+        CTreeCtrl *pTreeCtrl = &pTreeView->GetTreeCtrl();
+        HTREEITEM hItem = pTreeCtrl->GetSelectedItem();
+        if (hItem != NULL) {
+          int iCode = (pTreeCtrl->GetItemState(hItem, TVIS_EXPANDED) & TVIS_EXPANDED) ?
+                           TVE_COLLAPSE : TVE_EXPAND;
+          pTreeCtrl->Expand(hItem, iCode);
+        }
+      } else {
+        // ListView
+        CListCtrl *pListCtrl = &pListView->GetListCtrl();
+        POSITION pos = pListCtrl->GetFirstSelectedItemPosition();
+        if (pos != NULL) {
+          int iIndex = pListCtrl->GetNextSelectedItem(pos);
+          st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
+          ASSERT(pLP != NULL);
+          if (pLP->pci == NULL) {
+            StringX sxEntry = pListCtrl->GetItemText(iIndex, 1);
+
+            pTreeView->SetFocus();
+            pTreeView->OnListViewFolderSelected(sxEntry, iIndex, true);
+            pListCtrl->SetFocus();
+          }
+        }            
+      }
     }
   }
 }
@@ -2412,9 +2454,10 @@ void DboxMain::OnToolBarFindUp()
 }
 
 CItemData *DboxMain::GetGroupPath(StringX &sxCurrentFullPath,
-                                  StringX &sxCurrentGroup)
+                                  StringX &sxCurrentGroup, bool &bOnEntry)
 {
   CItemData *pci(NULL);
+  bOnEntry = false;
   sxCurrentFullPath.clear();
   sxCurrentGroup.clear();
 
@@ -2422,18 +2465,10 @@ CItemData *DboxMain::GetGroupPath(StringX &sxCurrentFullPath,
     case TREE:
     {
       // Get selected group
-      TVHITTESTINFO htinfo = {0};
-      CPoint local = ::GetMessagePos();
-      m_ctlItemTree.ScreenToClient(&local);
-      htinfo.pt = local;
-      m_ctlItemTree.HitTest(&htinfo);
-      HTREEITEM hItem = htinfo.hItem;
+      HTREEITEM hItem = m_ctlItemTree.GetSelectedItem();
       
       // Ignore any clicks not on an item (group or entry) - must be root!
-      if (hItem == NULL ||
-          htinfo.flags & (TVHT_NOWHERE | TVHT_ONITEMRIGHT | 
-                          TVHT_ABOVE   | TVHT_BELOW | 
-                          TVHT_TORIGHT | TVHT_TOLEFT)) {
+      if (hItem == NULL) {
         return NULL;
       }
 
@@ -2483,21 +2518,17 @@ CItemData *DboxMain::GetGroupPath(StringX &sxCurrentFullPath,
         sxCurrentFullPath = (StringX)pListView->GetCurrentPath();
 
         // Get selected item
-        CPoint local = ::GetMessagePos();
-        pListCtrl->ScreenToClient(&local);
-        UINT uiFlags;
-        int iIndex = pListCtrl->HitTest(local, &uiFlags);
-      
-        // Ignore any clicks not on an item (group or entry) - must be in current path!
-        if (iIndex == -1 ||
-            uiFlags & (LVHT_NOWHERE | 
-                       LVHT_ABOVE   | LVHT_BELOW | 
-                       LVHT_TORIGHT | LVHT_TOLEFT)) {
+        POSITION pos = pListCtrl->GetFirstSelectedItemPosition();
+        if (pos == NULL)
           return NULL;
-        }
+
+        int iIndex = pListCtrl->GetNextSelectedItem(pos);
+        if (iIndex == -1)
+          return NULL;
 
         st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListCtrl->GetItemData(iIndex);
-        if (pLP->pci == NULL) {
+        pci = pLP->pci;
+        if (pci == NULL) {
           // OK - a group
           sxCurrentGroup = pListCtrl->GetItemText(iIndex, 1);
         } else {
@@ -2505,13 +2536,14 @@ CItemData *DboxMain::GetGroupPath(StringX &sxCurrentFullPath,
           if (!sxCurrentFullPath.empty()) {
             size_t found = sxCurrentFullPath.find_last_of(L'.');
             if (found != StringX::npos) {
-              sxCurrentGroup = sxCurrentFullPath.substr(found);
+              sxCurrentGroup = sxCurrentFullPath.substr(found + 1);
               sxCurrentFullPath = sxCurrentFullPath.substr(0, found);
             } else {
               sxCurrentGroup = sxCurrentFullPath;
               sxCurrentFullPath.clear();
             }
           }
+          bOnEntry = true;
         }
       }
       if (sxCurrentFullPath.empty())

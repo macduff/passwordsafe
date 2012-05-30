@@ -517,8 +517,7 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
   CPWListView *pListView(NULL);
   StringX sxPath;
 
-  bool bGroupSelected(false);
-  bool bItemSelected(false);
+  bool bGroupSelected(false), bItemSelected(false), bDBSelected(false);
   switch (m_ViewType) {
     case LIST:
     case TREE:
@@ -534,6 +533,12 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
         pTreeView = nRow == 0 ? m_pTreeView0 : m_pTreeView1;
         HTREEITEM hItem = pTreeView->GetTreeCtrl().GetSelectedItem();
         if (hItem != NULL) {
+          // Don't allow menu on root item (Database name)
+          if (hItem == pTreeView->GetTreeCtrl().GetRootItem()) {
+            bDBSelected = true;
+            break;
+          }
+    
           sxPath = (LPCWSTR)GetGroupFullPath(&pTreeView->GetTreeCtrl(), hItem);
           sxPath += sxDot + (LPCWSTR)pTreeView->GetTreeCtrl().GetItemText(hItem);
           bGroupSelected = true;
@@ -545,7 +550,7 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
           int iIndex = pListView->GetListCtrl().GetNextSelectedItem(pos);
           st_PWLV_lParam *pLP = (st_PWLV_lParam *)pListView->GetListCtrl().GetItemData(iIndex);
           ASSERT(pLP != NULL);
-          pci = (CItemData *)pLP->pci;
+          pci = pLP->pci;
           if (pci == NULL) {
             sxPath = pListView->GetCurrentPath() + sxDot +
                               (LPCWSTR)pListView->GetListCtrl().GetItemText(iIndex, 1);
@@ -608,8 +613,26 @@ void DboxMain::CustomiseMenu(CMenu *pPopupMenu, const UINT uiMenuID,
 
   // If Edit menu selected
   if (uiMenuID == ID_EDITMENU) {
-    SetupEditMenu(pPopupMenu, pci, sxPath,
-                  pListView, bReadOnly, bGroupSelected);
+    // Delete all entries and rebuild depending on group/entry selected
+    // and, if entry, if fields are non-empty
+    UINT uiCount = pPopupMenu->GetMenuItemCount();
+    ASSERT((int)uiCount >= 0);
+
+    for (UINT ui = 0; ui < uiCount; ui++) {
+      pPopupMenu->RemoveMenu(0, MF_BYPOSITION);
+    }
+ 
+    if (bDBSelected) {
+      // Reduced set for database Name (root)
+      const wchar_t *tc_dummy = L" ";
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_GROUPENTER, tc_dummy);
+      pPopupMenu->InsertMenu((UINT)-1, MF_SEPARATOR);
+      pPopupMenu->AppendMenu(MF_ENABLED | MF_STRING,
+                             ID_MENUITEM_CLEARCLIPBOARD, tc_dummy);
+    } else
+      SetupEditMenu(pPopupMenu, pci, sxPath,
+                    pListView, bReadOnly, bGroupSelected);
   }  // Edit menu
 
 exit:
@@ -753,15 +776,6 @@ void DboxMain::SetupEditMenu(CMenu *pPopupMenu, const CItemData *pci, StringX &s
 
   // Compare decisions
   bool bStandAloneCompare(false), bAddCompare(false);
-
-  // Delete all entries and rebuild depending on group/entry selected
-  // and, if entry, if fields are non-empty
-  UINT uiCount = pPopupMenu->GetMenuItemCount();
-  ASSERT((int)uiCount >= 0);
-
-  for (UINT ui = 0; ui < uiCount; ui++) {
-    pPopupMenu->RemoveMenu(0, MF_BYPOSITION);
-  }
 
   if (m_ViewType == EXPLORER && pListView != NULL) {
     // Nothing valid to show if more than 2 items selected 
@@ -1619,8 +1633,24 @@ void DboxMain::OnContextMenu(CWnd * /*pWnd*/, CPoint screen)
       // Only groups here!
       pTreeCtrl->ScreenToClient(&client);
       HTREEITEM ti = pTreeCtrl->HitTest(client);
-      if (ti != NULL)
+      if (ti != NULL) {
         pTreeCtrl->SelectItem(ti);
+
+        // Don't allow context menu on root item (Database name)
+        if (ti == pTreeCtrl->GetRootItem()) {
+          if (menu.LoadMenu(IDR_POPDATABASENAME)) {
+            minfo.dwMenuData = IDR_POPDATABASENAME;
+            menu.SetMenuInfo(&minfo);
+
+            CMenu *pPopup = menu.GetSubMenu(0);
+            ASSERT_VALID(pPopup);
+        
+            // Use this DboxMain for commands
+            pPopup->TrackPopupMenu(dwTrackPopupFlags, screen.x, screen.y, this);
+          }
+          return;
+        }
+      }
       
       if (menu.LoadMenu(IDR_POPEDITGROUP)) {
         minfo.dwMenuData = IDR_POPEDITGROUP;

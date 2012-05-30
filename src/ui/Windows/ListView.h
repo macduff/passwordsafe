@@ -13,25 +13,13 @@
 
 #include "afxcview.h"  // For CTreeView and CListView
 
-#ifdef EXPLORER_DRAG_DROP
-#include "afxole.h"    // Drag & Drop
-#endif
-
 #include "WindowsDefs.h"
-
 #include "SecString.h"
 
 #include "core/ItemData.h"
 #include "core/Command.h"
 
 #include "os/UUID.h"
-
-#ifdef EXPLORER_DRAG_DROP
-class CDDObList;
-class CLVDropTarget;
-class CLVDropSource;
-class CLVDataSource;
-#endif
 
 class CPWListView;
 class DboxMain;
@@ -107,14 +95,6 @@ protected:
   afx_msg void OnSize(UINT nType, int cx, int cy);
   afx_msg void OnRename();
   afx_msg void OnSetFocus(CWnd *pOldWnd);
-
-#ifdef EXPLORER_DRAG_DROP
-  // Drag & Drop
-  afx_msg void OnMouseMove(UINT nFlags, CPoint point);
-  afx_msg LRESULT OnMouseLeave(WPARAM, LPARAM);
-  afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
-  afx_msg void OnBeginDrag(NMHDR *pNotifyStruct, LRESULT *pLResult);
-#endif
   //}}AFX_MSG
 
   DECLARE_MESSAGE_MAP()
@@ -182,59 +162,4 @@ private:
 
   // Our current path
   StringX m_sxCurrentPath;
-
-#ifdef EXPLORER_DRAG_DROP
-  // Drag-n-Drop interface - called indirectly via src/tgt member functions
-  // Source methods
-  SCODE GiveFeedback(DROPEFFECT dropEffect);
-  // target methods
-  BOOL OnDrop(CWnd *pWnd, COleDataObject *pDataObject,
-              DROPEFFECT dropEffect, CPoint point);
-  DROPEFFECT OnDragEnter(CWnd *pWnd, COleDataObject *pDataObject,
-                         DWORD dwKeyState, CPoint point);
-  DROPEFFECT OnDragOver(CWnd *pWnd, COleDataObject *pDataObject,
-                        DWORD dwKeyState, CPoint point);
-  void OnDragLeave();
-  bool IsDropOnMe() {return m_bWithinThisInstance;}
-  int GetDDType() {return m_DDType;}
-  void EndDrop() {m_bDropped = true;}
-
-  bool CollectData(BYTE * &out_buffer, long &outLen);
-  bool ProcessData(BYTE *in_buffer, const long &inLen, const CSecString &DropGroup,
-                   const bool bCopy = true);
-  BOOL OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal);
-  BOOL RenderAllData(HGLOBAL *phGlobal);
-  CImageList *CreateDragImageEx(LPPOINT lpPoint);
-  BOOL SelectDropTarget(int iItem);
-
-  int m_iItemDrag;
-  int m_iItemDrop;
-
-  // Hovering related items
-  int m_nDragPathLen; // Empty if dragging a leaf, path if dragging a group
-  bool m_bWithinThisInstance;
-  // For dealing with distinguishing between left & right-mouse drag
-  int m_DDType;
-
-  CLVDropTarget *m_DropTarget;
-  CLVDropSource *m_DropSource;
-  CLVDataSource *m_DataSource;
-
-  friend class CTVDropTarget;
-  friend class CTVDropSource;
-  friend class CTVDataSource;
-  friend class CLVDropTarget;
-  friend class CLVDropSource;
-  friend class CLVDataSource;
-
-  // Clipboard format for our Drag & Drop
-  CLIPFORMAT m_tcddCPFID;
-  HGLOBAL m_hgDataALL, m_hgDataUTXT, m_hgDataTXT;
-  CLIPFORMAT m_cfdropped;
-  bool m_bDropped, m_bDragging;
-  std::vector<pws_os::CUUID> m_vDragItems;
-  CImageList* m_pDragImage;
-
-  bool m_bMouseInWindow;
-#endif
 };

@@ -48,7 +48,7 @@ struct st_PWLV_lParam {
 
 typedef std::map<StringX, HTREEITEM, Path_Compare> PathMap;
 typedef PathMap::iterator PathMapIter;
-typedef PathMap::const_iterator PathMapConstIter;
+typedef PathMap::const_iterator PathMapCIter;
 
 // Custom message event used for system tray handling
 #define PWS_MSG_ICON_NOTIFY             (WM_APP + 10)

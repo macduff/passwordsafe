@@ -383,7 +383,7 @@ int DBEmptyGroupsCommand::Execute()
       switch (m_function) {
         case EG_ADDALL:
         {
-          PathSetConstIter citer;
+          PathSetCIter citer;
           for (citer = m_setNewEmptyGroups.begin(); citer != m_setNewEmptyGroups.end();
                citer++) {
             m_pcomInt->AddEmptyGroup(*citer);
