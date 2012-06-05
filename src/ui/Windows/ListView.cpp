@@ -712,6 +712,7 @@ void CPWListView::DisplayFoundEntries(const vector<CUUID> &vFoundEntries)
   LoadAString(sxSearch, IDS_SEARCH);
   Remove(sxSearch, L'&');
   m_pDbx->UpdateBackwardsForwards(m_this_row, sxSearch);
+  m_pDbx->UpdateExplorerToolbar(m_this_row, true);
   m_pDbx->UpdateStatusBar();
 }
 

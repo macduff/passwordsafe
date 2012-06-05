@@ -279,6 +279,7 @@ public:
   StringX GetGroupName() const;
   void UpdateGroupNamesInMap(const StringX sxOldPath, const StringX sxNewPath);
   void UpdateBackwardsForwards(SplitterRow sRow, const StringX sxPath);
+  void UpdateExplorerToolbar(const SplitterRow &iRow, const bool bNoUp);
   void UpdateCurrentPath(StringX sxPath);
   void SetCurrentRow(SplitterRow &iActive_Row) {m_iLEARow = iActive_Row;}
   void SetExplorerView(int &index);
@@ -864,7 +865,6 @@ private:
 
   bool AnyToGoBackwards(const SplitterRow &iRow);
   bool AnyToGoForwards(const SplitterRow &iRow);
-  void UpdateExplorerToolbar(const SplitterRow &iRow, const bool bNoUp);
   
   void UpdateSystemMenu();
   void RestoreWindows(); // extended ShowWindow(SW_RESTORE), sort of
