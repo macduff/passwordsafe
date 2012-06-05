@@ -79,24 +79,23 @@ CString TreeUtils::GetGroupFullPath(CTreeCtrl *pTreeCtrl, HTREEITEM hItem)
   return retval;
 }
 
-CSecString TreeUtils::GetPathElem(CSecString &path)
+static StringX GetFirstPathElem(StringX &sxPath)
 {
   // Get first path element and chop it off, i.e., if
   // path = "a.b.c.d"
   // will return "a" and path will be "b.c.d"
   // (assuming GROUP_SEP is '.')
 
-  CSecString retval;
-  int N = path.Find(GROUP_SEP);
-  if (N == -1) {
-    retval = path;
-    path = L"";
+  StringX sxElement;
+  const size_t n1stDot = sxPath.find_first_of(L'.');
+  if (n1stDot == StringX::npos) {
+    sxElement = sxPath;
+    sxPath = L"";
   } else {
-    const int Len = path.GetLength();
-    retval = CSecString(path.Left(N));
-    path = CSecString(path.Right(Len - N - 1));
+    sxElement = sxPath.substr(0, n1stDot);
+    sxPath = sxPath.substr(n1stDot + 1);
   }
-  return retval;
+  return sxElement;
 }
 
 bool TreeUtils::SplitLeafText(const wchar_t *lt, StringX &newTitle,
@@ -254,25 +253,24 @@ HTREEITEM TreeUtils::AddGroup(CTreeCtrl *pTreeCtrl, const StringX &sxNewGroup,
   HTREEITEM si;
   bAlreadyExists = true;
   if (!sxNewGroup.empty()) {
-    CSecString path = sxNewGroup;
-    CSecString s;
-    StringX path2root(L"");
+    StringX sxPath = sxNewGroup;
+    StringX sxTemp, sxPath2Root(L"");
     do {
-      s = GetPathElem(path);
-      if (path2root.empty())
-        path2root = (LPCWSTR)s;
+      sxTemp = GetFirstPathElem(sxPath);
+      if (sxPath2Root.empty())
+        sxPath2Root = sxTemp;
       else
-        path2root += sxDot + StringX(s);
+        sxPath2Root += sxDot + sxTemp;
 
-      if (!ExistsInTree(pTreeCtrl, ti, s, si)) {
-        ti = pTreeCtrl->InsertItem(s, ti, TVI_SORT);
+      if (!ExistsInTree(pTreeCtrl, ti, sxPath2Root.c_str(), si)) {
+        ti = pTreeCtrl->InsertItem(sxPath2Root.c_str(), ti, TVI_SORT);
         pTreeCtrl->SetItemImage(ti, CItemData::EI_GROUP, CItemData::EI_GROUP);
         bAlreadyExists = false;
       } else
         ti = si;
       if (pmapPaths2TreeItem != NULL)
-        pmapPaths2TreeItem->insert(std::make_pair(path2root,ti));
-    } while (!path.IsEmpty());
+        pmapPaths2TreeItem->insert(std::make_pair(sxPath2Root,ti));
+    } while (!sxPath.empty());
   }
   if (bIsEmpty)
     pTreeCtrl->SetItemImage(ti, CItemData::EI_EMPTY_GROUP, CItemData::EI_EMPTY_GROUP);

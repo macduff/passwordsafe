@@ -556,14 +556,14 @@ void CAddEdit_Additional::OnSTCExClicked(UINT nID)
           sxData = PWSprefs::GetInstance()->
                         GetPref(PWSprefs::DefaultAutotypeString);
         else
-          sxData = StringX(M_autotype());
+          sxData = (LPCWSTR)M_autotype();
       } else {
-        sxData = PWSAuxParse::GetAutoTypeString(StringX(M_autotype()),
-                                                StringX(M_group()),
-                                                StringX(M_title()),
-                                                StringX(M_username()),
-                                                StringX(M_realpassword()),
-                                                StringX(M_realnotes()),
+        sxData = PWSAuxParse::GetAutoTypeString(M_autotype(),
+                                                M_group(),
+                                                M_title(),
+                                                M_username(),
+                                                M_realpassword(),
+                                                M_realnotes(),
                                                 vactionverboffsets);
       }
       iaction = CItemData::AUTOTYPE;
@@ -573,7 +573,7 @@ void CAddEdit_Additional::OnSTCExClicked(UINT nID)
       // If Ctrl pressed - just copy un-substituted Run Command
       // else substitute
       if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 || M_runcommand().IsEmpty()) {
-        sxData = StringX(M_runcommand());
+        sxData = (LPCWSTR)M_runcommand();
       } else {
         std::wstring errmsg;
         size_t st_column;

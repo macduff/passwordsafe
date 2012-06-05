@@ -1896,6 +1896,8 @@ void DboxMain::OnShowFindToolbar()
 {
   // Show Find Toolbar
   SetFindToolBar(true);
+  
+  m_FindToolBar.SetFindEditFocus();
 }
 
 void DboxMain::OnClearClipboard()

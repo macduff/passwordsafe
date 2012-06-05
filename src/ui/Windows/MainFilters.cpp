@@ -178,6 +178,7 @@ void DboxMain::ApplyFilters()
   // Clear Find as old entries might not now be in the LIST View (which is how
   // Find works).  Also, hide it if visible.
   m_FindToolBar.ClearFind();
+
   if (m_FindToolBar.IsVisible())
     OnHideFindToolBar();
 

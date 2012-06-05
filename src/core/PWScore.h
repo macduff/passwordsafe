@@ -424,7 +424,7 @@ public:
   const std::vector<bool> &GetDisplayStatus() const;
   bool WasDisplayStatusChanged() const;
 
-  void CopyPWList(const ItemList &in);
+  void GetPWMMap(PathMMap &mmap_subset, StringX &sxPath2Root);
 
   const PWSfile::HeaderRecord &GetHeader() const {return m_hdr;}
   void GetDBProperties(st_DBProperties &st_dbp);

@@ -37,7 +37,7 @@ public:
   void GetSearchText(CString &csFindString)
   {m_findedit.GetWindowText(csFindString);}
   void Find();
-  void ClearFind();
+  void ClearFind(const bool &bEntriesOnly = false);
   void ShowFindAdvanced();
   void ToggleToolBarFindCase();
   BOOL IsFindCaseSet()
@@ -54,10 +54,10 @@ public:
   std::vector<int> * GetSearchResults() {return &m_indices;}
   void SetStatus(CString cs_status) {m_findresults.SetWindowText(cs_status);}
 
-  CEditExtn m_findedit;
-  CStaticExtn m_findresults;
   void SetSearchDirection(int iFindDirection) {m_iFindDirection = iFindDirection;}
   void SetCurrentPath(const StringX &sxCurrentPath) {m_sxCurrentPath = sxCurrentPath;}
+
+  void SetFindEditFocus();
 
 protected:
   BOOL PreTranslateMessage(MSG* pMsg);
@@ -74,10 +74,14 @@ private:
   static const UINT m_FindToolBarClassicBMs[];
   static const UINT m_FindToolBarNewBMs[];
 
-  CImageList m_ImageLists[3];  // 1st = Classic; 2nd = New 8; 3rd = New 32;
   TBBUTTON *m_pOriginalTBinfo;
   DboxMain *m_pDbx;
+
+  CEditExtn m_findedit;
+  CStaticExtn m_findresults;
   CFont m_FindTextFont;
+  CImageList m_ImageLists[3];  // 1st = Classic; 2nd = New 8; 3rd = New 32;
+
   int m_iMaxNumButtons, m_iNum_Bitmaps, m_NumBits;
   int m_iWMSGID;
   int m_toolbarMode, m_bitmode, m_iFindDirection;

@@ -1334,12 +1334,6 @@ void PWScore::MakePolicyUnique(std::map<StringX, StringX> &mapRenamedPolicies,
   return;
 }
 
-void PWScore::CopyPWList(const ItemList &in)
-{
-  m_pwlist = in;
-  SetDBChanged(true);
-}
-
 // For Validate only
 struct st_GroupTitleUser2 {
   StringX group;
@@ -3148,4 +3142,14 @@ void PWScore::DeleteEntryFromGroupMMap(const CItemData *pci)
     // Must be here!
     ASSERT(0);
   }
+}
+
+void PWScore::GetPWMMap(PathMMap &mmap_subset, StringX &sxPathToRoot)
+{
+  mmap_subset.clear();
+  std::pair<PathMMapIter, PathMMapIter> bounds_pair;
+  bounds_pair = m_pwmmap.equal_range(sxPathToRoot);
+
+  if (bounds_pair.first != m_pwmmap.end())
+    mmap_subset.insert(bounds_pair.first, bounds_pair.second);
 }

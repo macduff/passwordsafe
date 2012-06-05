@@ -3041,7 +3041,7 @@ LRESULT DboxMain::SynchCompareResult(PWScore *pfromcore, PWScore *ptocore,
 LRESULT DboxMain::CopyAllCompareResult(WPARAM wParam)
 {
   // This is always from Comparison DB to Current DB
-  bool bWasEmpty = GetNumEntries() == 0;
+  bool bWasEmpty = m_core.GetNumEntries() == 0;
   std::vector<st_CompareInfo *> *vpst_info = (std::vector<st_CompareInfo *> *)wParam;
 
   MultiCommands *pmulticmds = MultiCommands::Create(&m_core);

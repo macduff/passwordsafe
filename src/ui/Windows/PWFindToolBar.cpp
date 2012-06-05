@@ -387,13 +387,22 @@ void CPWFindToolBar::ShowFindToolBar(bool bShow)
   ::ShowWindow(this->GetSafeHwnd(), bShow ? SW_SHOW : SW_HIDE);
   ::EnableWindow(this->GetSafeHwnd(), bShow ? TRUE : FALSE);
 
-  if (bShow) {
-    m_findedit.ChangeColour();
-    m_findedit.SetFocus();
-    m_findedit.SetSel(0, -1);  // Select all text
-    m_findedit.Invalidate();
-  }
+  if (bShow)
+    SetFindEditFocus();
+
   m_bVisible = bShow;
+}
+
+void CPWFindToolBar::SetFindEditFocus()
+{
+  // Make Find Toolbar top of the list
+  SetWindowPos(&CWnd::wndTop, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+  // Select edit box
+  m_findedit.ChangeColour();
+  m_findedit.SetFocus();
+  m_findedit.SetSel(0, -1);  // Select all text
+  m_findedit.Invalidate();
 }
 
 void CPWFindToolBar::ToggleToolBarFindCase()
@@ -430,9 +439,17 @@ void CPWFindToolBar::ChangeImages(const int toolbarMode)
   tbCtrl.SetImageList(&m_ImageLists[nImageListNum]);
 }
 
-void CPWFindToolBar::ClearFind()
+void CPWFindToolBar::ClearFind(const bool &bEntriesOnly)
 {
   if (this->GetSafeHwnd() == NULL)
+    return;
+
+  m_numFound = size_t(-1);
+  m_lastshown = size_t(-1);
+  m_indices.clear();
+  m_pDbx->SetFoundEntries(m_indices);
+
+  if (bEntriesOnly)
     return;
 
   m_findedit.SetWindowText(L"");
@@ -441,15 +458,11 @@ void CPWFindToolBar::ClearFind()
 
   m_bCaseSensitive = m_last_cs_search = false;
   m_bAdvanced = false;
-  m_numFound = size_t(-1);
   m_last_search_text = L"";
   m_subgroup_name = m_last_subgroup_name = L"";
   m_subgroup_bset = m_last_subgroup_bset;
   m_subgroup_object = m_subgroup_function = 0;
   m_last_subgroup_object = m_last_subgroup_function = 0;
-  m_lastshown = size_t(-1);
-  m_indices.clear();
-  m_pDbx->SetFoundEntries(m_indices);
 }
 
 void CPWFindToolBar::Find()
